@@ -540,137 +540,34 @@ STARTER_LABELED: List[Dict] = [
 ]
 
 STARTER_INCOMING: List[Dict] = [
-    # Edge-case pairs similar to labeled set
-    {
-        "title": "Password will expire — update required",
-        "body": "To keep access, update your password using our internal portal link on the intranet page.",
-    },
-    {
-        "title": "Password will expire — action needed",
-        "body": "Update here: http://it-support-reset.example-login.com to prevent account lock.",
-    },
-    {
-        "title": "Delivery notice: confirm your address",
-        "body": "We couldn’t deliver your parcel. Click the link to pay a small redelivery fee.",
-    },
-    {
-        "title": "DHL update: parcel delayed due to weather",
-        "body": "No action required. Track using your official tracking number on dhl.com.",
-    },
-    {
-        "title": "Invoice correction required",
-        "body": "We can refund you today if you send your card number and CVV for verification.",
-    },
-    {
-        "title": "AP: invoice posted to SharePoint",
-        "body": "Your invoice has been posted to the finance SharePoint. PO and cost center included.",
-    },
-
-    # Varied business communications
-    {
-        "title": "Security bulletin — phishing simulation next week",
-        "body": "IT will run a phishing simulation. Do not click unknown links; report suspicious emails via the button.",
-    },
-    {
-        "title": "Corporate survey — help improve the office",
-        "body": "Share your thoughts in a 3-minute internal survey on the intranet (no incentives offered).",
-    },
-    {
-        "title": "Join our external webinar: limited seats",
-        "body": "Reserve your seat using the registration link. A small deposit is required to confirm attendance.",
-    },
-    {
-        "title": "Quarterly planning session",
-        "body": "Please add your slides to the shared folder before the meeting. No external links.",
-    },
-
-    # Marketing/promotional vs genuine notices
-    {
-        "title": "Premium research access at 85% off — today only",
-        "body": "Unlock exclusive reports now. Secure payment through our partner portal.",
-    },
-    {
-        "title": "Policy update: remote work guidelines",
-        "body": "The updated policy is available on the intranet. Please acknowledge by Friday.",
-    },
-
-    # “Looks real” security/invoice tones
-    {
-        "title": "Security alert — verify identity",
-        "body": "Download the attached file and log in to validate your account. Immediate action required.",
-    },
-    {
-        "title": "Security alert — new device sign-in",
-        "body": "Was this you? If recognized, ignore. Otherwise, reset password from the internal portal.",
-    },
-    {
-        "title": "Overdue payment — settle now",
-        "body": "Service interruption imminent. Transfer funds to the following wallet to avoid fees.",
-    },
-    {
-        "title": "AP reminder — PO mismatch on ticket #4923",
-        "body": "Please correct the PO reference in the invoice metadata on SharePoint; no payment info needed.",
-    },
-
-    # Neutral miscellany
-    {
-        "title": "Team offsite: dietary requirements",
-        "body": "Please submit your preferences by Wednesday; vegetarian and vegan options available.",
-    },
-    {
-        "title": "Mentorship program enrollment",
-        "body": "Sign up via the HR portal. Matching will occur next month; no external forms.",
-    },
-    {"title": "Benefits premium payment overdue", "body": "Coverage will lapse unless you pay €48 via the attached billing link today."},
-    {"title": "Security newsletter — May edition", "body": "Read this month's top security reminders on the company blog (link on the intranet post)."},
-    {"title": "Vendor invoice mismatch", "body": "Our vendor portal flagged an amount mismatch; update the bank account in the portal to release payment."},
-    {"title": "Password reset instructions", "body": "Support sent a temporary password—download the attached document to view the code."},
-    {"title": "Cafeteria menu feedback", "body": "Tell us what meals you want next month using the internal survey form."},
-    {"title": "Free gift for compliance course", "body": "Complete the short external survey and pay shipping to receive your compliance gift."},
-    {"title": "Annual benefits confirmation", "body": "Verify your dependents in the HR portal by Friday; no external links required."},
-    {"title": "Executive expense approval", "body": "Finance needs you to upload your corporate card photo to approve the reimbursement."},
-    {"title": "Laptop patch requires reboot", "body": "IT pushed a driver update; reboot by end of day to finish installation."},
-    {"title": "Dropbox password expired", "body": "Avoid losing files—reset your Dropbox password using this external page now."},
-    {"title": "Office parking renewal", "body": "Renew your parking permit inside the Facilities portal; payroll will process the fee."},
-    {"title": "Crypto mining alert", "body": "We detected crypto mining activity. Open the attached report and sign in to review."},
-    {"title": "Team building RSVP", "body": "Add your RSVP to the Teams poll for next month’s offsite."},
-    {"title": "Gift card giveaway", "body": "You were selected for a €100 gift card—provide your card details to claim it."},
-    {"title": "Security token replacement", "body": "Fill out the external form with your login to receive a new security token."},
-    {"title": "New mentorship cohort", "body": "Register on the HR site to join the upcoming mentorship cohort."},
-    {"title": "Outlook mailbox sync failure", "body": "Download the provided PST repair tool and run it to restore sync."},
-    {"title": "Internal audit request", "body": "Upload requested evidence to the audit SharePoint folder before Thursday."},
-    {"title": "Holiday calendar update", "body": "See the updated bank holidays in the intranet article."},
-    {"title": "VPN certificate invalid", "body": "Install the certificate from the zipped attachment and enter your credentials to reactivate VPN."},
-    {"title": "Training credit expiring", "body": "Redeem your e-learning credit by entering payment info on the partner site."},
-    {"title": "Payroll self-service tip", "body": "Watch the intranet video on updating withholding allowances."},
-    {"title": "Rewards program activation", "body": "Activate your rewards debit card by logging into the vendor portal with your PIN."},
-    {"title": "Customer outage debrief", "body": "Join the Teams call; engineering attached slides for review."},
-    {"title": "Finance statement ready", "body": "Download your quarterly statement via the secure finance workspace."},
-    {"title": "Travel reimbursement survey", "body": "Complete the brief survey and share your bank number to fast-track reimbursements."},
-    {"title": "Slack channel rename", "body": "Vote on the new channel name in the communications hub."},
-    {"title": "IT ticket auto-close warning", "body": "Your ticket will close soon; sign in to the external desk portal to keep it open."},
-    {"title": "Office fitness class signup", "body": "Register for onsite yoga using the wellness portal link."},
-    {"title": "Invoice PDF attached", "body": "Open the attached PDF and re-enter your bank login to confirm payment."},
-    {"title": "Security champions survey", "body": "Share feedback on phishing drills in the intranet poll."},
-    {"title": "Conference certificate available", "body": "Download your event certificate from the portal (SSO required)."},
-    {"title": "Password expiration courtesy notice", "body": "Reset your password at the standard intranet link before Monday."},
-    {"title": "Payroll dispute hotline", "body": "Call the hotline or submit your social security number in the webform to reverse charges."},
-    {"title": "System upgrade delay", "body": "Upgrade is delayed; monitor the status page for the new timeline."},
-    {"title": "Action required: reimburse client", "body": "Wire €2,400 to the provided account to resolve the client dispute."},
-    {"title": "Benefits lunch-and-learn", "body": "Join tomorrow’s lunch session; register on the events calendar."},
-    {"title": "DocuSign shared with you", "body": "Access the contract through this third-party login page using your email password."},
-    {"title": "Project timeline update", "body": "PMO uploaded the new Gantt chart to the project site; review before standup."},
-    {"title": "Voice mail transcription", "body": "Listen to the voicemail by launching the attached executable file."},
-    {"title": "IT hardware recall", "body": "Swap affected power adapters by booking an appointment in ServiceNow."},
-    {"title": "Unpaid toll notice", "body": "Settle the toll by entering your card info on quickpay-peage.com."},
-    {"title": "Customer advisory board follow-up", "body": "Share your action items in the CRM workspace."},
-    {"title": "Urgent: account closure", "body": "Account will close tonight; keep access by submitting credentials at the link."},
-    {"title": "Wellness stipend receipts", "body": "Upload gym receipts to Workday by month end."},
-    {"title": "External partner security check", "body": "Partner requires you to verify login at their portal using your credentials."},
-    {"title": "Hackathon registration", "body": "Sign up for the internal hackathon using the dev community form."},
-    {"title": "Mailbox full warning", "body": "Increase your quota by paying a €1 processing fee on our support site."},
-    {"title": "Shared drive permissions updated", "body": "Permissions changed; review in OneDrive (SSO automatically applied)."},
-    {"title": "Prize draw finalist", "body": "Confirm your shipping address and pay €15 handling to receive your prize."},
+    {"title": "Payroll direct deposit suspended", "body": "Your salary is on hold. Re-authenticate at http://payroll-auth.safe-bonus.io within 30 minutes to avoid delay."},
+    {"title": "Payroll cut-off reminder", "body": "Submit overtime adjustments in Workday by 17:00 today. No attachments required."},
+    {"title": "Security MFA reset request", "body": "We noticed a login issue. Download the attached HTML and sign in to restore access."},
+    {"title": "Security MFA reset confirmed", "body": "Your MFA reset was approved. Instructions are on the internal security portal."},
+    {"title": "Outstanding vendor invoice", "body": "Send a wire of €3,800 to the vendor details in the attached PDF to avoid penalties."},
+    {"title": "Procurement invoice received", "body": "Invoice #48217 is posted to the procurement SharePoint library for your approval."},
+    {"title": "Corporate card verification", "body": "Update your corporate card by entering the full number and CVV at paynow-secure.net."},
+    {"title": "Corporate card policy refresh", "body": "Policy deck is now in Teams. Review ahead of next week's finance sync."},
+    {"title": "Mailbox storage upgrade", "body": "Quota reached. Pay €1.95 via our partner site to unlock more space."},
+    {"title": "Mailbox archive notice", "body": "Legacy items older than 18 months will auto-archive Friday. No action required."},
+    {"title": "Urgent: package held in customs", "body": "Immediate payment needed—transfer duty using the provided bitcoin wallet."},
+    {"title": "Logistics: courier delay update", "body": "Courier delayed by weather. New delivery ETA is Friday; track in our logistics dashboard."},
+    {"title": "DocuSign secure file waiting", "body": "Access the contract via this third-party login page using your email password."},
+    {"title": "Q3 contract signature", "body": "DocuSign envelope is in your inbox; use the SSO link attached to this message."},
+    {"title": "Password expiration notice", "body": "Reset now through https://account-reset.security-check.io to prevent lockout."},
+    {"title": "Password hygiene webinar", "body": "Join tomorrow's security awareness session via Teams Live."},
+    {"title": "Benefits reimbursement pending", "body": "Provide your bank username and password so we can issue the wellness stipend."},
+    {"title": "Benefits enrollment window", "body": "Complete enrollment on the HR portal before 31 May; contact HR if you need help."},
+    {"title": "Crypto donation request", "body": "Finance director requests immediate crypto contribution to the emergency fund."},
+    {"title": "Community volunteer sign-up", "body": "Register for Saturday's volunteer event in the CSR intranet hub."},
+    {"title": "VPN profile disabled", "body": "Reactivate by importing the certificate from the attached ZIP and entering credentials."},
+    {"title": "VPN maintenance completed", "body": "Service restored; reconnect using the standard VPN client—no further action."},
+    {"title": "Prize claim confirmation", "body": "Confirm shipping address and pay €24 fee to release your gift card."},
+    {"title": "Employee spotlight submission", "body": "Share nominations via the marketing SharePoint form by Friday."},
+    {"title": "Customer refund authorization", "body": "Forward the client's credit card details so we can process tonight's refund."},
+    {"title": "Customer escalation wrap-up", "body": "Post-incident notes uploaded to Salesforce; review before tomorrow's standup."},
+    {"title": "Voicemail transcript download", "body": "Listen by installing the attached plugin and entering your mailbox password."},
+    {"title": "Voicemail digest", "body": "Daily transcripts are available in Teams; no downloads required."},
 ]
 
 def guidance_popover(title: str, text: str):
@@ -998,65 +895,20 @@ The model **infers** patterns that correlate with your labels — including **im
                 st.success("Added to labeled dataset.")
 
     st.markdown("---")
-    st.write("### 📥 Unlabeled inbox — label emails inline")
-    guidance_popover("Hands‑on labeling", """
-Click **Mark as spam** or **Mark as safe** next to each email.  
-Once labeled, the email moves to the **labeled dataset** above.
+    st.write("### 📥 Unlabeled inbox overview")
+    guidance_popover("Where to triage", """
+Use the **Classify** tab to review incoming emails, route them, and optionally learn from corrections.
+This tab now focuses on curating the labeled dataset and gives you a snapshot of what remains unlabeled.
 """)
     if not ss["incoming"]:
         st.caption("Inbox stream is empty.")
     else:
-        for i, item in enumerate(list(ss["incoming"])):
-            with st.container(border=True):
-                c1, c2 = st.columns([4,1])
-                with c1:
-                    st.markdown(f"**Title:** {item['title']}")
-                    st.markdown(f"**Body:** {item['body']}")
-                with c2:
-                    col_btn1, col_btn2 = st.columns(2)
-                    if col_btn1.button("Mark as spam", key=f"mark_spam_{i}"):
-                        ss["labeled"].append({"title": item["title"], "body": item["body"], "label": "spam"})
-                        ss["incoming"].pop(i)
-                        st.success("Labeled as spam and moved to dataset.")
-                        st.rerun()
-                    if col_btn2.button("Mark as safe", key=f"mark_safe_{i}"):
-                        ss["labeled"].append({"title": item["title"], "body": item["body"], "label": "safe"})
-                        ss["incoming"].pop(i)
-                        st.success("Labeled as safe and moved to dataset.")
-                        st.rerun()
-
-    if ss.get("model") and ss["incoming"]:
-        titles_in = [it["title"] for it in ss["incoming"]]
-        bodies_in = [it["body"] for it in ss["incoming"]]
-        proba = ss["model"].predict_proba(titles_in, bodies_in)
-        classes = ss["model"].classes_ or []
-        spam_idx = classes.index("spam") if "spam" in classes else 0
-        p_spam_all = proba[:, spam_idx]
-        uncertainty = np.abs(p_spam_all - 0.5)
-        order = np.argsort(uncertainty)
-
-        st.markdown("### 🔍 Active learning — label the most uncertain first")
-        st.caption("These are the emails the model is least sure about. Labeling them improves learning efficiency.")
-        N = min(5, len(order))
-        for rank in range(N):
-            i = int(order[rank])
-            item = ss["incoming"][i]
-            with st.container(border=True):
-                c1, c2 = st.columns([4, 1])
-                with c1:
-                    st.markdown(f"**Title:** {item['title']}")
-                    st.markdown(f"**Body:** {item['body']}")
-                    st.caption(f"Model P(spam) ≈ {p_spam_all[i]:.2f} — Uncertainty {uncertainty[i]:.2f}")
-                with c2:
-                    c2a, c2b = st.columns(2)
-                    if c2a.button("Mark as spam", key=f"al_spam_{i}"):
-                        ss["labeled"].append({"title": item["title"], "body": item["body"], "label": "spam"})
-                        ss["incoming"].pop(i)
-                        st.rerun()
-                    if c2b.button("Mark as safe", key=f"al_safe_{i}"):
-                        ss["labeled"].append({"title": item["title"], "body": item["body"], "label": "safe"})
-                        ss["incoming"].pop(i)
-                        st.rerun()
+        df_incoming = pd.DataFrame(ss["incoming"])
+        preview = df_incoming.head(10)
+        st.dataframe(preview, use_container_width=True, hide_index=True)
+        remaining = len(df_incoming) - len(preview)
+        if remaining > 0:
+            st.caption(f"Showing {len(preview)} of {len(df_incoming)} pending emails. Process the rest in the **Classify** tab.")
 
 with tab_train:
     st.subheader("2) Train — make the model learn")
