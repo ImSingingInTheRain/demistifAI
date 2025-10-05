@@ -662,13 +662,42 @@ class HybridEmbedFeatsLogReg:
         return self.lr.predict_proba(X)
 
     # Convenience for introspection of numeric feature coefficients
-    def numeric_feature_coefs(self) -> Dict[str, float]:
-        # Last len(FEATURE_ORDER) coefficients correspond to standardized numeric features
-        # because we concatenate [embeddings | std(numeric)]
+    def numeric_feature_details(self) -> pd.DataFrame:
+        """Return dataframe with standardized weights + training stats."""
+
+        if not hasattr(self.lr, "coef_"):
+            raise RuntimeError("Model is not trained")
+
         n_total = self.lr.coef_.shape[1]
         n_num = len(FEATURE_ORDER)
+        if n_total < n_num:
+            raise RuntimeError("Logistic regression is missing numeric feature coefficients")
+
         coefs = self.lr.coef_[0][-n_num:]
-        return {name: float(w) for name, w in zip(FEATURE_ORDER, coefs)}
+        means = getattr(self.scaler, "mean_", np.zeros(n_num))
+        stds = getattr(self.scaler, "scale_", np.ones(n_num))
+
+        df = pd.DataFrame(
+            {
+                "feature": FEATURE_ORDER,
+                "weight_per_std": coefs.astype(float),
+                "train_mean": means.astype(float),
+                "train_std": stds.astype(float),
+            }
+        )
+
+        # Odds change for a +1 standard deviation move in the original (unscaled) feature
+        df["odds_multiplier_per_std"] = np.exp(df["weight_per_std"])
+
+        # Translate back to effect per raw-unit (avoid division by ~0)
+        safe_std = df["train_std"].replace(0, np.nan)
+        df["weight_per_unit"] = df["weight_per_std"] / safe_std
+
+        return df
+
+    def numeric_feature_coefs(self) -> Dict[str, float]:
+        details = self.numeric_feature_details()
+        return dict(zip(details["feature"], details["weight_per_std"]))
 
 def route_decision(autonomy: str, y_hat: str, pspam: Optional[float], threshold: float):
     routed = None
@@ -871,14 +900,52 @@ Controls the randomness of the split. By fixing the seed, you can reproduce the 
 
                 with st.expander("Interpretability: numeric feature coefficients", expanded=False):
                     try:
-                        coef_map = ss["model"].numeric_feature_coefs()
-                        st.caption("Positive weights push toward the **spam** class; negative toward **safe** (after standardization).")
+                        coef_details = ss["model"].numeric_feature_details()
+                        st.caption(
+                            "Positive weights push toward the **spam** class; negative toward **safe**. "
+                            "Values are in log-odds (after standardizing numeric features)."
+                        )
+
+                        chart_data = (
+                            coef_details.sort_values("weight_per_std", ascending=True)
+                            .set_index("feature")["weight_per_std"]
+                        )
+                        st.bar_chart(chart_data, use_container_width=True)
+
+                        display_df = coef_details.assign(
+                            odds_multiplier_plus_1sigma=coef_details["odds_multiplier_per_std"],
+                            approx_pct_change_odds=(coef_details["odds_multiplier_per_std"] - 1.0) * 100.0,
+                        )[
+                            [
+                                "feature",
+                                "weight_per_std",
+                                "odds_multiplier_plus_1sigma",
+                                "approx_pct_change_odds",
+                                "weight_per_unit",
+                                "train_mean",
+                                "train_std",
+                            ]
+                        ]
+
                         st.dataframe(
-                            pd.DataFrame(
-                                [{"feature": k, "weight_toward_spam": v} for k, v in coef_map.items()]
-                            ).sort_values("weight_toward_spam", ascending=False),
+                            display_df.rename(
+                                columns={
+                                    "weight_per_std": "log_odds_weight(+1σ)",
+                                    "odds_multiplier_plus_1sigma": "odds_multiplier(+1σ)",
+                                    "approx_pct_change_odds": "%Δodds(+1σ)",
+                                    "weight_per_unit": "log_odds_weight(per unit)",
+                                    "train_mean": "train_mean",
+                                    "train_std": "train_std",
+                                }
+                            ),
                             use_container_width=True,
                             hide_index=True,
+                        )
+
+                        st.caption(
+                            "Example: increasing a feature by one standard deviation multiplies the spam odds by the "
+                            "value in `odds_multiplier(+1σ)`. `log_odds_weight(per unit)` reverses the standardization "
+                            "to show impact per original feature unit."
                         )
                     except Exception as e:
                         st.caption(f"Coefficients unavailable: {e}")
