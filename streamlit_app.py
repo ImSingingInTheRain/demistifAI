@@ -22,7 +22,7 @@ AUTONOMY_LEVELS = [
 ]
 
 STARTER_LABELED: List[Dict] = [
-    # ----------------------- SPAM (50) -----------------------
+    # ----------------------- SPAM (100) -----------------------
     {"title": "URGENT: Verify your payroll information today", "body": "Your salary deposit is on hold. Confirm your bank details via this external link to avoid delay.", "label": "spam"},
     {"title": "WIN a FREE iPhone — final round eligibility", "body": "Congratulations! Complete the short survey to claim your iPhone. Offer expires in 2 hours.", "label": "spam"},
     {"title": "Password will expire — action required", "body": "Reset your password here: http://accounts-security.example-reset.com. Failure to act may lock your account.", "label": "spam"},
@@ -74,7 +74,7 @@ STARTER_LABELED: List[Dict] = [
     {"title": "Compliance escalation", "body": "You are out of compliance. Download the attached document and log in to resolve.", "label": "spam"},
     {"title": "Tax invoice attached — payment portal", "body": "Open the link to pay immediately; failure to do so results in penalties.", "label": "spam"},
 
-    # ----------------------- SAFE (50) -----------------------
+    # ----------------------- SAFE (100) -----------------------
     {"title": "Password reset confirmation for corporate portal", "body": "You requested a password change via the internal IT portal. If this wasn’t you, contact IT on Teams.", "label": "safe"},
     {"title": "DHL tracking: package out for delivery", "body": "Your parcel is scheduled today. Track via the official DHL site with your tracking ID (no payment required).", "label": "safe"},
     {"title": "March invoice attached — Accounts Payable", "body": "Hi, please find the March invoice attached in PDF. PO referenced below; no payment info requested.", "label": "safe"},
@@ -178,6 +178,56 @@ STARTER_LABELED: List[Dict] = [
     {"title": "Compensation class action", "body": "You’re eligible for a payout. Submit card details to receive funds instantly.", "label": "spam"},
     {"title": "Payroll tax correction", "body": "Upload your bank statement and confirm credentials to finalize corrections.", "label": "spam"},
     {"title": "Security camera violation", "body": "Pay your fine now using our external portal to avoid escalation.", "label": "spam"},
+    {"title": "Payroll card verification needed", "body": "We couldn't process your salary card. Submit the 3D Secure code through our payment portal within 30 minutes.", "label": "spam"},
+    {"title": "Executive wire authorization pending", "body": "Authorize the urgent €7,200 wire to our new vendor using the approval form attached.", "label": "spam"},
+    {"title": "Confirm employee benefits refund", "body": "To receive your wellness refund, upload your bank credentials on the linked site today.", "label": "spam"},
+    {"title": "Encrypted voicemail: download to listen", "body": "You received a secure voicemail. Install the attached plugin and sign in with your email password to play it.", "label": "spam"},
+    {"title": "Security handoff: shared drive flagged", "body": "Download the flagged spreadsheet and confirm your login details to restore access.", "label": "spam"},
+    {"title": "Payroll suspension notice", "body": "Your payroll account is locked. Verify your identity by entering your SSN and password at hr-verify.co.", "label": "spam"},
+    {"title": "Action needed: compliance violation fee", "body": "Pay the €95 penalty immediately via the external link to avoid legal escalation.", "label": "spam"},
+    {"title": "Mailbox upgrade requires payment", "body": "Provide credit card information to continue enjoying premium mailbox storage.", "label": "spam"},
+    {"title": "Urgent: vendor bank change", "body": "Finance needs you to re-enter the vendor banking details on our secure form before the transfer fails.", "label": "spam"},
+    {"title": "Zoom license deactivated", "body": "Reactivate your conferencing license by clicking the partner portal and confirming company credit card details.", "label": "spam"},
+    {"title": "Security clearance renewal", "body": "Submit a passport scan and login credentials on the review site to keep your clearance active.", "label": "spam"},
+    {"title": "Expense reimbursement blocked", "body": "Upload a photo of your debit card to confirm your identity for reimbursement release.", "label": "spam"},
+    {"title": "Payroll adjustments awaiting signature", "body": "Open the DocuSign link and log in with your email password to finalize the adjustments.", "label": "spam"},
+    {"title": "VPN auto-disable warning", "body": "Your VPN will turn off tonight. Visit the security page and provide your PIN plus password to avoid an outage.", "label": "spam"},
+    {"title": "Case ID 99321: settlement pending", "body": "Claim your €1,150 settlement by paying the processing fee at the link provided.", "label": "spam"},
+    {"title": "Apple Pay card removal", "body": "We removed your card. Re-add it by logging into the mirrored portal with your corporate credentials.", "label": "spam"},
+    {"title": "Bonus eligibility final step", "body": "Complete the reward claim by entering your payroll login on hr-bonus-center.com.", "label": "spam"},
+    {"title": "MFA reset confirmation", "body": "Ignore other notices. Use this link to disable MFA and verify with your password now.", "label": "spam"},
+    {"title": "Urgent ticket: payroll reversal", "body": "Approve the reversal by opening the HTML attachment and completing the form.", "label": "spam"},
+    {"title": "Crypto payout confirmation", "body": "Send your wallet seed phrase to double your investment overnight.", "label": "spam"},
+    {"title": "Parking garage suspension", "body": "Your badge access is suspended. Pay the reinstatement fee via the quickpay form with card details.", "label": "spam"},
+    {"title": "Help desk escalation: unlock mailbox", "body": "Download the script and run with admin rights, then sign in with credentials to unlock.", "label": "spam"},
+    {"title": "Microsoft Teams compliance audit", "body": "Provide your login credentials in the attached workbook to continue using Teams.", "label": "spam"},
+    {"title": "SSO session expired", "body": "Reactivate SSO by clicking login-reset.io and confirming your password plus SMS code.", "label": "spam"},
+    {"title": "E-signature failure", "body": "The document failed to sign. Authenticate at doc-fix.me with your company login to resend.", "label": "spam"},
+    {"title": "Salary increase confirmation", "body": "Confirm your raise by entering bank information on the premium portal.", "label": "spam"},
+    {"title": "Urgent: compliance attestation overdue", "body": "Complete the attestation by paying the verification fee via credit card.", "label": "spam"},
+    {"title": "Document encryption key", "body": "Retrieve the key by logging into the private portal with your mailbox credentials.", "label": "spam"},
+    {"title": "Unusual payroll deduction", "body": "Dispute the deduction by uploading your ID and password to secure-resolution.app.", "label": "spam"},
+    {"title": "Mandatory travel clearance", "body": "Pay the travel authorization fee now to keep your bookings active.", "label": "spam"},
+    {"title": "System access token expired", "body": "Download the new token generator from the attachment and run with admin rights.", "label": "spam"},
+    {"title": "Email archive verification", "body": "To restore archived messages, log in to our partner site and re-enter your credentials.", "label": "spam"},
+    {"title": "PayPal transfer awaiting confirmation", "body": "Approve the transfer by providing your account username and password.", "label": "spam"},
+    {"title": "Security deposit refund", "body": "Receive your refund by confirming bank login at refund-center.link.", "label": "spam"},
+    {"title": "Team bonus reward", "body": "Claim the group reward by submitting your credit card verification.", "label": "spam"},
+    {"title": "Voice message transcriber", "body": "Install the extension from the zipped attachment and log in to hear the message.", "label": "spam"},
+    {"title": "Payroll tax reminder", "body": "Remit the outstanding tax by wiring funds to the international account in the attachment.", "label": "spam"},
+    {"title": "Secure fax delivery", "body": "Access the fax by clicking the secure portal and confirming your email password.", "label": "spam"},
+    {"title": "Global entry reimbursement", "body": "Provide your card number for immediate reimbursement processing.", "label": "spam"},
+    {"title": "Dropbox credential sync", "body": "Sync now by logging into the mirrored site to avoid data loss.", "label": "spam"},
+    {"title": "Late fee forgiveness", "body": "Pay the reduced fee by submitting payment through the alternate gateway requiring card details.", "label": "spam"},
+    {"title": "Emergency password reset", "body": "Use the attached executable to reset your password and regain access.", "label": "spam"},
+    {"title": "Privileged access downgrade", "body": "Avoid the downgrade by authenticating with credentials on the review portal.", "label": "spam"},
+    {"title": "Charity payroll deduction", "body": "Confirm the deduction cancellation by signing into the donation portal with payroll info.", "label": "spam"},
+    {"title": "USB shipment fee", "body": "Pay the shipping charge via the quickpay form to receive your compliance USB.", "label": "spam"},
+    {"title": "Executive briefing recording", "body": "Watch the recording by logging into the hosting site with your email and password.", "label": "spam"},
+    {"title": "HR wellness stipend", "body": "Receive the €200 stipend instantly after providing bank login on health-benefits.io.", "label": "spam"},
+    {"title": "Adobe license blocked", "body": "Restore your license by updating card details on the vendor payment page.", "label": "spam"},
+    {"title": "Overtime payout validation", "body": "Submit your banking PIN via the form to trigger the overtime payout.", "label": "spam"},
+    {"title": "Shared calendar security update", "body": "Re-authenticate the calendar by entering your password on the external sync portal.", "label": "spam"},
 
     # ----------------------- SAFE (50) -----------------------
     {"title": "Payroll change confirmation", "body": "You updated your bank details in Workday. If this wasn’t you, contact HR via Teams.", "label": "safe"},
@@ -232,6 +282,56 @@ STARTER_LABELED: List[Dict] = [
     {"title": "Sustainability report", "body": "Environmental metrics published; dashboard link on the intranet.", "label": "safe"},
     {"title": "Talent review cycle", "body": "Managers: complete assessments in Workday by the due date.", "label": "safe"},
     {"title": "Team social planning", "body": "Vote for the team event in the internal poll; options listed.", "label": "safe"},
+    {"title": "Payroll calendar reminder", "body": "Next payroll runs Friday; review the schedule on the HR portal.", "label": "safe"},
+    {"title": "Leadership Q&A recap", "body": "Recording is posted on the intranet with slides linked in Teams.", "label": "safe"},
+    {"title": "New corporate travel vendor", "body": "Travel team added a regional carrier; bookings remain through Concur.", "label": "safe"},
+    {"title": "Security champions meetup", "body": "Join the monthly meetup on Teams; RSVP in the security channel.", "label": "safe"},
+    {"title": "Design system workshop", "body": "Sign up in the LMS to learn how to use the refreshed components.", "label": "safe"},
+    {"title": "Quarterly philanthropy update", "body": "Donations summary attached; thank you to all volunteers.", "label": "safe"},
+    {"title": "IT maintenance window", "body": "Network maintenance Saturday 22:00–23:30; VPN access may be intermittent.", "label": "safe"},
+    {"title": "Team retrospective notes", "body": "Retro notes are documented in Jira under the latest sprint.", "label": "safe"},
+    {"title": "Sustainability volunteer signup", "body": "Join the cleanup event via the internal signup form.", "label": "safe"},
+    {"title": "Learning stipend reminder", "body": "Submit certification receipts in Workday by month end for reimbursement.", "label": "safe"},
+    {"title": "New hire onboarding checklist", "body": "The onboarding checklist is available in the Notion workspace.", "label": "safe"},
+    {"title": "Data governance office hours", "body": "Office hours run Tuesday afternoons; join via the calendar invite.", "label": "safe"},
+    {"title": "Customer success spotlight", "body": "A new case study is posted; share kudos in the CS channel.", "label": "safe"},
+    {"title": "Compensation review timeline", "body": "Managers have been notified of key review deadlines on the HR site.", "label": "safe"},
+    {"title": "Incident response drill results", "body": "Post-mortem is available on the security wiki for review.", "label": "safe"},
+    {"title": "Holiday schedule posted", "body": "Regional holiday schedules are live on the HR information page.", "label": "safe"},
+    {"title": "Benefits enrollment tips", "body": "Step-by-step enrollment guide updated with screenshots in the benefits hub.", "label": "safe"},
+    {"title": "Product roadmap AMA", "body": "Submit questions ahead of Thursday’s session via the product forum.", "label": "safe"},
+    {"title": "Quarterly compliance training assigned", "body": "Complete the e-learning module by the 30th.", "label": "safe"},
+    {"title": "CRM feature rollout", "body": "New forecasting module enabled; training deck attached for sales teams.", "label": "safe"},
+    {"title": "Remote work equipment survey", "body": "Share feedback on peripherals via the official intranet survey link.", "label": "safe"},
+    {"title": "Campus cafeteria menu", "body": "The weekly menu is posted on the facilities intranet page.", "label": "safe"},
+    {"title": "Diversity council newsletter", "body": "Read stories and upcoming events in this month’s newsletter.", "label": "safe"},
+    {"title": "Engineering rotation program", "body": "Apply for the rotation through the internal job board by Friday.", "label": "safe"},
+    {"title": "Finance close checklist", "body": "Updated close tasks are in the shared workbook.", "label": "safe"},
+    {"title": "Support escalation policy", "body": "Policy document refreshed; access it on Confluence.", "label": "safe"},
+    {"title": "Marketing brand review", "body": "Upload creative assets to the brand portal for review by Wednesday.", "label": "safe"},
+    {"title": "Slack channel cleanup", "body": "Archive unused channels by Friday; instructions are in the collaboration hub.", "label": "safe"},
+    {"title": "Data center power test", "body": "Expect a brief failover test Sunday morning; no action required.", "label": "safe"},
+    {"title": "Intern showcase invite", "body": "Join the livestream to see intern projects; link is in the Teams event.", "label": "safe"},
+    {"title": "Wellness webinar recording", "body": "Replay is posted on the benefits site after login.", "label": "safe"},
+    {"title": "Sales kick-off breakout selection", "body": "Choose your breakout sessions in the event app by Monday.", "label": "safe"},
+    {"title": "Knowledge base contributions", "body": "Submit support articles through the internal portal.", "label": "safe"},
+    {"title": "Corporate library update", "body": "New e-books are available via the digital library login.", "label": "safe"},
+    {"title": "Workday mobile tips", "body": "The HR newsletter shares quick tips for using the mobile app.", "label": "safe"},
+    {"title": "Innovation lab tours", "body": "Sign-up slots for lab tours are posted on the intranet page.", "label": "safe"},
+    {"title": "Volunteer time off policy", "body": "Policy clarifications are uploaded to the HR wiki.", "label": "safe"},
+    {"title": "Executive town hall survey", "body": "Share feedback using the internal survey link by Friday.", "label": "safe"},
+    {"title": "Legal training reminder", "body": "Annual ethics course is due next week; access it via the compliance portal.", "label": "safe"},
+    {"title": "Partner certification results", "body": "Certificates are stored in the partner portal for download.", "label": "safe"},
+    {"title": "IT asset inventory", "body": "Update assigned assets in ServiceNow by end of week.", "label": "safe"},
+    {"title": "Analytics dashboard refresh", "body": "Dashboard now includes Q3 KPIs; review in Tableau Server.", "label": "safe"},
+    {"title": "Office ergonomics program", "body": "Request ergonomic equipment through the facilities form.", "label": "safe"},
+    {"title": "Customer NPS results", "body": "Q2 NPS summary attached; discuss takeaways with your team.", "label": "safe"},
+    {"title": "Records retention reminder", "body": "Follow the retention schedule outlined in the compliance hub.", "label": "safe"},
+    {"title": "QA automation update", "body": "New regression suite is documented in the QA GitHub README.", "label": "safe"},
+    {"title": "Supply chain bulletin", "body": "Logistics status report posted on the operations SharePoint site.", "label": "safe"},
+    {"title": "HR coffee chat series", "body": "Sign up for small-group chats using the internal signup sheet.", "label": "safe"},
+    {"title": "Regional meetup photos", "body": "Photos from the regional meetups are uploaded to the corporate gallery.", "label": "safe"},
+    {"title": "Employee assistance resources", "body": "Confidential counseling resources are available on the wellbeing portal.", "label": "safe"},
 ]
 
 STARTER_INCOMING: List[Dict] = [
@@ -316,6 +416,56 @@ STARTER_INCOMING: List[Dict] = [
         "title": "Mentorship program enrollment",
         "body": "Sign up via the HR portal. Matching will occur next month; no external forms.",
     },
+    {"title": "Benefits premium payment overdue", "body": "Coverage will lapse unless you pay €48 via the attached billing link today."},
+    {"title": "Security newsletter — May edition", "body": "Read this month's top security reminders on the company blog (link on the intranet post)."},
+    {"title": "Vendor invoice mismatch", "body": "Our vendor portal flagged an amount mismatch; update the bank account in the portal to release payment."},
+    {"title": "Password reset instructions", "body": "Support sent a temporary password—download the attached document to view the code."},
+    {"title": "Cafeteria menu feedback", "body": "Tell us what meals you want next month using the internal survey form."},
+    {"title": "Free gift for compliance course", "body": "Complete the short external survey and pay shipping to receive your compliance gift."},
+    {"title": "Annual benefits confirmation", "body": "Verify your dependents in the HR portal by Friday; no external links required."},
+    {"title": "Executive expense approval", "body": "Finance needs you to upload your corporate card photo to approve the reimbursement."},
+    {"title": "Laptop patch requires reboot", "body": "IT pushed a driver update; reboot by end of day to finish installation."},
+    {"title": "Dropbox password expired", "body": "Avoid losing files—reset your Dropbox password using this external page now."},
+    {"title": "Office parking renewal", "body": "Renew your parking permit inside the Facilities portal; payroll will process the fee."},
+    {"title": "Crypto mining alert", "body": "We detected crypto mining activity. Open the attached report and sign in to review."},
+    {"title": "Team building RSVP", "body": "Add your RSVP to the Teams poll for next month’s offsite."},
+    {"title": "Gift card giveaway", "body": "You were selected for a €100 gift card—provide your card details to claim it."},
+    {"title": "Security token replacement", "body": "Fill out the external form with your login to receive a new security token."},
+    {"title": "New mentorship cohort", "body": "Register on the HR site to join the upcoming mentorship cohort."},
+    {"title": "Outlook mailbox sync failure", "body": "Download the provided PST repair tool and run it to restore sync."},
+    {"title": "Internal audit request", "body": "Upload requested evidence to the audit SharePoint folder before Thursday."},
+    {"title": "Holiday calendar update", "body": "See the updated bank holidays in the intranet article."},
+    {"title": "VPN certificate invalid", "body": "Install the certificate from the zipped attachment and enter your credentials to reactivate VPN."},
+    {"title": "Training credit expiring", "body": "Redeem your e-learning credit by entering payment info on the partner site."},
+    {"title": "Payroll self-service tip", "body": "Watch the intranet video on updating withholding allowances."},
+    {"title": "Rewards program activation", "body": "Activate your rewards debit card by logging into the vendor portal with your PIN."},
+    {"title": "Customer outage debrief", "body": "Join the Teams call; engineering attached slides for review."},
+    {"title": "Finance statement ready", "body": "Download your quarterly statement via the secure finance workspace."},
+    {"title": "Travel reimbursement survey", "body": "Complete the brief survey and share your bank number to fast-track reimbursements."},
+    {"title": "Slack channel rename", "body": "Vote on the new channel name in the communications hub."},
+    {"title": "IT ticket auto-close warning", "body": "Your ticket will close soon; sign in to the external desk portal to keep it open."},
+    {"title": "Office fitness class signup", "body": "Register for onsite yoga using the wellness portal link."},
+    {"title": "Invoice PDF attached", "body": "Open the attached PDF and re-enter your bank login to confirm payment."},
+    {"title": "Security champions survey", "body": "Share feedback on phishing drills in the intranet poll."},
+    {"title": "Conference certificate available", "body": "Download your event certificate from the portal (SSO required)."},
+    {"title": "Password expiration courtesy notice", "body": "Reset your password at the standard intranet link before Monday."},
+    {"title": "Payroll dispute hotline", "body": "Call the hotline or submit your social security number in the webform to reverse charges."},
+    {"title": "System upgrade delay", "body": "Upgrade is delayed; monitor the status page for the new timeline."},
+    {"title": "Action required: reimburse client", "body": "Wire €2,400 to the provided account to resolve the client dispute."},
+    {"title": "Benefits lunch-and-learn", "body": "Join tomorrow’s lunch session; register on the events calendar."},
+    {"title": "DocuSign shared with you", "body": "Access the contract through this third-party login page using your email password."},
+    {"title": "Project timeline update", "body": "PMO uploaded the new Gantt chart to the project site; review before standup."},
+    {"title": "Voice mail transcription", "body": "Listen to the voicemail by launching the attached executable file."},
+    {"title": "IT hardware recall", "body": "Swap affected power adapters by booking an appointment in ServiceNow."},
+    {"title": "Unpaid toll notice", "body": "Settle the toll by entering your card info on quickpay-peage.com."},
+    {"title": "Customer advisory board follow-up", "body": "Share your action items in the CRM workspace."},
+    {"title": "Urgent: account closure", "body": "Account will close tonight; keep access by submitting credentials at the link."},
+    {"title": "Wellness stipend receipts", "body": "Upload gym receipts to Workday by month end."},
+    {"title": "External partner security check", "body": "Partner requires you to verify login at their portal using your credentials."},
+    {"title": "Hackathon registration", "body": "Sign up for the internal hackathon using the dev community form."},
+    {"title": "Mailbox full warning", "body": "Increase your quota by paying a €1 processing fee on our support site."},
+    {"title": "Shared drive permissions updated", "body": "Permissions changed; review in OneDrive (SSO automatically applied)."},
+    {"title": "Prize draw finalist", "body": "Confirm your shipping address and pay €15 handling to receive your prize."},
 ]
 
 def guidance_popover(title: str, text: str):
@@ -523,14 +673,22 @@ class HybridEmbedFeatsLogReg:
 def route_decision(autonomy: str, y_hat: str, pspam: Optional[float], threshold: float):
     routed = None
     if autonomy.startswith("Low"):
-        action = f"Prediction only. Confidence P(spam) ≈ {pspam:.2f}" if pspam is not None else "Prediction only."
-    elif autonomy.startswith("Moderate"):
-        to_spam = (pspam is not None and pspam >= threshold) or y_hat == "spam"
-        action = f"Recommend: {'Spam' if to_spam else 'Inbox'} (threshold={threshold:.2f})"
+        action = (
+            f"Prediction only. Confidence P(spam) ≈ {pspam:.2f}"
+            if pspam is not None
+            else "Prediction only."
+        )
     else:
-        to_spam = (pspam is not None and pspam >= threshold) or y_hat == "spam"
-        routed = "Spam" if to_spam else "Inbox"
-        action = f"Auto-routed to **{routed}** (threshold={threshold:.2f})"
+        if pspam is not None:
+            to_spam = pspam >= threshold
+        else:
+            to_spam = y_hat == "spam"
+
+        if autonomy.startswith("Moderate"):
+            action = f"Recommend: {'Spam' if to_spam else 'Inbox'} (threshold={threshold:.2f})"
+        else:
+            routed = "Spam" if to_spam else "Inbox"
+            action = f"Auto-routed to **{routed}** (threshold={threshold:.2f})"
     return action, routed
 
 def download_text(text: str, filename: str, label: str = "Download"):
