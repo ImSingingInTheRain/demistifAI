@@ -16,9 +16,8 @@ st.set_page_config(page_title="demistifAI — Spam Detector", page_icon="📧", 
 
 CLASSES = ["spam", "safe"]
 AUTONOMY_LEVELS = [
-    "Low autonomy (predict + confidence)",
     "Moderate autonomy (recommendation)",
-    "Full autonomy (auto-route)",
+    "High autonomy (auto-route)",
 ]
 
 STARTER_LABELED: List[Dict] = [
@@ -703,6 +702,22 @@ FEATURE_ORDER = [
     "urgency_terms_count",
 ]
 
+FEATURE_DISPLAY_NAMES = {
+    "num_links_external": "External links counted",
+    "has_suspicious_tld": "Suspicious top-level domain present",
+    "punct_burst_ratio": "Intense punctuation bursts",
+    "money_symbol_count": "Currency symbols mentioned",
+    "urgency_terms_count": "Urgent or time-pressure phrases",
+}
+
+FEATURE_PLAIN_LANGUAGE = {
+    "num_links_external": "Spam often includes many external links. More links push the prediction toward spam.",
+    "has_suspicious_tld": "If any link points to a risky domain (e.g., .ru, .top) the odds of spam increase sharply.",
+    "punct_burst_ratio": "Repeated punctuation like !!! or $$$ is a red flag and raises the spam score.",
+    "money_symbol_count": "Lots of currency symbols usually signal scams promising money or demanding payment.",
+    "urgency_terms_count": "Phrases such as 'urgent' or 'final notice' are classic spam urgency tactics.",
+}
+
 def features_matrix(titles: List[str], bodies: List[str]) -> np.ndarray:
     rows = []
     for t, b in zip(titles, bodies):
@@ -727,6 +742,8 @@ class HybridEmbedFeatsLogReg:
         )
         self.scaler = StandardScaler()
         self.classes_ = None
+        self.base_num_coefs_: Optional[np.ndarray] = None
+        self.numeric_adjustments_: np.ndarray = np.zeros(len(FEATURE_ORDER), dtype=float)
 
     def _embed(self, texts: list[str]) -> np.ndarray:
         return encode_texts(texts, model_name=self.model_name)
@@ -742,6 +759,9 @@ class HybridEmbedFeatsLogReg:
         X_cat = np.concatenate([X_emb, X_f_std], axis=1)
         self.lr.fit(X_cat, y)
         self.classes_ = list(self.lr.classes_)
+        n_num = len(FEATURE_ORDER)
+        self.base_num_coefs_ = self.lr.coef_[0][-n_num:].copy()
+        self.numeric_adjustments_ = np.zeros_like(self.base_num_coefs_)
         return self
 
     def _prep(self, X_titles: List[str], X_bodies: List[str]) -> np.ndarray:
@@ -771,14 +791,18 @@ class HybridEmbedFeatsLogReg:
         if n_total < n_num:
             raise RuntimeError("Logistic regression is missing numeric feature coefficients")
 
-        coefs = self.lr.coef_[0][-n_num:]
+        current_coefs = self.lr.coef_[0][-n_num:]
         means = getattr(self.scaler, "mean_", np.zeros(n_num))
         stds = getattr(self.scaler, "scale_", np.ones(n_num))
+        base = self.base_num_coefs_ if self.base_num_coefs_ is not None else current_coefs.copy()
+        adjustments = self.numeric_adjustments_ if hasattr(self, "numeric_adjustments_") else np.zeros_like(current_coefs)
 
         df = pd.DataFrame(
             {
                 "feature": FEATURE_ORDER,
-                "weight_per_std": coefs.astype(float),
+                "base_weight_per_std": base.astype(float),
+                "user_adjustment": adjustments.astype(float),
+                "weight_per_std": current_coefs.astype(float),
                 "train_mean": means.astype(float),
                 "train_std": stds.astype(float),
             }
@@ -797,25 +821,25 @@ class HybridEmbedFeatsLogReg:
         details = self.numeric_feature_details()
         return dict(zip(details["feature"], details["weight_per_std"]))
 
+    def apply_numeric_adjustments(self, adjustments: Dict[str, float]):
+        if self.base_num_coefs_ is None:
+            return
+        ordered = np.array([adjustments.get(feat, 0.0) for feat in FEATURE_ORDER], dtype=float)
+        self.numeric_adjustments_ = ordered
+        self.lr.coef_[0][-len(FEATURE_ORDER):] = self.base_num_coefs_ + ordered
+
 def route_decision(autonomy: str, y_hat: str, pspam: Optional[float], threshold: float):
     routed = None
-    if autonomy.startswith("Low"):
-        action = (
-            f"Prediction only. Confidence P(spam) ≈ {pspam:.2f}"
-            if pspam is not None
-            else "Prediction only."
-        )
+    if pspam is not None:
+        to_spam = pspam >= threshold
     else:
-        if pspam is not None:
-            to_spam = pspam >= threshold
-        else:
-            to_spam = y_hat == "spam"
+        to_spam = y_hat == "spam"
 
-        if autonomy.startswith("Moderate"):
-            action = f"Recommend: {'Spam' if to_spam else 'Inbox'} (threshold={threshold:.2f})"
-        else:
-            routed = "Spam" if to_spam else "Inbox"
-            action = f"Auto-routed to **{routed}** (threshold={threshold:.2f})"
+    if autonomy.startswith("High"):
+        routed = "Spam" if to_spam else "Inbox"
+        action = f"Auto-routed to **{routed}** (threshold={threshold:.2f})"
+    else:
+        action = f"Recommend: {'Spam' if to_spam else 'Inbox'} (threshold={threshold:.2f})"
     return action, routed
 
 def download_text(text: str, filename: str, label: str = "Download"):
@@ -834,13 +858,13 @@ ss.setdefault("mail_inbox", [])  # list of dicts: title, body, pred, p_spam
 ss.setdefault("mail_spam", [])
 ss.setdefault("metrics", {"TP": 0, "FP": 0, "TN": 0, "FN": 0})
 ss.setdefault("last_classification", None)
+ss.setdefault("numeric_adjustments", {feat: 0.0 for feat in FEATURE_ORDER})
 
 st.sidebar.header("⚙️ Settings")
 ss["autonomy"] = st.sidebar.selectbox("Autonomy level", AUTONOMY_LEVELS, index=AUTONOMY_LEVELS.index(ss["autonomy"]))
 guidance_popover("Varying autonomy", """
-**Low**: system only *predicts* with a confidence score.  
-**Moderate**: system *recommends* routing (Spam vs Inbox) but waits for you.  
-**Full**: system *acts* — it routes the email automatically based on the threshold.
+**Moderate**: system *recommends* routing (Spam vs Inbox) but waits for you to confirm.
+**High**: system *acts* — it routes the email automatically based on the threshold.
 """)
 ss["threshold"] = st.sidebar.slider("Spam threshold (P(spam))", 0.1, 0.9, ss["threshold"], 0.05)
 st.sidebar.checkbox("Adaptive learning (learn from corrections)", value=ss["adaptive"], key="adaptive")
@@ -853,6 +877,7 @@ if st.sidebar.button("🔄 Reset demo data"):
     ss["mail_inbox"].clear(); ss["mail_spam"].clear()
     ss["metrics"] = {"TP": 0, "FP": 0, "TN": 0, "FN": 0}
     ss["last_classification"] = None
+    ss["numeric_adjustments"] = {feat: 0.0 for feat in FEATURE_ORDER}
     st.sidebar.success("Reset complete.")
 
 st.title("📧 demistifAI — Spam Detector")
@@ -946,22 +971,26 @@ Controls the randomness of the split. By fixing the seed, you can reproduce the 
                 )
 
                 model = HybridEmbedFeatsLogReg().fit(X_tr_t, X_tr_b, y_tr)
+                model.apply_numeric_adjustments(ss["numeric_adjustments"])
                 ss["model"] = model
                 ss["split_cache"] = (X_tr_t, X_te_t, X_tr_b, X_te_b, y_tr, y_te)
 
                 st.success("Model trained with **sentence embeddings + interpretable numeric features**.")
 
-                with st.expander("Interpretability: numeric feature coefficients", expanded=False):
+                with st.expander("Interpretability: numeric feature coefficients & tuning", expanded=False):
                     try:
-                        coef_details = ss["model"].numeric_feature_details()
+                        coef_details = ss["model"].numeric_feature_details().copy()
+                        coef_details["friendly_name"] = coef_details["feature"].map(
+                            FEATURE_DISPLAY_NAMES
+                        )
                         st.caption(
                             "Positive weights push toward the **spam** class; negative toward **safe**. "
-                            "Values are in log-odds (after standardizing numeric features)."
+                            "Values are log-odds after standardization."
                         )
 
                         chart_data = (
                             coef_details.sort_values("weight_per_std", ascending=True)
-                            .set_index("feature")["weight_per_std"]
+                            .set_index("friendly_name")["weight_per_std"]
                         )
                         st.bar_chart(chart_data, use_container_width=True)
 
@@ -970,11 +999,12 @@ Controls the randomness of the split. By fixing the seed, you can reproduce the 
                             approx_pct_change_odds=(coef_details["odds_multiplier_per_std"] - 1.0) * 100.0,
                         )[
                             [
-                                "feature",
+                                "friendly_name",
+                                "base_weight_per_std",
+                                "user_adjustment",
                                 "weight_per_std",
                                 "odds_multiplier_plus_1sigma",
                                 "approx_pct_change_odds",
-                                "weight_per_unit",
                                 "train_mean",
                                 "train_std",
                             ]
@@ -983,12 +1013,14 @@ Controls the randomness of the split. By fixing the seed, you can reproduce the 
                         st.dataframe(
                             display_df.rename(
                                 columns={
-                                    "weight_per_std": "log_odds_weight(+1σ)",
-                                    "odds_multiplier_plus_1sigma": "odds_multiplier(+1σ)",
-                                    "approx_pct_change_odds": "%Δodds(+1σ)",
-                                    "weight_per_unit": "log_odds_weight(per unit)",
-                                    "train_mean": "train_mean",
-                                    "train_std": "train_std",
+                                    "friendly_name": "Feature",
+                                    "base_weight_per_std": "Learned log-odds (+1σ)",
+                                    "user_adjustment": "Your adjustment (+1σ)",
+                                    "weight_per_std": "Adjusted log-odds (+1σ)",
+                                    "odds_multiplier_plus_1sigma": "Adjusted odds multiplier (+1σ)",
+                                    "approx_pct_change_odds": "%Δ odds from adjustment (+1σ)",
+                                    "train_mean": "Train mean",
+                                    "train_std": "Train std",
                                 }
                             ),
                             use_container_width=True,
@@ -996,10 +1028,32 @@ Controls the randomness of the split. By fixing the seed, you can reproduce the 
                         )
 
                         st.caption(
-                            "Example: increasing a feature by one standard deviation multiplies the spam odds by the "
-                            "value in `odds_multiplier(+1σ)`. `log_odds_weight(per unit)` reverses the standardization "
-                            "to show impact per original feature unit."
+                            "Base weights come from training. Use the sliders below to nudge each cue if your domain knowledge "
+                            "suggests it should count more or less. Adjustments apply per standard deviation of the raw feature."
                         )
+
+                        st.markdown("#### Plain-language explanations & manual tweaks")
+                        for row in coef_details.itertuples():
+                            feat = row.feature
+                            friendly = FEATURE_DISPLAY_NAMES.get(feat, feat)
+                            explanation = FEATURE_PLAIN_LANGUAGE.get(feat, "")
+                            st.markdown(f"**{friendly}** — {explanation}")
+                            slider_key = f"adj_slider_{feat}"
+                            current_setting = ss["numeric_adjustments"][feat]
+                            if slider_key in st.session_state and st.session_state[slider_key] != current_setting:
+                                st.session_state[slider_key] = current_setting
+                            new_adj = st.slider(
+                                f"Adjustment for {friendly} (log-odds per +1σ)",
+                                min_value=-1.5,
+                                max_value=1.5,
+                                value=float(current_setting),
+                                step=0.1,
+                                key=slider_key,
+                            )
+                            if new_adj != ss["numeric_adjustments"][feat]:
+                                ss["numeric_adjustments"][feat] = new_adj
+                                if ss.get("model"):
+                                    ss["model"].apply_numeric_adjustments(ss["numeric_adjustments"])
                     except Exception as e:
                         st.caption(f"Coefficients unavailable: {e}")
 
@@ -1072,7 +1126,7 @@ It helps detect overfitting, bias, and areas needing more data.
         with st.expander("How to improve"):
             st.markdown("\n".join([f"- {tip}" for tip in assessment["tips"]]))
             st.caption(
-                "Tip: In **Full autonomy**, false positives hide legit mail and false negatives let spam through — tune the threshold accordingly."
+                "Tip: In **High autonomy**, false positives hide legit mail and false negatives let spam through — tune the threshold accordingly."
             )
 
         st.caption("Confusion matrix (rows: ground truth, columns: model prediction).")
@@ -1148,8 +1202,20 @@ At **inference** time, the model uses its learned parameters to output a **predi
 """)
     with col_help2:
         guidance_popover("Autonomy in action", """
-Depending on the autonomy level, the system may: only **predict**, **recommend**, or **auto‑route** the email to Spam/Inbox.
+Depending on the autonomy level, the system may either **recommend** an action or **auto‑route** the email to Spam/Inbox.
 """)
+    st.markdown("#### Autonomy mode")
+    selected_autonomy = st.radio(
+        "Autonomy level",
+        AUTONOMY_LEVELS,
+        index=AUTONOMY_LEVELS.index(ss["autonomy"]),
+        horizontal=True,
+        key="classify_autonomy",
+        label_visibility="collapsed",
+    )
+    if selected_autonomy != ss["autonomy"]:
+        ss["autonomy"] = selected_autonomy
+    st.caption("Switch between a recommendation-only flow or automatic routing.")
     if not ss.get("model"):
         st.info("Train a model first in the **Train** tab.")
     else:
@@ -1208,6 +1274,7 @@ Depending on the autonomy level, the system may: only **predict**, **recommend**
                 0.05,
                 help="Used for recommendation/auto‑route decisions.",
             )
+            ss["threshold"] = thr
             st.caption("Lower the threshold to be more permissive, raise it to be stricter about routing to spam.")
 
             if st.button("Run classification", type="primary", use_container_width=True):
@@ -1294,6 +1361,57 @@ Depending on the autonomy level, the system may: only **predict**, **recommend**
                     f"{ss['autonomy']} • Source: {last['source']}"
                 )
 
+                st.markdown("##### Record ground truth & (optional) learn")
+                st.caption(
+                    "Confirm the real label to update running metrics and, if enabled, add it back into training."
+                )
+                gt = st.selectbox(
+                    "Actual label",
+                    ["", "spam", "safe"],
+                    index=0,
+                    key="gt_label_select",
+                )
+                record_disabled = gt == ""
+                if st.button("Record ground truth", key="btn_record_gt", disabled=record_disabled):
+                    system_label = None
+                    if last.get("routed") == "Spam":
+                        system_label = "spam"
+                    elif last.get("routed") == "Inbox":
+                        system_label = "safe"
+                    else:
+                        system_label = last.get("pred")
+
+                    if system_label is None:
+                        st.warning("Run a classification first.")
+                    else:
+                        if gt == "spam" and system_label == "spam":
+                            ss["metrics"]["TP"] += 1
+                        elif gt == "spam" and system_label == "safe":
+                            ss["metrics"]["FN"] += 1
+                        elif gt == "safe" and system_label == "spam":
+                            ss["metrics"]["FP"] += 1
+                        elif gt == "safe" and system_label == "safe":
+                            ss["metrics"]["TN"] += 1
+                        st.success("Recorded. Running metrics updated.")
+
+                        if ss["adaptive"]:
+                            ss["labeled"].append(
+                                {"title": last["title"], "body": last["body"], "label": gt}
+                            )
+                            df = pd.DataFrame(ss["labeled"])
+                            if len(df["label"].unique()) >= 2:
+                                titles = df["title"].fillna("").tolist()
+                                bodies = df["body"].fillna("").tolist()
+                                y = df["label"].tolist()
+                                X_tr_t, X_te_t, X_tr_b, X_te_b, y_tr, y_te = train_test_split(
+                                    titles, bodies, y, test_size=0.3, random_state=42, stratify=y
+                                )
+                                adaptive_model = HybridEmbedFeatsLogReg().fit(X_tr_t, X_tr_b, y_tr)
+                                adaptive_model.apply_numeric_adjustments(ss["numeric_adjustments"])
+                                ss["model"] = adaptive_model
+                                ss["split_cache"] = (X_tr_t, X_te_t, X_tr_b, X_te_b, y_tr, y_te)
+                            st.info("🔁 Adaptive learning: model retrained with your correction.")
+
         st.markdown("### 📥 Mailboxes")
         inbox_tab, spam_tab = st.tabs(
             [
@@ -1319,41 +1437,6 @@ Depending on the autonomy level, the system may: only **predict**, **recommend**
                 )
             else:
                 st.caption("No emails have been routed to spam yet.")
-
-        st.markdown("### ✅ Record ground truth & (optionally) learn")
-        gt = st.selectbox("What is the **actual** label of the last routed email?", ["", "spam", "safe"], index=0)
-        if st.button("Record ground truth"):
-            last_box = None
-            if ss["mail_spam"] and (len(ss["mail_spam"]) >= len(ss["mail_inbox"])):
-                last_box = ("spam", ss["mail_spam"][-1])
-            elif ss["mail_inbox"]:
-                last_box = ("safe", ss["mail_inbox"][-1])
-
-            if last_box is None:
-                st.warning("Route an email first (Full autonomy).")
-            else:
-                system_label, last_rec = last_box
-                if gt == "":
-                    st.warning("Choose a ground-truth label.")
-                else:
-                    if gt == "spam" and system_label == "spam": ss["metrics"]["TP"] += 1
-                    elif gt == "spam" and system_label == "safe": ss["metrics"]["FN"] += 1
-                    elif gt == "safe" and system_label == "spam": ss["metrics"]["FP"] += 1
-                    elif gt == "safe" and system_label == "safe": ss["metrics"]["TN"] += 1
-                    st.success("Recorded. Running metrics updated.")
-                    if ss["adaptive"]:
-                        ss["labeled"].append({"title": last_rec["title"], "body": last_rec["body"], "label": gt})
-                        df = pd.DataFrame(ss["labeled"])
-                        if len(df["label"].unique()) >= 2:
-                            titles = df["title"].fillna("").tolist()
-                            bodies = df["body"].fillna("").tolist()
-                            y = df["label"].tolist()
-                            X_tr_t, X_te_t, X_tr_b, X_te_b, y_tr, y_te = train_test_split(
-                                titles, bodies, y, test_size=0.3, random_state=42, stratify=y
-                            )
-                            ss["model"] = HybridEmbedFeatsLogReg().fit(X_tr_t, X_tr_b, y_tr)
-                            ss["split_cache"] = (X_tr_t, X_te_t, X_tr_b, X_te_b, y_tr, y_te)
-                        st.info("🔁 Adaptive learning: model retrained with your correction.")
 
         m = ss["metrics"]; total = sum(m.values()) or 1
         acc = (m["TP"] + m["TN"]) / total
@@ -1398,7 +1481,7 @@ These are standardized and combined with the embedding before a linear classifie
 - **Machine-based system**: Streamlit app (software) running on cloud runtime (hardware).  
 - **Inference**: model learns patterns from labeled examples.  
 - **Output generation**: predictions + confidence; used to recommend/route emails.  
-- **Varying autonomy**: user selects autonomy level; at full autonomy, the system acts.  
+    - **Varying autonomy**: user selects autonomy level; at high autonomy, the system acts.
 - **Adaptiveness**: optional feedback loop that updates the model.
 """
     st.markdown(card_md)
