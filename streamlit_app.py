@@ -1,15 +1,15 @@
 import base64
-from typing import List, Dict
+from typing import Dict, List, Optional
 
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import streamlit as st
 
-from sklearn.model_selection import train_test_split
-from sklearn.pipeline import Pipeline
-from sklearn.feature_extraction.text import TfidfVectorizer
+from sentence_transformers import SentenceTransformer
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
+from sklearn.model_selection import train_test_split
 
 st.set_page_config(page_title="demistifAI — Spam Detector", page_icon="📧", layout="wide")
 
@@ -361,23 +361,60 @@ def assess_performance(acc: float, n_test: int, class_counts: Dict[str, int]) ->
 
     return {"verdict": verdict, "tips": tips}
 
-def make_pipeline():
-    return Pipeline([
-        ("tfidf", TfidfVectorizer(ngram_range=(1,2), min_df=1)),
-        ("clf", LogisticRegression(max_iter=1000))
-    ])
+@st.cache_resource(show_spinner=False)
+def get_encoder(model_name: str = "sentence-transformers/all-MiniLM-L6-v2") -> SentenceTransformer:
+    # Downloaded once and cached by Streamlit
+    return SentenceTransformer(model_name)
+
+
+@st.cache_data(show_spinner=False)
+def encode_texts(texts: list, model_name: str = "sentence-transformers/all-MiniLM-L6-v2") -> np.ndarray:
+    model = get_encoder(model_name)
+    # Normalize embeddings for stability
+    embs = model.encode(texts, batch_size=64, show_progress_bar=False, normalize_embeddings=True)
+    return np.asarray(embs, dtype=np.float32)
+
 
 def combine_text(title: str, body: str) -> str:
     return (title or "") + "\n" + (body or "")
 
-def predict_with_prob(model, title: str, body: str):
-    text = combine_text(title, body)
-    y_hat = model.predict([text])[0]
-    classes = list(model.named_steps["clf"].classes_)
-    pspam = model.predict_proba([text])[0][classes.index("spam")] if "spam" in classes else None
-    return y_hat, float(pspam) if pspam is not None else None
 
-def route_decision(autonomy: str, y_hat: str, pspam: float, threshold: float):
+class EmbedLogReg:
+    """
+    Frozen sentence-embedding encoder + LogisticRegression classifier.
+    - fit(X_text:list[str], y:list[str]) -> stores LR and embed cache key
+    - predict, predict_proba accept list[str]
+    """
+
+    def __init__(self, model_name: str = "sentence-transformers/all-MiniLM-L6-v2"):
+        self.model_name = model_name
+        self.lr = LogisticRegression(
+            max_iter=2000,
+            C=1.0,
+            class_weight="balanced",
+            n_jobs=None,
+        )
+        self.classes_ = None
+
+    def _embed(self, texts: list[str]) -> np.ndarray:
+        return encode_texts(texts, model_name=self.model_name)
+
+    def fit(self, X_text: list[str], y: list[str]):
+        X_emb = self._embed(X_text)
+        self.lr.fit(X_emb, y)
+        self.classes_ = list(self.lr.classes_)
+        return self
+
+    def predict(self, X_text: list[str]) -> np.ndarray:
+        X_emb = self._embed(X_text)
+        return self.lr.predict(X_emb)
+
+    def predict_proba(self, X_text: list[str]) -> np.ndarray:
+        X_emb = self._embed(X_text)
+        # LR is already calibrated; returns class probabilities
+        return self.lr.predict_proba(X_emb)
+
+def route_decision(autonomy: str, y_hat: str, pspam: Optional[float], threshold: float):
     routed = None
     if autonomy.startswith("Low"):
         action = f"Prediction only. Confidence P(spam) ≈ {pspam:.2f}" if pspam is not None else "Prediction only."
@@ -492,11 +529,43 @@ Once labeled, the email moves to the **labeled dataset** above.
                         st.success("Labeled as safe and moved to dataset.")
                         st.rerun()
 
+    if ss.get("model") and ss["incoming"]:
+        texts_in = [combine_text(it["title"], it["body"]) for it in ss["incoming"]]
+        proba = ss["model"].predict_proba(texts_in)
+        classes = ss["model"].classes_ or []
+        spam_idx = classes.index("spam") if "spam" in classes else 0
+        p_spam_all = proba[:, spam_idx]
+        uncertainty = np.abs(p_spam_all - 0.5)
+        order = np.argsort(uncertainty)
+
+        st.markdown("### 🔍 Active learning — label the most uncertain first")
+        st.caption("These are the emails the model is least sure about. Labeling them improves learning efficiency.")
+        N = min(5, len(order))
+        for rank in range(N):
+            i = int(order[rank])
+            item = ss["incoming"][i]
+            with st.container(border=True):
+                c1, c2 = st.columns([4, 1])
+                with c1:
+                    st.markdown(f"**Title:** {item['title']}")
+                    st.markdown(f"**Body:** {item['body']}")
+                    st.caption(f"Model P(spam) ≈ {p_spam_all[i]:.2f} — Uncertainty {uncertainty[i]:.2f}")
+                with c2:
+                    c2a, c2b = st.columns(2)
+                    if c2a.button("Mark as spam", key=f"al_spam_{i}"):
+                        ss["labeled"].append({"title": item["title"], "body": item["body"], "label": "spam"})
+                        ss["incoming"].pop(i)
+                        st.rerun()
+                    if c2b.button("Mark as safe", key=f"al_safe_{i}"):
+                        ss["labeled"].append({"title": item["title"], "body": item["body"], "label": "safe"})
+                        ss["incoming"].pop(i)
+                        st.rerun()
+
 with tab_train:
     st.subheader("2) Train — make the model learn")
     guidance_popover("How training works", """
 You set the **objective** (spam vs safe). The algorithm adjusts its **parameters** to reduce mistakes on your labeled examples.  
-We use **TF‑IDF** features and **Logistic Regression** so we can show calibrated confidence (P(spam)).
+We use **sentence embeddings** (MiniLM) plus **Logistic Regression** — fast, lightweight, and still calibrated for P(spam).
 """)
     test_size = st.slider("Hold‑out test fraction", 0.1, 0.5, 0.3, 0.05)
     random_state = st.number_input("Random seed", min_value=0, value=42, step=1)
@@ -525,24 +594,46 @@ Controls the randomness of the split. By fixing the seed, you can reproduce the 
                 X_train, X_test, y_train, y_test = train_test_split(
                     X, y, test_size=test_size, random_state=random_state, stratify=y
                 )
-                model = make_pipeline().fit(X_train, y_train)
+
+                model = EmbedLogReg().fit(X_train, y_train)
                 ss["model"] = model
                 ss["split_cache"] = (X_train, X_test, y_train, y_test)
-                st.success("Model trained.")
-                with st.expander("See learned indicators (top features)", expanded=False):
-                    clf = model.named_steps["clf"]
-                    tfidf = model.named_steps["tfidf"]
-                    if hasattr(clf, "coef_"):
-                        feature_names = np.array(tfidf.get_feature_names_out())
-                        coefs = clf.coef_[0]  # spam vs safe
-                        top_spam_idx = np.argsort(coefs)[-10:][::-1]
-                        top_safe_idx = np.argsort(coefs)[:10]
-                        st.write("**Top spam indicators**")
-                        st.write(", ".join(feature_names[top_spam_idx]))
-                        st.write("**Top safe indicators**")
-                        st.write(", ".join(feature_names[top_safe_idx]))
-                    else:
-                        st.caption("Weights not available.")
+
+                st.success("Model trained with **sentence embeddings + Logistic Regression**.")
+
+                with st.expander("Interpretability: nearest neighbors & class prototypes", expanded=False):
+                    X_train_emb = encode_texts(X_train)
+                    y_train_arr = np.array(y_train)
+
+                    def prototype_for(cls):
+                        mask = y_train_arr == cls
+                        if not np.any(mask):
+                            return None
+                        return X_train_emb[mask].mean(axis=0, keepdims=True)
+
+                    def top_nearest(query_vec, k=5):
+                        if query_vec is None:
+                            return np.array([]), np.array([])
+                        sims = (X_train_emb @ query_vec.T).ravel()  # cosine because normalized
+                        order = np.argsort(-sims)
+                        top_k = order[: min(k, len(order))]
+                        return top_k, sims[top_k]
+
+                    for cls in CLASSES:
+                        proto = prototype_for(cls)
+                        if proto is None:
+                            st.write(f"No training emails for {cls} yet.")
+                            continue
+                        idx, sims = top_nearest(proto, k=5)
+                        st.markdown(f"**{cls.capitalize()} prototype — most similar training emails**")
+                        for i, (ix, sc) in enumerate(zip(idx, sims), 1):
+                            text_full = X_train[ix]
+                            parts = text_full.split("\n", 1)
+                            title_i = parts[0]
+                            body_i = parts[1] if len(parts) > 1 else ""
+                            st.write(f"{i}. *{title_i}*  — sim={sc:.2f}")
+                            preview = body_i[:200]
+                            st.caption(preview + ("..." if len(body_i) > 200 else ""))
 
 with tab_eval:
     st.subheader("3) Evaluate — check generalization")
@@ -585,6 +676,55 @@ It helps detect overfitting, bias, and areas needing more data.
         st.dataframe(df_confusion(y_test, y_pred, CLASSES), use_container_width=True)
         st.text("Classification report")
         st.code(classification_report(y_test, y_pred, labels=CLASSES), language="text")
+
+        probs = ss["model"].predict_proba(X_test)
+        classes = ss["model"].classes_ or []
+        idx_spam = classes.index("spam") if "spam" in classes else 0
+
+        y_true = np.array([1 if yy == "spam" else 0 for yy in y_test])
+        p_spam = probs[:, idx_spam]
+
+        st.markdown("### 🎚️ Threshold helper (validation)")
+        st.caption("Adjust the decision threshold to trade off false positives (legit mail to spam) and false negatives (spam reaching inbox).")
+
+        thr_values = np.linspace(0.1, 0.9, 17)
+        prec, rec = [], []
+        for t in thr_values:
+            y_hat_thr = (p_spam >= t).astype(int)
+            tp = int(((y_hat_thr == 1) & (y_true == 1)).sum())
+            fp = int(((y_hat_thr == 1) & (y_true == 0)).sum())
+            fn = int(((y_hat_thr == 0) & (y_true == 1)).sum())
+            precision = tp / (tp + fp) if (tp + fp) else 0.0
+            recall = tp / (tp + fn) if (tp + fn) else 0.0
+            prec.append(precision)
+            rec.append(recall)
+
+        fig, ax = plt.subplots()
+        ax.plot(thr_values, prec, marker="o", label="Precision (spam)")
+        ax.plot(thr_values, rec, marker="o", label="Recall (spam)")
+        ax.set_xlabel("Threshold (P(spam))")
+        ax.set_ylabel("Score")
+        ax.set_ylim(0, 1)
+        ax.grid(True, alpha=0.3)
+        ax.legend()
+        st.pyplot(fig)
+        plt.close(fig)
+
+        with st.expander("Advanced: Cross-validation (Stratified K-Fold)"):
+            use_cv = st.checkbox("Run 5-fold CV on embeddings (slower)")
+            if use_cv:
+                from sklearn.model_selection import StratifiedKFold
+
+                df_all = pd.DataFrame(ss["labeled"])
+                X_all = (df_all["title"].fillna("") + "\n" + df_all["body"].fillna("")).tolist()
+                y_all = df_all["label"].tolist()
+                skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
+                scores = []
+                for tr, te in skf.split(X_all, y_all):
+                    m = EmbedLogReg().fit([X_all[i] for i in tr], [y_all[i] for i in tr])
+                    y_pred_cv = m.predict([X_all[i] for i in te])
+                    scores.append((np.array([y_all[i] for i in te]) == y_pred_cv).mean())
+                st.write(f"Mean CV accuracy: **{np.mean(scores):.2%}** ± {np.std(scores):.2%}")
     else:
         st.info("Label some emails and train a model in the **Train** tab.")
 
@@ -624,12 +764,24 @@ Depending on the autonomy level, the system may: only **predict**, **recommend**
                 if not (current["title"].strip() or current["body"].strip()):
                     st.warning("Please provide an email to classify.")
                 else:
-                    y_hat, pspam = predict_with_prob(ss["model"], current["title"], current["body"])
-                    st.success(f"Prediction: **{y_hat}** — P(spam) ≈ **{pspam:.2f}**")
-                    action, routed = route_decision(ss["autonomy"], y_hat, pspam, thr)
+                    text = combine_text(current["title"], current["body"])
+                    y_hat = ss["model"].predict([text])[0]
+                    proba = ss["model"].predict_proba([text])[0]
+                    classes = ss["model"].classes_ or []
+                    p_spam = float(proba[classes.index("spam")]) if "spam" in classes else None
+                    if p_spam is not None:
+                        st.success(f"Prediction: **{y_hat}** — P(spam) ≈ **{p_spam:.2f}**")
+                    else:
+                        st.success(f"Prediction: **{y_hat}**")
+                    action, routed = route_decision(ss["autonomy"], y_hat, p_spam, thr)
                     st.info(f"Autonomy action: {action}")
                     if routed is not None:
-                        record = {"title": current["title"], "body": current["body"], "pred": y_hat, "p_spam": round(pspam,3)}
+                        record = {
+                            "title": current["title"],
+                            "body": current["body"],
+                            "pred": y_hat,
+                            "p_spam": round(p_spam, 3) if p_spam is not None else None,
+                        }
                         if routed == "Spam":
                             ss["mail_spam"].append(record)
                         else:
@@ -674,7 +826,7 @@ Depending on the autonomy level, the system may: only **predict**, **recommend**
                             X = (df["title"].fillna("") + "\n" + df["body"].fillna("")).tolist()
                             y = df["label"].tolist()
                             X_tr, X_te, y_tr, y_te = train_test_split(X, y, test_size=0.3, random_state=42, stratify=y)
-                            ss["model"] = make_pipeline().fit(X_tr, y_tr)
+                            ss["model"] = EmbedLogReg().fit(X_tr, y_tr)
                             ss["split_cache"] = (X_tr, X_te, y_tr, y_te)
                             st.info("🔁 Adaptive learning: model retrained with your correction.")
 
@@ -688,7 +840,7 @@ with tab_card:
 Model cards summarize intended purpose, data, metrics, autonomy & adaptiveness settings.  
 They help teams reason about risks and the appropriate oversight controls.
 """)
-    algo = "TF‑IDF + Logistic Regression"
+    algo = "Sentence embeddings (MiniLM) + Logistic Regression"
     n_samples = len(ss["labeled"])
     labels_present = sorted({row["label"] for row in ss["labeled"]}) if ss["labeled"] else []
     metrics_text = ""
