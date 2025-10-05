@@ -1111,16 +1111,18 @@ Depending on the autonomy level, the system may: only **predict**, **recommend**
             if src == "Next incoming email":
                 if ss["incoming"]:
                     current = ss["incoming"][0]
+                    st.session_state["cur_title"] = current.get("title", "")
+                    st.session_state["cur_body"] = current.get("body", "")
                     st.caption(f"{len(ss['incoming'])} email(s) waiting in the stream.")
                     st.text_input(
                         "Email subject",
-                        value=current["title"],
+                        value=st.session_state["cur_title"],
                         key="cur_title",
                         disabled=True,
                     )
                     st.text_area(
                         "Email body",
-                        value=current["body"],
+                        value=st.session_state["cur_body"],
                         key="cur_body",
                         height=150,
                         disabled=True,
@@ -1128,6 +1130,8 @@ Depending on the autonomy level, the system may: only **predict**, **recommend**
                 else:
                     st.warning("No incoming emails left. Add more in the Data tab or switch to Custom input.")
                     current = {"title": "", "body": ""}
+                    st.session_state["cur_title"] = ""
+                    st.session_state["cur_body"] = ""
             else:
                 cur_t = st.text_input("Email subject", key="custom_title", placeholder="Subject: ...")
                 cur_b = st.text_area(
@@ -1190,17 +1194,6 @@ Depending on the autonomy level, the system may: only **predict**, **recommend**
                             ss["mail_inbox"].append(record)
                     if processed_from_stream:
                         ss["incoming"].pop(0)
-                        if ss["incoming"]:
-                            next_mail = ss["incoming"][0]
-                            if "cur_title" in st.session_state:
-                                st.session_state["cur_title"] = next_mail.get("title", "")
-                            if "cur_body" in st.session_state:
-                                st.session_state["cur_body"] = next_mail.get("body", "")
-                        else:
-                            if "cur_title" in st.session_state:
-                                st.session_state["cur_title"] = ""
-                            if "cur_body" in st.session_state:
-                                st.session_state["cur_body"] = ""
 
         with col_result:
             st.markdown("#### 3️⃣ Review the model decision")
