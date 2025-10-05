@@ -572,8 +572,6 @@ def compute_numeric_features(title: str, body: str) -> Dict[str, float]:
 
     tokens = TOKEN_REGEX.findall(text)
     n_tokens = max(1, len(tokens))
-    all_caps = sum(1 for t in tokens if t.isalpha() and t.isupper() and len(t) > 1)
-    all_caps_ratio = all_caps / n_tokens
 
     punct_bursts = re.findall(r"([!?$#*])\1{1,}", text)  # repeated punctuation like "!!!", "$$$"
     punct_burst_ratio = len(punct_bursts) / max(1, num_links + n_tokens)  # normalize by size
@@ -589,7 +587,6 @@ def compute_numeric_features(title: str, body: str) -> Dict[str, float]:
     feats = {
         "num_links_external": float(external_links),
         "has_suspicious_tld": float(suspicious),
-        "all_caps_ratio": float(all_caps_ratio),
         "punct_burst_ratio": float(punct_burst_ratio),
         "money_symbol_count": float(money_symbol_count),
         "urgency_terms_count": float(urgency_terms_count),
@@ -599,7 +596,6 @@ def compute_numeric_features(title: str, body: str) -> Dict[str, float]:
 FEATURE_ORDER = [
     "num_links_external",
     "has_suspicious_tld",
-    "all_caps_ratio",
     "punct_burst_ratio",
     "money_symbol_count",
     "urgency_terms_count",
@@ -1166,6 +1162,7 @@ Depending on the autonomy level, the system may: only **predict**, **recommend**
 
                     feats = compute_numeric_features(current["title"], current["body"])
                     action, routed = route_decision(ss["autonomy"], pred, p_spam, thr)
+                    processed_from_stream = src == "Next incoming email" and bool(ss["incoming"])
 
                     result_record = {
                         "source": src,
@@ -1191,8 +1188,19 @@ Depending on the autonomy level, the system may: only **predict**, **recommend**
                             ss["mail_spam"].append(record)
                         else:
                             ss["mail_inbox"].append(record)
-                        if src == "Next incoming email" and ss["incoming"]:
-                            ss["incoming"].pop(0)
+                    if processed_from_stream:
+                        ss["incoming"].pop(0)
+                        if ss["incoming"]:
+                            next_mail = ss["incoming"][0]
+                            if "cur_title" in st.session_state:
+                                st.session_state["cur_title"] = next_mail.get("title", "")
+                            if "cur_body" in st.session_state:
+                                st.session_state["cur_body"] = next_mail.get("body", "")
+                        else:
+                            if "cur_title" in st.session_state:
+                                st.session_state["cur_title"] = ""
+                            if "cur_body" in st.session_state:
+                                st.session_state["cur_body"] = ""
 
         with col_result:
             st.markdown("#### 3️⃣ Review the model decision")
@@ -1321,7 +1329,7 @@ They help teams reason about risks and the appropriate oversight controls.
 
 **Algorithm**: {algo}  
 **Features**: Sentence embeddings (MiniLM) concatenated with small, interpretable numeric features:
-- num_links_external, has_suspicious_tld, all_caps_ratio, punct_burst_ratio, money_symbol_count, urgency_terms_count.
+- num_links_external, has_suspicious_tld, punct_burst_ratio, money_symbol_count, urgency_terms_count.
 These are standardized and combined with the embedding before a linear classifier.
 
 **Classes**: spam, safe  
