@@ -178,12 +178,12 @@ Once labeled, the email moves to the **labeled dataset** above.
                         ss["labeled"].append({"title": item["title"], "body": item["body"], "label": "spam"})
                         ss["incoming"].pop(i)
                         st.success("Labeled as spam and moved to dataset.")
-                        st.experimental_rerun()
+                        st.rerun()
                     if col_btn2.button("Mark as safe", key=f"mark_safe_{i}"):
                         ss["labeled"].append({"title": item["title"], "body": item["body"], "label": "safe"})
                         ss["incoming"].pop(i)
                         st.success("Labeled as safe and moved to dataset.")
-                        st.experimental_rerun()
+                        st.rerun()
 
 with tab_train:
     st.subheader("2) Train — make the model learn")
