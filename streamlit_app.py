@@ -1,5 +1,5 @@
 import base64
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -10,6 +10,7 @@ from sentence_transformers import SentenceTransformer
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
 from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
 
 st.set_page_config(page_title="demistifAI — Spam Detector", page_icon="📧", layout="wide")
 
@@ -379,11 +380,93 @@ def combine_text(title: str, body: str) -> str:
     return (title or "") + "\n" + (body or "")
 
 
-class EmbedLogReg:
+import re
+from typing import List, Dict, Tuple
+from urllib.parse import urlparse
+import numpy as np
+
+SUSPICIOUS_TLDS = {".ru", ".top", ".xyz", ".click", ".pw", ".info", ".icu", ".win", ".gq", ".tk", ".cn"}
+URGENCY_TERMS = {"urgent", "immediately", "now", "asap", "final", "last chance", "act now", "action required", "limited time", "expires", "today only"}
+
+URL_REGEX = re.compile(r"https?://[^\s)>\]}]+", re.IGNORECASE)
+TOKEN_REGEX = re.compile(r"\b\w+\b", re.UNICODE)
+
+def extract_urls(text: str) -> List[str]:
+    return URL_REGEX.findall(text or "")
+
+def get_domain_tld(url: str) -> Tuple[str, str]:
+    try:
+        netloc = urlparse(url).netloc.lower()
+        if ":" in netloc:
+            netloc = netloc.split(":")[0]
+        # tld as the last dot suffix (naive but sufficient for demo)
+        parts = netloc.split(".")
+        tld = "." + parts[-1] if len(parts) >= 2 else ""
+        return netloc, tld
+    except Exception:
+        return "", ""
+
+def compute_numeric_features(title: str, body: str) -> Dict[str, float]:
+    text = (title or "") + "\n" + (body or "")
+    urls = extract_urls(text)
+    num_links = len(urls)
+    suspicious = 0
+    external_links = 0
+    for u in urls:
+        dom, tld = get_domain_tld(u)
+        if tld in SUSPICIOUS_TLDS:
+            suspicious = 1
+        # treat anything with a dot and not an intranet-like suffix as external (demo logic)
+        if dom and "." in dom:
+            external_links += 1
+
+    tokens = TOKEN_REGEX.findall(text)
+    n_tokens = max(1, len(tokens))
+    all_caps = sum(1 for t in tokens if t.isalpha() and t.isupper() and len(t) > 1)
+    all_caps_ratio = all_caps / n_tokens
+
+    punct_bursts = re.findall(r"([!?$#*])\1{1,}", text)  # repeated punctuation like "!!!", "$$$"
+    punct_burst_ratio = len(punct_bursts) / max(1, num_links + n_tokens)  # normalize by size
+
+    money_symbol_count = text.count("€") + text.count("$") + text.count("£")
+
+    lower = text.lower()
+    urgency_terms_count = 0
+    for term in URGENCY_TERMS:
+        urgency_terms_count += lower.count(term)
+
+    # Keep names stable — used in UI and coef table
+    feats = {
+        "num_links_external": float(external_links),
+        "has_suspicious_tld": float(suspicious),
+        "all_caps_ratio": float(all_caps_ratio),
+        "punct_burst_ratio": float(punct_burst_ratio),
+        "money_symbol_count": float(money_symbol_count),
+        "urgency_terms_count": float(urgency_terms_count),
+    }
+    return feats
+
+FEATURE_ORDER = [
+    "num_links_external",
+    "has_suspicious_tld",
+    "all_caps_ratio",
+    "punct_burst_ratio",
+    "money_symbol_count",
+    "urgency_terms_count",
+]
+
+def features_matrix(titles: List[str], bodies: List[str]) -> np.ndarray:
+    rows = []
+    for t, b in zip(titles, bodies):
+        f = compute_numeric_features(t, b)
+        rows.append([f[k] for k in FEATURE_ORDER])
+    return np.array(rows, dtype=np.float32)
+
+
+class HybridEmbedFeatsLogReg:
     """
-    Frozen sentence-embedding encoder + LogisticRegression classifier.
-    - fit(X_text:list[str], y:list[str]) -> stores LR and embed cache key
-    - predict, predict_proba accept list[str]
+    Frozen sentence-embedding encoder + small numeric features (standardized) concatenated,
+    then LogisticRegression (balanced).
     """
 
     def __init__(self, model_name: str = "sentence-transformers/all-MiniLM-L6-v2"):
@@ -394,25 +477,48 @@ class EmbedLogReg:
             class_weight="balanced",
             n_jobs=None,
         )
+        self.scaler = StandardScaler()
         self.classes_ = None
 
     def _embed(self, texts: list[str]) -> np.ndarray:
         return encode_texts(texts, model_name=self.model_name)
 
-    def fit(self, X_text: list[str], y: list[str]):
-        X_emb = self._embed(X_text)
-        self.lr.fit(X_emb, y)
+    def _feats(self, titles: List[str], bodies: List[str]) -> np.ndarray:
+        return features_matrix(titles, bodies)
+
+    def fit(self, X_titles: List[str], X_bodies: List[str], y: List[str]):
+        texts = [(t or "") + "\n" + (b or "") for t, b in zip(X_titles, X_bodies)]
+        X_emb = self._embed(texts)
+        X_f = self._feats(X_titles, X_bodies)
+        X_f_std = self.scaler.fit_transform(X_f)
+        X_cat = np.concatenate([X_emb, X_f_std], axis=1)
+        self.lr.fit(X_cat, y)
         self.classes_ = list(self.lr.classes_)
         return self
 
-    def predict(self, X_text: list[str]) -> np.ndarray:
-        X_emb = self._embed(X_text)
-        return self.lr.predict(X_emb)
+    def _prep(self, X_titles: List[str], X_bodies: List[str]) -> np.ndarray:
+        texts = [(t or "") + "\n" + (b or "") for t, b in zip(X_titles, X_bodies)]
+        X_emb = self._embed(texts)
+        X_f = self._feats(X_titles, X_bodies)
+        X_f_std = self.scaler.transform(X_f)
+        return np.concatenate([X_emb, X_f_std], axis=1)
 
-    def predict_proba(self, X_text: list[str]) -> np.ndarray:
-        X_emb = self._embed(X_text)
-        # LR is already calibrated; returns class probabilities
-        return self.lr.predict_proba(X_emb)
+    def predict(self, X_titles: List[str], X_bodies: List[str]) -> np.ndarray:
+        X = self._prep(X_titles, X_bodies)
+        return self.lr.predict(X)
+
+    def predict_proba(self, X_titles: List[str], X_bodies: List[str]) -> np.ndarray:
+        X = self._prep(X_titles, X_bodies)
+        return self.lr.predict_proba(X)
+
+    # Convenience for introspection of numeric feature coefficients
+    def numeric_feature_coefs(self) -> Dict[str, float]:
+        # Last len(FEATURE_ORDER) coefficients correspond to standardized numeric features
+        # because we concatenate [embeddings | std(numeric)]
+        n_total = self.lr.coef_.shape[1]
+        n_num = len(FEATURE_ORDER)
+        coefs = self.lr.coef_[0][-n_num:]
+        return {name: float(w) for name, w in zip(FEATURE_ORDER, coefs)}
 
 def route_decision(autonomy: str, y_hat: str, pspam: Optional[float], threshold: float):
     routed = None
@@ -530,8 +636,9 @@ Once labeled, the email moves to the **labeled dataset** above.
                         st.rerun()
 
     if ss.get("model") and ss["incoming"]:
-        texts_in = [combine_text(it["title"], it["body"]) for it in ss["incoming"]]
-        proba = ss["model"].predict_proba(texts_in)
+        titles_in = [it["title"] for it in ss["incoming"]]
+        bodies_in = [it["body"] for it in ss["incoming"]]
+        proba = ss["model"].predict_proba(titles_in, bodies_in)
         classes = ss["model"].classes_ or []
         spam_idx = classes.index("spam") if "spam" in classes else 0
         p_spam_all = proba[:, spam_idx]
@@ -565,7 +672,7 @@ with tab_train:
     st.subheader("2) Train — make the model learn")
     guidance_popover("How training works", """
 You set the **objective** (spam vs safe). The algorithm adjusts its **parameters** to reduce mistakes on your labeled examples.  
-We use **sentence embeddings** (MiniLM) plus **Logistic Regression** — fast, lightweight, and still calibrated for P(spam).
+We use **sentence embeddings** (MiniLM) plus small **numeric cues** (links, urgency, punctuation) with **Logistic Regression** — fast, lightweight, and still calibrated for P(spam).
 """)
     test_size = st.slider("Hold‑out test fraction", 0.1, 0.5, 0.3, 0.05)
     random_state = st.number_input("Random seed", min_value=0, value=42, step=1)
@@ -589,21 +696,37 @@ Controls the randomness of the split. By fixing the seed, you can reproduce the 
             if len(df["label"].unique()) < 2:
                 st.warning("You need both classes (spam and safe) present to train.")
             else:
-                X = (df["title"].fillna("") + "\n" + df["body"].fillna("")).tolist()
+                titles = df["title"].fillna("").tolist()
+                bodies = df["body"].fillna("").tolist()
                 y = df["label"].tolist()
-                X_train, X_test, y_train, y_test = train_test_split(
-                    X, y, test_size=test_size, random_state=random_state, stratify=y
+                X_tr_t, X_te_t, X_tr_b, X_te_b, y_tr, y_te = train_test_split(
+                    titles, bodies, y, test_size=test_size, random_state=random_state, stratify=y
                 )
 
-                model = EmbedLogReg().fit(X_train, y_train)
+                model = HybridEmbedFeatsLogReg().fit(X_tr_t, X_tr_b, y_tr)
                 ss["model"] = model
-                ss["split_cache"] = (X_train, X_test, y_train, y_test)
+                ss["split_cache"] = (X_tr_t, X_te_t, X_tr_b, X_te_b, y_tr, y_te)
 
-                st.success("Model trained with **sentence embeddings + Logistic Regression**.")
+                st.success("Model trained with **sentence embeddings + interpretable numeric features**.")
+
+                with st.expander("Interpretability: numeric feature coefficients", expanded=False):
+                    try:
+                        coef_map = ss["model"].numeric_feature_coefs()
+                        st.caption("Positive weights push toward the **spam** class; negative toward **safe** (after standardization).")
+                        st.dataframe(
+                            pd.DataFrame(
+                                [{"feature": k, "weight_toward_spam": v} for k, v in coef_map.items()]
+                            ).sort_values("weight_toward_spam", ascending=False),
+                            use_container_width=True,
+                            hide_index=True,
+                        )
+                    except Exception as e:
+                        st.caption(f"Coefficients unavailable: {e}")
 
                 with st.expander("Interpretability: nearest neighbors & class prototypes", expanded=False):
-                    X_train_emb = encode_texts(X_train)
-                    y_train_arr = np.array(y_train)
+                    X_train_texts = [combine_text(t, b) for t, b in zip(X_tr_t, X_tr_b)]
+                    X_train_emb = encode_texts(X_train_texts)
+                    y_train_arr = np.array(y_tr)
 
                     def prototype_for(cls):
                         mask = y_train_arr == cls
@@ -627,7 +750,7 @@ Controls the randomness of the split. By fixing the seed, you can reproduce the 
                         idx, sims = top_nearest(proto, k=5)
                         st.markdown(f"**{cls.capitalize()} prototype — most similar training emails**")
                         for i, (ix, sc) in enumerate(zip(idx, sims), 1):
-                            text_full = X_train[ix]
+                            text_full = X_train_texts[ix]
                             parts = text_full.split("\n", 1)
                             title_i = parts[0]
                             body_i = parts[1] if len(parts) > 1 else ""
@@ -642,10 +765,10 @@ Hold‑out evaluation estimates how well the model generalizes to **new** emails
 It helps detect overfitting, bias, and areas needing more data.
 """)
     if ss.get("model") and ss.get("split_cache"):
-        X_train, X_test, y_train, y_test = ss["split_cache"]
-        y_pred = ss["model"].predict(X_test)
-        acc = accuracy_score(y_test, y_pred)
-        st.success(f"Test accuracy: **{acc:.2%}** on {len(y_test)} samples.")
+        X_tr_t, X_te_t, X_tr_b, X_te_b, y_tr, y_te = ss["split_cache"]
+        y_pred = ss["model"].predict(X_te_t, X_te_b)
+        acc = accuracy_score(y_te, y_pred)
+        st.success(f"Test accuracy: **{acc:.2%}** on {len(y_te)} samples.")
 
         try:
             df_all = pd.DataFrame(ss["labeled"])
@@ -653,7 +776,7 @@ It helps detect overfitting, bias, and areas needing more data.
         except Exception:
             class_counts = {}
 
-        assessment = assess_performance(acc, n_test=len(y_test), class_counts=class_counts)
+        assessment = assess_performance(acc, n_test=len(y_te), class_counts=class_counts)
 
         if assessment["verdict"] == "Great":
             st.success(
@@ -673,15 +796,15 @@ It helps detect overfitting, bias, and areas needing more data.
             )
 
         st.caption("Confusion matrix (rows: ground truth, columns: model prediction).")
-        st.dataframe(df_confusion(y_test, y_pred, CLASSES), use_container_width=True)
+        st.dataframe(df_confusion(y_te, y_pred, CLASSES), use_container_width=True)
         st.text("Classification report")
-        st.code(classification_report(y_test, y_pred, labels=CLASSES), language="text")
+        st.code(classification_report(y_te, y_pred, labels=CLASSES), language="text")
 
-        probs = ss["model"].predict_proba(X_test)
+        probs = ss["model"].predict_proba(X_te_t, X_te_b)
         classes = ss["model"].classes_ or []
         idx_spam = classes.index("spam") if "spam" in classes else 0
 
-        y_true = np.array([1 if yy == "spam" else 0 for yy in y_test])
+        y_true = np.array([1 if yy == "spam" else 0 for yy in y_te])
         p_spam = probs[:, idx_spam]
 
         st.markdown("### 🎚️ Threshold helper (validation)")
@@ -711,18 +834,26 @@ It helps detect overfitting, bias, and areas needing more data.
         plt.close(fig)
 
         with st.expander("Advanced: Cross-validation (Stratified K-Fold)"):
-            use_cv = st.checkbox("Run 5-fold CV on embeddings (slower)")
+            use_cv = st.checkbox("Run 5-fold CV on hybrid embeddings + numeric features (slower)")
             if use_cv:
                 from sklearn.model_selection import StratifiedKFold
 
                 df_all = pd.DataFrame(ss["labeled"])
-                X_all = (df_all["title"].fillna("") + "\n" + df_all["body"].fillna("")).tolist()
+                titles_all = df_all["title"].fillna("").tolist()
+                bodies_all = df_all["body"].fillna("").tolist()
                 y_all = df_all["label"].tolist()
                 skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
                 scores = []
-                for tr, te in skf.split(X_all, y_all):
-                    m = EmbedLogReg().fit([X_all[i] for i in tr], [y_all[i] for i in tr])
-                    y_pred_cv = m.predict([X_all[i] for i in te])
+                for tr, te in skf.split(titles_all, y_all):
+                    m = HybridEmbedFeatsLogReg().fit(
+                        [titles_all[i] for i in tr],
+                        [bodies_all[i] for i in tr],
+                        [y_all[i] for i in tr],
+                    )
+                    y_pred_cv = m.predict(
+                        [titles_all[i] for i in te],
+                        [bodies_all[i] for i in te],
+                    )
                     scores.append((np.array([y_all[i] for i in te]) == y_pred_cv).mean())
                 st.write(f"Mean CV accuracy: **{np.mean(scores):.2%}** ± {np.std(scores):.2%}")
     else:
@@ -764,22 +895,34 @@ Depending on the autonomy level, the system may: only **predict**, **recommend**
                 if not (current["title"].strip() or current["body"].strip()):
                     st.warning("Please provide an email to classify.")
                 else:
-                    text = combine_text(current["title"], current["body"])
-                    y_hat = ss["model"].predict([text])[0]
-                    proba = ss["model"].predict_proba([text])[0]
+                    t_list = [current["title"]]
+                    b_list = [current["body"]]
+                    pred = ss["model"].predict(t_list, b_list)[0]
+                    proba = ss["model"].predict_proba(t_list, b_list)[0]
                     classes = ss["model"].classes_ or []
                     p_spam = float(proba[classes.index("spam")]) if "spam" in classes else None
                     if p_spam is not None:
-                        st.success(f"Prediction: **{y_hat}** — P(spam) ≈ **{p_spam:.2f}**")
+                        st.success(f"Prediction: **{pred}** — P(spam) ≈ **{p_spam:.2f}**")
                     else:
-                        st.success(f"Prediction: **{y_hat}**")
-                    action, routed = route_decision(ss["autonomy"], y_hat, p_spam, thr)
+                        st.success(f"Prediction: **{pred}**")
+
+                    feats = compute_numeric_features(current["title"], current["body"])
+                    with st.expander("Why might the model decide this? (numeric cues)"):
+                        st.dataframe(
+                            pd.DataFrame(
+                                [{"feature": k, "value": v} for k, v in feats.items()]
+                            ),
+                            use_container_width=True,
+                            hide_index=True,
+                        )
+
+                    action, routed = route_decision(ss["autonomy"], pred, p_spam, thr)
                     st.info(f"Autonomy action: {action}")
                     if routed is not None:
                         record = {
                             "title": current["title"],
                             "body": current["body"],
-                            "pred": y_hat,
+                            "pred": pred,
                             "p_spam": round(p_spam, 3) if p_spam is not None else None,
                         }
                         if routed == "Spam":
@@ -823,12 +966,15 @@ Depending on the autonomy level, the system may: only **predict**, **recommend**
                         ss["labeled"].append({"title": last_rec["title"], "body": last_rec["body"], "label": gt})
                         df = pd.DataFrame(ss["labeled"])
                         if len(df["label"].unique()) >= 2:
-                            X = (df["title"].fillna("") + "\n" + df["body"].fillna("")).tolist()
+                            titles = df["title"].fillna("").tolist()
+                            bodies = df["body"].fillna("").tolist()
                             y = df["label"].tolist()
-                            X_tr, X_te, y_tr, y_te = train_test_split(X, y, test_size=0.3, random_state=42, stratify=y)
-                            ss["model"] = EmbedLogReg().fit(X_tr, y_tr)
-                            ss["split_cache"] = (X_tr, X_te, y_tr, y_te)
-                            st.info("🔁 Adaptive learning: model retrained with your correction.")
+                            X_tr_t, X_te_t, X_tr_b, X_te_b, y_tr, y_te = train_test_split(
+                                titles, bodies, y, test_size=0.3, random_state=42, stratify=y
+                            )
+                            ss["model"] = HybridEmbedFeatsLogReg().fit(X_tr_t, X_tr_b, y_tr)
+                            ss["split_cache"] = (X_tr_t, X_te_t, X_tr_b, X_te_b, y_tr, y_te)
+                        st.info("🔁 Adaptive learning: model retrained with your correction.")
 
         m = ss["metrics"]; total = sum(m.values()) or 1
         acc = (m["TP"] + m["TN"]) / total
@@ -840,19 +986,23 @@ with tab_card:
 Model cards summarize intended purpose, data, metrics, autonomy & adaptiveness settings.  
 They help teams reason about risks and the appropriate oversight controls.
 """)
-    algo = "Sentence embeddings (MiniLM) + Logistic Regression"
+    algo = "Sentence embeddings (MiniLM) + standardized numeric cues + Logistic Regression"
     n_samples = len(ss["labeled"])
     labels_present = sorted({row["label"] for row in ss["labeled"]}) if ss["labeled"] else []
     metrics_text = ""
     if ss.get("model") and ss.get("split_cache"):
-        X_train, X_test, y_train, y_test = ss["split_cache"]
-        y_pred = ss["model"].predict(X_test)
-        metrics_text = f"Accuracy on hold‑out: {accuracy_score(y_test, y_pred):.2%} (n={len(y_test)})"
+        _, X_te_t, _, X_te_b, _, y_te = ss["split_cache"]
+        y_pred = ss["model"].predict(X_te_t, X_te_b)
+        metrics_text = f"Accuracy on hold‑out: {accuracy_score(y_te, y_pred):.2%} (n={len(y_te)})"
     card_md = f"""
 # Model Card — demistifAI (Spam Detector)
 **Intended purpose**: Educational demo to illustrate the AI Act definition of an **AI system** via a spam classifier.
 
 **Algorithm**: {algo}  
+**Features**: Sentence embeddings (MiniLM) concatenated with small, interpretable numeric features:
+- num_links_external, has_suspicious_tld, all_caps_ratio, punct_burst_ratio, money_symbol_count, urgency_terms_count.
+These are standardized and combined with the embedding before a linear classifier.
+
 **Classes**: spam, safe  
 **Dataset size**: {n_samples} labeled examples  
 **Classes present**: {', '.join(labels_present) if labels_present else '[not trained]'}
