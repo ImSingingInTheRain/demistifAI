@@ -21,29 +21,233 @@ AUTONOMY_LEVELS = [
 ]
 
 STARTER_LABELED: List[Dict] = [
-    {"title": "WIN a FREE iPhone!!!", "body": "Click now to claim your prize. Offer ends today.", "label": "spam"},
-    {"title": "You have been selected", "body": "Congratulations! Verify your account to get the reward.", "label": "spam"},
-    {"title": "Earn $$$ fast", "body": "No experience required. Work from home and make money quickly.", "label": "spam"},
-    {"title": "Exclusive offer for you", "body": "Limited time 90% discount on premium subscription!!!", "label": "spam"},
-    {"title": "URGENT: Account suspended", "body": "Your account will be closed. Confirm your password here.", "label": "spam"},
-    {"title": "Gift card inside", "body": "Open this attachment to redeem your bonus.", "label": "spam"},
-    {"title": "Team meeting moved to 14:00", "body": "Please join on the usual Teams link. Agenda attached.", "label": "safe"},
-    {"title": "Invoice for August", "body": "Hi, please find the invoice attached. Let me know if any questions.", "label": "safe"},
-    {"title": "Draft for review", "body": "Could you review the policy draft by Friday? Thanks!", "label": "safe"},
-    {"title": "Lunch tomorrow?", "body": "Are you free at 12:30 near the canteen?", "label": "safe"},
-    {"title": "Compliance workshop minutes", "body": "Attached minutes and action items from today's session.", "label": "safe"},
-    {"title": "Reminder: Q4 budget review", "body": "Please upload your worksheets by Tuesday EOD.", "label": "safe"},
+    # -------- SPAM (14) --------
+    {
+        "title": "URGENT: Verify your payroll information today",
+        "body": "Your salary deposit is on hold. Confirm your bank details via this external link to avoid delay.",
+        "label": "spam",
+    },
+    {
+        "title": "WIN a FREE iPhone — final round eligibility",
+        "body": "Congratulations! Complete the short survey to claim your iPhone. Offer expires in 2 hours.",
+        "label": "spam",
+    },
+    {
+        "title": "Password will expire — action required",
+        "body": "Reset your password here: http://accounts-security.example-reset.com. Failure to act may lock your account.",
+        "label": "spam",
+    },
+    {
+        "title": "Delivery notice: package waiting for customs clearance",
+        "body": "Pay a small fee to release your parcel. Use our quick checkout link to avoid return.",
+        "label": "spam",
+    },
+    {
+        "title": "Your account was suspended",
+        "body": "Unusual login detected. Open the attached HTML file and confirm your credentials to restore access.",
+        "label": "spam",
+    },
+    {
+        "title": "Invoice discrepancy for March",
+        "body": "We overcharged your account. Provide your card number for an immediate refund.",
+        "label": "spam",
+    },
+    {
+        "title": "Corporate survey: guaranteed €100 voucher",
+        "body": "Finish this 1-minute survey and receive a voucher instantly. No employee ID needed.",
+        "label": "spam",
+    },
+    {
+        "title": "Security alert from IT desk",
+        "body": "We’ve updated our security policy. Download the attached ZIP to review the changes.",
+        "label": "spam",
+    },
+    {
+        "title": "Limited-time premium subscription at 90% off",
+        "body": "Upgrade now to unlock executive insights. Click the promotional link and pay today.",
+        "label": "spam",
+    },
+    {
+        "title": "Payment overdue: settle immediately",
+        "body": "Your service will be interrupted. Wire funds to the account in the attachment to avoid penalties.",
+        "label": "spam",
+    },
+    {
+        "title": "HR update: bonus eligibility check",
+        "body": "Confirm your identity by entering your national ID on our verification page to receive your bonus.",
+        "label": "spam",
+    },
+    {
+        "title": "Conference invite: free registration + gift",
+        "body": "Register via the link to receive a €50 gift card. Limited seats; confirm with your credit card.",
+        "label": "spam",
+    },
+    {
+        "title": "DocuSign: You received a secure document",
+        "body": "Open this third-party portal to review and log in with your email password for access.",
+        "label": "spam",
+    },
+    {
+        "title": "Crypto opportunity: double your balance",
+        "body": "Transfer your funds to our wallet and we’ll return 2× within 24 hours. Trusted by leaders.",
+        "label": "spam",
+    },
+
+    # -------- SAFE (14) --------
+    {
+        "title": "Password reset confirmation for corporate portal",
+        "body": "You requested a password change via the **internal** IT portal. If this wasn’t you, contact IT on Teams.",
+        "label": "safe",
+    },
+    {
+        "title": "DHL tracking: package out for delivery",
+        "body": "Your parcel is scheduled today. Track via the official DHL portal with your tracking ID (no payment required).",
+        "label": "safe",
+    },
+    {
+        "title": "March invoice attached — Accounts Payable",
+        "body": "Hi, please find the March invoice attached in PDF. No payment details requested; PO referenced below.",
+        "label": "safe",
+    },
+    {
+        "title": "Minutes from the compliance workshop",
+        "body": "Attached are the minutes and action items agreed during today’s workshop. Feedback welcome by Friday.",
+        "label": "safe",
+    },
+    {
+        "title": "Security advisory — internal policy update",
+        "body": "Please review the new password guidelines on the **intranet**. No external links or attachments.",
+        "label": "safe",
+    },
+    {
+        "title": "Reminder: Q4 budget review on Tuesday",
+        "body": "Please upload your cost worksheets to the internal SharePoint before 16:00 CEST.",
+        "label": "safe",
+    },
+    {
+        "title": "Travel itinerary update",
+        "body": "Your train platform changed. Updated PDF itinerary is attached; no action required.",
+        "label": "safe",
+    },
+    {
+        "title": "Team meeting moved to 14:00",
+        "body": "Join via the regular Teams link. Agenda: quarterly KPIs, risk register, and roadmap.",
+        "label": "safe",
+    },
+    {
+        "title": "Draft for review — policy document",
+        "body": "Could you review the attached draft and add comments in Word track changes by EOD Thursday?",
+        "label": "safe",
+    },
+    {
+        "title": "Onboarding checklist for new starters",
+        "body": "HR checklist attached; forms to be submitted via Workday. Reach out if anything is unclear.",
+        "label": "safe",
+    },
+    {
+        "title": "Canteen menu and wellness events",
+        "body": "This week’s healthy menu and yoga session schedule are included. No RSVP needed.",
+        "label": "safe",
+    },
+    {
+        "title": "Customer feedback summary — Q3",
+        "body": "Please see the attached slide deck with survey trends and next steps for CX improvements.",
+        "label": "safe",
+    },
+    {
+        "title": "Security alert — new device sign-in (confirmed)",
+        "body": "You signed in from a new laptop. If recognized, no action needed. Audit log available on the intranet.",
+        "label": "safe",
+    },
+    {
+        "title": "Coffee catch-up?",
+        "body": "Are you free on Thursday afternoon for a quick chat about the training roadmap?",
+        "label": "safe",
+    },
 ]
 
 STARTER_INCOMING: List[Dict] = [
-    {"title": "Your parcel is waiting", "body": "Provide your details to schedule delivery."},
-    {"title": "Act now for 90% discount!!!", "body": "This exclusive link expires in 2 hours. Don’t miss out!"},
-    {"title": "Minutes from the compliance workshop", "body": "See attached for decisions and next steps."},
-    {"title": "Password will expire soon", "body": "Update your password using the corporate portal."},
-    {"title": "Coffee catch‑up?", "body": "Fancy a coffee on Thursday afternoon?"},
-    {"title": "CONGRATULATIONS! You’ve won", "body": "Claim your gift card by entering your bank details here."},
-    {"title": "Travel itinerary update", "body": "Your train has changed platforms; ticket attached."},
-    {"title": "Security alert", "body": "We detected a sign‑in from a new device. If this wasn’t you, reset your password."},
+    # Edge-case pairs similar to labeled set
+    {
+        "title": "Password will expire — update required",
+        "body": "To keep access, update your password using our internal portal link on the intranet page.",
+    },
+    {
+        "title": "Password will expire — action needed",
+        "body": "Update here: http://it-support-reset.example-login.com to prevent account lock.",
+    },
+    {
+        "title": "Delivery notice: confirm your address",
+        "body": "We couldn’t deliver your parcel. Click the link to pay a small redelivery fee.",
+    },
+    {
+        "title": "DHL update: parcel delayed due to weather",
+        "body": "No action required. Track using your official tracking number on dhl.com.",
+    },
+    {
+        "title": "Invoice correction required",
+        "body": "We can refund you today if you send your card number and CVV for verification.",
+    },
+    {
+        "title": "AP: invoice posted to SharePoint",
+        "body": "Your invoice has been posted to the finance SharePoint. PO and cost center included.",
+    },
+
+    # Varied business communications
+    {
+        "title": "Security bulletin — phishing simulation next week",
+        "body": "IT will run a phishing simulation. Do not click unknown links; report suspicious emails via the button.",
+    },
+    {
+        "title": "Corporate survey — help improve the office",
+        "body": "Share your thoughts in a 3-minute internal survey on the intranet (no incentives offered).",
+    },
+    {
+        "title": "Join our external webinar: limited seats",
+        "body": "Reserve your seat using the registration link. A small deposit is required to confirm attendance.",
+    },
+    {
+        "title": "Quarterly planning session",
+        "body": "Please add your slides to the shared folder before the meeting. No external links.",
+    },
+
+    # Marketing/promotional vs genuine notices
+    {
+        "title": "Premium research access at 85% off — today only",
+        "body": "Unlock exclusive reports now. Secure payment through our partner portal.",
+    },
+    {
+        "title": "Policy update: remote work guidelines",
+        "body": "The updated policy is available on the intranet. Please acknowledge by Friday.",
+    },
+
+    # “Looks real” security/invoice tones
+    {
+        "title": "Security alert — verify identity",
+        "body": "Download the attached file and log in to validate your account. Immediate action required.",
+    },
+    {
+        "title": "Security alert — new device sign-in",
+        "body": "Was this you? If recognized, ignore. Otherwise, reset password from the internal portal.",
+    },
+    {
+        "title": "Overdue payment — settle now",
+        "body": "Service interruption imminent. Transfer funds to the following wallet to avoid fees.",
+    },
+    {
+        "title": "AP reminder — PO mismatch on ticket #4923",
+        "body": "Please correct the PO reference in the invoice metadata on SharePoint; no payment info needed.",
+    },
+
+    # Neutral miscellany
+    {
+        "title": "Team offsite: dietary requirements",
+        "body": "Please submit your preferences by Wednesday; vegetarian and vegan options available.",
+    },
+    {
+        "title": "Mentorship program enrollment",
+        "body": "Sign up via the HR portal. Matching will occur next month; no external forms.",
+    },
 ]
 
 def guidance_popover(title: str, text: str):
