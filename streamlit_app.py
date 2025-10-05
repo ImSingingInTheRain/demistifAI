@@ -54,6 +54,42 @@ def df_confusion(y_true, y_pred, labels):
     cm = confusion_matrix(y_true, y_pred, labels=labels)
     return pd.DataFrame(cm, index=[f"True: {l}" for l in labels], columns=[f"Pred: {l}" for l in labels])
 
+
+def assess_performance(acc: float, n_test: int, class_counts: Dict[str, int]) -> Dict[str, object]:
+    """
+    Return a verdict ('Great', 'Okay', 'Needs work') and tailored suggestions.
+    Heuristics:
+      - acc >= 0.90 and n_test >= 10 -> Great
+      - 0.75 <= acc < 0.90 or n_test < 10 -> Okay
+      - acc < 0.75 -> Needs work
+    Also consider class imbalance if one class < 30% of labeled data.
+    """
+    verdict = "Okay"
+    if n_test >= 10 and acc >= 0.90:
+        verdict = "Great"
+    elif acc < 0.75:
+        verdict = "Needs work"
+
+    tips: List[str] = []
+    if verdict != "Great":
+        tips.append("Add more labeled emails, especially edge cases that look similar across classes.")
+        tips.append("Balance the dataset (roughly comparable counts of 'spam' and 'safe').")
+        tips.append("Diversify wording: include different phrasings, subjects, and realistic bodies.")
+    tips.append("Tune the spam threshold in the Classify tab to trade off false positives vs false negatives.")
+    tips.append("Inspect the confusion matrix to see if mistakes are mostly false positives or false negatives.")
+    tips.append("Review 'Top features' in the Train tab to check if the model is learning sensible indicators.")
+    tips.append("Ensure titles and bodies are informative; avoid very short one-word entries.")
+
+    total_labeled = sum(class_counts.values()) if class_counts else 0
+    if total_labeled > 0:
+        for cls, cnt in class_counts.items():
+            share = cnt / total_labeled
+            if share < 0.30:
+                tips.insert(0, f"Label more '{cls}' examples (currently ~{share:.0%}), the model may be biased.")
+                break
+
+    return {"verdict": verdict, "tips": tips}
+
 def make_pipeline():
     return Pipeline([
         ("tfidf", TfidfVectorizer(ngram_range=(1,2), min_df=1)),
@@ -193,6 +229,18 @@ We use **TF‑IDF** features and **Logistic Regression** so we can show calibrat
 """)
     test_size = st.slider("Hold‑out test fraction", 0.1, 0.5, 0.3, 0.05)
     random_state = st.number_input("Random seed", min_value=0, value=42, step=1)
+    st.info(
+        "• **Hold-out test fraction**: we keep this percentage of your labeled emails aside as a mini 'exam'. "
+        "The model never sees them during training, so the test score reflects how well it might handle new emails.\n"
+        "• **Random seed**: this fixes the 'shuffle order' so you (and others) can get the same split and the same results when re-running the demo."
+    )
+    guidance_popover("Hold-out & Random seed", """
+**Hold-out test fraction**  
+We split your labeled emails into a training set and a test set. The test set is like a mini exam: the model hasn’t seen those emails before, so its score is a better proxy for real-world performance.
+
+**Random seed**  
+Controls the randomness of the split. By fixing the seed, you can reproduce the same results later (useful for learning and comparison).
+""")
     if st.button("🚀 Train model", type="primary"):
         if len(ss["labeled"]) < 6:
             st.warning("Please label a few more emails first (≥6 examples).")
@@ -236,6 +284,33 @@ It helps detect overfitting, bias, and areas needing more data.
         y_pred = ss["model"].predict(X_test)
         acc = accuracy_score(y_test, y_pred)
         st.success(f"Test accuracy: **{acc:.2%}** on {len(y_test)} samples.")
+
+        try:
+            df_all = pd.DataFrame(ss["labeled"])
+            class_counts = df_all["label"].value_counts().to_dict() if not df_all.empty else {}
+        except Exception:
+            class_counts = {}
+
+        assessment = assess_performance(acc, n_test=len(y_test), class_counts=class_counts)
+
+        if assessment["verdict"] == "Great":
+            st.success(
+                f"Verdict: **{assessment['verdict']}** — This test accuracy ({acc:.2%}) looks strong for a small demo dataset."
+            )
+        elif assessment["verdict"] == "Okay":
+            st.info(f"Verdict: **{assessment['verdict']}** — Decent, but there’s room to improve.")
+        else:
+            st.warning(
+                f"Verdict: **{assessment['verdict']}** — The model likely needs more/better data or tuning."
+            )
+
+        with st.expander("How to improve"):
+            st.markdown("\n".join([f"- {tip}" for tip in assessment["tips"]]))
+            st.caption(
+                "Tip: In **Full autonomy**, false positives hide legit mail and false negatives let spam through — tune the threshold accordingly."
+            )
+
+        st.caption("Confusion matrix (rows: ground truth, columns: model prediction).")
         st.dataframe(df_confusion(y_test, y_pred, CLASSES), use_container_width=True)
         st.text("Classification report")
         st.code(classification_report(y_test, y_pred, labels=CLASSES), language="text")
