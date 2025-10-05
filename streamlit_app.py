@@ -706,6 +706,7 @@ ss.setdefault("split_cache", None)
 ss.setdefault("mail_inbox", [])  # list of dicts: title, body, pred, p_spam
 ss.setdefault("mail_spam", [])
 ss.setdefault("metrics", {"TP": 0, "FP": 0, "TN": 0, "FN": 0})
+ss.setdefault("last_classification", None)
 
 st.sidebar.header("⚙️ Settings")
 ss["autonomy"] = st.sidebar.selectbox("Autonomy level", AUTONOMY_LEVELS, index=AUTONOMY_LEVELS.index(ss["autonomy"]))
@@ -724,6 +725,7 @@ if st.sidebar.button("🔄 Reset demo data"):
     ss["split_cache"] = None
     ss["mail_inbox"].clear(); ss["mail_spam"].clear()
     ss["metrics"] = {"TP": 0, "FP": 0, "TN": 0, "FN": 0}
+    ss["last_classification"] = None
     st.sidebar.success("Reset complete.")
 
 st.title("📧 demistifAI — Spam Detector")
@@ -1031,25 +1033,60 @@ Depending on the autonomy level, the system may: only **predict**, **recommend**
     if not ss.get("model"):
         st.info("Train a model first in the **Train** tab.")
     else:
-        src = st.radio("Classify from", ["Next incoming email", "Custom input"], horizontal=True)
-        if src == "Next incoming email":
-            if ss["incoming"]:
-                current = ss["incoming"][0]
-                st.text_input("Title", value=current["title"], key="cur_title", disabled=True)
-                st.text_area("Body", value=current["body"], key="cur_body", height=120, disabled=True)
-            else:
-                st.warning("No incoming emails left. Add more in the Data tab or use Custom input.")
-                current = {"title": "", "body": ""}
-        else:
-            cur_t = st.text_input("Title", key="custom_title", placeholder="Subject: ...")
-            cur_b = st.text_area("Body", key="custom_body", height=120, placeholder="Email body...")
-            current = {"title": cur_t, "body": cur_b}
+        col_input, col_result = st.columns([3, 2], gap="large")
 
-        col_pred, col_thresh = st.columns([2,1])
-        with col_thresh:
-            thr = st.slider("Threshold (P(spam))", 0.1, 0.9, ss["threshold"], 0.05, help="Used for recommendation/auto‑route")
-        with col_pred:
-            if st.button("Predict / Route", type="primary"):
+        with col_input:
+            st.markdown("#### 1️⃣ Provide an email")
+            st.caption("Choose an email from the stream or paste your own message to see how the model responds.")
+            src = st.radio(
+                "Classify from",
+                ["Next incoming email", "Custom input"],
+                horizontal=True,
+                key="classify_source",
+            )
+
+            if src == "Next incoming email":
+                if ss["incoming"]:
+                    current = ss["incoming"][0]
+                    st.caption(f"{len(ss['incoming'])} email(s) waiting in the stream.")
+                    st.text_input(
+                        "Email subject",
+                        value=current["title"],
+                        key="cur_title",
+                        disabled=True,
+                    )
+                    st.text_area(
+                        "Email body",
+                        value=current["body"],
+                        key="cur_body",
+                        height=150,
+                        disabled=True,
+                    )
+                else:
+                    st.warning("No incoming emails left. Add more in the Data tab or switch to Custom input.")
+                    current = {"title": "", "body": ""}
+            else:
+                cur_t = st.text_input("Email subject", key="custom_title", placeholder="Subject: ...")
+                cur_b = st.text_area(
+                    "Email body",
+                    key="custom_body",
+                    height=150,
+                    placeholder="Paste or type an email body to test the classifier...",
+                )
+                current = {"title": cur_t, "body": cur_b}
+
+            st.markdown("#### 2️⃣ Configure decision threshold")
+            thr = st.slider(
+                "Threshold (P(spam))",
+                0.1,
+                0.9,
+                ss["threshold"],
+                0.05,
+                help="Used for recommendation/auto‑route decisions.",
+            )
+            st.caption("Lower the threshold to be more permissive, raise it to be stricter about routing to spam.")
+
+            if st.button("Run classification", type="primary", use_container_width=True):
                 if not (current["title"].strip() or current["body"].strip()):
                     st.warning("Please provide an email to classify.")
                 else:
@@ -1059,23 +1096,23 @@ Depending on the autonomy level, the system may: only **predict**, **recommend**
                     proba = ss["model"].predict_proba(t_list, b_list)[0]
                     classes = ss["model"].classes_ or []
                     p_spam = float(proba[classes.index("spam")]) if "spam" in classes else None
-                    if p_spam is not None:
-                        st.success(f"Prediction: **{pred}** — P(spam) ≈ **{p_spam:.2f}**")
-                    else:
-                        st.success(f"Prediction: **{pred}**")
 
                     feats = compute_numeric_features(current["title"], current["body"])
-                    with st.expander("Why might the model decide this? (numeric cues)"):
-                        st.dataframe(
-                            pd.DataFrame(
-                                [{"feature": k, "value": v} for k, v in feats.items()]
-                            ),
-                            use_container_width=True,
-                            hide_index=True,
-                        )
-
                     action, routed = route_decision(ss["autonomy"], pred, p_spam, thr)
-                    st.info(f"Autonomy action: {action}")
+
+                    result_record = {
+                        "source": src,
+                        "title": current["title"],
+                        "body": current["body"],
+                        "pred": pred,
+                        "p_spam": p_spam,
+                        "threshold": thr,
+                        "action": action,
+                        "routed": routed,
+                        "features": feats,
+                    }
+                    ss["last_classification"] = result_record
+
                     if routed is not None:
                         record = {
                             "title": current["title"],
@@ -1090,14 +1127,73 @@ Depending on the autonomy level, the system may: only **predict**, **recommend**
                         if src == "Next incoming email" and ss["incoming"]:
                             ss["incoming"].pop(0)
 
+        with col_result:
+            st.markdown("#### 3️⃣ Review the model decision")
+            last = ss.get("last_classification")
+            if last is None:
+                st.info("Run a classification to see the model's prediction, confidence, and routing action.")
+            else:
+                emoji = "🚫" if last["pred"] == "spam" else "✅"
+                st.markdown(f"{emoji} **Prediction:** {last['pred'].upper()}")
+
+                if last["p_spam"] is not None:
+                    st.metric(
+                        "P(spam)",
+                        f"{last['p_spam']:.2%}",
+                        delta=f"Threshold {last['threshold']:.0%}",
+                    )
+                    st.progress(int(last["p_spam"] * 100))
+                else:
+                    st.caption("Probability not available — model did not output spam class explicitly.")
+
+                if last["routed"] == "Spam":
+                    st.error(last["action"])
+                elif last["routed"] == "Inbox":
+                    st.success(last["action"])
+                elif last["action"].startswith("Recommend"):
+                    st.warning(last["action"])
+                else:
+                    st.info(last["action"])
+
+                with st.expander("Numeric cues influencing the decision"):
+                    st.dataframe(
+                        pd.DataFrame(
+                            [{"feature": k, "value": v} for k, v in last["features"].items()]
+                        ),
+                        use_container_width=True,
+                        hide_index=True,
+                    )
+
+                st.caption(
+                    "Autonomy level: "
+                    f"{ss['autonomy']} • Source: {last['source']}"
+                )
+
         st.markdown("### 📥 Mailboxes")
-        c1, c2 = st.columns(2)
-        with c1:
-            st.write(f"**Inbox (safe)** — {len(ss['mail_inbox'])}")
-            st.dataframe(pd.DataFrame(ss["mail_inbox"]), use_container_width=True, hide_index=True) if ss["mail_inbox"] else st.caption("Empty")
-        with c2:
-            st.write(f"**Spam** — {len(ss['mail_spam'])}")
-            st.dataframe(pd.DataFrame(ss["mail_spam"]), use_container_width=True, hide_index=True) if ss["mail_spam"] else st.caption("Empty")
+        inbox_tab, spam_tab = st.tabs(
+            [
+                f"Inbox (safe) — {len(ss['mail_inbox'])}",
+                f"Spam — {len(ss['mail_spam'])}",
+            ]
+        )
+        with inbox_tab:
+            if ss["mail_inbox"]:
+                st.dataframe(
+                    pd.DataFrame(ss["mail_inbox"]),
+                    use_container_width=True,
+                    hide_index=True,
+                )
+            else:
+                st.caption("Inbox is empty so far.")
+        with spam_tab:
+            if ss["mail_spam"]:
+                st.dataframe(
+                    pd.DataFrame(ss["mail_spam"]),
+                    use_container_width=True,
+                    hide_index=True,
+                )
+            else:
+                st.caption("No emails have been routed to spam yet.")
 
         st.markdown("### ✅ Record ground truth & (optionally) learn")
         gt = st.selectbox("What is the **actual** label of the last routed email?", ["", "spam", "safe"], index=0)
