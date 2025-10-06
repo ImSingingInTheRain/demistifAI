@@ -847,6 +847,8 @@ def download_text(text: str, filename: str, label: str = "Download"):
     st.markdown(f'<a href="data:text/plain;base64,{b64}" download="{filename}">{label}</a>', unsafe_allow_html=True)
 
 ss = st.session_state
+ss.setdefault("intro_start_clicked", False)
+ss.setdefault("nerd_mode", False)
 ss.setdefault("autonomy", AUTONOMY_LEVELS[0])
 ss.setdefault("threshold", 0.6)
 ss.setdefault("adaptive", True)
@@ -889,11 +891,88 @@ You define the intended purpose (classify emails as **spam** or **safe**).
 """)
 st.caption("Two classes are available: **spam** and **safe**. Preloaded labeled dataset + unlabeled inbox stream.")
 
-tab_data, tab_train, tab_eval, tab_classify, tab_card = st.tabs(
-    ["1) Data", "2) Train", "3) Evaluate", "4) Classify", "5) Model Card"]
+tab_intro, tab_overview, tab_data, tab_train, tab_eval, tab_classify, tab_card = st.tabs(
+    ["0) Intro", "0.5) Overview", "1) Data", "2) Train", "3) Evaluate", "4) Classify", "5) Model Card"]
 )
 
+with tab_intro:
+    st.subheader("Welcome to DemistifAI! 🎉")
+
+    st.write("DemistifAI is an interactive playground to demystify the complexities of AI and the EU AI Act definition of AI System.")
+
+    guidance_popover("Show me the definition of AI system", """
+‘AI system’ means a machine-based system that is designed to operate with varying levels of autonomy and that may exhibit adaptiveness after deployment, and that, for explicit or implicit objectives, infers, from the input it receives, how to generate outputs such as predictions, content, recommendations, or decisions that can influence physical or virtual environments;
+""")
+
+    st.write(
+        "AI systems are often considered black-boxes that can only be understood by AI practitioners. "
+        "While there are black-box AIs out there, every day you are likely to interact with AI systems that you can and should understand."
+    )
+
+    st.markdown("Your mission today will be to understand how an AI system with the intended purpose of preventing SPAM email from entering your inbox works… by building one.")
+
+    st.markdown("**Yes, you are going to build an AI Email SPAM Detector!**")
+
+    st.write("No worries, you do not need to be a developer, data scientist, or AI expert to do this!")
+
+    st.markdown("### Are you ready to make a machine learn?")
+
+    if st.button("▶️ Start", key="intro_start_btn"):
+        ss["intro_start_clicked"] = True
+        st.toast("Great! You’re now on **0.5) Overview** — read the quick guide, then click **Next** to begin with **1) Data**.", icon="✅")
+        try:
+            st.balloons()
+        except Exception:
+            pass
+
+with tab_overview:
+    # Friendly nudge if we came from Start
+    if ss.get("intro_start_clicked"):
+        st.success("Welcome to **0.5) Overview**. This page explains the flow and lets you toggle **Nerd Mode** for technical details.")
+
+    st.subheader("Overview")
+
+    st.write(
+        "AI system means a machine-based system…\n\n"
+        "Right now, you are within a machine-based system, made of software and hardware.\n\n"
+        "To make this experience intuitive and formative, you will navigate through a user interface that will allow you to build and use an AI System.\n\n"
+        "At every step you can toggle a “Nerd Mode” to reveal more information and configurations: try it now: “Nerd Mode switch”"
+    )
+
+    # Nerd Mode toggle
+    st.toggle("Nerd Mode", key="nerd_mode")
+
+    if ss.get("nerd_mode"):
+        with st.expander("Nerd Mode — technical details", expanded=True):
+            st.markdown(
+                "- **Architecture:** Streamlit app (Python) on Streamlit Cloud (CPU runtime).\n"
+                "- **Model(s):** sentence embeddings (MiniLM) + Logistic Regression; optional hybrid numeric features (external links, suspicious TLDs, CAPS, punctuation bursts, money symbols, urgency terms) if enabled.\n"
+                "- **Packages:** `streamlit`, `scikit-learn`, `pandas`, `numpy`,"
+                " optionally `sentence-transformers`, `torch`, `transformers`, and `matplotlib` for plots.\n"
+                "- **Data flow:** Title + body → embeddings (+ standardized numeric features) → linear classifier → probability **P(spam)** → autonomy decision (predict/recommend/auto-route).\n"
+                "- **Reproducibility & caching:** random seed for splits; cached encoder; session-scoped data/models.\n"
+            )
+
+    st.markdown("### Use the “Next” and “Back” buttons to move between the lifecycle stages:")
+    st.markdown(
+        "1. **Prepare data**\n"
+        "2. **Train an AI model**\n"
+        "3. **Evaluate an AI model**\n"
+        "4. **Use the AI system**\n"
+    )
+
+    # Nav buttons (best-effort; Streamlit cannot force-switch tabs)
+    col_nav = st.columns(2)
+    with col_nav[0]:
+        if st.button("⬅️ Back", key="overview_back"):
+            st.toast("Go back to **0) Intro** (click the tab above).", icon="↩️")
+    with col_nav[1]:
+        if st.button("Next ➡️", key="overview_next"):
+            st.toast("Go to **1) Data** to start preparing the dataset (click the tab above).", icon="➡️")
+
 with tab_data:
+    if ss.get("intro_start_clicked"):
+        st.info("You’re in **1) Data**. Start by reviewing the labeled dataset and the unlabeled inbox, then label a few examples.", icon="ℹ️")
     st.subheader("1) Data — curate and expand")
     guidance_popover("Inference inputs (training)", """
 During **training**, inputs are example emails (title + body) paired with the **objective** (label: spam/safe).  
