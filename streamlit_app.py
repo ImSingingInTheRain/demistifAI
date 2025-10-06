@@ -592,15 +592,18 @@ STAGE_TEMPLATE_CSS = """
 }
 
 .ai-quote-box {
-    margin: 1.25rem 0;
-    padding: 1.15rem 1.5rem;
-    border-radius: 18px;
-    border: 1px solid rgba(59, 130, 246, 0.25);
-    background: linear-gradient(145deg, rgba(59, 130, 246, 0.08), rgba(191, 219, 254, 0.28));
-    color: #1d4ed8;
-    font-style: normal;
+    margin: 1.35rem 0;
+    padding: 1.4rem 1.6rem;
+    border-radius: 20px;
+    border: 1px solid rgba(37, 99, 235, 0.28);
+    background: linear-gradient(140deg, rgba(219, 234, 254, 0.82), rgba(191, 219, 254, 0.45));
+    color: #0f172a;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 1rem;
+    align-items: flex-start;
+    box-shadow: 0 18px 42px rgba(30, 64, 175, 0.16);
     position: relative;
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65);
     overflow: hidden;
 }
 
@@ -609,23 +612,40 @@ STAGE_TEMPLATE_CSS = """
     position: absolute;
     inset: 0;
     border-radius: inherit;
-    background: linear-gradient(120deg, rgba(59, 130, 246, 0.18), transparent 55%);
+    background: linear-gradient(160deg, rgba(37, 99, 235, 0.18), transparent 62%);
     pointer-events: none;
 }
 
-.ai-quote-box::after {
-    position: absolute;
-    top: -0.45rem;
-    left: 1.4rem;
-    font-size: 2.9rem;
-    color: rgba(59, 130, 246, 0.32);
-    font-family: "Georgia", serif;
+.ai-quote-box__icon {
+    font-size: 1.8rem;
+    line-height: 1;
+    color: #1d4ed8;
+    position: relative;
+    z-index: 1;
+    margin-top: 0.2rem;
+}
+
+.ai-quote-box__content {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+}
+
+.ai-quote-box__source {
+    font-size: 0.82rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: rgba(30, 64, 175, 0.75);
 }
 
 .ai-quote-box p {
     margin: 0;
-    position: relative;
-    z-index: 1;
+    font-size: 1rem;
+    line-height: 1.6;
+    color: #0f172a;
 }
 </style>
 """
@@ -1736,6 +1756,27 @@ def guidance_popover(title: str, text: str):
         st.write(text)
 
 
+def eu_ai_quote_box(text: str, label: str = "EU AI Act") -> str:
+    escaped_text = html.escape(text)
+    escaped_label = html.escape(label)
+    return (
+        """
+        <div class="ai-quote-box">
+            <div class="ai-quote-box__icon">⚖️</div>
+            <div class="ai-quote-box__content">
+                <span class="ai-quote-box__source">{label}</span>
+                <p>{text}</p>
+            </div>
+        </div>
+        """
+        .format(label=escaped_label, text=escaped_text)
+    )
+
+
+def render_eu_ai_quote(text: str, label: str = "EU AI Act") -> None:
+    st.markdown(eu_ai_quote_box(text, label), unsafe_allow_html=True)
+
+
 VALID_LABELS = {"spam", "safe"}
 
 
@@ -1931,7 +1972,7 @@ def make_after_training_story(train_labels: list[str], test_labels: list[str]) -
         "so it can **infer** the right category for new emails."
     )
     lines.append(
-        "Next, open **3) Evaluate** to see how well it performs on the held-out test set."
+        "Next, open **🧪 Evaluate** to see how well it performs on the held-out test set."
     )
     return "\n\n".join(lines)
 
@@ -2427,9 +2468,7 @@ def render_overview_stage():
     with section_surface():
         intro_col, toggle_col = st.columns([3, 2], gap="large")
         with intro_col:
-            st.success(
-                "You’re in **Start your machine**. This page explains the flow and lets you toggle **Nerd Mode** for technical details."
-            )
+            render_eu_ai_quote("The EU AI Act says that “An AI system is a machine based system”.")
             st.subheader(f"{stage.icon} {stage.title} — the journey")
             st.write(
                 "Right now, you are within a machine-based system, made of software and hardware.\n\n"
@@ -2482,17 +2521,12 @@ def render_overview_stage():
 
 def render_data_stage():
 
+    stage = STAGE_BY_KEY["data"]
+
     with section_surface():
         lead_col, side_col = st.columns([3, 2], gap="large")
         with lead_col:
-            st.subheader("Prepare Data — curate and expand")
-            guidance_popover(
-                "Inference inputs (training)",
-                """
-                During **training**, inputs are example emails (title + body) paired with the **objective** (label: spam/safe).
-                The model **infers** patterns that correlate with your labels — including **implicit objectives** such as click‑bait terms.
-                """,
-            )
+            st.subheader(f"{stage.icon} {stage.title} — curate and expand")
 
             st.markdown("### Prepare Data")
             st.markdown(
@@ -2506,14 +2540,7 @@ def render_data_stage():
                 """
             )
         with side_col:
-            st.markdown(
-                """
-                <div class=\"ai-quote-box\">
-                    <p><strong>AI systems have explicit objectives...</strong></p>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
+            render_eu_ai_quote("The EU AI Act says that “AI systems have explicit objectives…”")
             nerd_data = render_nerd_mode_toggle(
                 key="nerd_mode_data",
                 title="Nerd Mode",
@@ -2627,13 +2654,15 @@ def render_data_stage():
 
 def render_train_stage():
 
+    stage = STAGE_BY_KEY["train"]
+
     with section_surface():
         main_col, aside_col = st.columns([3, 2], gap="large")
         with main_col:
-            st.subheader("2) Train — Teaching the model to infer")
+            st.subheader(f"{stage.icon} {stage.title} — teach the model to infer")
+            render_eu_ai_quote("The EU AI Act says: “An AI system infers from the input it receives…”")
             st.write(
-                "The EU AI Act says: *“An AI system infers from the input it receives…”*  \n"
-                "That’s what we’ll do here. We’ll train the spam detector so it can **infer** whether each new email is **Spam** or **Safe**."
+                "We’ll train the spam detector so it can **infer** whether each new email is **Spam** or **Safe**."
             )
             st.markdown(
                 "- In the previous step, you prepared **labeled examples** (emails marked as spam or safe).  \n"
@@ -2941,9 +2970,11 @@ def render_train_stage():
 
 def render_evaluate_stage():
 
+    stage = STAGE_BY_KEY["evaluate"]
+
     if not (ss.get("model") and ss.get("split_cache")):
         with section_surface():
-            st.subheader("3) Evaluate — How well does your spam detector perform?")
+            st.subheader(f"{stage.icon} {stage.title} — How well does your spam detector perform?")
             st.info("Train a model first in the **Train** tab.")
         return
 
@@ -2980,7 +3011,7 @@ def render_evaluate_stage():
     with section_surface():
         narrative_col, metrics_col = st.columns([3, 2], gap="large")
         with narrative_col:
-            st.subheader("3) Evaluate — How well does your spam detector perform?")
+            st.subheader(f"{stage.icon} {stage.title} — How well does your spam detector perform?")
             st.write(
                 "Now that your model has learned from examples, it’s time to test how well it works. "
                 "During training, we kept some emails aside — the **test set**. The model hasn’t seen these before. "
@@ -3220,20 +3251,22 @@ def render_evaluate_stage():
 
 def render_classify_stage():
 
+    stage = STAGE_BY_KEY["classify"]
+
     with section_surface():
         overview_col, guidance_col = st.columns([3, 2], gap="large")
         with overview_col:
-            st.subheader("4) Use — Run the spam detector")
+            st.subheader(f"{stage.icon} {stage.title} — Run the spam detector")
+            render_eu_ai_quote(
+                "The EU AI Act says “an AI system infers, from the input it receives, how to generate outputs such as content, predictions, recommendations or decisions.”"
+            )
             st.write(
                 "In this step, the system takes each email (title + body) as **input** and produces an **output**: "
                 "a **prediction** (*Spam* or *Safe*) with a confidence score. By default, it also gives a **recommendation** "
                 "about where to place the email (Spam or Inbox)."
             )
         with guidance_col:
-            st.info(
-                "**EU AI Act**: “…an AI system infers, from the input it receives, how to generate outputs such as "
-                "content, predictions, recommendations or decisions.”"
-            )
+            st.markdown("### Operating tips")
             st.markdown(
                 "- Monitor predictions before enabling full autonomy.\n"
                 "- Keep an eye on confidence values to decide when to intervene."
@@ -3260,7 +3293,7 @@ def render_classify_stage():
 
     st.markdown("### Incoming preview")
     if not ss.get("incoming"):
-        st.caption("No incoming emails. Add or import more in **1) Data**, or paste a custom email below.")
+        st.caption("No incoming emails. Add or import more in **📊 Prepare Data**, or paste a custom email below.")
         with st.expander("Add a custom email to process"):
             title_val = st.text_input("Title", key="use_custom_title", placeholder="Subject…")
             body_val = st.text_area("Body", key="use_custom_body", height=100, placeholder="Email body…")
@@ -3402,9 +3435,8 @@ def render_classify_stage():
             )
 
     st.markdown("### Adaptiveness — learn from your corrections")
-    st.info(
-        "**EU AI Act**: “…AI systems may exhibit adaptiveness.” Enable adaptiveness to **confirm** or **correct** results; "
-        "the model can retrain on your feedback."
+    render_eu_ai_quote(
+        "The EU AI Act says “AI systems may exhibit adaptiveness.” Enable adaptiveness to confirm or correct results; the model can retrain on your feedback."
     )
     def _handle_stage_adaptive_change() -> None:
         _set_adaptive_state(ss.get("adaptive_stage", ss.get("adaptive", False)), source="stage")
@@ -3510,7 +3542,7 @@ def render_classify_stage():
 
     st.caption(
         f"Threshold used for routing: **{float(ss.get('threshold', 0.5)):.2f}**. "
-        "Adjust it in **3) Evaluate** to change how cautious/aggressive the system is."
+        "Adjust it in **🧪 Evaluate** to change how cautious/aggressive the system is."
     )
 
 def render_model_card_stage():
