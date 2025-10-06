@@ -2329,14 +2329,14 @@ def render_classify_stage():
     )
 
     st.markdown("### Autonomy")
-    ss["use_high_autonomy"] = ss.get("autonomy", AUTONOMY_LEVELS[0]).startswith("High")
+    default_high_autonomy = ss.get("autonomy", AUTONOMY_LEVELS[0]).startswith("High")
     col_auto1, col_auto2 = st.columns([1, 3])
     with col_auto1:
-        ss["use_high_autonomy"] = st.toggle(
-            "High autonomy (auto-move emails)", value=ss["use_high_autonomy"], key="use_high_autonomy"
+        use_high_autonomy = st.toggle(
+            "High autonomy (auto-move emails)", value=default_high_autonomy, key="use_high_autonomy"
         )
     with col_auto2:
-        if ss["use_high_autonomy"]:
+        if use_high_autonomy:
             ss["autonomy"] = AUTONOMY_LEVELS[1]
             st.success("High autonomy ON — the system will **move** emails to Spam or Inbox automatically.")
         else:
