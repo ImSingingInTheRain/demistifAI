@@ -2367,22 +2367,21 @@ def render_intro_stage():
         with hero_left:
             st.subheader("Welcome to DemistifAI! 🎉")
             st.write(
-                "DemistifAI is an interactive playground to demystify the complexities of AI and the EU AI Act "
-                "definition of an AI System."
-            )
-            st.write(
-                "AI systems are often considered black-boxes that can only be understood by AI practitioners. "
-                "While there are black-box AIs out there, every day you are likely to interact with AI systems that "
-                "you can and should understand."
+                "DemistifAI is a guided EU AI Act lab where you will build, evaluate, and operate a spam "
+                "detector while connecting each step to the legal definition of an AI system."
             )
             st.markdown(
-                "Your mission today is to understand how an AI system with the intended purpose of keeping spam "
-                "out of your inbox works — by building one."
+                "Along the way you will see how a **machine-based system** comes together, how the model learns "
+                "its **objective** from labeled examples, how different **autonomy modes** influence the inbox, "
+                "and how optional **adaptiveness** feeds user feedback back into training."
             )
-            st.markdown("**Yes, you are going to build an AI Email SPAM Detector!**")
-            st.write(
-                "By the end of this playground, you’ll have the AI system classifying the emails in this inbox as "
-                "**Spam** or **Safe**."
+            st.markdown(
+                "Your mission is to keep spam out of the inbox by walking through seven hands-on stages that tie "
+                "governance concepts to practical machine learning workflows."
+            )
+            st.markdown(
+                "By the end of the experience you will have a working AI email spam detector, an audit-ready model "
+                "card, and a clearer understanding of the EU AI Act terminology in action."
             )
             if next_stage_key:
                 st.button(
@@ -2397,16 +2396,16 @@ def render_intro_stage():
                 """
                 <div class="info-metric-grid">
                     <div class="info-metric-card">
-                        <div class="label">What you'll explore</div>
-                        <div class="value">5 guided stages simulating the development of an AI system</div>
+                        <div class="label">Stage tour</div>
+                        <div class="value">7 chapters from mission briefing to model card, covering data prep, training, evaluation, and use.</div>
                     </div>
                     <div class="info-metric-card">
-                        <div class="label">Outcome</div>
-                        <div class="value">A working AI Spam detector</div>
+                        <div class="label">Key capabilities</div>
+                        <div class="value">Sentence embeddings + numeric cues, threshold presets, autonomy switches, and adaptive learning.</div>
                     </div>
                     <div class="info-metric-card">
-                        <div class="label">What you'll learn</div>
-                        <div class="value">What AI system means and how an AI model is trained</div>
+                        <div class="label">Why it matters</div>
+                        <div class="value">See EU AI Act concepts—system, objectives, outputs, autonomy, adaptiveness—applied to a real spam detector.</div>
                     </div>
                 </div>
                 """,
