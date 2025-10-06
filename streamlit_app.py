@@ -4,6 +4,7 @@ import base64
 import html
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Tuple
+from urllib.parse import urlencode
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -64,6 +65,14 @@ STAGE_TEMPLATE_CSS = """
     color: #0f172a;
     position: relative;
     overflow: hidden;
+    display: block;
+    text-decoration: none;
+}
+
+.stage-card:link,
+.stage-card:visited {
+    color: #0f172a;
+    text-decoration: none;
 }
 
 .stage-card::after {
@@ -82,6 +91,11 @@ STAGE_TEMPLATE_CSS = """
 
 .stage-card:hover::after {
     opacity: 1;
+}
+
+.stage-card:focus-visible {
+    outline: 3px solid rgba(74, 108, 247, 0.45);
+    outline-offset: 3px;
 }
 
 .stage-card .stage-icon {
@@ -122,6 +136,7 @@ STAGE_TEMPLATE_CSS = """
     align-items: center;
     gap: 0.45rem;
     text-align: left;
+    cursor: pointer;
 }
 
 .stage-progress-grid .stage-card.complete {
@@ -175,28 +190,41 @@ STAGE_TEMPLATE_CSS = """
 }
 
 .ai-quote-box {
-    margin: 1.1rem 0;
-    padding: 1rem 1.1rem;
-    border-radius: 14px;
-    border: 1px solid rgba(37, 99, 235, 0.18);
-    background: linear-gradient(135deg, rgba(59, 130, 246, 0.16), rgba(191, 219, 254, 0.25));
-    color: #1e3a8a;
-    font-style: italic;
+    margin: 1.25rem 0;
+    padding: 1.15rem 1.5rem;
+    border-radius: 18px;
+    border: 1px solid rgba(59, 130, 246, 0.25);
+    background: linear-gradient(145deg, rgba(59, 130, 246, 0.08), rgba(191, 219, 254, 0.28));
+    color: #1d4ed8;
+    font-style: normal;
     position: relative;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65);
+    overflow: hidden;
 }
 
 .ai-quote-box::before {
-    content: "\201C";
+    content: "";
     position: absolute;
-    top: -18px;
-    left: 16px;
-    font-size: 3rem;
-    color: rgba(37, 99, 235, 0.3);
+    inset: 0;
+    border-radius: inherit;
+    background: linear-gradient(120deg, rgba(59, 130, 246, 0.18), transparent 55%);
+    pointer-events: none;
 }
 
-.ai-quote-box strong {
-    font-style: normal;
-    color: #1d4ed8;
+.ai-quote-box::after {
+    content: "\201C";
+    position: absolute;
+    top: -0.45rem;
+    left: 1.4rem;
+    font-size: 2.9rem;
+    color: rgba(59, 130, 246, 0.32);
+    font-family: "Georgia", serif;
+}
+
+.ai-quote-box p {
+    margin: 0;
+    position: relative;
+    z-index: 1;
 }
 </style>
 """
@@ -204,16 +232,29 @@ STAGE_TEMPLATE_CSS = """
 st.markdown(STAGE_TEMPLATE_CSS, unsafe_allow_html=True)
 
 
-def _stage_card_html(stage: StageMeta, status_class: str, *, show_description: bool) -> str:
+def _stage_card_html(
+    stage: StageMeta,
+    status_class: str,
+    *,
+    show_description: bool,
+    clickable: bool,
+) -> str:
     body_text = stage.description if show_description else stage.summary
+    classes = "stage-card" + (f" {status_class}" if status_class else "")
+    tag = "a" if clickable else "div"
+    href_attr = ""
+    if clickable:
+        params = {k: list(v) for k, v in st.experimental_get_query_params().items()}
+        params["stage"] = [stage.key]
+        href_attr = f" href=\"?{urlencode(params, doseq=True)}\""
+    aria_attr = " aria-current=\"step\"" if status_class == "active" else ""
     return (
-        "<div class=\"stage-card {status}\">"
+        f"<{tag} class=\"{classes}\"{href_attr}{aria_attr}>"
         "<div class=\"stage-icon\">{icon}</div>"
         "<div class=\"stage-title\">{title}</div>"
         "<div class=\"stage-summary\">{summary}</div>"
-        "</div>"
+        f"</{tag}>"
     ).format(
-        status=status_class,
         icon=html.escape(stage.icon),
         title=html.escape(stage.title),
         summary=html.escape(body_text),
@@ -232,6 +273,7 @@ def render_stage_cards(
     show_description = variant == "grid"
     active_index = STAGE_INDEX.get(active_stage, 0)
     stage_list = stages if stages is not None else STAGES
+    clickable = variant != "grid"
     cards: List[str] = []
     for stage in stage_list:
         idx = STAGE_INDEX[stage.key]
@@ -242,7 +284,12 @@ def render_stage_cards(
         else:
             status_class = ""
         cards.append(
-            _stage_card_html(stage, status_class=status_class, show_description=show_description)
+            _stage_card_html(
+                stage,
+                status_class=status_class,
+                show_description=show_description,
+                clickable=clickable,
+            )
         )
 
     st.markdown(
@@ -252,7 +299,10 @@ def render_stage_cards(
 
 
 def set_active_stage(stage_key: str):
+    if stage_key not in STAGE_BY_KEY:
+        return
     st.session_state["active_stage"] = stage_key
+    st.experimental_set_query_params(stage=stage_key)
 
 
 def render_stage_navigation_controls(active_stage: str):
@@ -318,7 +368,7 @@ class StageMeta:
 
 STAGES: List[StageMeta] = [
     StageMeta("intro", "Welcome", "🚀", "Kickoff", "Meet the mission and trigger the guided build."),
-    StageMeta("overview", "(Your machine)", "🧭", "See the journey", "Tour the steps, set Nerd Mode, and align on what you'll do."),
+    StageMeta("overview", "Your machine", "🧭", "See the journey", "Tour the steps, set Nerd Mode, and align on what you'll do."),
     StageMeta("data", "Prepare Data", "📊", "Curate examples", "Inspect labeled emails and get the dataset ready for learning."),
     StageMeta("train", "Train", "🧠", "Teach the model", "Configure the split and teach the model on your dataset."),
     StageMeta("evaluate", "Evaluate", "🧪", "Check results", "Check metrics, inspect the confusion matrix, and stress-test."),
@@ -1177,7 +1227,16 @@ def download_text(text: str, filename: str, label: str = "Download"):
     st.markdown(f'<a href="data:text/plain;base64,{b64}" download="{filename}">{label}</a>', unsafe_allow_html=True)
 
 ss = st.session_state
-ss.setdefault("active_stage", STAGES[0].key)
+query_params = st.experimental_get_query_params()
+requested_stage_values = query_params.get("stage", [None])
+requested_stage = requested_stage_values[0] if requested_stage_values else None
+default_stage = STAGES[0].key
+ss.setdefault("active_stage", default_stage)
+if requested_stage in STAGE_BY_KEY:
+    if requested_stage != ss["active_stage"]:
+        ss["active_stage"] = requested_stage
+else:
+    st.experimental_set_query_params(stage=ss["active_stage"])
 ss.setdefault("nerd_mode", False)
 ss.setdefault("autonomy", AUTONOMY_LEVELS[0])
 ss.setdefault("threshold", 0.6)
@@ -1267,7 +1326,7 @@ def render_intro_stage():
 def render_overview_stage():
 
     st.success(
-        "You’re in **(Your machine)**. This page explains the flow and lets you toggle **Nerd Mode** for technical details."
+        "You’re in **Your machine**. This page explains the flow and lets you toggle **Nerd Mode** for technical details."
     )
 
     stage = STAGE_BY_KEY["overview"]
@@ -1276,7 +1335,7 @@ def render_overview_stage():
     st.markdown(
         """
         <div class="ai-quote-box">
-            <strong>AI system</strong> means a machine-based system that is designed to operate with varying levels of autonomy and that may exhibit adaptiveness after deployment, and that, for explicit or implicit objectives, infers, from the input it receives, how to generate outputs such as predictions, content, recommendations, or decisions that can influence physical or virtual environments.
+            <p>AI system means a machine based system…</p>
         </div>
         """,
         unsafe_allow_html=True,
@@ -1341,21 +1400,32 @@ The model **infers** patterns that correlate with your labels — including **im
     st.markdown(
         """
         <div class=\"ai-quote-box\">
-            <p><strong>AI systems have explicit objectives...</strong><br>
-            That means they are built with a clear goal set by their developers — in this case, by <strong>you</strong>.</p>
-            <p>For our spam detector, the explicit objective is simple:<br>
-            👉 <strong>Decide whether each incoming email is “Spam” or “Safe.”</strong></p>
-            <p>To do that, the model needs to be <strong>trained</strong>. In this case, training means showing it many examples of emails that are already labeled, so it can <strong>learn the difference</strong> between spam and safe messages.</p>
-            <p>To get you started quickly, you are provided with <strong>500 pre-labeled emails</strong>. These give the model a solid foundation.</p>
-            <p>If you’d like to go further, you can turn on <strong>Nerd Mode</strong> to explore the dataset more deeply or <strong>add more labeled emails</strong> to improve the model.</p>
+            <p><strong>AI systems have explicit objectives...</strong></p>
         </div>
         """,
         unsafe_allow_html=True,
     )
 
-    with st.expander("Nerd Mode (what’s under the hood)?", expanded=False):
-        st.toggle("Enable Nerd Mode for data", key="nerd_mode_data")
-        if ss["nerd_mode_data"]:
+    st.markdown(
+        """
+        That means they are built with a clear goal set by their developers — in this case, by **you**.
+
+        For our spam detector, the explicit objective is simple:
+
+        👉 **Decide whether each incoming email is “Spam” or “Safe.”**
+
+        To do that, the model needs to be **trained**. In this case, training means showing it many examples of emails that are already labeled, so it can **learn the difference** between spam and safe messages.
+
+        To get you started quickly, you are provided with **500 pre-labeled emails**. These give the model a solid foundation.
+
+        If you’d like to go further, you can turn on **Nerd Mode** to explore the dataset more deeply or **add more labeled emails** to improve the model.
+        """
+    )
+
+    st.toggle("Nerd Mode", key="nerd_mode_data")
+
+    if ss["nerd_mode_data"]:
+        with st.expander("Nerd Mode (what’s under the hood)?", expanded=True):
             st.markdown(
                 "- **Labeled data** = input (**title + body**) plus the **label** (“spam” or “safe”).\n"
                 "- The model learns patterns from these labels to generalize to new emails.\n"
