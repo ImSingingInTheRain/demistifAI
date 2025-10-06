@@ -2556,8 +2556,6 @@ def render_classify_stage():
             st.success("High autonomy ON — the system will **move** emails to Spam or Inbox automatically.")
         else:
             ss["autonomy"] = AUTONOMY_LEVELS[0]
-    ss["use_high_autonomy"] = use_high_autonomy
-
     if not ss.get("model"):
         st.warning("Train a model first in the **Train** tab.")
         st.stop()
