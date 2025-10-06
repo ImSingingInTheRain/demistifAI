@@ -1,4 +1,6 @@
 import base64
+import html
+from dataclasses import dataclass
 from typing import Dict, List, Optional, Tuple
 
 import matplotlib.pyplot as plt
@@ -14,11 +16,254 @@ from sklearn.preprocessing import StandardScaler
 
 st.set_page_config(page_title="demistifAI — Spam Detector", page_icon="📧", layout="wide")
 
+STAGE_TEMPLATE_CSS = """
+<style>
+:root {
+    --stage-card-radius: 18px;
+    --stage-card-border: rgba(15, 23, 42, 0.08);
+    --stage-card-shadow: 0 18px 40px rgba(15, 23, 42, 0.10);
+}
+
+.stage-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1.2rem;
+    margin-top: 1.2rem;
+}
+
+.stage-progress-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 0.9rem;
+    margin: 1.2rem 0 0;
+}
+
+.stage-card {
+    background: linear-gradient(145deg, rgba(255, 255, 255, 0.96), rgba(241, 245, 255, 0.9));
+    border-radius: var(--stage-card-radius);
+    border: 1px solid var(--stage-card-border);
+    box-shadow: var(--stage-card-shadow);
+    padding: 1.15rem 1.2rem;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+    color: #0f172a;
+    position: relative;
+    overflow: hidden;
+}
+
+.stage-card::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at top right, rgba(74, 108, 247, 0.18), transparent 55%);
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.stage-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 22px 50px rgba(15, 23, 42, 0.14);
+}
+
+.stage-card:hover::after {
+    opacity: 1;
+}
+
+.stage-card .stage-icon {
+    font-size: 1.85rem;
+    line-height: 1;
+    margin-bottom: 0.35rem;
+}
+
+.stage-card .stage-title {
+    font-size: 1.05rem;
+    font-weight: 600;
+}
+
+.stage-card .stage-summary {
+    margin-top: 0.55rem;
+    font-size: 0.92rem;
+    line-height: 1.5;
+    color: #334155;
+}
+
+.stage-card.active {
+    border-color: rgba(74, 108, 247, 0.55);
+    background: linear-gradient(155deg, rgba(74, 108, 247, 0.18), rgba(241, 245, 255, 0.96));
+}
+
+.stage-card.complete {
+    border-color: rgba(52, 199, 123, 0.55);
+    background: linear-gradient(155deg, rgba(52, 199, 123, 0.18), rgba(240, 253, 244, 0.95));
+}
+
+.stage-progress-grid .stage-card {
+    text-align: center;
+    padding: 1rem 0.9rem;
+    min-height: 150px;
+}
+
+.stage-progress-grid .stage-icon {
+    font-size: 1.65rem;
+}
+
+.stage-progress-grid .stage-summary {
+    font-size: 0.85rem;
+    margin-top: 0.45rem;
+}
+
+.stage-progress-grid .stage-title {
+    font-size: 0.95rem;
+}
+
+.stage-nav-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-top: 1.75rem;
+}
+
+.stage-nav-buttons .stButton>button {
+    flex: 1;
+    min-width: 200px;
+    border-radius: 999px;
+    font-weight: 600;
+    padding: 0.65rem 1.1rem;
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+}
+
+.stage-nav-buttons .stButton>button:hover {
+    box-shadow: 0 16px 32px rgba(15, 23, 42, 0.12);
+}
+
+.stage-nav-buttons .stButton>button:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(74, 108, 247, 0.35);
+}
+</style>
+"""
+
+st.markdown(STAGE_TEMPLATE_CSS, unsafe_allow_html=True)
+
+
+def _stage_card_html(stage: StageMeta, status_class: str, *, show_description: bool) -> str:
+    body_text = stage.description if show_description else stage.summary
+    return (
+        "<div class=\"stage-card {status}\">"
+        "<div class=\"stage-icon\">{icon}</div>"
+        "<div class=\"stage-title\">{title}</div>"
+        "<div class=\"stage-summary\">{summary}</div>"
+        "</div>"
+    ).format(
+        status=status_class,
+        icon=html.escape(stage.icon),
+        title=html.escape(stage.title),
+        summary=html.escape(body_text),
+    )
+
+
+def render_stage_cards(active_stage: str, *, variant: str = "grid"):
+    """Render the reusable stage template as a grid or compact progress bar."""
+
+    wrapper_class = "stage-grid" if variant == "grid" else "stage-progress-grid"
+    show_description = variant == "grid"
+    active_index = STAGE_INDEX.get(active_stage, 0)
+    cards: List[str] = []
+    for stage in STAGES:
+        idx = STAGE_INDEX[stage.key]
+        if idx < active_index:
+            status_class = "complete"
+        elif idx == active_index:
+            status_class = "active"
+        else:
+            status_class = ""
+        cards.append(
+            _stage_card_html(stage, status_class=status_class, show_description=show_description)
+        )
+
+    st.markdown(
+        f"<div class=\"{wrapper_class}\">{''.join(cards)}</div>",
+        unsafe_allow_html=True,
+    )
+
+
+def set_active_stage(stage_key: str):
+    st.session_state["active_stage"] = stage_key
+
+
+def render_stage_navigation_controls(active_stage: str):
+    idx = STAGE_INDEX.get(active_stage, 0)
+    prev_stage = STAGES[idx - 1] if idx > 0 else None
+    next_stage = STAGES[idx + 1] if idx < len(STAGES) - 1 else None
+
+    st.markdown("<div class='stage-nav-buttons'>", unsafe_allow_html=True)
+    col_prev, col_status, col_next = st.columns([1.2, 0.9, 1.2])
+
+    with col_prev:
+        if prev_stage:
+            st.button(
+                f"⬅️ Back to {prev_stage.title}",
+                key=f"nav_back_{active_stage}",
+                on_click=set_active_stage,
+                args=(prev_stage.key,),
+                use_container_width=True,
+            )
+        else:
+            st.write(" ")
+
+    with col_status:
+        stage = STAGE_BY_KEY[active_stage]
+        st.markdown(
+            """
+            <div style="text-align:center; padding:0.65rem 0.75rem; background: rgba(15, 23, 42, 0.03); border-radius: 14px; font-weight: 600; color: #475569;">
+                Currently on <span style="color:#1d4ed8;">{icon} {title}</span>
+            </div>
+            """.format(icon=html.escape(stage.icon), title=html.escape(stage.title)),
+            unsafe_allow_html=True,
+        )
+
+    with col_next:
+        if next_stage:
+            next_label = "Start • 0.5) Overview" if active_stage == "intro" else f"Next • {next_stage.title}"
+            st.button(
+                f"{next_label} ➡️",
+                key=f"nav_next_{active_stage}",
+                on_click=set_active_stage,
+                args=(next_stage.key,),
+                use_container_width=True,
+                type="primary",
+            )
+        else:
+            st.write(" ")
+
+    st.markdown("</div>", unsafe_allow_html=True)
+
 CLASSES = ["spam", "safe"]
 AUTONOMY_LEVELS = [
     "Moderate autonomy (recommendation)",
     "High autonomy (auto-route)",
 ]
+
+@dataclass(frozen=True)
+class StageMeta:
+    key: str
+    title: str
+    icon: str
+    summary: str
+    description: str
+
+
+STAGES: List[StageMeta] = [
+    StageMeta("intro", "0) Intro", "🚀", "Kickoff", "Meet the mission and trigger the guided build."),
+    StageMeta("overview", "0.5) Overview", "🧭", "See the journey", "Tour the steps, set Nerd Mode, and align on what you'll do."),
+    StageMeta("data", "1) Data", "📊", "Prepare data", "Inspect labeled examples and curate your dataset."),
+    StageMeta("train", "2) Train", "🧠", "Train the model", "Configure the split and teach the model on your dataset."),
+    StageMeta("evaluate", "3) Evaluate", "🧪", "Evaluate results", "Check metrics, inspect confusion matrix, and stress-test."),
+    StageMeta("classify", "4) Classify", "📬", "Classify emails", "Route new messages, correct predictions, and adapt."),
+    StageMeta("model_card", "5) Model Card", "📄", "Document system", "Summarize performance, intended use, and governance."),
+]
+
+STAGE_INDEX = {stage.key: idx for idx, stage in enumerate(STAGES)}
+STAGE_BY_KEY = {stage.key: stage for stage in STAGES}
 
 STARTER_LABELED: List[Dict] = [
     # ----------------------- SPAM (100) -----------------------
@@ -847,6 +1092,7 @@ def download_text(text: str, filename: str, label: str = "Download"):
     st.markdown(f'<a href="data:text/plain;base64,{b64}" download="{filename}">{label}</a>', unsafe_allow_html=True)
 
 ss = st.session_state
+ss.setdefault("active_stage", STAGES[0].key)
 ss.setdefault("intro_start_clicked", False)
 ss.setdefault("nerd_mode", False)
 ss.setdefault("autonomy", AUTONOMY_LEVELS[0])
@@ -891,11 +1137,10 @@ You define the intended purpose (classify emails as **spam** or **safe**).
 """)
 st.caption("Two classes are available: **spam** and **safe**. Preloaded labeled dataset + unlabeled inbox stream.")
 
-tab_intro, tab_overview, tab_data, tab_train, tab_eval, tab_classify, tab_card = st.tabs(
-    ["0) Intro", "0.5) Overview", "1) Data", "2) Train", "3) Evaluate", "4) Classify", "5) Model Card"]
-)
 
-with tab_intro:
+
+def render_intro_stage():
+
     st.subheader("Welcome to DemistifAI! 🎉")
 
     st.write("DemistifAI is an interactive playground to demystify the complexities of AI and the EU AI Act definition of AI System.")
@@ -919,58 +1164,70 @@ with tab_intro:
 
     if st.button("▶️ Start", key="intro_start_btn"):
         ss["intro_start_clicked"] = True
+        set_active_stage("overview")
         st.toast("Great! You’re now on **0.5) Overview** — read the quick guide, then click **Next** to begin with **1) Data**.", icon="✅")
         try:
             st.balloons()
         except Exception:
             pass
 
-with tab_overview:
-    # Friendly nudge if we came from Start
-    if ss.get("intro_start_clicked"):
-        st.success("Welcome to **0.5) Overview**. This page explains the flow and lets you toggle **Nerd Mode** for technical details.")
 
-    st.subheader("Overview")
+def render_overview_stage():
+
+    if ss.get("intro_start_clicked"):
+        st.success(
+            "Welcome to **0.5) Overview**. This page explains the flow and lets you toggle **Nerd Mode** for technical details."
+        )
+
+    stage = STAGE_BY_KEY["overview"]
+    st.subheader(f"{stage.icon} {stage.title} — the journey")
 
     st.write(
         "AI system means a machine-based system…\n\n"
         "Right now, you are within a machine-based system, made of software and hardware.\n\n"
         "To make this experience intuitive and formative, you will navigate through a user interface that will allow you to build and use an AI System.\n\n"
-        "At every step you can toggle a “Nerd Mode” to reveal more information and configurations: try it now: “Nerd Mode switch”"
+        "At every step you can toggle a “Nerd Mode” to reveal more information and configurations: try it now: the switch lives in the sidebar."
     )
 
-    # Nerd Mode toggle
     st.toggle("Nerd Mode", key="nerd_mode")
 
     if ss.get("nerd_mode"):
         with st.expander("Nerd Mode — technical details", expanded=True):
             st.markdown(
                 "- **Architecture:** Streamlit app (Python) on Streamlit Cloud (CPU runtime).\n"
-                "- **Model(s):** sentence embeddings (MiniLM) + Logistic Regression; optional hybrid numeric features (external links, suspicious TLDs, CAPS, punctuation bursts, money symbols, urgency terms) if enabled.\n"
-                "- **Packages:** `streamlit`, `scikit-learn`, `pandas`, `numpy`,"
-                " optionally `sentence-transformers`, `torch`, `transformers`, and `matplotlib` for plots.\n"
-                "- **Data flow:** Title + body → embeddings (+ standardized numeric features) → linear classifier → probability **P(spam)** → autonomy decision (predict/recommend/auto-route).\n"
+                "- **Model(s):** sentence embeddings (MiniLM) + Logistic Regression; optional hybrid numeric features (external links, suspicious TLDs, CAPS, punctuation bursts, money symbols, urgency terms).\n"
+                "- **Packages:** `streamlit`, `scikit-learn`, `pandas`, `numpy`, optionally `sentence-transformers`, `torch`, `transformers`, and `matplotlib`.\n"
+                "- **Data flow:** Title + body → embeddings (+ standardized numeric features) → linear classifier → probability **P(spam)** → autonomy recommendation/auto-routing.\n"
                 "- **Reproducibility & caching:** random seed for splits; cached encoder; session-scoped data/models.\n"
             )
 
-    st.markdown("### Use the “Next” and “Back” buttons to move between the lifecycle stages:")
-    st.markdown(
-        "1. **Prepare data**\n"
-        "2. **Train an AI model**\n"
-        "3. **Evaluate an AI model**\n"
-        "4. **Use the AI system**\n"
+    st.markdown("### Lifecycle at a glance")
+    st.caption("Each card represents a stage. The highlight follows you as you move through the guided flow.")
+    render_stage_cards(ss["active_stage"], variant="grid")
+
+    st.markdown("### Navigation tips")
+    st.write(
+        "- Use the **Back** and **Next** buttons below to move sequentially without scrolling.\n"
+        "- Prefer a quick jump? Pick a stage from the selector right here.\n"
+        "- Toggle **Nerd Mode** any time for deeper technical context."
     )
 
-    # Nav buttons (best-effort; Streamlit cannot force-switch tabs)
-    col_nav = st.columns(2)
-    with col_nav[0]:
-        if st.button("⬅️ Back", key="overview_back"):
-            st.toast("Go back to **0) Intro** (click the tab above).", icon="↩️")
-    with col_nav[1]:
-        if st.button("Next ➡️", key="overview_next"):
-            st.toast("Go to **1) Data** to start preparing the dataset (click the tab above).", icon="➡️")
+    jump_labels = [f"{stage.icon} {stage.title}" for stage in STAGES]
+    current_index = STAGE_INDEX.get(ss["active_stage"], 0)
+    chosen = st.selectbox(
+        "Jump to a stage",
+        jump_labels,
+        index=current_index,
+        key="stage_jump_select",
+        label_visibility="collapsed",
+    )
+    chosen_stage = STAGES[jump_labels.index(chosen)]
+    if chosen_stage.key != ss["active_stage"]:
+        set_active_stage(chosen_stage.key)
 
-with tab_data:
+
+def render_data_stage():
+
     if ss.get("intro_start_clicked"):
         st.info("You’re in **1) Data**. Start by reviewing the labeled dataset and the unlabeled inbox, then label a few examples.", icon="ℹ️")
     st.subheader("1) Data — curate and expand")
@@ -1014,7 +1271,9 @@ This tab now focuses on curating the labeled dataset and gives you a snapshot of
         if remaining > 0:
             st.caption(f"Showing {len(preview)} of {len(df_incoming)} pending emails. Process the rest in the **Classify** tab.")
 
-with tab_train:
+
+def render_train_stage():
+
     st.subheader("2) Train — make the model learn")
     guidance_popover("How training works", """
 You set the **objective** (spam vs safe). The algorithm adjusts its **parameters** to reduce mistakes on your labeled examples.  
@@ -1171,7 +1430,9 @@ Controls the randomness of the split. By fixing the seed, you can reproduce the 
                             preview = body_i[:200]
                             st.caption(preview + ("..." if len(body_i) > 200 else ""))
 
-with tab_eval:
+
+def render_evaluate_stage():
+
     st.subheader("3) Evaluate — check generalization")
     guidance_popover("Why evaluate?", """
 Hold‑out evaluation estimates how well the model generalizes to **new** emails.  
@@ -1272,7 +1533,9 @@ It helps detect overfitting, bias, and areas needing more data.
     else:
         st.info("Label some emails and train a model in the **Train** tab.")
 
-with tab_classify:
+
+def render_classify_stage():
+
     st.subheader("4) Classify — generate outputs & route")
     col_help1, col_help2 = st.columns(2)
     with col_help1:
@@ -1521,10 +1784,12 @@ Depending on the autonomy level, the system may either **recommend** an action o
         acc = (m["TP"] + m["TN"]) / total
         st.write(f"**Running accuracy** (from your recorded ground truths): {acc:.2%} | TP {m['TP']} • FP {m['FP']} • TN {m['TN']} • FN {m['FN']}")
 
-with tab_card:
+
+def render_model_card_stage():
+
     st.subheader("5) Model Card — transparency")
     guidance_popover("Transparency", """
-Model cards summarize intended purpose, data, metrics, autonomy & adaptiveness settings.  
+Model cards summarize intended purpose, data, metrics, autonomy & adaptiveness settings.
 They help teams reason about risks and the appropriate oversight controls.
 """)
     algo = "Sentence embeddings (MiniLM) + standardized numeric cues + Logistic Regression"
@@ -1539,32 +1804,50 @@ They help teams reason about risks and the appropriate oversight controls.
 # Model Card — demistifAI (Spam Detector)
 **Intended purpose**: Educational demo to illustrate the AI Act definition of an **AI system** via a spam classifier.
 
-**Algorithm**: {algo}  
+**Algorithm**: {algo}
 **Features**: Sentence embeddings (MiniLM) concatenated with small, interpretable numeric features:
 - num_links_external, has_suspicious_tld, punct_burst_ratio, money_symbol_count, urgency_terms_count.
 These are standardized and combined with the embedding before a linear classifier.
 
-**Classes**: spam, safe  
-**Dataset size**: {n_samples} labeled examples  
+**Classes**: spam, safe
+**Dataset size**: {n_samples} labeled examples
 **Classes present**: {', '.join(labels_present) if labels_present else '[not trained]'}
 
 **Key metrics**: {metrics_text or 'Train a model to populate metrics.'}
 
-**Autonomy**: {ss['autonomy']} (threshold={ss['threshold']:.2f})  
+**Autonomy**: {ss['autonomy']} (threshold={ss['threshold']:.2f})
 **Adaptiveness**: {'Enabled' if ss['adaptive'] else 'Disabled'} (learn from user corrections).
 
-**Data**: user-augmented seed set (title + body); session-only.  
+**Data**: user-augmented seed set (title + body); session-only.
 **Known limitations**: tiny datasets; vocabulary sensitivity; no MIME/URL/metadata features.
 
-**AI Act mapping**  
-- **Machine-based system**: Streamlit app (software) running on cloud runtime (hardware).  
-- **Inference**: model learns patterns from labeled examples.  
-- **Output generation**: predictions + confidence; used to recommend/route emails.  
+**AI Act mapping**
+- **Machine-based system**: Streamlit app (software) running on cloud runtime (hardware).
+- **Inference**: model learns patterns from labeled examples.
+- **Output generation**: predictions + confidence; used to recommend/route emails.
     - **Varying autonomy**: user selects autonomy level; at high autonomy, the system acts.
 - **Adaptiveness**: optional feedback loop that updates the model.
 """
     st.markdown(card_md)
     download_text(card_md, "model_card.md", "Download model_card.md")
+
+
+STAGE_RENDERERS = {
+    'intro': render_intro_stage,
+    'overview': render_overview_stage,
+    'data': render_data_stage,
+    'train': render_train_stage,
+    'evaluate': render_evaluate_stage,
+    'classify': render_classify_stage,
+    'model_card': render_model_card_stage,
+}
+
+
+active_stage = ss['active_stage']
+render_stage_cards(active_stage, variant='progress')
+renderer = STAGE_RENDERERS.get(active_stage, render_intro_stage)
+renderer()
+render_stage_navigation_controls(active_stage)
 
 st.markdown("---")
 st.caption("© demistifAI — Built for interactive learning and governance discussions.")
