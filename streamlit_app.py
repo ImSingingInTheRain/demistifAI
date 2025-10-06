@@ -301,7 +301,8 @@ def set_active_stage(stage_key: str):
     if stage_key not in STAGE_BY_KEY:
         return
     st.session_state["active_stage"] = stage_key
-    st.experimental_set_query_params(stage=stage_key)
+    if st.query_params.get_all("stage") != [stage_key]:
+        st.query_params["stage"] = stage_key
 
 
 def render_stage_navigation_controls(active_stage: str):
@@ -1234,7 +1235,8 @@ if requested_stage in STAGE_BY_KEY:
     if requested_stage != ss["active_stage"]:
         ss["active_stage"] = requested_stage
 else:
-    st.experimental_set_query_params(stage=ss["active_stage"])
+    if st.query_params.get_all("stage") != [ss["active_stage"]]:
+        st.query_params["stage"] = ss["active_stage"]
 ss.setdefault("nerd_mode", False)
 ss.setdefault("autonomy", AUTONOMY_LEVELS[0])
 ss.setdefault("threshold", 0.6)
