@@ -2017,24 +2017,10 @@ def render_evaluate_stage():
     st.markdown("### Spam threshold")
     presets = threshold_presets(y_true01, p_spam)
 
-    temp_threshold = float(
-        st.slider(
-            "Adjust threshold (temporary)",
-            0.1,
-            0.9,
-            value=float(ss.get("eval_temp_threshold", current_thr)),
-            step=0.01,
-            key="eval_temp_threshold",
-            help="Lower values catch more spam (higher recall) but risk more false alarms. Higher values protect the inbox (higher precision) but may miss some spam.",
-        )
-    )
-    ss["eval_temp_threshold"] = temp_threshold
+    if "eval_temp_threshold" not in ss:
+        ss["eval_temp_threshold"] = current_thr
 
-    cm_temp = compute_confusion(y_true01, p_spam, temp_threshold)
-    acc_temp = (cm_temp["TP"] + cm_temp["TN"]) / max(1, len(y_true01))
-    st.caption(
-        f"At {temp_threshold:.2f}, accuracy would be **{acc_temp:.2%}** (TP {cm_temp['TP']}, FP {cm_temp['FP']}, TN {cm_temp['TN']}, FN {cm_temp['FN']})."
-    )
+    slider_container = st.container()
 
     colp1, colp2, colp3, colp4 = st.columns(4)
     if colp1.button("Balanced (max F1)"):
@@ -2053,9 +2039,28 @@ def render_evaluate_stage():
             icon="✅",
         )
     if colp4.button("Adopt this threshold"):
-        ss["threshold"] = float(ss.get("eval_temp_threshold", temp_threshold))
+        ss["threshold"] = float(ss.get("eval_temp_threshold", current_thr))
         st.success(
             f"Adopted new operating threshold: **{ss['threshold']:.2f}**. This will be used in Classify and Full Autonomy."
+        )
+
+    with slider_container:
+        temp_threshold = float(
+            st.slider(
+                "Adjust threshold (temporary)",
+                0.1,
+                0.9,
+                value=float(ss.get("eval_temp_threshold", current_thr)),
+                step=0.01,
+                key="eval_temp_threshold",
+                help="Lower values catch more spam (higher recall) but risk more false alarms. Higher values protect the inbox (higher precision) but may miss some spam.",
+            )
+        )
+
+        cm_temp = compute_confusion(y_true01, p_spam, temp_threshold)
+        acc_temp = (cm_temp["TP"] + cm_temp["TN"]) / max(1, len(y_true01))
+        st.caption(
+            f"At {temp_threshold:.2f}, accuracy would be **{acc_temp:.2%}** (TP {cm_temp['TP']}, FP {cm_temp['FP']}, TN {cm_temp['TN']}, FN {cm_temp['FN']})."
         )
 
     with st.expander("📌 Suggestions to improve your model"):
