@@ -322,7 +322,7 @@ def render_stage_navigation_controls(active_stage: str):
                 key=f"nav_back_{active_stage}",
                 on_click=set_active_stage,
                 args=(prev_stage.key,),
-                use_container_width=True,
+                width="stretch",
             )
         else:
             st.write(" ")
@@ -345,7 +345,7 @@ def render_stage_navigation_controls(active_stage: str):
                 key=f"nav_next_{active_stage}",
                 on_click=set_active_stage,
                 args=(next_stage.key,),
-                use_container_width=True,
+                width="stretch",
                 type="primary",
             )
         else:
@@ -1532,7 +1532,7 @@ def render_intro_stage():
     else:
         df_incoming = pd.DataFrame(ss["incoming"])
         preview = df_incoming.head(10)
-        st.dataframe(preview, use_container_width=True, hide_index=True)
+        st.dataframe(preview, width="stretch", hide_index=True)
         remaining = len(df_incoming) - len(preview)
         if remaining > 0:
             st.caption(
@@ -1666,7 +1666,7 @@ The model **infers** patterns that correlate with your labels — including **im
     df_lab = pd.DataFrame(ss["labeled"])
     df_display = df_lab if not df_lab.empty else pd.DataFrame(columns=["title", "body", "label"])
     st.write("### ✅ Labeled dataset")
-    st.dataframe(df_display, use_container_width=True, hide_index=True)
+    st.dataframe(df_display, width="stretch", hide_index=True)
     if df_display.empty or "label" not in df_display:
         st.caption("Size: 0 | Classes present: []")
     else:
@@ -1728,7 +1728,7 @@ The model **infers** patterns that correlate with your labels — including **im
                                 )
 
                         st.write("Preview of valid rows to import:")
-                        st.dataframe(df_merge.head(20), use_container_width=True, hide_index=True)
+                        st.dataframe(df_merge.head(20), width="stretch", hide_index=True)
                         st.caption(f"Valid rows ready to import: {len(df_merge)}")
 
                         if len(df_merge) > 0 and st.button("✅ Import into dataset", key="btn_import_csv"):
@@ -1933,7 +1933,7 @@ We use **sentence embeddings** (MiniLM) plus small **numeric cues** (links, urge
                     coef_details.sort_values("weight_per_std", ascending=True)
                     .set_index("friendly_name")["weight_per_std"]
                 )
-                st.bar_chart(chart_data, use_container_width=True)
+                st.bar_chart(chart_data, width="stretch")
 
                 display_df = coef_details.assign(
                     odds_multiplier_plus_1sigma=coef_details["odds_multiplier_per_std"],
@@ -1964,7 +1964,7 @@ We use **sentence embeddings** (MiniLM) plus small **numeric cues** (links, urge
                             "train_std": "Train std",
                         }
                     ),
-                    use_container_width=True,
+                    width="stretch",
                     hide_index=True,
                 )
 
@@ -2288,7 +2288,7 @@ def render_evaluate_stage():
                                 for k, v in coef_map.items()
                             ]
                         ).sort_values("weight_toward_spam", ascending=False),
-                        use_container_width=True,
+                        width="stretch",
                         hide_index=True,
                     )
                 else:
@@ -2364,7 +2364,7 @@ def render_classify_stage():
         preview_n = min(10, len(ss["incoming"]))
         preview_df = pd.DataFrame(ss["incoming"][:preview_n])
         if not preview_df.empty:
-            st.dataframe(preview_df, use_container_width=True, hide_index=True)
+            st.dataframe(preview_df, width="stretch", hide_index=True)
         st.caption(f"Showing the first **{preview_n}** incoming emails (unlabeled).")
 
         if st.button(f"Process {preview_n} email(s)", type="primary", key="btn_process_batch"):
@@ -2424,7 +2424,7 @@ def render_classify_stage():
         df_res = pd.DataFrame(ss["use_batch_results"])
         show_cols = ["title", "pred", "p_spam", "action", "routed_to"]
         existing_cols = [col for col in show_cols if col in df_res.columns]
-        st.dataframe(df_res[existing_cols], use_container_width=True, hide_index=True)
+        st.dataframe(df_res[existing_cols], width="stretch", hide_index=True)
         st.caption(
             "Each row shows the predicted label, confidence (P(spam)), and the recommendation or action taken."
         )
@@ -2437,7 +2437,7 @@ def render_classify_stage():
                     st.markdown("**Raw probabilities (per email)**")
                     detail_cols = ["title", "p_spam", "p_safe", "pred", "action", "routed_to"]
                     det_existing = [col for col in detail_cols if col in df_res.columns]
-                    st.dataframe(df_res[det_existing], use_container_width=True, hide_index=True)
+                    st.dataframe(df_res[det_existing], width="stretch", hide_index=True)
                 with col_nm2:
                     st.markdown("**Batch metrics**")
                     n_items = len(df_res)
@@ -2466,7 +2466,7 @@ def render_classify_stage():
 
                 st.markdown("**Audit trail (this session)**")
                 if ss.get("use_audit_log"):
-                    st.dataframe(pd.DataFrame(ss["use_audit_log"]), use_container_width=True, hide_index=True)
+                    st.dataframe(pd.DataFrame(ss["use_audit_log"]), width="stretch", hide_index=True)
                 else:
                     st.caption("No events recorded yet.")
 
@@ -2485,11 +2485,12 @@ def render_classify_stage():
         "**EU AI Act**: “…AI systems may exhibit adaptiveness.” Enable adaptiveness to **confirm** or **correct** results; "
         "the model can retrain on your feedback."
     )
-    ss["use_adaptiveness"] = bool(ss.get("adaptive", False))
-    ss["use_adaptiveness"] = st.toggle(
-        "Enable adaptiveness (learn from feedback)", value=ss["use_adaptiveness"], key="use_adaptiveness"
+    default_adaptiveness = bool(ss.get("adaptive", False))
+    use_adaptiveness = st.toggle(
+        "Enable adaptiveness (learn from feedback)", value=default_adaptiveness, key="use_adaptiveness"
     )
-    ss["adaptive"] = ss["use_adaptiveness"]
+    ss["use_adaptiveness"] = use_adaptiveness
+    ss["adaptive"] = use_adaptiveness
 
     if ss["use_adaptiveness"] and ss.get("use_batch_results"):
         st.markdown("#### Review and give feedback")
@@ -2569,12 +2570,12 @@ def render_classify_stage():
     )
     with inbox_tab:
         if ss["mail_inbox"]:
-            st.dataframe(pd.DataFrame(ss["mail_inbox"]), use_container_width=True, hide_index=True)
+            st.dataframe(pd.DataFrame(ss["mail_inbox"]), width="stretch", hide_index=True)
         else:
             st.caption("Inbox is empty so far.")
     with spam_tab:
         if ss["mail_spam"]:
-            st.dataframe(pd.DataFrame(ss["mail_spam"]), use_container_width=True, hide_index=True)
+            st.dataframe(pd.DataFrame(ss["mail_spam"]), width="stretch", hide_index=True)
         else:
             st.caption("No emails have been routed to spam yet.")
 
