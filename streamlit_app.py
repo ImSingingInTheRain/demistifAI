@@ -2489,10 +2489,9 @@ def render_classify_stage():
     use_adaptiveness = st.toggle(
         "Enable adaptiveness (learn from feedback)", value=default_adaptiveness, key="use_adaptiveness"
     )
-    ss["use_adaptiveness"] = use_adaptiveness
     ss["adaptive"] = use_adaptiveness
 
-    if ss["use_adaptiveness"] and ss.get("use_batch_results"):
+    if use_adaptiveness and ss.get("use_batch_results"):
         st.markdown("#### Review and give feedback")
         for i, row in enumerate(ss["use_batch_results"]):
             with st.container(border=True):
