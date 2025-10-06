@@ -16,7 +16,7 @@ from sklearn.metrics import accuracy_score, confusion_matrix, classification_rep
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 
-st.set_page_config(page_title="demistifAI — Spam Detector", page_icon="📧", layout="wide")
+st.set_page_config(page_title="demistifAI", page_icon="📧", layout="wide")
 
 STAGE_TEMPLATE_CSS = """
 <style>
@@ -172,6 +172,31 @@ STAGE_TEMPLATE_CSS = """
 .stage-nav-buttons .stButton>button:focus {
     outline: none;
     box-shadow: 0 0 0 3px rgba(74, 108, 247, 0.35);
+}
+
+.ai-quote-box {
+    margin: 1.1rem 0;
+    padding: 1rem 1.1rem;
+    border-radius: 14px;
+    border: 1px solid rgba(37, 99, 235, 0.18);
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.16), rgba(191, 219, 254, 0.25));
+    color: #1e3a8a;
+    font-style: italic;
+    position: relative;
+}
+
+.ai-quote-box::before {
+    content: "\201C";
+    position: absolute;
+    top: -18px;
+    left: 16px;
+    font-size: 3rem;
+    color: rgba(37, 99, 235, 0.3);
+}
+
+.ai-quote-box strong {
+    font-style: normal;
+    color: #1d4ed8;
 }
 </style>
 """
@@ -1166,14 +1191,7 @@ if st.sidebar.button("🔄 Reset demo data"):
     ss["numeric_adjustments"] = {feat: 0.0 for feat in FEATURE_ORDER}
     st.sidebar.success("Reset complete.")
 
-st.title("📧 demistifAI — Spam Detector")
-col_title, col_help = st.columns([5,2])
-with col_help:
-    guidance_popover("Machine‑based system", """
-This app is the **software** component; Streamlit Cloud is the **hardware** (cloud runtime).  
-You define the intended purpose (classify emails as **spam** or **safe**).
-""")
-st.caption("Two classes are available: **spam** and **safe**. Preloaded labeled dataset + unlabeled inbox stream.")
+st.title("📧 demistifAI")
 
 
 
@@ -1211,8 +1229,16 @@ def render_overview_stage():
     stage = STAGE_BY_KEY["overview"]
     st.subheader(f"{stage.icon} {stage.title} — the journey")
 
+    st.markdown(
+        """
+        <div class="ai-quote-box">
+            <strong>AI system</strong> means a machine-based system that is designed to operate with varying levels of autonomy and that may exhibit adaptiveness after deployment, and that, for explicit or implicit objectives, infers, from the input it receives, how to generate outputs such as predictions, content, recommendations, or decisions that can influence physical or virtual environments.
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
     st.write(
-        "AI system means a machine-based system…\n\n"
         "Right now, you are within a machine-based system, made of software and hardware.\n\n"
         "To make this experience intuitive and formative, you will navigate through a user interface that will allow you to build and use an AI System.\n\n"
         "At every step you can toggle a “Nerd Mode” to reveal more information and configurations: try it now: the switch lives in the sidebar."
