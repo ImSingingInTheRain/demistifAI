@@ -2091,6 +2091,18 @@ def render_evaluate_stage():
             )
 
             st.markdown("### Detailed metrics (at current threshold)")
+
+            def _as_int(value, fallback):
+                if value is None:
+                    return int(fallback)
+                try:
+                    return int(value)
+                except TypeError:
+                    return int(fallback)
+
+            spam_support = _as_int(sup_spam, np.sum(y_true01))
+            safe_support = _as_int(sup_safe, np.sum(1 - y_true01))
+
             st.dataframe(
                 pd.DataFrame(
                     [
@@ -2099,18 +2111,18 @@ def render_evaluate_stage():
                             "precision": prec_spam,
                             "recall": rec_spam,
                             "f1": f1_spam,
-                            "support": int(sup_spam),
+                            "support": spam_support,
                         },
                         {
                             "class": "safe",
                             "precision": prec_safe,
                             "recall": rec_safe,
                             "f1": f1_safe,
-                            "support": int(sup_safe),
+                            "support": safe_support,
                         },
                     ]
                 ).round(3),
-                use_container_width=True,
+                width="stretch",
                 hide_index=True,
             )
 
