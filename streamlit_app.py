@@ -34,10 +34,24 @@ STAGE_TEMPLATE_CSS = """
 }
 
 .stage-progress-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-    gap: 0.9rem;
-    margin: 1.2rem 0 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    margin: 1rem 0 0;
+    padding: 0.5rem 0.75rem;
+    border-radius: 16px;
+    background: rgba(15, 23, 42, 0.03);
+    border: 1px solid rgba(148, 163, 184, 0.24);
+    overflow-x: auto;
+}
+
+.stage-progress-grid::-webkit-scrollbar {
+    height: 6px;
+}
+
+.stage-progress-grid::-webkit-scrollbar-thumb {
+    background: rgba(100, 116, 139, 0.35);
+    border-radius: 999px;
 }
 
 .stage-card {
@@ -99,22 +113,40 @@ STAGE_TEMPLATE_CSS = """
 }
 
 .stage-progress-grid .stage-card {
-    text-align: center;
-    padding: 1rem 0.9rem;
-    min-height: 150px;
+    min-height: auto;
+    padding: 0.45rem 0.75rem;
+    border-radius: 999px;
+    box-shadow: none;
+    background: rgba(255, 255, 255, 0.94);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    text-align: left;
+}
+
+.stage-progress-grid .stage-card.complete {
+    background: linear-gradient(145deg, rgba(52, 199, 123, 0.16), rgba(240, 253, 244, 0.92));
+    border-color: rgba(52, 199, 123, 0.45);
+}
+
+.stage-progress-grid .stage-card.active {
+    background: linear-gradient(145deg, rgba(74, 108, 247, 0.16), rgba(241, 245, 255, 0.95));
+    border-color: rgba(74, 108, 247, 0.45);
+    box-shadow: 0 10px 24px rgba(37, 99, 235, 0.15);
 }
 
 .stage-progress-grid .stage-icon {
-    font-size: 1.65rem;
+    font-size: 1.15rem;
+    margin-bottom: 0;
 }
 
 .stage-progress-grid .stage-summary {
-    font-size: 0.85rem;
-    margin-top: 0.45rem;
+    display: none;
 }
 
 .stage-progress-grid .stage-title {
-    font-size: 0.95rem;
+    font-size: 0.9rem;
+    font-weight: 600;
 }
 
 .stage-nav-buttons {
@@ -163,14 +195,20 @@ def _stage_card_html(stage: StageMeta, status_class: str, *, show_description: b
     )
 
 
-def render_stage_cards(active_stage: str, *, variant: str = "grid"):
+def render_stage_cards(
+    active_stage: str,
+    *,
+    variant: str = "grid",
+    stages: Optional[List[StageMeta]] = None,
+):
     """Render the reusable stage template as a grid or compact progress bar."""
 
     wrapper_class = "stage-grid" if variant == "grid" else "stage-progress-grid"
     show_description = variant == "grid"
     active_index = STAGE_INDEX.get(active_stage, 0)
+    stage_list = stages if stages is not None else STAGES
     cards: List[str] = []
-    for stage in STAGES:
+    for stage in stage_list:
         idx = STAGE_INDEX[stage.key]
         if idx < active_index:
             status_class = "complete"
@@ -225,9 +263,8 @@ def render_stage_navigation_controls(active_stage: str):
 
     with col_next:
         if next_stage:
-            next_label = "Start • 0.5) Overview" if active_stage == "intro" else f"Next • {next_stage.title}"
             st.button(
-                f"{next_label} ➡️",
+                f"Next • {next_stage.title} ➡️",
                 key=f"nav_next_{active_stage}",
                 on_click=set_active_stage,
                 args=(next_stage.key,),
@@ -255,13 +292,13 @@ class StageMeta:
 
 
 STAGES: List[StageMeta] = [
-    StageMeta("intro", "0) Intro", "🚀", "Kickoff", "Meet the mission and trigger the guided build."),
-    StageMeta("overview", "0.5) Overview", "🧭", "See the journey", "Tour the steps, set Nerd Mode, and align on what you'll do."),
-    StageMeta("data", "1) Data", "📊", "Prepare data", "Inspect labeled examples and curate your dataset."),
-    StageMeta("train", "2) Train", "🧠", "Train the model", "Configure the split and teach the model on your dataset."),
-    StageMeta("evaluate", "3) Evaluate", "🧪", "Evaluate results", "Check metrics, inspect confusion matrix, and stress-test."),
-    StageMeta("classify", "4) Classify", "📬", "Classify emails", "Route new messages, correct predictions, and adapt."),
-    StageMeta("model_card", "5) Model Card", "📄", "Document system", "Summarize performance, intended use, and governance."),
+    StageMeta("intro", "Welcome", "🚀", "Kickoff", "Meet the mission and trigger the guided build."),
+    StageMeta("overview", "(Your machine)", "🧭", "See the journey", "Tour the steps, set Nerd Mode, and align on what you'll do."),
+    StageMeta("data", "Prepare Data", "📊", "Curate examples", "Inspect labeled emails and get the dataset ready for learning."),
+    StageMeta("train", "Train", "🧠", "Teach the model", "Configure the split and teach the model on your dataset."),
+    StageMeta("evaluate", "Evaluate", "🧪", "Check results", "Check metrics, inspect the confusion matrix, and stress-test."),
+    StageMeta("classify", "Use", "📬", "Route emails", "Route new messages, correct predictions, and adapt."),
+    StageMeta("model_card", "Model Card", "📄", "Document system", "Summarize performance, intended use, and governance."),
 ]
 
 STAGE_INDEX = {stage.key: idx for idx, stage in enumerate(STAGES)}
@@ -845,7 +882,7 @@ def assess_performance(acc: float, n_test: int, class_counts: Dict[str, int]) ->
         tips.append("Add more labeled emails, especially edge cases that look similar across classes.")
         tips.append("Balance the dataset (roughly comparable counts of 'spam' and 'safe').")
         tips.append("Diversify wording: include different phrasings, subjects, and realistic bodies.")
-    tips.append("Tune the spam threshold in the Classify tab to trade off false positives vs false negatives.")
+    tips.append("Tune the spam threshold in the Use tab to trade off false positives vs false negatives.")
     tips.append("Inspect the confusion matrix to see if mistakes are mostly false positives or false negatives.")
     tips.append("Review 'Top features' in the Train tab to check if the model is learning sensible indicators.")
     tips.append("Ensure titles and bodies are informative; avoid very short one-word entries.")
@@ -1095,7 +1132,6 @@ def download_text(text: str, filename: str, label: str = "Download"):
 
 ss = st.session_state
 ss.setdefault("active_stage", STAGES[0].key)
-ss.setdefault("intro_start_clicked", False)
 ss.setdefault("nerd_mode", False)
 ss.setdefault("autonomy", AUTONOMY_LEVELS[0])
 ss.setdefault("threshold", 0.6)
@@ -1163,23 +1199,14 @@ def render_intro_stage():
     st.write("No worries, you do not need to be a developer, data scientist, or AI expert to do this!")
 
     st.markdown("### Are you ready to make a machine learn?")
-
-    if st.button("▶️ Start", key="intro_start_btn"):
-        ss["intro_start_clicked"] = True
-        set_active_stage("overview")
-        st.toast("Great! You’re now on **0.5) Overview** — read the quick guide, then click **Next** to begin with **1) Data**.", icon="✅")
-        try:
-            st.balloons()
-        except Exception:
-            pass
+    st.caption("Use the navigation below to move through each stage of the build.")
 
 
 def render_overview_stage():
 
-    if ss.get("intro_start_clicked"):
-        st.success(
-            "Welcome to **0.5) Overview**. This page explains the flow and lets you toggle **Nerd Mode** for technical details."
-        )
+    st.success(
+        "You’re in **(Your machine)**. This page explains the flow and lets you toggle **Nerd Mode** for technical details."
+    )
 
     stage = STAGE_BY_KEY["overview"]
     st.subheader(f"{stage.icon} {stage.title} — the journey")
@@ -1205,7 +1232,11 @@ def render_overview_stage():
 
     st.markdown("### Lifecycle at a glance")
     st.caption("Each card represents a stage. The highlight follows you as you move through the guided flow.")
-    render_stage_cards(ss["active_stage"], variant="grid")
+    render_stage_cards(
+        ss["active_stage"],
+        variant="grid",
+        stages=[stage for stage in STAGES if stage.key not in {"intro", "overview"}],
+    )
 
     st.markdown("### Navigation tips")
     st.write(
@@ -1230,9 +1261,7 @@ def render_overview_stage():
 
 def render_data_stage():
 
-    if ss.get("intro_start_clicked"):
-        st.info("You’re in **1) Data**. Start by reviewing the labeled dataset and the unlabeled inbox, then label a few examples.", icon="ℹ️")
-    st.subheader("1) Data — curate and expand")
+    st.subheader("Prepare Data — curate and expand")
     guidance_popover("Inference inputs (training)", """
 During **training**, inputs are example emails (title + body) paired with the **objective** (label: spam/safe).  
 The model **infers** patterns that correlate with your labels — including **implicit objectives** such as click‑bait terms.
@@ -1260,7 +1289,7 @@ The model **infers** patterns that correlate with your labels — including **im
     st.markdown("---")
     st.write("### 📥 Unlabeled inbox overview")
     guidance_popover("Where to triage", """
-Use the **Classify** tab to review incoming emails, route them, and optionally learn from corrections.
+Use the **Use** tab to review incoming emails, route them, and optionally learn from corrections.
 This tab now focuses on curating the labeled dataset and gives you a snapshot of what remains unlabeled.
 """)
     if not ss["incoming"]:
@@ -1271,12 +1300,12 @@ This tab now focuses on curating the labeled dataset and gives you a snapshot of
         st.dataframe(preview, use_container_width=True, hide_index=True)
         remaining = len(df_incoming) - len(preview)
         if remaining > 0:
-            st.caption(f"Showing {len(preview)} of {len(df_incoming)} pending emails. Process the rest in the **Classify** tab.")
+            st.caption(f"Showing {len(preview)} of {len(df_incoming)} pending emails. Process the rest in the **Use** tab.")
 
 
 def render_train_stage():
 
-    st.subheader("2) Train — make the model learn")
+    st.subheader("Train — make the model learn")
     guidance_popover("How training works", """
 You set the **objective** (spam vs safe). The algorithm adjusts its **parameters** to reduce mistakes on your labeled examples.  
 We use **sentence embeddings** (MiniLM) plus small **numeric cues** (links, urgency, punctuation) with **Logistic Regression** — fast, lightweight, and still calibrated for P(spam).
@@ -1435,7 +1464,7 @@ Controls the randomness of the split. By fixing the seed, you can reproduce the 
 
 def render_evaluate_stage():
 
-    st.subheader("3) Evaluate — check generalization")
+    st.subheader("Evaluate — check generalization")
     guidance_popover("Why evaluate?", """
 Hold‑out evaluation estimates how well the model generalizes to **new** emails.  
 It helps detect overfitting, bias, and areas needing more data.
@@ -1538,7 +1567,7 @@ It helps detect overfitting, bias, and areas needing more data.
 
 def render_classify_stage():
 
-    st.subheader("4) Classify — generate outputs & route")
+    st.subheader("Use — generate outputs & route")
     col_help1, col_help2 = st.columns(2)
     with col_help1:
         guidance_popover("Generate outputs", """
@@ -1789,7 +1818,7 @@ Depending on the autonomy level, the system may either **recommend** an action o
 
 def render_model_card_stage():
 
-    st.subheader("5) Model Card — transparency")
+    st.subheader("Model Card — transparency")
     guidance_popover("Transparency", """
 Model cards summarize intended purpose, data, metrics, autonomy & adaptiveness settings.
 They help teams reason about risks and the appropriate oversight controls.
