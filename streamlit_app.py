@@ -212,7 +212,6 @@ STAGE_TEMPLATE_CSS = """
 }
 
 .ai-quote-box::after {
-    content: "\201C";
     position: absolute;
     top: -0.45rem;
     left: 1.4rem;
