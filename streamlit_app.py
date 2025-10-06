@@ -3,7 +3,7 @@ from __future__ import annotations
 import base64
 import html
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 from urllib.parse import urlencode
 
 import matplotlib.pyplot as plt
@@ -993,6 +993,51 @@ def assess_performance(acc: float, n_test: int, class_counts: Dict[str, int]) ->
 
     return {"verdict": verdict, "tips": tips}
 
+
+def _counts(labels: list[str]) -> Dict[str, int]:
+    counts = {"spam": 0, "safe": 0}
+    for y in labels:
+        if y in counts:
+            counts[y] += 1
+    return counts
+
+
+def make_after_training_story(train_labels: list[str], test_labels: list[str]) -> str:
+    n_train = len(train_labels)
+    n_test = len(test_labels)
+    ct_train = _counts(train_labels)
+    ct_test = _counts(test_labels)
+    lines: list[str] = []
+    lines.append(
+        "**Training complete.** The model learned from **{n_train}** emails "
+        "({ct_train['spam']} spam / {ct_train['safe']} safe) and will be checked on "
+        "**{n_test}** unseen emails ({ct_test['spam']} spam / {ct_test['safe']} safe).".format(
+            n_train=n_train,
+            ct_train=ct_train,
+            n_test=n_test,
+            ct_test=ct_test,
+        )
+    )
+    lines.append(
+        "It built an internal map of patterns that distinguish spam from safe messages, "
+        "so it can **infer** the right category for new emails."
+    )
+    lines.append(
+        "Next, open **3) Evaluate** to see how well it performs on the held-out test set."
+    )
+    return "\n\n".join(lines)
+
+
+def model_kind_string(model_obj: Any) -> str:
+    name = type(model_obj).__name__
+    try:
+        if hasattr(model_obj, "named_steps"):
+            steps = " + ".join(model_obj.named_steps.keys())
+            return f"{name} ({steps})"
+        return name
+    except Exception:
+        return name
+
 @st.cache_resource(show_spinner=False)
 def get_encoder(model_name: str = "sentence-transformers/all-MiniLM-L6-v2") -> SentenceTransformer:
     # Downloaded once and cached by Streamlit
@@ -1251,6 +1296,11 @@ ss.setdefault("metrics", {"TP": 0, "FP": 0, "TN": 0, "FN": 0})
 ss.setdefault("last_classification", None)
 ss.setdefault("numeric_adjustments", {feat: 0.0 for feat in FEATURE_ORDER})
 ss.setdefault("nerd_mode_data", False)
+ss.setdefault("nerd_mode_train", False)
+ss.setdefault(
+    "train_params",
+    {"test_size": 0.30, "random_state": 42, "max_iter": 1000, "C": 1.0},
+)
 
 st.sidebar.header("⚙️ Settings")
 ss["autonomy"] = st.sidebar.selectbox("Autonomy level", AUTONOMY_LEVELS, index=AUTONOMY_LEVELS.index(ss["autonomy"]))
@@ -1518,27 +1568,105 @@ The model **infers** patterns that correlate with your labels — including **im
         st.caption("Tip: Turn on **Nerd Mode** to add more labeled emails or upload a CSV.")
 
 
+
 def render_train_stage():
 
-    st.subheader("Train — make the model learn")
-    guidance_popover("How training works", """
-You set the **objective** (spam vs safe). The algorithm adjusts its **parameters** to reduce mistakes on your labeled examples.  
-We use **sentence embeddings** (MiniLM) plus small **numeric cues** (links, urgency, punctuation) with **Logistic Regression** — fast, lightweight, and still calibrated for P(spam).
-""")
-    test_size = st.slider("Hold‑out test fraction", 0.1, 0.5, 0.3, 0.05)
-    random_state = st.number_input("Random seed", min_value=0, value=42, step=1)
-    st.info(
-        "• **Hold-out test fraction**: we keep this percentage of your labeled emails aside as a mini 'exam'. "
-        "The model never sees them during training, so the test score reflects how well it might handle new emails.\n"
-        "• **Random seed**: this fixes the 'shuffle order' so you (and others) can get the same split and the same results when re-running the demo."
-    )
-    guidance_popover("Hold-out & Random seed", """
-**Hold-out test fraction**  
-We split your labeled emails into a training set and a test set. The test set is like a mini exam: the model hasn’t seen those emails before, so its score is a better proxy for real-world performance.
+    st.subheader("2) Train — Teaching the model to infer")
 
-**Random seed**  
-Controls the randomness of the split. By fixing the seed, you can reproduce the same results later (useful for learning and comparison).
-""")
+    st.write(
+        "The EU AI Act says: *“An AI system infers from the input it receives…”*  \n"
+        "That’s what we’ll do here. We’ll train the spam detector so it can **infer** whether each new email is **Spam** or **Safe**."
+    )
+
+    st.markdown(
+        "- In the previous step, you prepared **labeled examples** (emails marked as spam or safe).  \n"
+        "- The model now **looks for patterns** in those examples.  \n"
+        "- With enough clear examples, it learns to **generalize** to new emails."
+    )
+
+    def _parse_split_cache(cache):
+        if cache is None:
+            raise ValueError("Missing split cache.")
+        if len(cache) == 4:
+            X_tr, X_te, y_tr, y_te = cache
+            train_bodies = ["" for _ in range(len(X_tr))]
+            test_bodies = ["" for _ in range(len(X_te))]
+            return (
+                list(X_tr),
+                list(X_te),
+                train_bodies,
+                test_bodies,
+                list(y_tr),
+                list(y_te),
+            )
+        if len(cache) == 6:
+            X_tr_t, X_te_t, X_tr_b, X_te_b, y_tr, y_te = cache
+            return (
+                list(X_tr_t),
+                list(X_te_t),
+                list(X_tr_b),
+                list(X_te_b),
+                list(y_tr),
+                list(y_te),
+            )
+        y_tr = list(cache[-2]) if len(cache) >= 2 else []
+        y_te = list(cache[-1]) if len(cache) >= 1 else []
+        return [], [], [], [], y_tr, y_te
+
+    with st.expander("Nerd Mode — advanced controls", expanded=False):
+        st.toggle("Enable Nerd Mode for training", key="nerd_mode_train")
+        if ss["nerd_mode_train"]:
+            colA, colB = st.columns(2)
+            with colA:
+                ss["train_params"]["test_size"] = st.slider(
+                    "Hold-out test fraction",
+                    min_value=0.10,
+                    max_value=0.50,
+                    value=float(ss["train_params"]["test_size"]),
+                    step=0.05,
+                    help="How much labeled data to keep aside as a mini 'exam' (not used for learning).",
+                )
+                ss["train_params"]["random_state"] = st.number_input(
+                    "Random seed",
+                    min_value=0,
+                    value=int(ss["train_params"]["random_state"]),
+                    step=1,
+                    help="Fix this to make your train/test split reproducible.",
+                )
+            with colB:
+                ss["train_params"]["max_iter"] = st.number_input(
+                    "Max iterations (solver)",
+                    min_value=200,
+                    value=int(ss["train_params"]["max_iter"]),
+                    step=100,
+                    help="How many optimization steps the classifier can take before stopping.",
+                )
+                ss["train_params"]["C"] = st.number_input(
+                    "Regularization strength C (inverse of regularization)",
+                    min_value=0.01,
+                    value=float(ss["train_params"]["C"]),
+                    step=0.25,
+                    format="%.2f",
+                    help="Higher C fits training data more tightly; lower C adds regularization to reduce overfitting.",
+                )
+
+            st.info(
+                "• **Hold-out fraction**: keeps part of the data for an honest test.  \n"
+                "• **Random seed**: makes results repeatable.  \n"
+                "• **Max iterations / C**: learning dials—defaults are fine; feel free to experiment."
+            )
+
+    st.markdown("👉 When you’re ready, click **Train**.")
+
+    guidance_popover(
+        "How training works",
+        """
+You set the **objective** (spam vs safe). The algorithm adjusts its **parameters** to reduce mistakes on your labeled examples.
+
+We use **sentence embeddings** (MiniLM) plus small **numeric cues** (links, urgency, punctuation) with **Logistic Regression** — fast, lightweight, and still calibrated for P(spam).
+""",
+    )
+
     if st.button("🚀 Train model", type="primary"):
         if len(ss["labeled"]) < 6:
             st.warning("Please label a few more emails first (≥6 examples).")
@@ -1547,104 +1675,161 @@ Controls the randomness of the split. By fixing the seed, you can reproduce the 
             if len(df["label"].unique()) < 2:
                 st.warning("You need both classes (spam and safe) present to train.")
             else:
+                params = ss.get("train_params", {})
+                test_size = float(params.get("test_size", 0.30))
+                random_state = int(params.get("random_state", 42))
+                max_iter = int(params.get("max_iter", 1000))
+                C_value = float(params.get("C", 1.0))
+
                 titles = df["title"].fillna("").tolist()
                 bodies = df["body"].fillna("").tolist()
                 y = df["label"].tolist()
                 X_tr_t, X_te_t, X_tr_b, X_te_b, y_tr, y_te = train_test_split(
-                    titles, bodies, y, test_size=test_size, random_state=random_state, stratify=y
+                    titles,
+                    bodies,
+                    y,
+                    test_size=test_size,
+                    random_state=random_state,
+                    stratify=y,
                 )
 
-                model = HybridEmbedFeatsLogReg().fit(X_tr_t, X_tr_b, y_tr)
+                model = HybridEmbedFeatsLogReg()
+                try:
+                    model.lr.set_params(max_iter=max_iter, C=C_value)
+                except Exception:
+                    pass
+                model = model.fit(X_tr_t, X_tr_b, y_tr)
                 model.apply_numeric_adjustments(ss["numeric_adjustments"])
                 ss["model"] = model
                 ss["split_cache"] = (X_tr_t, X_te_t, X_tr_b, X_te_b, y_tr, y_te)
 
-                st.success("Model trained with **sentence embeddings + interpretable numeric features**.")
+    parsed_split = None
+    y_tr_labels = None
+    y_te_labels = None
+    if ss.get("model") is not None and ss.get("split_cache") is not None:
+        try:
+            parsed_split = _parse_split_cache(ss["split_cache"])
+            X_tr_t, X_te_t, X_tr_b, X_te_b, y_tr_labels, y_te_labels = parsed_split
+            story = make_after_training_story(y_tr_labels, y_te_labels)
+            st.success("Training finished.")
+            st.markdown(story)
+        except Exception as e:
+            st.info(f"Training complete. (Details unavailable: {e})")
+            parsed_split = None
+            y_tr_labels = None
+            y_te_labels = None
 
-                with st.expander("Interpretability: numeric feature coefficients & tuning", expanded=False):
-                    try:
-                        coef_details = ss["model"].numeric_feature_details().copy()
-                        coef_details["friendly_name"] = coef_details["feature"].map(
-                            FEATURE_DISPLAY_NAMES
-                        )
-                        st.caption(
-                            "Positive weights push toward the **spam** class; negative toward **safe**. "
-                            "Values are log-odds after standardization."
-                        )
+    if ss.get("nerd_mode_train") and ss.get("model") is not None and parsed_split:
+        with st.expander("Nerd Mode — what just happened (technical)", expanded=True):
+            X_tr_t, X_te_t, X_tr_b, X_te_b, y_tr_labels, y_te_labels = parsed_split
+            try:
+                st.markdown("**Data split**")
+                st.markdown(
+                    f"- Train set size: {len(y_tr_labels)}  \n"
+                    f"- Test set size: {len(y_te_labels)}  \n"
+                    f"- Class balance (train): {_counts(list(y_tr_labels))}  \n"
+                    f"- Class balance (test): {_counts(list(y_te_labels))}"
+                )
+            except Exception:
+                st.caption("Split details unavailable.")
 
-                        chart_data = (
-                            coef_details.sort_values("weight_per_std", ascending=True)
-                            .set_index("friendly_name")["weight_per_std"]
-                        )
-                        st.bar_chart(chart_data, use_container_width=True)
+            params = ss.get("train_params", {})
+            st.markdown("**Parameters used**")
+            st.markdown(
+                f"- Hold-out fraction: {params.get('test_size', '—')}  \n"
+                f"- Random seed: {params.get('random_state', '—')}  \n"
+                f"- Max iterations: {params.get('max_iter', '—')}  \n"
+                f"- C (inverse regularization): {params.get('C', '—')}"
+            )
 
-                        display_df = coef_details.assign(
-                            odds_multiplier_plus_1sigma=coef_details["odds_multiplier_per_std"],
-                            approx_pct_change_odds=(coef_details["odds_multiplier_per_std"] - 1.0) * 100.0,
-                        )[
-                            [
-                                "friendly_name",
-                                "base_weight_per_std",
-                                "user_adjustment",
-                                "weight_per_std",
-                                "odds_multiplier_plus_1sigma",
-                                "approx_pct_change_odds",
-                                "train_mean",
-                                "train_std",
-                            ]
-                        ]
+            st.markdown(f"**Model object**: `{model_kind_string(ss['model'])}`")
 
-                        st.dataframe(
-                            display_df.rename(
-                                columns={
-                                    "friendly_name": "Feature",
-                                    "base_weight_per_std": "Learned log-odds (+1σ)",
-                                    "user_adjustment": "Your adjustment (+1σ)",
-                                    "weight_per_std": "Adjusted log-odds (+1σ)",
-                                    "odds_multiplier_plus_1sigma": "Adjusted odds multiplier (+1σ)",
-                                    "approx_pct_change_odds": "%Δ odds from adjustment (+1σ)",
-                                    "train_mean": "Train mean",
-                                    "train_std": "Train std",
-                                }
-                            ),
-                            use_container_width=True,
-                            hide_index=True,
-                        )
+            st.markdown("### Interpretability & tuning")
+            try:
+                coef_details = ss["model"].numeric_feature_details().copy()
+                coef_details["friendly_name"] = coef_details["feature"].map(
+                    FEATURE_DISPLAY_NAMES
+                )
+                st.caption(
+                    "Positive weights push toward the **spam** class; negative toward **safe**. "
+                    "Values are log-odds after standardization."
+                )
 
-                        st.caption(
-                            "Base weights come from training. Use the sliders below to nudge each cue if your domain knowledge "
-                            "suggests it should count more or less. Adjustments apply per standard deviation of the raw feature."
-                        )
+                chart_data = (
+                    coef_details.sort_values("weight_per_std", ascending=True)
+                    .set_index("friendly_name")["weight_per_std"]
+                )
+                st.bar_chart(chart_data, use_container_width=True)
 
-                        st.markdown("#### Plain-language explanations & manual tweaks")
-                        for row in coef_details.itertuples():
-                            feat = row.feature
-                            friendly = FEATURE_DISPLAY_NAMES.get(feat, feat)
-                            explanation = FEATURE_PLAIN_LANGUAGE.get(feat, "")
-                            st.markdown(f"**{friendly}** — {explanation}")
-                            slider_key = f"adj_slider_{feat}"
-                            current_setting = ss["numeric_adjustments"][feat]
-                            if slider_key in st.session_state and st.session_state[slider_key] != current_setting:
-                                st.session_state[slider_key] = current_setting
-                            new_adj = st.slider(
-                                f"Adjustment for {friendly} (log-odds per +1σ)",
-                                min_value=-1.5,
-                                max_value=1.5,
-                                value=float(current_setting),
-                                step=0.1,
-                                key=slider_key,
-                            )
-                            if new_adj != ss["numeric_adjustments"][feat]:
-                                ss["numeric_adjustments"][feat] = new_adj
-                                if ss.get("model"):
-                                    ss["model"].apply_numeric_adjustments(ss["numeric_adjustments"])
-                    except Exception as e:
-                        st.caption(f"Coefficients unavailable: {e}")
+                display_df = coef_details.assign(
+                    odds_multiplier_plus_1sigma=coef_details["odds_multiplier_per_std"],
+                    approx_pct_change_odds=(coef_details["odds_multiplier_per_std"] - 1.0) * 100.0,
+                )[
+                    [
+                        "friendly_name",
+                        "base_weight_per_std",
+                        "user_adjustment",
+                        "weight_per_std",
+                        "odds_multiplier_plus_1sigma",
+                        "approx_pct_change_odds",
+                        "train_mean",
+                        "train_std",
+                    ]
+                ]
 
-                with st.expander("Interpretability: nearest neighbors & class prototypes", expanded=False):
+                st.dataframe(
+                    display_df.rename(
+                        columns={
+                            "friendly_name": "Feature",
+                            "base_weight_per_std": "Learned log-odds (+1σ)",
+                            "user_adjustment": "Your adjustment (+1σ)",
+                            "weight_per_std": "Adjusted log-odds (+1σ)",
+                            "odds_multiplier_plus_1sigma": "Adjusted odds multiplier (+1σ)",
+                            "approx_pct_change_odds": "%Δ odds from adjustment (+1σ)",
+                            "train_mean": "Train mean",
+                            "train_std": "Train std",
+                        }
+                    ),
+                    use_container_width=True,
+                    hide_index=True,
+                )
+
+                st.caption(
+                    "Base weights come from training. Use the sliders below to nudge each cue if your domain knowledge "
+                    "suggests it should count more or less. Adjustments apply per standard deviation of the raw feature."
+                )
+
+                st.markdown("#### Plain-language explanations & manual tweaks")
+                for row in coef_details.itertuples():
+                    feat = row.feature
+                    friendly = FEATURE_DISPLAY_NAMES.get(feat, feat)
+                    explanation = FEATURE_PLAIN_LANGUAGE.get(feat, "")
+                    st.markdown(f"**{friendly}** — {explanation}")
+                    slider_key = f"adj_slider_{feat}"
+                    current_setting = ss["numeric_adjustments"][feat]
+                    if slider_key in st.session_state and st.session_state[slider_key] != current_setting:
+                        st.session_state[slider_key] = current_setting
+                    new_adj = st.slider(
+                        f"Adjustment for {friendly} (log-odds per +1σ)",
+                        min_value=-1.5,
+                        max_value=1.5,
+                        value=float(current_setting),
+                        step=0.1,
+                        key=slider_key,
+                    )
+                    if new_adj != ss["numeric_adjustments"][feat]:
+                        ss["numeric_adjustments"][feat] = new_adj
+                        if ss.get("model"):
+                            ss["model"].apply_numeric_adjustments(ss["numeric_adjustments"])
+            except Exception as e:
+                st.caption(f"Coefficients unavailable: {e}")
+
+            st.markdown("#### Embedding prototypes & nearest neighbors")
+            try:
+                if X_tr_t and X_tr_b:
                     X_train_texts = [combine_text(t, b) for t, b in zip(X_tr_t, X_tr_b)]
                     X_train_emb = encode_texts(X_train_texts)
-                    y_train_arr = np.array(y_tr)
+                    y_train_arr = np.array(y_tr_labels)
 
                     def prototype_for(cls):
                         mask = y_train_arr == cls
@@ -1655,7 +1840,7 @@ Controls the randomness of the split. By fixing the seed, you can reproduce the 
                     def top_nearest(query_vec, k=5):
                         if query_vec is None:
                             return np.array([]), np.array([])
-                        sims = (X_train_emb @ query_vec.T).ravel()  # cosine because normalized
+                        sims = (X_train_emb @ query_vec.T).ravel()
                         order = np.argsort(-sims)
                         top_k = order[: min(k, len(order))]
                         return top_k, sims[top_k]
@@ -1675,6 +1860,11 @@ Controls the randomness of the split. By fixing the seed, you can reproduce the 
                             st.write(f"{i}. *{title_i}*  — sim={sc:.2f}")
                             preview = body_i[:200]
                             st.caption(preview + ("..." if len(body_i) > 200 else ""))
+                else:
+                    st.caption("Embedding details unavailable (no training texts).")
+            except Exception as e:
+                st.caption(f"Interpretability view unavailable: {e}")
+
 
 
 def render_evaluate_stage():
