@@ -882,6 +882,27 @@ def guidance_popover(title: str, text: str):
     with st.popover(f"❓ {title}"):
         st.write(text)
 
+
+VALID_LABELS = {"spam", "safe"}
+
+
+def _normalize_label(x: str) -> str:
+    if not isinstance(x, str):
+        return ""
+    x = x.strip().lower()
+    if x in {"ham", "legit", "legitimate"}:
+        return "safe"
+    return x
+
+
+def _validate_csv_schema(df: pd.DataFrame) -> tuple[bool, str]:
+    required = {"title", "body", "label"}
+    missing = required - set(map(str.lower, df.columns))
+    if missing:
+        return False, f"Missing required columns: {', '.join(sorted(missing))}"
+    return True, ""
+
+
 def df_confusion(y_true, y_pred, labels):
     cm = confusion_matrix(y_true, y_pred, labels=labels)
     return pd.DataFrame(cm, index=[f"True: {l}" for l in labels], columns=[f"Pred: {l}" for l in labels])
@@ -1170,6 +1191,7 @@ ss.setdefault("mail_spam", [])
 ss.setdefault("metrics", {"TP": 0, "FP": 0, "TN": 0, "FN": 0})
 ss.setdefault("last_classification", None)
 ss.setdefault("numeric_adjustments", {feat: 0.0 for feat in FEATURE_ORDER})
+ss.setdefault("nerd_mode_data", False)
 
 st.sidebar.header("⚙️ Settings")
 ss["autonomy"] = st.sidebar.selectbox("Autonomy level", AUTONOMY_LEVELS, index=AUTONOMY_LEVELS.index(ss["autonomy"]))
@@ -1213,6 +1235,28 @@ def render_intro_stage():
     st.markdown("Your mission today will be to understand how an AI system with the intended purpose of preventing SPAM email from entering your inbox works… by building one.")
 
     st.markdown("**Yes, you are going to build an AI Email SPAM Detector!**")
+
+    st.write(
+        "By the end of this playground, you’ll have the AI system classifying the emails in this inbox as **Spam** or **Safe**."
+    )
+
+    st.markdown("### 📥 Unlabeled inbox overview")
+    guidance_popover(
+        "Where to triage",
+        "Use the **Use** tab to review incoming emails, route them, and optionally learn from corrections."
+        " This page gives you a snapshot of what remains unlabeled before the model starts assisting you.",
+    )
+    if not ss["incoming"]:
+        st.caption("Inbox stream is empty.")
+    else:
+        df_incoming = pd.DataFrame(ss["incoming"])
+        preview = df_incoming.head(10)
+        st.dataframe(preview, use_container_width=True, hide_index=True)
+        remaining = len(df_incoming) - len(preview)
+        if remaining > 0:
+            st.caption(
+                f"Showing {len(preview)} of {len(df_incoming)} pending emails. Process the rest in the **Use** tab."
+            )
 
     st.write("No worries, you do not need to be a developer, data scientist, or AI expert to do this!")
 
@@ -1289,44 +1333,119 @@ def render_data_stage():
 
     st.subheader("Prepare Data — curate and expand")
     guidance_popover("Inference inputs (training)", """
-During **training**, inputs are example emails (title + body) paired with the **objective** (label: spam/safe).  
+During **training**, inputs are example emails (title + body) paired with the **objective** (label: spam/safe).
 The model **infers** patterns that correlate with your labels — including **implicit objectives** such as click‑bait terms.
 """)
 
+    st.markdown("### Prepare Data")
+    st.markdown(
+        """
+        <div class=\"ai-quote-box\">
+            <p><strong>AI systems have explicit objectives...</strong><br>
+            That means they are built with a clear goal set by their developers — in this case, by <strong>you</strong>.</p>
+            <p>For our spam detector, the explicit objective is simple:<br>
+            👉 <strong>Decide whether each incoming email is “Spam” or “Safe.”</strong></p>
+            <p>To do that, the model needs to be <strong>trained</strong>. In this case, training means showing it many examples of emails that are already labeled, so it can <strong>learn the difference</strong> between spam and safe messages.</p>
+            <p>To get you started quickly, you are provided with <strong>500 pre-labeled emails</strong>. These give the model a solid foundation.</p>
+            <p>If you’d like to go further, you can turn on <strong>Nerd Mode</strong> to explore the dataset more deeply or <strong>add more labeled emails</strong> to improve the model.</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    with st.expander("Nerd Mode (what’s under the hood)?", expanded=False):
+        st.toggle("Enable Nerd Mode for data", key="nerd_mode_data")
+        if ss["nerd_mode_data"]:
+            st.markdown(
+                "- **Labeled data** = input (**title + body**) plus the **label** (“spam” or “safe”).\n"
+                "- The model learns patterns from these labels to generalize to new emails.\n"
+                "- You can expand the dataset by **adding individual examples** or by **uploading a CSV** with this schema:\n"
+                "  - `title` (string)\n"
+                "  - `body` (string)\n"
+                "  - `label` (string, values: `spam` or `safe`)\n\n"
+                "Example CSV:\n"
+                "```\n"
+                "title,body,label\n"
+                "\"Password reset\",\"Use the internal portal to change your password.\",\"safe\"\n"
+                "\"WIN a prize now!!!\",\"Click the link to claim your reward.\",\"spam\"\n"
+                "```\n"
+            )
+
+    df_lab = pd.DataFrame(ss["labeled"])
+    df_display = df_lab if not df_lab.empty else pd.DataFrame(columns=["title", "body", "label"])
     st.write("### ✅ Labeled dataset")
-    if ss["labeled"]:
-        df_lab = pd.DataFrame(ss["labeled"])
-        st.dataframe(df_lab, use_container_width=True, hide_index=True)
-        st.caption(f"Size: {len(df_lab)} | Classes present: {sorted(df_lab['label'].unique().tolist())}")
+    st.dataframe(df_display, use_container_width=True, hide_index=True)
+    if df_display.empty or "label" not in df_display:
+        st.caption("Size: 0 | Classes present: []")
     else:
-        st.caption("No labeled data yet.")
+        st.caption(f"Size: {len(df_display)} | Classes present: {sorted(set(df_display['label']))}")
 
-    with st.expander("➕ Add a labeled example"):
-        title = st.text_input("Title", key="add_l_title", placeholder="Subject: ...")
-        body = st.text_area("Body", key="add_l_body", height=100, placeholder="Email body...")
-        label = st.radio("Label", CLASSES, index=1, horizontal=True, key="add_l_label")
-        if st.button("Add to labeled dataset", key="btn_add_labeled"):
-            if not (title.strip() or body.strip()):
-                st.warning("Provide at least a title or a body.")
-            else:
-                ss["labeled"].append({"title": title.strip(), "body": body.strip(), "label": label})
-                st.success("Added to labeled dataset.")
+    if ss["nerd_mode_data"]:
+        st.markdown("### 🔧 Expand the dataset (Nerd Mode)")
 
-    st.markdown("---")
-    st.write("### 📥 Unlabeled inbox overview")
-    guidance_popover("Where to triage", """
-Use the **Use** tab to review incoming emails, route them, and optionally learn from corrections.
-This tab now focuses on curating the labeled dataset and gives you a snapshot of what remains unlabeled.
-""")
-    if not ss["incoming"]:
-        st.caption("Inbox stream is empty.")
+        with st.expander("➕ Add a labeled example (manual)", expanded=False):
+            title = st.text_input("Title", key="add_l_title", placeholder="Subject: ...")
+            body = st.text_area("Body", key="add_l_body", height=100, placeholder="Email body...")
+            label = st.radio("Label", ["spam", "safe"], index=1, horizontal=True, key="add_l_label")
+            if st.button("Add to labeled dataset", key="btn_add_labeled"):
+                if not (title.strip() or body.strip()):
+                    st.warning("Provide at least a title or a body.")
+                else:
+                    ss["labeled"].append({"title": title.strip(), "body": body.strip(), "label": label})
+                    st.success("Added to labeled dataset.")
+
+        with st.expander("📤 Upload a CSV of labeled emails", expanded=False):
+            st.caption(
+                "Required columns (case-insensitive): `title`, `body`, `label` (values: `spam` or `safe`)."
+            )
+            up = st.file_uploader("Choose a CSV file", type=["csv"], key="csv_uploader_labeled")
+            if up is not None:
+                try:
+                    df_up = pd.read_csv(up)
+                    df_up.columns = [c.strip().lower() for c in df_up.columns]
+                    ok, msg = _validate_csv_schema(df_up)
+                    if not ok:
+                        st.error(msg)
+                    else:
+                        df_up["label"] = df_up["label"].apply(_normalize_label)
+                        mask_valid = df_up["label"].isin(VALID_LABELS)
+                        invalid_rows = (~mask_valid).sum()
+                        if invalid_rows:
+                            st.warning(
+                                f"{invalid_rows} rows have invalid labels and will be ignored (allowed: 'spam', 'safe')."
+                            )
+                        df_clean = df_up.loc[mask_valid, ["title", "body", "label"]].copy()
+                        for col in ["title", "body"]:
+                            df_clean[col] = df_clean[col].fillna("").astype(str).str.strip()
+                        pre = len(df_clean)
+                        df_clean = df_clean[(df_clean["title"] != "") | (df_clean["body"] != "")]
+                        dropped = pre - len(df_clean)
+                        if dropped:
+                            st.info(f"Dropped {dropped} empty-title/body rows.")
+
+                        df_existing = df_lab
+                        key_cols = ["title", "body", "label"]
+                        df_merge = df_clean
+                        if not df_existing.empty:
+                            merged = df_clean.merge(df_existing[key_cols], on=key_cols, how="left", indicator=True)
+                            df_merge = merged[merged["_merge"] == "left_only"][key_cols]
+                            removed_dups = len(df_clean) - len(df_merge)
+                            if removed_dups:
+                                st.info(
+                                    f"Skipped {removed_dups} duplicates already present in the dataset."
+                                )
+
+                        st.write("Preview of valid rows to import:")
+                        st.dataframe(df_merge.head(20), use_container_width=True, hide_index=True)
+                        st.caption(f"Valid rows ready to import: {len(df_merge)}")
+
+                        if len(df_merge) > 0 and st.button("✅ Import into dataset", key="btn_import_csv"):
+                            ss["labeled"].extend(df_merge.to_dict(orient="records"))
+                            st.success(f"Imported {len(df_merge)} rows into labeled dataset.")
+                except Exception as e:
+                    st.error(f"Failed to read CSV: {e}")
     else:
-        df_incoming = pd.DataFrame(ss["incoming"])
-        preview = df_incoming.head(10)
-        st.dataframe(preview, use_container_width=True, hide_index=True)
-        remaining = len(df_incoming) - len(preview)
-        if remaining > 0:
-            st.caption(f"Showing {len(preview)} of {len(df_incoming)} pending emails. Process the rest in the **Use** tab.")
+        st.caption("Tip: Turn on **Nerd Mode** to add more labeled emails or upload a CSV.")
 
 
 def render_train_stage():
