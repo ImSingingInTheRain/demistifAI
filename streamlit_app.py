@@ -972,25 +972,15 @@ def render_stage_navigation_controls(active_stage: str):
             st.write(" ")
 
     with col_next:
-        if next_stage:
-            if active_stage == "intro":
-                st.button(
-                    "🚀 Start your machine",
-                    key=f"nav_next_{active_stage}",
-                    on_click=set_active_stage,
-                    args=(next_stage.key,),
-                    width="stretch",
-                    type="primary",
-                )
-            else:
-                st.button(
-                    f"Next • {next_stage.title} ➡️",
-                    key=f"nav_next_{active_stage}",
-                    on_click=set_active_stage,
-                    args=(next_stage.key,),
-                    width="stretch",
-                    type="primary",
-                )
+        if next_stage and active_stage != "intro":
+            st.button(
+                f"Next • {next_stage.title} ➡️",
+                key=f"nav_next_{active_stage}",
+                on_click=set_active_stage,
+                args=(next_stage.key,),
+                width="stretch",
+                type="primary",
+            )
         else:
             st.write(" ")
 
@@ -2367,6 +2357,11 @@ st.title("📧 demistifAI")
 
 def render_intro_stage():
 
+    next_stage_key: Optional[str] = None
+    intro_index = STAGE_INDEX.get("intro")
+    if intro_index is not None and intro_index < len(STAGES) - 1:
+        next_stage_key = STAGES[intro_index + 1].key
+
     with section_surface("section-surface--hero"):
         hero_left, hero_right = st.columns([3, 2], gap="large")
         with hero_left:
@@ -2389,6 +2384,14 @@ def render_intro_stage():
                 "By the end of this playground, you’ll have the AI system classifying the emails in this inbox as "
                 "**Spam** or **Safe**."
             )
+            if next_stage_key:
+                st.button(
+                    "🚀 Start your machine",
+                    key="hero_start_machine",
+                    type="primary",
+                    on_click=set_active_stage,
+                    args=(next_stage_key,),
+                )
         with hero_right:
             st.markdown(
                 """
@@ -2428,11 +2431,6 @@ def render_intro_stage():
                 "- You will be able to review and correct mistakes done by the AI system"
             )
             st.info("No worries — you don’t need to be a developer or data scientist to follow along.")
-
-    next_stage_key: Optional[str] = None
-    intro_index = STAGE_INDEX.get("intro")
-    if intro_index is not None and intro_index < len(STAGES) - 1:
-        next_stage_key = STAGES[intro_index + 1].key
 
     with section_surface():
         ready_col, flow_col = st.columns([2, 3], gap="large")
