@@ -2438,6 +2438,14 @@ def render_intro_stage():
             st.markdown("### Ready to make a machine learn?")
             st.write("Use the stage controls below or the sidebar to move through the build at your pace.")
         with flow_col:
+            if next_stage_key:
+                st.button(
+                    "🚀 Start your machine",
+                    key="flow_start_machine",
+                    type="primary",
+                    on_click=set_active_stage,
+                    args=(next_stage_key,),
+                )
             st.markdown(
                 "- Each step builds on the previous one, and you can always hop back.\n"
                 "- Nerd Mode reveals deeper technical layers when you need them."
