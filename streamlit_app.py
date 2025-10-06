@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import base64
 import html
+import json
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple
@@ -1162,6 +1163,58 @@ def combine_text(title: str, body: str) -> str:
     return (title or "") + "\n" + (body or "")
 
 
+def _combine_text(title: str, body: str) -> str:
+    return combine_text(title, body)
+
+
+def _predict_proba_batch(model, items, split_cache=None):
+    """Return predictions and class probabilities for a batch of items."""
+
+    titles = [it.get("title", "") for it in items]
+    bodies = [it.get("body", "") for it in items]
+
+    try:
+        probs = model.predict_proba(titles, bodies)
+        classes = list(getattr(model, "classes_", []))
+        y_hat = model.predict(titles, bodies)
+    except TypeError:
+        texts = [_combine_text(t, b) for t, b in zip(titles, bodies)]
+        probs = model.predict_proba(texts)
+        classes = list(getattr(model, "classes_", []))
+        y_hat = model.predict(texts)
+
+    if not classes and hasattr(model, "classes_"):
+        classes = list(model.classes_)
+
+    if classes and "spam" in classes:
+        i_spam = classes.index("spam")
+        i_safe = classes.index("safe") if "safe" in classes else 1 - i_spam
+    else:
+        i_spam = 1 if probs.shape[1] > 1 else 0
+        i_safe = 1 - i_spam if probs.shape[1] > 1 else 0
+
+    p_spam = np.asarray(probs)[:, i_spam]
+    p_safe = np.asarray(probs)[:, i_safe] if probs.shape[1] > 1 else 1.0 - p_spam
+
+    return list(y_hat), p_spam, p_safe
+
+
+def _append_audit(event: str, meta: dict | None = None) -> None:
+    ss.setdefault("use_audit_log", [])
+    ss["use_audit_log"].append(
+        {
+            "time": datetime.now().isoformat(timespec="seconds"),
+            "event": event,
+            "meta": meta or {},
+        }
+    )
+
+
+def _export_batch_df(rows: list[dict]) -> pd.DataFrame:
+    cols = ["title", "body", "pred", "p_spam", "p_safe", "action", "routed_to"]
+    return pd.DataFrame([{key: row.get(key, "") for key in cols} for row in rows])
+
+
 import re
 from typing import List, Dict, Tuple
 from urllib.parse import urlparse
@@ -1410,6 +1463,11 @@ ss.setdefault(
     "train_params",
     {"test_size": 0.30, "random_state": 42, "max_iter": 1000, "C": 1.0},
 )
+ss.setdefault("use_high_autonomy", ss.get("autonomy", AUTONOMY_LEVELS[0]).startswith("High"))
+ss.setdefault("use_batch_results", [])
+ss.setdefault("use_adaptiveness", bool(ss.get("adaptive", True)))
+ss.setdefault("use_audit_log", [])
+ss.setdefault("nerd_mode_use", False)
 
 st.sidebar.header("⚙️ Settings")
 ss["autonomy"] = st.sidebar.selectbox("Autonomy level", AUTONOMY_LEVELS, index=AUTONOMY_LEVELS.index(ss["autonomy"]))
@@ -1429,6 +1487,11 @@ if st.sidebar.button("🔄 Reset demo data"):
     ss["metrics"] = {"TP": 0, "FP": 0, "TN": 0, "FN": 0}
     ss["last_classification"] = None
     ss["numeric_adjustments"] = {feat: 0.0 for feat in FEATURE_ORDER}
+    ss["use_batch_results"] = []
+    ss["use_audit_log"] = []
+    ss["nerd_mode_use"] = False
+    ss["use_high_autonomy"] = ss.get("autonomy", AUTONOMY_LEVELS[0]).startswith("High")
+    ss["use_adaptiveness"] = bool(ss.get("adaptive", True))
     st.sidebar.success("Reset complete.")
 
 st.title("📧 demistifAI")
@@ -2252,256 +2315,276 @@ def render_evaluate_stage():
 
 def render_classify_stage():
 
-    st.subheader("Use — generate outputs & route")
-    col_help1, col_help2 = st.columns(2)
-    with col_help1:
-        guidance_popover("Generate outputs", """
-At **inference** time, the model uses its learned parameters to output a **prediction** and a **confidence** (P(spam)).
-""")
-    with col_help2:
-        guidance_popover("Autonomy in action", """
-Depending on the autonomy level, the system may either **recommend** an action or **auto‑route** the email to Spam/Inbox.
-""")
-    st.markdown("#### Autonomy mode")
-    selected_autonomy = st.radio(
-        "Autonomy level",
-        AUTONOMY_LEVELS,
-        index=AUTONOMY_LEVELS.index(ss["autonomy"]),
-        horizontal=True,
-        key="classify_autonomy",
-        label_visibility="collapsed",
+    st.subheader("4) Use — Run the spam detector")
+
+    st.info(
+        "**EU AI Act**: “…an AI system infers, from the input it receives, how to generate outputs such as "
+        "content, predictions, recommendations or decisions.”"
     )
-    if selected_autonomy != ss["autonomy"]:
-        ss["autonomy"] = selected_autonomy
-    st.caption("Switch between a recommendation-only flow or automatic routing.")
-    if not ss.get("model"):
-        st.info("Train a model first in the **Train** tab.")
-    else:
-        col_input, col_result = st.columns([3, 2], gap="large")
 
-        with col_input:
-            st.markdown("#### 1️⃣ Provide an email")
-            st.caption("Choose an email from the stream or paste your own message to see how the model responds.")
-            src = st.radio(
-                "Classify from",
-                ["Next incoming email", "Custom input"],
-                horizontal=True,
-                key="classify_source",
-            )
+    st.write(
+        "In this step, the system takes each email (title + body) as **input** and produces an **output**: "
+        "a **prediction** (*Spam* or *Safe*) with a confidence score. By default, it also gives a **recommendation** "
+        "about where to place the email (Spam or Inbox)."
+    )
 
-            if src == "Next incoming email":
-                if ss["incoming"]:
-                    current = ss["incoming"][0]
-                    st.session_state["cur_title"] = current.get("title", "")
-                    st.session_state["cur_body"] = current.get("body", "")
-                    st.caption(f"{len(ss['incoming'])} email(s) waiting in the stream.")
-                    st.text_input(
-                        "Email subject",
-                        value=st.session_state["cur_title"],
-                        key="cur_title",
-                        disabled=True,
-                    )
-                    st.text_area(
-                        "Email body",
-                        value=st.session_state["cur_body"],
-                        key="cur_body",
-                        height=150,
-                        disabled=True,
-                    )
-                else:
-                    st.warning("No incoming emails left. Add more in the Data tab or switch to Custom input.")
-                    current = {"title": "", "body": ""}
-                    st.session_state["cur_title"] = ""
-                    st.session_state["cur_body"] = ""
-            else:
-                cur_t = st.text_input("Email subject", key="custom_title", placeholder="Subject: ...")
-                cur_b = st.text_area(
-                    "Email body",
-                    key="custom_body",
-                    height=150,
-                    placeholder="Paste or type an email body to test the classifier...",
-                )
-                current = {"title": cur_t, "body": cur_b}
-
-            st.markdown("#### 2️⃣ Configure decision threshold")
-            thr = st.slider(
-                "Threshold (P(spam))",
-                0.1,
-                0.9,
-                ss["threshold"],
-                0.05,
-                help="Used for recommendation/auto‑route decisions.",
-            )
-            ss["threshold"] = thr
-            st.caption("Lower the threshold to be more permissive, raise it to be stricter about routing to spam.")
-
-            if st.button("Run classification", type="primary", use_container_width=True):
-                if not (current["title"].strip() or current["body"].strip()):
-                    st.warning("Please provide an email to classify.")
-                else:
-                    t_list = [current["title"]]
-                    b_list = [current["body"]]
-                    pred = ss["model"].predict(t_list, b_list)[0]
-                    proba = ss["model"].predict_proba(t_list, b_list)[0]
-                    classes = ss["model"].classes_ or []
-                    p_spam = float(proba[classes.index("spam")]) if "spam" in classes else None
-
-                    feats = compute_numeric_features(current["title"], current["body"])
-                    action, routed = route_decision(ss["autonomy"], pred, p_spam, thr)
-                    processed_from_stream = src == "Next incoming email" and bool(ss["incoming"])
-
-                    result_record = {
-                        "source": src,
-                        "title": current["title"],
-                        "body": current["body"],
-                        "pred": pred,
-                        "p_spam": p_spam,
-                        "threshold": thr,
-                        "action": action,
-                        "routed": routed,
-                        "features": feats,
-                    }
-                    ss["last_classification"] = result_record
-
-                    if routed is not None:
-                        record = {
-                            "title": current["title"],
-                            "body": current["body"],
-                            "pred": pred,
-                            "p_spam": round(p_spam, 3) if p_spam is not None else None,
-                        }
-                        if routed == "Spam":
-                            ss["mail_spam"].append(record)
-                        else:
-                            ss["mail_inbox"].append(record)
-                    if processed_from_stream:
-                        ss["incoming"].pop(0)
-
-        with col_result:
-            st.markdown("#### 3️⃣ Review the model decision")
-            last = ss.get("last_classification")
-            if last is None:
-                st.info("Run a classification to see the model's prediction, confidence, and routing action.")
-            else:
-                emoji = "🚫" if last["pred"] == "spam" else "✅"
-                st.markdown(f"{emoji} **Prediction:** {last['pred'].upper()}")
-
-                if last["p_spam"] is not None:
-                    st.metric(
-                        "P(spam)",
-                        f"{last['p_spam']:.2%}",
-                        delta=f"Threshold {last['threshold']:.0%}",
-                    )
-                    st.progress(int(last["p_spam"] * 100))
-                else:
-                    st.caption("Probability not available — model did not output spam class explicitly.")
-
-                if last["routed"] == "Spam":
-                    st.error(last["action"])
-                elif last["routed"] == "Inbox":
-                    st.success(last["action"])
-                elif last["action"].startswith("Recommend"):
-                    st.warning(last["action"])
-                else:
-                    st.info(last["action"])
-
-                with st.expander("Numeric cues influencing the decision"):
-                    st.dataframe(
-                        pd.DataFrame(
-                            [{"feature": k, "value": v} for k, v in last["features"].items()]
-                        ),
-                        use_container_width=True,
-                        hide_index=True,
-                    )
-
-                st.caption(
-                    "Autonomy level: "
-                    f"{ss['autonomy']} • Source: {last['source']}"
-                )
-
-                st.markdown("##### Record ground truth & (optional) learn")
-                st.caption(
-                    "Confirm the real label to update running metrics and, if enabled, add it back into training."
-                )
-                gt = st.selectbox(
-                    "Actual label",
-                    ["", "spam", "safe"],
-                    index=0,
-                    key="gt_label_select",
-                )
-                record_disabled = gt == ""
-                if st.button("Record ground truth", key="btn_record_gt", disabled=record_disabled):
-                    system_label = None
-                    if last.get("routed") == "Spam":
-                        system_label = "spam"
-                    elif last.get("routed") == "Inbox":
-                        system_label = "safe"
-                    else:
-                        system_label = last.get("pred")
-
-                    if system_label is None:
-                        st.warning("Run a classification first.")
-                    else:
-                        if gt == "spam" and system_label == "spam":
-                            ss["metrics"]["TP"] += 1
-                        elif gt == "spam" and system_label == "safe":
-                            ss["metrics"]["FN"] += 1
-                        elif gt == "safe" and system_label == "spam":
-                            ss["metrics"]["FP"] += 1
-                        elif gt == "safe" and system_label == "safe":
-                            ss["metrics"]["TN"] += 1
-                        st.success("Recorded. Running metrics updated.")
-
-                        if ss["adaptive"]:
-                            ss["labeled"].append(
-                                {"title": last["title"], "body": last["body"], "label": gt}
-                            )
-                            df = pd.DataFrame(ss["labeled"])
-                            if len(df["label"].unique()) >= 2:
-                                titles = df["title"].fillna("").tolist()
-                                bodies = df["body"].fillna("").tolist()
-                                y = df["label"].tolist()
-                                X_tr_t, X_te_t, X_tr_b, X_te_b, y_tr, y_te = train_test_split(
-                                    titles, bodies, y, test_size=0.3, random_state=42, stratify=y
-                                )
-                                adaptive_model = HybridEmbedFeatsLogReg().fit(X_tr_t, X_tr_b, y_tr)
-                                adaptive_model.apply_numeric_adjustments(ss["numeric_adjustments"])
-                                ss["model"] = adaptive_model
-                                ss["split_cache"] = (X_tr_t, X_te_t, X_tr_b, X_te_b, y_tr, y_te)
-                            st.info("🔁 Adaptive learning: model retrained with your correction.")
-
-        st.markdown("### 📥 Mailboxes")
-        inbox_tab, spam_tab = st.tabs(
-            [
-                f"Inbox (safe) — {len(ss['mail_inbox'])}",
-                f"Spam — {len(ss['mail_spam'])}",
-            ]
+    st.markdown("### Autonomy")
+    ss["use_high_autonomy"] = ss.get("autonomy", AUTONOMY_LEVELS[0]).startswith("High")
+    col_auto1, col_auto2 = st.columns([1, 3])
+    with col_auto1:
+        ss["use_high_autonomy"] = st.toggle(
+            "High autonomy (auto-move emails)", value=ss["use_high_autonomy"], key="use_high_autonomy"
         )
-        with inbox_tab:
-            if ss["mail_inbox"]:
-                st.dataframe(
-                    pd.DataFrame(ss["mail_inbox"]),
-                    use_container_width=True,
-                    hide_index=True,
+    with col_auto2:
+        if ss["use_high_autonomy"]:
+            ss["autonomy"] = AUTONOMY_LEVELS[1]
+            st.success("High autonomy ON — the system will **move** emails to Spam or Inbox automatically.")
+        else:
+            ss["autonomy"] = AUTONOMY_LEVELS[0]
+            st.info("Moderate autonomy — the system will **recommend** routing; you decide whether to move emails.")
+
+    if not ss.get("model"):
+        st.warning("Train a model first in the **Train** tab.")
+        st.stop()
+
+    st.markdown("### Incoming preview")
+    if not ss.get("incoming"):
+        st.caption("No incoming emails. Add or import more in **1) Data**, or paste a custom email below.")
+        with st.expander("Add a custom email to process"):
+            title_val = st.text_input("Title", key="use_custom_title", placeholder="Subject…")
+            body_val = st.text_area("Body", key="use_custom_body", height=100, placeholder="Email body…")
+            if st.button("Add to incoming", key="btn_add_to_incoming"):
+                if title_val.strip() or body_val.strip():
+                    ss["incoming"].append({"title": title_val.strip(), "body": body_val.strip()})
+                    st.success("Added to incoming.")
+                    _append_audit("incoming_added", {"title": title_val[:64]})
+                else:
+                    st.warning("Please provide at least a title or a body.")
+    else:
+        preview_n = min(10, len(ss["incoming"]))
+        preview_df = pd.DataFrame(ss["incoming"][:preview_n])
+        if not preview_df.empty:
+            st.dataframe(preview_df, use_container_width=True, hide_index=True)
+        st.caption(f"Showing the first **{preview_n}** incoming emails (unlabeled).")
+
+        if st.button(f"Process {preview_n} email(s)", type="primary", key="btn_process_batch"):
+            batch = ss["incoming"][:preview_n]
+            y_hat, p_spam, p_safe = _predict_proba_batch(ss["model"], batch)
+            thr = float(ss.get("threshold", 0.5))
+
+            batch_rows: list[dict] = []
+            moved_spam = moved_inbox = 0
+            for idx, item in enumerate(batch):
+                pred = y_hat[idx]
+                prob_spam = float(p_spam[idx])
+                prob_safe = float(p_safe[idx]) if hasattr(p_safe, "__len__") else float(1.0 - prob_spam)
+                action = "Recommend: Spam" if prob_spam >= thr else "Recommend: Inbox"
+                routed_to = None
+                if ss["use_high_autonomy"]:
+                    routed_to = "Spam" if prob_spam >= thr else "Inbox"
+                    mailbox_record = {
+                        "title": item.get("title", ""),
+                        "body": item.get("body", ""),
+                        "pred": pred,
+                        "p_spam": round(prob_spam, 3),
+                    }
+                    if routed_to == "Spam":
+                        ss["mail_spam"].append(mailbox_record)
+                        moved_spam += 1
+                    else:
+                        ss["mail_inbox"].append(mailbox_record)
+                        moved_inbox += 1
+                    action = f"Moved: {routed_to}"
+                row = {
+                    "title": item.get("title", ""),
+                    "body": item.get("body", ""),
+                    "pred": pred,
+                    "p_spam": round(prob_spam, 3),
+                    "p_safe": round(prob_safe, 3),
+                    "action": action,
+                    "routed_to": routed_to,
+                }
+                batch_rows.append(row)
+
+            ss["use_batch_results"] = batch_rows
+            ss["incoming"] = ss["incoming"][preview_n:]
+            if ss["use_high_autonomy"]:
+                st.success(
+                    f"Processed {preview_n} emails — decisions applied (Inbox: {moved_inbox}, Spam: {moved_spam})."
+                )
+                _append_audit(
+                    "batch_processed_auto", {"n": preview_n, "inbox": moved_inbox, "spam": moved_spam}
                 )
             else:
-                st.caption("Inbox is empty so far.")
-        with spam_tab:
-            if ss["mail_spam"]:
-                st.dataframe(
-                    pd.DataFrame(ss["mail_spam"]),
-                    use_container_width=True,
-                    hide_index=True,
+                st.info(f"Processed {preview_n} emails — recommendations ready.")
+                _append_audit("batch_processed_reco", {"n": preview_n})
+
+    if ss.get("use_batch_results"):
+        st.markdown("### Results")
+        df_res = pd.DataFrame(ss["use_batch_results"])
+        show_cols = ["title", "pred", "p_spam", "action", "routed_to"]
+        existing_cols = [col for col in show_cols if col in df_res.columns]
+        st.dataframe(df_res[existing_cols], use_container_width=True, hide_index=True)
+        st.caption(
+            "Each row shows the predicted label, confidence (P(spam)), and the recommendation or action taken."
+        )
+
+        with st.expander("🔬 Nerd Mode — details for this batch", expanded=False):
+            ss["nerd_mode_use"] = st.toggle("Enable Nerd Mode for Use", value=ss["nerd_mode_use"], key="nerd_mode_use")
+            if ss["nerd_mode_use"]:
+                col_nm1, col_nm2 = st.columns([2, 1])
+                with col_nm1:
+                    st.markdown("**Raw probabilities (per email)**")
+                    detail_cols = ["title", "p_spam", "p_safe", "pred", "action", "routed_to"]
+                    det_existing = [col for col in detail_cols if col in df_res.columns]
+                    st.dataframe(df_res[det_existing], use_container_width=True, hide_index=True)
+                with col_nm2:
+                    st.markdown("**Batch metrics**")
+                    n_items = len(df_res)
+                    mean_conf = float(df_res["p_spam"].mean()) if "p_spam" in df_res else 0.0
+                    n_spam = int((df_res["pred"] == "spam").sum()) if "pred" in df_res else 0
+                    n_safe = n_items - n_spam
+                    st.write(f"- Items: {n_items}")
+                    st.write(f"- Predicted Spam: {n_spam} | Safe: {n_safe}")
+                    st.write(f"- Mean P(spam): {mean_conf:.2f}")
+
+                    if "p_spam" in df_res:
+                        fig, ax = plt.subplots()
+                        ax.hist(df_res["p_spam"], bins=10)
+                        ax.set_xlabel("P(spam)")
+                        ax.set_ylabel("Count")
+                        ax.set_title("Spam score distribution")
+                        st.pyplot(fig)
+
+                st.markdown("**Per-email cues (if available)**")
+                st.caption(
+                    "If your model exposes feature weights or signals, show a brief ‘why’ per email here."
                 )
+                st.info(
+                    "Tip: reuse your Train/Evaluate interpretability hooks to display top words or numeric feature weights for the selected email."
+                )
+
+                st.markdown("**Audit trail (this session)**")
+                if ss.get("use_audit_log"):
+                    st.dataframe(pd.DataFrame(ss["use_audit_log"]), use_container_width=True, hide_index=True)
+                else:
+                    st.caption("No events recorded yet.")
+
+                exp_df = _export_batch_df(ss["use_batch_results"])
+                csv_bytes = exp_df.to_csv(index=False).encode("utf-8")
+                json_bytes = json.dumps(ss["use_batch_results"], ensure_ascii=False, indent=2).encode("utf-8")
+                st.download_button(
+                    "⬇️ Download results (CSV)", data=csv_bytes, file_name="batch_results.csv", mime="text/csv"
+                )
+                st.download_button(
+                    "⬇️ Download results (JSON)", data=json_bytes, file_name="batch_results.json", mime="application/json"
+                )
+
+    st.markdown("### Adaptiveness — learn from your corrections")
+    st.info(
+        "**EU AI Act**: “…AI systems may exhibit adaptiveness.” Enable adaptiveness to **confirm** or **correct** results; "
+        "the model can retrain on your feedback."
+    )
+    ss["use_adaptiveness"] = bool(ss.get("adaptive", False))
+    ss["use_adaptiveness"] = st.toggle(
+        "Enable adaptiveness (learn from feedback)", value=ss["use_adaptiveness"], key="use_adaptiveness"
+    )
+    ss["adaptive"] = ss["use_adaptiveness"]
+
+    if ss["use_adaptiveness"] and ss.get("use_batch_results"):
+        st.markdown("#### Review and give feedback")
+        for i, row in enumerate(ss["use_batch_results"]):
+            with st.container(border=True):
+                st.markdown(f"**Title:** {row.get('title', '')}")
+                pspam_value = row.get("p_spam")
+                if isinstance(pspam_value, (int, float)):
+                    pspam_text = f"{pspam_value:.2f}"
+                else:
+                    pspam_text = pspam_value
+                action_display = row.get("action", "")
+                pred_display = row.get("pred", "")
+                st.markdown(
+                    f"**Predicted:** {pred_display}  •  **P(spam):** {pspam_text}  •  **Action:** {action_display}"
+                )
+                col_a, col_b, col_c = st.columns(3)
+                if col_a.button("Confirm", key=f"use_confirm_{i}"):
+                    _append_audit("confirm_label", {"i": i, "pred": pred_display})
+                    st.toast("Thanks — recorded your confirmation.", icon="✅")
+                if col_b.button("Correct → Spam", key=f"use_correct_spam_{i}"):
+                    ss["labeled"].append(
+                        {"title": row.get("title", ""), "body": row.get("body", ""), "label": "spam"}
+                    )
+                    _append_audit("correct_label", {"i": i, "new": "spam"})
+                    st.toast("Recorded correction → Spam.", icon="✍️")
+                if col_c.button("Correct → Safe", key=f"use_correct_safe_{i}"):
+                    ss["labeled"].append(
+                        {"title": row.get("title", ""), "body": row.get("body", ""), "label": "safe"}
+                    )
+                    _append_audit("correct_label", {"i": i, "new": "safe"})
+                    st.toast("Recorded correction → Safe.", icon="✍️")
+
+        if st.button("🔁 Retrain now with feedback", key="btn_retrain_feedback"):
+            df_all = pd.DataFrame(ss["labeled"])
+            if not df_all.empty and len(df_all["label"].unique()) >= 2:
+                params = ss.get("train_params", {})
+                test_size = float(params.get("test_size", 0.30))
+                random_state = int(params.get("random_state", 42))
+                max_iter = int(params.get("max_iter", 1000))
+                C_value = float(params.get("C", 1.0))
+
+                titles = df_all["title"].fillna("").tolist()
+                bodies = df_all["body"].fillna("").tolist()
+                labels = df_all["label"].tolist()
+                X_tr_t, X_te_t, X_tr_b, X_te_b, y_tr, y_te = train_test_split(
+                    titles,
+                    bodies,
+                    labels,
+                    test_size=test_size,
+                    random_state=random_state,
+                    stratify=labels,
+                )
+
+                model = HybridEmbedFeatsLogReg()
+                try:
+                    model.lr.set_params(max_iter=max_iter, C=C_value)
+                except Exception:
+                    pass
+                model = model.fit(X_tr_t, X_tr_b, y_tr)
+                model.apply_numeric_adjustments(ss["numeric_adjustments"])
+                ss["model"] = model
+                ss["split_cache"] = (X_tr_t, X_te_t, X_tr_b, X_te_b, y_tr, y_te)
+                ss["eval_timestamp"] = datetime.now().isoformat(timespec="seconds")
+                ss["eval_temp_threshold"] = float(ss.get("threshold", 0.6))
+                st.success("Adaptive learning: model retrained with your feedback.")
+                _append_audit("retrain_feedback", {"n_labeled": len(df_all)})
             else:
-                st.caption("No emails have been routed to spam yet.")
+                st.warning("Need both classes (spam & safe) in labeled data to retrain.")
 
-        m = ss["metrics"]; total = sum(m.values()) or 1
-        acc = (m["TP"] + m["TN"]) / total
-        st.write(f"**Running accuracy** (from your recorded ground truths): {acc:.2%} | TP {m['TP']} • FP {m['FP']} • TN {m['TN']} • FN {m['FN']}")
+    st.markdown("### 📥 Mailboxes")
+    inbox_tab, spam_tab = st.tabs(
+        [
+            f"Inbox (safe) — {len(ss['mail_inbox'])}",
+            f"Spam — {len(ss['mail_spam'])}",
+        ]
+    )
+    with inbox_tab:
+        if ss["mail_inbox"]:
+            st.dataframe(pd.DataFrame(ss["mail_inbox"]), use_container_width=True, hide_index=True)
+        else:
+            st.caption("Inbox is empty so far.")
+    with spam_tab:
+        if ss["mail_spam"]:
+            st.dataframe(pd.DataFrame(ss["mail_spam"]), use_container_width=True, hide_index=True)
+        else:
+            st.caption("No emails have been routed to spam yet.")
 
+    st.caption(
+        f"Threshold used for routing: **{float(ss.get('threshold', 0.5)):.2f}**. "
+        "Adjust it in **3) Evaluate** to change how cautious/aggressive the system is."
+    )
 
 def render_model_card_stage():
+
 
     st.subheader("Model Card — transparency")
     guidance_popover("Transparency", """
