@@ -2462,8 +2462,12 @@ def render_classify_stage():
         )
 
         with st.expander("🔬 Nerd Mode — details for this batch", expanded=False):
-            ss["nerd_mode_use"] = st.toggle("Enable Nerd Mode for Use", value=ss["nerd_mode_use"], key="nerd_mode_use")
-            if ss["nerd_mode_use"]:
+            nerd_mode_enabled = st.toggle(
+                "Enable Nerd Mode for Use",
+                value=ss.get("nerd_mode_use", False),
+                key="nerd_mode_use",
+            )
+            if nerd_mode_enabled:
                 col_nm1, col_nm2 = st.columns([2, 1])
                 with col_nm1:
                     st.markdown("**Raw probabilities (per email)**")
