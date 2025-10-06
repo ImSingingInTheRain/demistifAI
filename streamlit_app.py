@@ -171,6 +171,128 @@ APP_THEME_CSS = """
     letter-spacing: 0.01em;
 }
 
+.stTabs [data-baseweb="tab-list"] {
+    gap: 0.5rem;
+    padding: 0.35rem;
+    background: rgba(148, 163, 184, 0.22);
+    border-radius: 999px;
+    margin-bottom: 1.25rem;
+}
+
+.stTabs [data-baseweb="tab"] {
+    background: transparent;
+    border-radius: 999px;
+    padding: 0.55rem 1.2rem;
+    color: #1e293b;
+    font-weight: 600;
+    border: 1px solid transparent;
+    transition: background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.stTabs [data-baseweb="tab"]:hover {
+    background: rgba(255, 255, 255, 0.82);
+    box-shadow: 0 12px 28px rgba(15, 23, 42, 0.16);
+}
+
+.stTabs [data-baseweb="tab"][aria-selected="true"] {
+    background: linear-gradient(140deg, rgba(59, 130, 246, 0.22), rgba(37, 99, 235, 0.4));
+    color: #0f172a;
+    box-shadow: 0 18px 40px rgba(37, 99, 235, 0.28);
+    border-color: rgba(37, 99, 235, 0.35);
+    transform: translateY(-1px);
+}
+
+.stTabs [data-baseweb="tab"]:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.35);
+}
+
+.stTabs [data-baseweb="tab-panel"] {
+    padding-top: 0.35rem;
+}
+
+.mailbox-summary {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.mailbox-summary-card {
+    border-radius: 18px;
+    padding: 1rem 1.2rem;
+    background: linear-gradient(160deg, rgba(255, 255, 255, 0.96), rgba(226, 232, 240, 0.75));
+    border: 1px solid rgba(148, 163, 184, 0.35);
+    box-shadow: 0 18px 38px rgba(15, 23, 42, 0.14);
+}
+
+.mailbox-summary-card .summary-title {
+    font-size: 0.82rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: rgba(15, 23, 42, 0.58);
+    margin-bottom: 0.35rem;
+}
+
+.mailbox-summary-card .summary-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #0f172a;
+    line-height: 1.05;
+}
+
+.mailbox-summary-card .summary-hint {
+    margin-top: 0.6rem;
+    font-size: 0.9rem;
+    color: #475569;
+}
+
+.mailbox-summary-card .summary-rows {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    margin-top: 0.35rem;
+}
+
+.mailbox-summary-card .summary-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.92rem;
+    color: #1e293b;
+}
+
+.mailbox-summary-card .summary-row span:last-child {
+    font-weight: 600;
+}
+
+.mailbox-summary-card .summary-list {
+    margin: 0.45rem 0 0;
+    padding-left: 1.1rem;
+    color: #1e293b;
+    font-size: 0.92rem;
+}
+
+.mailbox-summary-card .summary-list li {
+    margin-bottom: 0.25rem;
+}
+
+.mailbox-summary-card--empty {
+    text-align: center;
+    color: #475569;
+    font-style: italic;
+}
+
+.mailbox-summary-card--empty strong {
+    display: block;
+    margin-bottom: 0.35rem;
+}
+
+@media (max-width: 1100px) {
+    .mailbox-summary {
+        flex-direction: row;
+        flex-wrap: wrap;
+    }
+}
+
 .metric-highlight {
     display: flex;
     align-items: center;
@@ -778,6 +900,97 @@ def render_email_inbox_table(
         f"<div class='email-inbox-wrapper'>{header_html}{subtitle_html}{table_html}</div>",
         unsafe_allow_html=True,
     )
+
+
+def render_mailbox_summary(df: pd.DataFrame, mailbox_title: str) -> None:
+    st.markdown(f"#### Quick insights — {mailbox_title}")
+
+    if df is None or df.empty:
+        st.markdown(
+            f"""
+            <div class="mailbox-summary">
+                <div class="mailbox-summary-card mailbox-summary-card--empty">
+                    <strong>No messages yet in {html.escape(mailbox_title)}</strong>
+                    As soon as emails appear in this mailbox, a snapshot of activity will show up here.
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        return
+
+    total = len(df)
+    avg_spam = float(df["p_spam"].mean()) if "p_spam" in df.columns else 0.0
+
+    prediction_rows = ""
+    if "pred" in df.columns and not df["pred"].isna().all():
+        counts = df["pred"].value_counts().sort_values(ascending=False)
+        prediction_rows = "".join(
+            f"<div class='summary-row'><span>{html.escape(str(label).title())}</span><span>{count} ({count / total:.0%})</span></div>"
+            for label, count in counts.items()
+        )
+    if not prediction_rows:
+        prediction_rows = "<div class='summary-row'>No predictions recorded yet.</div>"
+
+    subjects: List[str] = []
+    if "title" in df.columns:
+        subjects = []
+        for subject in df["title"].fillna(""):
+            subject_text = str(subject).strip()
+            if subject_text:
+                subjects.append(html.escape(subject_text))
+            if len(subjects) == 3:
+                break
+    subject_items = "".join(f"<li>{item}</li>" for item in subjects)
+    if not subject_items:
+        subject_items = "<li>No subject lines available yet.</li>"
+
+    threshold = float(ss.get("threshold", 0.5))
+
+    summary_html = f"""
+    <div class="mailbox-summary">
+        <div class="mailbox-summary-card">
+            <div class="summary-title">Messages</div>
+            <div class="summary-value">{total}</div>
+            <div class="summary-hint">Avg. spam score: {avg_spam:.0%}</div>
+        </div>
+        <div class="mailbox-summary-card">
+            <div class="summary-title">Prediction mix</div>
+            <div class="summary-rows">{prediction_rows}</div>
+        </div>
+        <div class="mailbox-summary-card">
+            <div class="summary-title">Latest subjects</div>
+            <ul class="summary-list">{subject_items}</ul>
+            <div class="summary-hint">Routing threshold: {threshold:.2f}</div>
+        </div>
+    </div>
+    """
+    st.markdown(summary_html, unsafe_allow_html=True)
+
+
+def render_mailbox_panel(
+    records: Optional[List[Dict[str, Any]]],
+    *,
+    mailbox_title: str,
+    filled_subtitle: str,
+    empty_subtitle: str,
+) -> None:
+    df_raw = pd.DataFrame(records) if records else pd.DataFrame()
+    table_col, summary_col = st.columns((2.8, 1.2))
+
+    with table_col:
+        if df_raw.empty:
+            render_email_inbox_table(pd.DataFrame(), title=mailbox_title, subtitle=empty_subtitle)
+        else:
+            display_df = df_raw.rename(columns={"pred": "Prediction", "p_spam": "P(spam)"})
+            render_email_inbox_table(
+                display_df,
+                title=mailbox_title,
+                subtitle=filled_subtitle,
+            )
+
+    with summary_col:
+        render_mailbox_summary(df_raw, mailbox_title)
 
 
 def render_lifecycle_cycle(active_stage: str) -> None:
@@ -3039,17 +3252,19 @@ def render_classify_stage():
         ]
     )
     with inbox_tab:
-        if ss["mail_inbox"]:
-            df_inbox = pd.DataFrame(ss["mail_inbox"]).rename(columns={"pred": "Prediction", "p_spam": "P(spam)"})
-            render_email_inbox_table(df_inbox, title="Inbox (safe)", subtitle="Messages the system kept in your inbox.")
-        else:
-            render_email_inbox_table(pd.DataFrame(), title="Inbox (safe)", subtitle="Inbox is empty so far.")
+        render_mailbox_panel(
+            ss.get("mail_inbox"),
+            mailbox_title="Inbox (safe)",
+            filled_subtitle="Messages the system kept in your inbox.",
+            empty_subtitle="Inbox is empty so far.",
+        )
     with spam_tab:
-        if ss["mail_spam"]:
-            df_spam = pd.DataFrame(ss["mail_spam"]).rename(columns={"pred": "Prediction", "p_spam": "P(spam)"})
-            render_email_inbox_table(df_spam, title="Spam", subtitle="What the system routed away from the inbox.")
-        else:
-            render_email_inbox_table(pd.DataFrame(), title="Spam", subtitle="No emails have been routed to spam yet.")
+        render_mailbox_panel(
+            ss.get("mail_spam"),
+            mailbox_title="Spam",
+            filled_subtitle="What the system routed away from the inbox.",
+            empty_subtitle="No emails have been routed to spam yet.",
+        )
 
     st.caption(
         f"Threshold used for routing: **{float(ss.get('threshold', 0.5)):.2f}**. "
