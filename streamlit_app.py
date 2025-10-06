@@ -43,75 +43,84 @@ APP_THEME_CSS = """
     padding-right: 1.5rem;
 }
 
-.page-card {
+.section-surface {
     position: relative;
-    margin-bottom: 1.35rem;
-    border-radius: 22px;
+    margin-bottom: 1.45rem;
+    border-radius: 24px;
     border: 1px solid rgba(15, 23, 42, 0.08);
-    background: linear-gradient(140deg, rgba(255, 255, 255, 0.95), rgba(241, 245, 255, 0.88));
-    box-shadow: 0 22px 45px rgba(15, 23, 42, 0.12);
-    padding: 1.6rem 1.85rem;
+    background: radial-gradient(circle at 0% 0%, rgba(248, 250, 252, 0.75), rgba(255, 255, 255, 0.92)),
+        linear-gradient(160deg, rgba(191, 219, 254, 0.25), rgba(248, 250, 252, 0.6));
+    box-shadow: 0 24px 48px rgba(15, 23, 42, 0.14);
+    padding: 1.75rem 2rem;
     overflow: hidden;
 }
 
-.page-card::before {
+.section-surface::before {
     content: "";
     position: absolute;
     inset: 0;
-    background: linear-gradient(130deg, rgba(59, 130, 246, 0.12), transparent 60%);
+    background: linear-gradient(150deg, rgba(59, 130, 246, 0.15), transparent 65%);
     opacity: 0;
-    transition: opacity 0.25s ease;
+    transition: opacity 0.3s ease;
 }
 
-.page-card:hover::before {
+.section-surface:hover::before {
     opacity: 1;
 }
 
-.page-card.hero-card {
-    padding: 2.2rem 2.4rem;
-    background: linear-gradient(145deg, rgba(30, 64, 175, 0.22), rgba(191, 219, 254, 0.4));
-    color: #0b1f4b;
-    border: 1px solid rgba(30, 64, 175, 0.25);
-    box-shadow: 0 28px 60px rgba(30, 64, 175, 0.22);
+.section-surface--hero {
+    padding: 2.4rem 2.6rem;
+    background: linear-gradient(150deg, rgba(30, 64, 175, 0.85), rgba(59, 130, 246, 0.55));
+    color: #f8fafc;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    box-shadow: 0 28px 65px rgba(30, 64, 175, 0.32);
 }
 
-.page-card.hero-card::before {
+.section-surface--hero::before {
     display: none;
 }
 
-.page-card h2,
-.page-card h3,
-.page-card h4 {
+.section-surface h2,
+.section-surface h3,
+.section-surface h4 {
     margin-top: 0;
     color: inherit;
 }
 
-.page-card p,
-.page-card ul {
+.section-surface p,
+.section-surface ul {
     font-size: 0.98rem;
-    line-height: 1.6;
+    line-height: 1.65;
     color: inherit;
 }
 
-.page-card ul {
+.section-surface ul {
     padding-left: 1.25rem;
 }
 
-.page-card .section-caption {
+.section-surface .section-caption {
     display: inline-flex;
     align-items: center;
-    gap: 0.4rem;
-    font-size: 0.88rem;
+    gap: 0.45rem;
+    font-size: 0.9rem;
     text-transform: uppercase;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.09em;
     color: rgba(15, 23, 42, 0.65);
 }
 
-.page-card .section-caption span {
+.section-surface--hero .section-caption {
+    color: rgba(241, 245, 249, 0.85);
+}
+
+.section-surface .section-caption span {
     display: inline-flex;
-    width: 36px;
+    width: 40px;
     height: 2px;
     background: rgba(15, 23, 42, 0.12);
+}
+
+.section-surface--hero .section-caption span {
+    background: rgba(241, 245, 249, 0.35);
 }
 
 [data-testid="stSidebar"] {
@@ -518,13 +527,18 @@ st.markdown(STAGE_TEMPLATE_CSS, unsafe_allow_html=True)
 
 
 @contextmanager
-def page_card(class_name: str = ""):
+def section_surface(class_name: str = ""):
     class_attr = f" {class_name}" if class_name else ""
-    st.markdown(f"<div class='page-card{class_attr}'>", unsafe_allow_html=True)
+    wrapper = st.container()
+    wrapper.markdown(
+        f"<div class='section-surface{class_attr}'>", unsafe_allow_html=True
+    )
+    inner = wrapper.container()
     try:
-        yield
+        with inner:
+            yield inner
     finally:
-        st.markdown("</div>", unsafe_allow_html=True)
+        wrapper.markdown("</div>", unsafe_allow_html=True)
 
 
 def _stage_card_html(
@@ -1919,7 +1933,7 @@ st.title("📧 demistifAI")
 
 def render_intro_stage():
 
-    with page_card("hero-card"):
+    with section_surface("section-surface--hero"):
         st.subheader("Welcome to DemistifAI! 🎉")
         st.write("DemistifAI is an interactive playground to demystify the complexities of AI and the EU AI Act definition of AI System.")
         st.write(
@@ -1932,7 +1946,7 @@ def render_intro_stage():
             "By the end of this playground, you’ll have the AI system classifying the emails in this inbox as **Spam** or **Safe**."
         )
 
-    with page_card():
+    with section_surface():
         st.markdown("### 📥 Your inbox")
         if not ss["incoming"]:
             render_email_inbox_table(pd.DataFrame(), title="Inbox", subtitle="Inbox stream is empty.")
@@ -1948,7 +1962,7 @@ def render_intro_stage():
             render_email_inbox_table(preview, title="Inbox", subtitle=subtitle, columns=["title", "body"])
         st.write("No worries, you do not need to be a developer, data scientist, or AI expert to do this!")
 
-    with page_card():
+    with section_surface():
         st.markdown("### Are you ready to make a machine learn?")
         st.caption("Use the navigation below to move through each stage of the build.")
 
@@ -1957,7 +1971,7 @@ def render_overview_stage():
 
     stage = STAGE_BY_KEY["overview"]
 
-    with page_card():
+    with section_surface():
         st.success(
             "You’re in **Start your machine**. This page explains the flow and lets you toggle **Nerd Mode** for technical details."
         )
@@ -1980,12 +1994,12 @@ def render_overview_stage():
                     "- **Reproducibility & caching:** random seed for splits; cached encoder; session-scoped data/models.\n"
                 )
 
-    with page_card():
+    with section_surface():
         st.markdown("### Lifecycle at a glance")
         st.caption("Watch how the core stages flow into one another — it’s a continuous loop you’ll revisit.")
         render_lifecycle_cycle(ss["active_stage"])
 
-    with page_card():
+    with section_surface():
         st.markdown("### Navigation tips")
         st.write(
             "- Use the **Back** and **Next** buttons below to move sequentially without scrolling.\n"
@@ -2009,7 +2023,7 @@ def render_overview_stage():
 
 def render_data_stage():
 
-    with page_card():
+    with section_surface():
         st.subheader("Prepare Data — curate and expand")
         guidance_popover("Inference inputs (training)", """
 During **training**, inputs are example emails (title + body) paired with the **objective** (label: spam/safe).
@@ -2061,7 +2075,7 @@ The model **infers** patterns that correlate with your labels — including **im
                     "```\n"
                 )
 
-    with page_card():
+    with section_surface():
         df_lab = pd.DataFrame(ss["labeled"])
         df_display = df_lab if not df_lab.empty else pd.DataFrame(columns=["title", "body", "label"])
         st.write("### ✅ Labeled dataset")
@@ -2142,7 +2156,7 @@ The model **infers** patterns that correlate with your labels — including **im
 
 def render_train_stage():
 
-    with page_card():
+    with section_surface():
         st.subheader("2) Train — Teaching the model to infer")
         st.write(
             "The EU AI Act says: *“An AI system infers from the input it receives…”*  \n"
@@ -2432,7 +2446,7 @@ def render_train_stage():
 def render_evaluate_stage():
 
     if not (ss.get("model") and ss.get("split_cache")):
-        with page_card():
+        with section_surface():
             st.subheader("3) Evaluate — How well does your spam detector perform?")
             st.info("Train a model first in the **Train** tab.")
         return
@@ -2467,7 +2481,7 @@ def render_evaluate_stage():
     acc = (cm["TP"] + cm["TN"]) / max(1, len(y_true01))
     emoji, verdict = verdict_label(acc, len(y_true01))
 
-    with page_card():
+    with section_surface():
         st.subheader("3) Evaluate — How well does your spam detector perform?")
         st.write(
             "Now that your model has learned from examples, it’s time to test how well it works. "
@@ -2490,7 +2504,7 @@ def render_evaluate_stage():
             st.write(f"**Safe wrongly flagged** ⚠️: {cm['FP']}")
             st.write(f"**Safe correctly passed** ✅: {cm['TN']}")
 
-    with page_card():
+    with section_surface():
         st.markdown("### Spam threshold")
         presets = threshold_presets(y_true01, p_spam)
 
@@ -2581,7 +2595,7 @@ def render_evaluate_stage():
             else:
                 st.info("Same threshold as adopted — metrics unchanged.")
 
-    with page_card():
+    with section_surface():
         with st.expander("📌 Suggestions to improve your model"):
             st.markdown(
                 """
@@ -2594,7 +2608,7 @@ def render_evaluate_stage():
 """
             )
 
-    with page_card():
+    with section_surface():
         nerd_mode_eval_enabled = st.toggle("🔬 Nerd Mode — technical details", key="nerd_mode_eval")
 
         if nerd_mode_eval_enabled:
@@ -2708,7 +2722,7 @@ def render_evaluate_stage():
 
 def render_classify_stage():
 
-    with page_card():
+    with section_surface():
         st.subheader("4) Use — Run the spam detector")
 
         st.info(
@@ -2722,7 +2736,7 @@ def render_classify_stage():
             "about where to place the email (Spam or Inbox)."
         )
 
-    with page_card():
+    with section_surface():
         st.markdown("### Autonomy")
         default_high_autonomy = ss.get("autonomy", AUTONOMY_LEVELS[0]).startswith("High")
         col_auto1, col_auto2 = st.columns([1, 3])
@@ -2994,7 +3008,7 @@ def render_classify_stage():
 def render_model_card_stage():
 
 
-    with page_card():
+    with section_surface():
         st.subheader("Model Card — transparency")
         guidance_popover("Transparency", """
 Model cards summarize intended purpose, data, metrics, autonomy & adaptiveness settings.
