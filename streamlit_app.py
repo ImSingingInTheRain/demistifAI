@@ -3,6 +3,7 @@ from __future__ import annotations
 import base64
 import html
 from dataclasses import dataclass
+from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple
 from urllib.parse import urlencode
 
@@ -13,7 +14,7 @@ import streamlit as st
 
 from sentence_transformers import SentenceTransformer
 from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
+from sklearn.metrics import accuracy_score, confusion_matrix, precision_recall_fscore_support
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 
@@ -1002,6 +1003,92 @@ def _counts(labels: list[str]) -> Dict[str, int]:
     return counts
 
 
+def _y01(labels: List[str]) -> np.ndarray:
+    return np.array([1 if y == "spam" else 0 for y in labels], dtype=int)
+
+
+def compute_confusion(y_true01: np.ndarray, p_spam: np.ndarray, thr: float) -> Dict[str, int]:
+    y_hat01 = (p_spam >= thr).astype(int)
+    tp = int(((y_hat01 == 1) & (y_true01 == 1)).sum())
+    tn = int(((y_hat01 == 0) & (y_true01 == 0)).sum())
+    fp = int(((y_hat01 == 1) & (y_true01 == 0)).sum())
+    fn = int(((y_hat01 == 0) & (y_true01 == 1)).sum())
+    return {"TP": tp, "FP": fp, "TN": tn, "FN": fn}
+
+
+def threshold_presets(y_true01: np.ndarray, p_spam: np.ndarray) -> Dict[str, float]:
+    thrs = np.linspace(0.1, 0.9, 81)
+    best_f1, thr_f1 = -1.0, 0.5
+    thr_prec95, thr_rec90 = 0.5, 0.5
+    best_prec_gap = 1e9
+    best_rec_gap = 1e9
+    for t in thrs:
+        y_hat = (p_spam >= t).astype(int)
+        p, r, f1, _ = precision_recall_fscore_support(
+            y_true01, y_hat, average="binary", zero_division=0
+        )
+        if f1 > best_f1:
+            best_f1, thr_f1 = f1, float(t)
+        if p >= 0.95 and (p - 0.95) < best_prec_gap:
+            best_prec_gap, thr_prec95 = (p - 0.95), float(t)
+        if r >= 0.90 and (r - 0.90) < best_rec_gap:
+            best_rec_gap, thr_rec90 = (r - 0.90), float(t)
+    return {
+        "balanced_f1": thr_f1,
+        "precision_95": thr_prec95,
+        "recall_90": thr_rec90,
+    }
+
+
+def make_after_eval_story(n_test: int, cm: Dict[str, int]) -> str:
+    right = cm["TP"] + cm["TN"]
+    wrong = cm["FP"] + cm["FN"]
+    lines = []
+    lines.append(
+        f"Out of **{n_test}** test emails, the model got **{right}** right and **{wrong}** wrong."
+    )
+    if cm["FN"] > 0:
+        lines.append(f"• **Spam that slipped through** (false negatives): {cm['FN']}")
+    if cm["FP"] > 0:
+        lines.append(f"• **Safe emails wrongly flagged** (false positives): {cm['FP']}")
+    lines.append(
+        "You can improve results by adding more labeled examples, balancing spam/safe, "
+        "diversifying wording, and tuning the spam threshold below."
+    )
+    return "\n".join(lines)
+
+
+def verdict_label(acc: float, n: int) -> Tuple[str, str]:
+    if n < 10:
+        return "🟡", "Okay (small test set — results may vary)"
+    if acc >= 0.90:
+        return "🟢", "Great"
+    if acc >= 0.75:
+        return "🟡", "Okay"
+    return "🔴", "Needs work"
+
+
+def plot_threshold_curves(y_true01: np.ndarray, p_spam: np.ndarray):
+    thrs = np.linspace(0.1, 0.9, 33)
+    prec, rec = [], []
+    for t in thrs:
+        y_hat = (p_spam >= t).astype(int)
+        p, r, _, _ = precision_recall_fscore_support(
+            y_true01, y_hat, average="binary", zero_division=0
+        )
+        prec.append(p)
+        rec.append(r)
+    fig, ax = plt.subplots()
+    ax.plot(thrs, prec, marker="o", label="Precision (spam)")
+    ax.plot(thrs, rec, marker="o", label="Recall (spam)")
+    ax.set_xlabel("Threshold (P(spam))")
+    ax.set_ylabel("Score")
+    ax.set_ylim(0, 1)
+    ax.grid(True, alpha=0.3)
+    ax.legend()
+    return fig
+
+
 def make_after_training_story(train_labels: list[str], test_labels: list[str]) -> str:
     n_train = len(train_labels)
     n_test = len(test_labels)
@@ -1282,6 +1369,9 @@ else:
 ss.setdefault("nerd_mode", False)
 ss.setdefault("autonomy", AUTONOMY_LEVELS[0])
 ss.setdefault("threshold", 0.6)
+ss.setdefault("nerd_mode_eval", False)
+ss.setdefault("eval_timestamp", None)
+ss.setdefault("eval_temp_threshold", float(ss["threshold"]))
 ss.setdefault("adaptive", True)
 ss.setdefault("labeled", STARTER_LABELED.copy())      # list of dicts: title, body, label
 ss.setdefault("incoming", STARTER_INCOMING.copy())    # list of dicts: title, body
@@ -1699,6 +1789,8 @@ We use **sentence embeddings** (MiniLM) plus small **numeric cues** (links, urge
                 model.apply_numeric_adjustments(ss["numeric_adjustments"])
                 ss["model"] = model
                 ss["split_cache"] = (X_tr_t, X_te_t, X_tr_b, X_te_b, y_tr, y_te)
+                ss["eval_timestamp"] = datetime.now().isoformat(timespec="seconds")
+                ss["eval_temp_threshold"] = float(ss.get("threshold", 0.6))
 
     parsed_split = None
     y_tr_labels = None
@@ -1865,106 +1957,217 @@ We use **sentence embeddings** (MiniLM) plus small **numeric cues** (links, urge
 
 
 def render_evaluate_stage():
+    st.subheader("3) Evaluate — How well does your spam detector perform?")
 
-    st.subheader("Evaluate — check generalization")
-    guidance_popover("Why evaluate?", """
-Hold‑out evaluation estimates how well the model generalizes to **new** emails.  
-It helps detect overfitting, bias, and areas needing more data.
-""")
-    if ss.get("model") and ss.get("split_cache"):
-        X_tr_t, X_te_t, X_tr_b, X_te_b, y_tr, y_te = ss["split_cache"]
-        y_pred = ss["model"].predict(X_te_t, X_te_b)
-        acc = accuracy_score(y_te, y_pred)
-        st.success(f"Test accuracy: **{acc:.2%}** on {len(y_te)} samples.")
+    if not (ss.get("model") and ss.get("split_cache")):
+        st.info("Train a model first in the **Train** tab.")
+        return
 
-        try:
-            df_all = pd.DataFrame(ss["labeled"])
-            class_counts = df_all["label"].value_counts().to_dict() if not df_all.empty else {}
-        except Exception:
-            class_counts = {}
-
-        assessment = assess_performance(acc, n_test=len(y_te), class_counts=class_counts)
-
-        if assessment["verdict"] == "Great":
-            st.success(
-                f"Verdict: **{assessment['verdict']}** — This test accuracy ({acc:.2%}) looks strong for a small demo dataset."
-            )
-        elif assessment["verdict"] == "Okay":
-            st.info(f"Verdict: **{assessment['verdict']}** — Decent, but there’s room to improve.")
-        else:
-            st.warning(
-                f"Verdict: **{assessment['verdict']}** — The model likely needs more/better data or tuning."
-            )
-
-        with st.expander("How to improve"):
-            st.markdown("\n".join([f"- {tip}" for tip in assessment["tips"]]))
-            st.caption(
-                "Tip: In **High autonomy**, false positives hide legit mail and false negatives let spam through — tune the threshold accordingly."
-            )
-
-        st.caption("Confusion matrix (rows: ground truth, columns: model prediction).")
-        st.dataframe(df_confusion(y_te, y_pred, CLASSES), use_container_width=True)
-        st.text("Classification report")
-        st.code(classification_report(y_te, y_pred, labels=CLASSES), language="text")
-
-        probs = ss["model"].predict_proba(X_te_t, X_te_b)
-        classes = ss["model"].classes_ or []
-        idx_spam = classes.index("spam") if "spam" in classes else 0
-
-        y_true = np.array([1 if yy == "spam" else 0 for yy in y_te])
-        p_spam = probs[:, idx_spam]
-
-        st.markdown("### 🎚️ Threshold helper (validation)")
-        st.caption("Adjust the decision threshold to trade off false positives (legit mail to spam) and false negatives (spam reaching inbox).")
-
-        thr_values = np.linspace(0.1, 0.9, 17)
-        prec, rec = [], []
-        for t in thr_values:
-            y_hat_thr = (p_spam >= t).astype(int)
-            tp = int(((y_hat_thr == 1) & (y_true == 1)).sum())
-            fp = int(((y_hat_thr == 1) & (y_true == 0)).sum())
-            fn = int(((y_hat_thr == 0) & (y_true == 1)).sum())
-            precision = tp / (tp + fp) if (tp + fp) else 0.0
-            recall = tp / (tp + fn) if (tp + fn) else 0.0
-            prec.append(precision)
-            rec.append(recall)
-
-        fig, ax = plt.subplots()
-        ax.plot(thr_values, prec, marker="o", label="Precision (spam)")
-        ax.plot(thr_values, rec, marker="o", label="Recall (spam)")
-        ax.set_xlabel("Threshold (P(spam))")
-        ax.set_ylabel("Score")
-        ax.set_ylim(0, 1)
-        ax.grid(True, alpha=0.3)
-        ax.legend()
-        st.pyplot(fig)
-        plt.close(fig)
-
-        with st.expander("Advanced: Cross-validation (Stratified K-Fold)"):
-            use_cv = st.checkbox("Run 5-fold CV on hybrid embeddings + numeric features (slower)")
-            if use_cv:
-                from sklearn.model_selection import StratifiedKFold
-
-                df_all = pd.DataFrame(ss["labeled"])
-                titles_all = df_all["title"].fillna("").tolist()
-                bodies_all = df_all["body"].fillna("").tolist()
-                y_all = df_all["label"].tolist()
-                skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
-                scores = []
-                for tr, te in skf.split(titles_all, y_all):
-                    m = HybridEmbedFeatsLogReg().fit(
-                        [titles_all[i] for i in tr],
-                        [bodies_all[i] for i in tr],
-                        [y_all[i] for i in tr],
-                    )
-                    y_pred_cv = m.predict(
-                        [titles_all[i] for i in te],
-                        [bodies_all[i] for i in te],
-                    )
-                    scores.append((np.array([y_all[i] for i in te]) == y_pred_cv).mean())
-                st.write(f"Mean CV accuracy: **{np.mean(scores):.2%}** ± {np.std(scores):.2%}")
+    cache = ss["split_cache"]
+    if len(cache) == 4:
+        X_tr, X_te, y_tr, y_te = cache
+        texts_test = X_te
+        X_te_t = X_te_b = None
     else:
-        st.info("Label some emails and train a model in the **Train** tab.")
+        X_tr_t, X_te_t, X_tr_b, X_te_b, y_tr, y_te = cache
+        texts_test = [(t or "") + "\n" + (b or "") for t, b in zip(X_te_t, X_te_b)]
+
+    try:
+        if len(cache) == 6:
+            probs = ss["model"].predict_proba(X_te_t, X_te_b)
+        else:
+            probs = ss["model"].predict_proba(texts_test)
+    except TypeError:
+        probs = ss["model"].predict_proba(texts_test)
+
+    classes = list(getattr(ss["model"], "classes_", []))
+    if classes and "spam" in classes:
+        idx_spam = classes.index("spam")
+    else:
+        idx_spam = 1 if probs.shape[1] > 1 else 0
+    p_spam = probs[:, idx_spam]
+    y_true01 = _y01(list(y_te))
+
+    current_thr = float(ss.get("threshold", 0.5))
+    cm = compute_confusion(y_true01, p_spam, current_thr)
+    acc = (cm["TP"] + cm["TN"]) / max(1, len(y_true01))
+    emoji, verdict = verdict_label(acc, len(y_true01))
+
+    st.write(
+        "Now that your model has learned from examples, it’s time to test how well it works. "
+        "During training, we kept some emails aside — the **test set**. The model hasn’t seen these before. "
+        "By checking its guesses against the true labels, we get a fair measure of performance."
+    )
+
+    st.success(f"**Accuracy:** {acc:.2%}  |  **Verdict:** {emoji} {verdict}")
+    st.caption(f"(Evaluated on {len(y_true01)} unseen emails at threshold {current_thr:.2f}.)")
+
+    st.markdown("### What do these results say?")
+    st.markdown(make_after_eval_story(len(y_true01), cm))
+
+    st.markdown("### Confusion matrix (plain language)")
+    c1, c2 = st.columns(2)
+    with c1:
+        st.write(f"**Spam correctly caught** ✅: {cm['TP']}")
+        st.write(f"**Spam that slipped through** ❌: {cm['FN']}")
+    with c2:
+        st.write(f"**Safe wrongly flagged** ⚠️: {cm['FP']}")
+        st.write(f"**Safe correctly passed** ✅: {cm['TN']}")
+
+    st.markdown("### Spam threshold")
+    presets = threshold_presets(y_true01, p_spam)
+
+    temp_threshold = float(
+        st.slider(
+            "Adjust threshold (temporary)",
+            0.1,
+            0.9,
+            value=float(ss.get("eval_temp_threshold", current_thr)),
+            step=0.01,
+            key="eval_temp_threshold",
+            help="Lower values catch more spam (higher recall) but risk more false alarms. Higher values protect the inbox (higher precision) but may miss some spam.",
+        )
+    )
+    ss["eval_temp_threshold"] = temp_threshold
+
+    cm_temp = compute_confusion(y_true01, p_spam, temp_threshold)
+    acc_temp = (cm_temp["TP"] + cm_temp["TN"]) / max(1, len(y_true01))
+    st.caption(
+        f"At {temp_threshold:.2f}, accuracy would be **{acc_temp:.2%}** (TP {cm_temp['TP']}, FP {cm_temp['FP']}, TN {cm_temp['TN']}, FN {cm_temp['FN']})."
+    )
+
+    colp1, colp2, colp3, colp4 = st.columns(4)
+    if colp1.button("Balanced (max F1)"):
+        ss["eval_temp_threshold"] = float(presets["balanced_f1"])
+        st.toast(f"Suggested threshold (max F1): {ss['eval_temp_threshold']:.2f}", icon="✅")
+    if colp2.button("Protect inbox (≥95% precision)"):
+        ss["eval_temp_threshold"] = float(presets["precision_95"])
+        st.toast(
+            f"Suggested threshold (precision≥95%): {ss['eval_temp_threshold']:.2f}",
+            icon="✅",
+        )
+    if colp3.button("Catch spam (≥90% recall)"):
+        ss["eval_temp_threshold"] = float(presets["recall_90"])
+        st.toast(
+            f"Suggested threshold (recall≥90%): {ss['eval_temp_threshold']:.2f}",
+            icon="✅",
+        )
+    if colp4.button("Adopt this threshold"):
+        ss["threshold"] = float(ss.get("eval_temp_threshold", temp_threshold))
+        st.success(
+            f"Adopted new operating threshold: **{ss['threshold']:.2f}**. This will be used in Classify and Full Autonomy."
+        )
+
+    with st.expander("📌 Suggestions to improve your model"):
+        st.markdown(
+            """
+- Add more labeled emails, especially tricky edge cases 
+- Balance the dataset between spam and safe 
+- Use diverse wording in your examples 
+- Tune the spam threshold for your needs 
+- Review the confusion matrix to spot mistakes 
+- Ensure emails have enough meaningful content 
+"""
+        )
+
+    with st.expander("🔬 Nerd Mode — technical details", expanded=False):
+        st.toggle("Enable Nerd Mode for evaluation", key="nerd_mode_eval")
+
+        if ss["nerd_mode_eval"]:
+            temp_threshold = float(ss.get("eval_temp_threshold", current_thr))
+            y_hat_temp = (p_spam >= temp_threshold).astype(int)
+            prec_spam, rec_spam, f1_spam, sup_spam = precision_recall_fscore_support(
+                y_true01, y_hat_temp, average="binary", zero_division=0
+            )
+            y_true_safe = 1 - y_true01
+            y_hat_safe = 1 - y_hat_temp
+            prec_safe, rec_safe, f1_safe, sup_safe = precision_recall_fscore_support(
+                y_true_safe, y_hat_safe, average="binary", zero_division=0
+            )
+
+            st.markdown("### Detailed metrics (at current threshold)")
+            st.dataframe(
+                pd.DataFrame(
+                    [
+                        {
+                            "class": "spam",
+                            "precision": prec_spam,
+                            "recall": rec_spam,
+                            "f1": f1_spam,
+                            "support": int(sup_spam),
+                        },
+                        {
+                            "class": "safe",
+                            "precision": prec_safe,
+                            "recall": rec_safe,
+                            "f1": f1_safe,
+                            "support": int(sup_safe),
+                        },
+                    ]
+                ).round(3),
+                use_container_width=True,
+                hide_index=True,
+            )
+
+            st.markdown("### Precision & Recall vs Threshold (validation)")
+            fig = plot_threshold_curves(y_true01, p_spam)
+            st.pyplot(fig)
+
+            st.markdown("### Interpretability")
+            try:
+                if hasattr(ss["model"], "named_steps"):
+                    clf = ss["model"].named_steps.get("clf")
+                    vec = ss["model"].named_steps.get("tfidf")
+                    if hasattr(clf, "coef_") and vec is not None:
+                        vocab = np.array(vec.get_feature_names_out())
+                        coefs = clf.coef_[0]
+                        top_spam = vocab[np.argsort(coefs)[-10:]][::-1]
+                        top_safe = vocab[np.argsort(coefs)[:10]]
+                        col_i1, col_i2 = st.columns(2)
+                        with col_i1:
+                            st.write("Top signals → **Spam**")
+                            st.write(", ".join(top_spam))
+                        with col_i2:
+                            st.write("Top signals → **Safe**")
+                            st.write(", ".join(top_safe))
+                    else:
+                        st.caption("Coefficients unavailable for this classifier.")
+                elif hasattr(ss["model"], "numeric_feature_coefs"):
+                    coef_map = ss["model"].numeric_feature_coefs()
+                    st.caption("Numeric feature weights (positive → Spam, negative → Safe):")
+                    st.dataframe(
+                        pd.DataFrame(
+                            [
+                                {
+                                    "feature": k,
+                                    "weight_toward_spam": v,
+                                }
+                                for k, v in coef_map.items()
+                            ]
+                        ).sort_values("weight_toward_spam", ascending=False),
+                        use_container_width=True,
+                        hide_index=True,
+                    )
+                else:
+                    st.caption("Interpretability: no compatible inspector for this model.")
+            except Exception as e:
+                st.caption(f"Interpretability view unavailable: {e}")
+
+            st.markdown("### Governance & reproducibility")
+            try:
+                if len(cache) == 4:
+                    n_tr, n_te = len(y_tr), len(y_te)
+                else:
+                    n_tr, n_te = len(y_tr), len(y_te)
+                split = ss.get("train_params", {}).get("test_size", "—")
+                seed = ss.get("train_params", {}).get("random_state", "—")
+                ts = ss.get("eval_timestamp", "—")
+                st.write(f"- Train set: {n_tr}  |  Test set: {n_te}  |  Hold-out fraction: {split}")
+                st.write(f"- Random seed: {seed}")
+                st.write(f"- Training time: {ts}")
+                st.write(f"- Adopted threshold: {ss.get('threshold', 0.5):.2f}")
+            except Exception:
+                st.caption("Governance info unavailable.")
 
 
 def render_classify_stage():
