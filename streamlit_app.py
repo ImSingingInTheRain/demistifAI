@@ -2354,15 +2354,15 @@ def render_intro_stage():
                 <div class="info-metric-grid">
                     <div class="info-metric-card">
                         <div class="label">What you'll explore</div>
-                        <div class="value">7 guided stages</div>
+                        <div class="value">5 guided stages simulating the development of an AI system</div>
                     </div>
                     <div class="info-metric-card">
                         <div class="label">Outcome</div>
-                        <div class="value">Spam detector in action</div>
+                        <div class="value">A working AI Spam detector</div>
                     </div>
                     <div class="info-metric-card">
-                        <div class="label">Focus</div>
-                        <div class="value">AI Act concepts</div>
+                        <div class="label">What you'll learn</div>
+                        <div class="value">What AI system means and how an AI model is trained</div>
                     </div>
                 </div>
                 """,
@@ -2386,13 +2386,18 @@ def render_intro_stage():
                     )
                 render_email_inbox_table(preview, title="Inbox", subtitle=subtitle, columns=["title", "body"])
         with tips_col:
-            st.markdown("### Why this matters")
+            st.markdown("### Once your AI system is ready to use")
             st.markdown(
-                "- See emails arrive just like a real mailbox.\n"
-                "- Understand how the AI will eventually triage each one.\n"
-                "- Track remaining work at a glance."
+                "- Your incoming emails will be automatically processed as safe or spam\n"
+                "- You will understand how an AI model will reach this conclusion\n"
+                "- You will be able to review and correct mistakes done by the AI system"
             )
             st.info("No worries — you don’t need to be a developer or data scientist to follow along.")
+
+    next_stage_key: Optional[str] = None
+    intro_index = STAGE_INDEX.get("intro")
+    if intro_index is not None and intro_index < len(STAGES) - 1:
+        next_stage_key = STAGES[intro_index + 1].key
 
     with section_surface():
         ready_col, flow_col = st.columns([2, 3], gap="large")
@@ -2400,12 +2405,18 @@ def render_intro_stage():
             st.markdown("### Ready to make a machine learn?")
             st.write("Use the stage controls below or the sidebar to move through the build at your pace.")
         with flow_col:
+            if next_stage_key:
+                st.button(
+                    "🚀 Start your machine",
+                    key="intro_start_button",
+                    type="primary",
+                    on_click=set_active_stage,
+                    args=(next_stage_key,),
+                    width="stretch",
+                )
             st.markdown(
-                """
-                - Start with **Start your machine** to see the full journey.\n"
                 "- Each step builds on the previous one, and you can always hop back.\n"
-                "- Nerd Mode reveals deeper technical layers when you need them.
-                """
+                "- Nerd Mode reveals deeper technical layers when you need them."
             )
 
 
