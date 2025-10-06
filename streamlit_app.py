@@ -1009,13 +1009,10 @@ def make_after_training_story(train_labels: list[str], test_labels: list[str]) -
     ct_test = _counts(test_labels)
     lines: list[str] = []
     lines.append(
-        "**Training complete.** The model learned from **{n_train}** emails "
-        "({ct_train['spam']} spam / {ct_train['safe']} safe) and will be checked on "
-        "**{n_test}** unseen emails ({ct_test['spam']} spam / {ct_test['safe']} safe).".format(
-            n_train=n_train,
-            ct_train=ct_train,
-            n_test=n_test,
-            ct_test=ct_test,
+        (
+            f"**Training complete.** The model learned from **{n_train}** emails "
+            f"({ct_train['spam']} spam / {ct_train['safe']} safe) and will be checked on "
+            f"**{n_test}** unseen emails ({ct_test['spam']} spam / {ct_test['safe']} safe)."
         )
     )
     lines.append(
