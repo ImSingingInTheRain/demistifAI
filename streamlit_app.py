@@ -2511,9 +2511,8 @@ def render_data_stage():
     with section_surface():
         lead_col, side_col = st.columns([3, 2], gap="large")
         with lead_col:
-            st.subheader(f"{stage.icon} {stage.title} — curate and expand")
+            st.subheader(f"{stage.icon} {stage.title}")
 
-            st.markdown("### Prepare Data")
             st.markdown(
                 """
                 That means the system is built with a clear goal set by its developers — in this case, by **you**.
