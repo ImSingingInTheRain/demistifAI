@@ -2457,30 +2457,29 @@ def render_overview_stage():
     stage = STAGE_BY_KEY["overview"]
 
     with section_surface():
-        intro_col, toggle_col = st.columns([3, 2], gap="large")
-        with intro_col:
-            render_eu_ai_quote("The EU AI Act says that “An AI system is a machine based system”.")
-            st.subheader(f"{stage.icon} {stage.title}")
-            st.write(
-                "Right now, you are within a machine-based system, made of software and hardware.\n\n"
-                "To make this experience intuitive and formative, you will navigate through a user interface that will allow you to build and use an AI System.\n\n"
-                "The full legal definition lives in the sidebar; keep it in mind as you explore each stage."
+        render_eu_ai_quote("The EU AI Act says that “An AI system is a machine based system”.")
+        st.subheader(f"{stage.icon} {stage.title}")
+        st.write(
+            "Right now, you are within a machine-based system, made of software and hardware.\n\n"
+            "To make this experience intuitive and formative, you will navigate through a user interface that will allow you to build and use an AI System.\n\n"
+            "The full legal definition lives in the sidebar; keep it in mind as you explore each stage."
+        )
+
+    nerd_enabled = render_nerd_mode_toggle(
+        key="nerd_mode",
+        title="Nerd Mode",
+        description="Flip for architecture, packages, and data flow details.",
+    )
+    if nerd_enabled:
+        with section_surface():
+            st.markdown("### Nerd Mode — technical details")
+            st.markdown(
+                "- **Architecture:** Streamlit app (Python) on Streamlit Cloud (CPU runtime).\n"
+                "- **Model(s):** sentence embeddings (MiniLM) + Logistic Regression; optional hybrid numeric features (external links, suspicious TLDs, CAPS, punctuation bursts, money symbols, urgency terms).\n"
+                "- **Packages:** `streamlit`, `scikit-learn`, `pandas`, `numpy`, optionally `sentence-transformers`, `torch`, `transformers`, and `matplotlib`.\n"
+                "- **Data flow:** Title + body → embeddings (+ standardized numeric features) → linear classifier → probability **P(spam)** → autonomy recommendation/auto-routing.\n"
+                "- **Reproducibility & caching:** random seed for splits; cached encoder; session-scoped data/models.\n"
             )
-        with toggle_col:
-            nerd_enabled = render_nerd_mode_toggle(
-                key="nerd_mode",
-                title="Nerd Mode",
-                description="Flip for architecture, packages, and data flow details.",
-            )
-            if nerd_enabled:
-                with st.expander("Nerd Mode — technical details", expanded=True):
-                    st.markdown(
-                        "- **Architecture:** Streamlit app (Python) on Streamlit Cloud (CPU runtime).\n"
-                        "- **Model(s):** sentence embeddings (MiniLM) + Logistic Regression; optional hybrid numeric features (external links, suspicious TLDs, CAPS, punctuation bursts, money symbols, urgency terms).\n"
-                        "- **Packages:** `streamlit`, `scikit-learn`, `pandas`, `numpy`, optionally `sentence-transformers`, `torch`, `transformers`, and `matplotlib`.\n"
-                        "- **Data flow:** Title + body → embeddings (+ standardized numeric features) → linear classifier → probability **P(spam)** → autonomy recommendation/auto-routing.\n"
-                        "- **Reproducibility & caching:** random seed for splits; cached encoder; session-scoped data/models.\n"
-                    )
 
     with section_surface():
         cycle_col, nav_col = st.columns([3, 2], gap="large")
@@ -2531,27 +2530,29 @@ def render_data_stage():
             )
         with side_col:
             render_eu_ai_quote("The EU AI Act says that “AI systems have explicit objectives…”")
-            nerd_data = render_nerd_mode_toggle(
-                key="nerd_mode_data",
-                title="Nerd Mode",
-                description="Peek into schema expectations and options to extend the dataset.",
+
+    nerd_data = render_nerd_mode_toggle(
+        key="nerd_mode_data",
+        title="Nerd Mode",
+        description="Peek into schema expectations and options to extend the dataset.",
+    )
+    if nerd_data:
+        with section_surface():
+            st.markdown("### Nerd Mode — dataset internals")
+            st.markdown(
+                "- **Labeled data** = input (**title + body**) plus the **label** (“spam” or “safe”).\n"
+                "- The model learns patterns from these labels to generalize to new emails.\n"
+                "- You can expand the dataset by **adding individual examples** or by **uploading a CSV** with this schema:\n"
+                "  - `title` (string)\n"
+                "  - `body` (string)\n"
+                "  - `label` (string, values: `spam` or `safe`)\n\n"
+                "Example CSV:\n"
+                "```\n"
+                "title,body,label\n"
+                "\"Password reset\",\"Use the internal portal to change your password.\",\"safe\"\n"
+                "\"WIN a prize now!!!\",\"Click the link to claim your reward.\",\"spam\"\n"
+                "```\n"
             )
-            if nerd_data:
-                with st.expander("Nerd Mode — dataset internals", expanded=True):
-                    st.markdown(
-                        "- **Labeled data** = input (**title + body**) plus the **label** (“spam” or “safe”).\n"
-                        "- The model learns patterns from these labels to generalize to new emails.\n"
-                        "- You can expand the dataset by **adding individual examples** or by **uploading a CSV** with this schema:\n"
-                        "  - `title` (string)\n"
-                        "  - `body` (string)\n"
-                        "  - `label` (string, values: `spam` or `safe`)\n\n"
-                        "Example CSV:\n"
-                        "```\n"
-                        "title,body,label\n"
-                        "\"Password reset\",\"Use the internal portal to change your password.\",\"safe\"\n"
-                        "\"WIN a prize now!!!\",\"Click the link to claim your reward.\",\"spam\"\n"
-                        "```\n"
-                    )
 
     with section_surface():
         df_lab = pd.DataFrame(ss["labeled"])
@@ -3369,13 +3370,16 @@ def render_classify_stage():
                 "Each row shows the predicted label, confidence (P(spam)), and the recommendation or action taken."
             )
 
-            nerd_mode_enabled = render_nerd_mode_toggle(
-                key="nerd_mode_use",
-                title="Nerd Mode — details for this batch",
-                description="Inspect raw probabilities, distributions, and the session audit trail.",
-                icon="🔬",
-            )
-            if nerd_mode_enabled:
+        nerd_mode_enabled = render_nerd_mode_toggle(
+            key="nerd_mode_use",
+            title="Nerd Mode — details for this batch",
+            description="Inspect raw probabilities, distributions, and the session audit trail.",
+            icon="🔬",
+        )
+        if nerd_mode_enabled:
+            df_res = pd.DataFrame(ss["use_batch_results"])
+            with section_surface():
+                st.markdown("### Nerd Mode — batch diagnostics")
                 col_nm1, col_nm2 = st.columns([2, 1])
                 with col_nm1:
                     st.markdown("**Raw probabilities (per email)**")
@@ -3408,7 +3412,8 @@ def render_classify_stage():
                     "Tip: reuse your Train/Evaluate interpretability hooks to display top words or numeric feature weights for the selected email."
                 )
 
-                st.markdown("**Audit trail (this session)**")
+            with section_surface():
+                st.markdown("### Audit trail (this session)")
                 if ss.get("use_audit_log"):
                     st.dataframe(pd.DataFrame(ss["use_audit_log"]), width="stretch", hide_index=True)
                 else:
