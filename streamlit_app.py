@@ -244,7 +244,7 @@ def _stage_card_html(
     tag = "a" if clickable else "div"
     href_attr = ""
     if clickable:
-        params = {k: list(v) for k, v in st.experimental_get_query_params().items()}
+        params = {k: list(st.query_params.get_all(k)) for k in st.query_params}
         params["stage"] = [stage.key]
         href_attr = f" href=\"?{urlencode(params, doseq=True)}\""
     aria_attr = " aria-current=\"step\"" if status_class == "active" else ""
@@ -1227,8 +1227,7 @@ def download_text(text: str, filename: str, label: str = "Download"):
     st.markdown(f'<a href="data:text/plain;base64,{b64}" download="{filename}">{label}</a>', unsafe_allow_html=True)
 
 ss = st.session_state
-query_params = st.experimental_get_query_params()
-requested_stage_values = query_params.get("stage", [None])
+requested_stage_values = st.query_params.get_all("stage")
 requested_stage = requested_stage_values[0] if requested_stage_values else None
 default_stage = STAGES[0].key
 ss.setdefault("active_stage", default_stage)
