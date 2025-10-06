@@ -2469,7 +2469,7 @@ def render_overview_stage():
         intro_col, toggle_col = st.columns([3, 2], gap="large")
         with intro_col:
             render_eu_ai_quote("The EU AI Act says that “An AI system is a machine based system”.")
-            st.subheader(f"{stage.icon} {stage.title} — the journey")
+            st.subheader(f"{stage.icon} {stage.title}")
             st.write(
                 "Right now, you are within a machine-based system, made of software and hardware.\n\n"
                 "To make this experience intuitive and formative, you will navigate through a user interface that will allow you to build and use an AI System.\n\n"
