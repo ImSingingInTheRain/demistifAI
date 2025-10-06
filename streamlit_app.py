@@ -8,11 +8,13 @@ from datetime import datetime
 from contextlib import contextmanager
 from typing import Any, Dict, List, Optional, Tuple
 from urllib.parse import urlencode
+from uuid import uuid4
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import streamlit as st
+import streamlit.components.v1 as components
 
 from sentence_transformers import SentenceTransformer
 from sklearn.linear_model import LogisticRegression
@@ -44,6 +46,10 @@ APP_THEME_CSS = """
 }
 
 .section-surface {
+    display: none;
+}
+
+.section-surface-block {
     position: relative;
     margin-bottom: 1.45rem;
     border-radius: 24px;
@@ -53,52 +59,51 @@ APP_THEME_CSS = """
     box-shadow: 0 24px 48px rgba(15, 23, 42, 0.14);
     padding: 1.75rem 2rem;
     overflow: hidden;
+    color: #0f172a;
 }
 
-.section-surface::before {
+.section-surface-block::before {
     content: "";
     position: absolute;
     inset: 0;
     background: linear-gradient(150deg, rgba(59, 130, 246, 0.15), transparent 65%);
     opacity: 0;
     transition: opacity 0.3s ease;
+    pointer-events: none;
 }
 
-.section-surface:hover::before {
+.section-surface-block:hover::before {
     opacity: 1;
 }
 
-.section-surface--hero {
-    padding: 2.4rem 2.6rem;
-    background: linear-gradient(150deg, rgba(30, 64, 175, 0.85), rgba(59, 130, 246, 0.55));
-    color: #f8fafc;
-    border: 1px solid rgba(255, 255, 255, 0.25);
-    box-shadow: 0 28px 65px rgba(30, 64, 175, 0.32);
+.section-surface-block > [data-testid="stElementContainer"] {
+    margin-bottom: 0.9rem;
 }
 
-.section-surface--hero::before {
-    display: none;
+.section-surface-block > [data-testid="stElementContainer"]:first-child,
+.section-surface-block > [data-testid="stElementContainer"]:last-child {
+    margin-bottom: 0;
 }
 
-.section-surface h2,
-.section-surface h3,
-.section-surface h4 {
+.section-surface-block h2,
+.section-surface-block h3,
+.section-surface-block h4 {
     margin-top: 0;
     color: inherit;
 }
 
-.section-surface p,
-.section-surface ul {
+.section-surface-block p,
+.section-surface-block ul {
     font-size: 0.98rem;
     line-height: 1.65;
     color: inherit;
 }
 
-.section-surface ul {
+.section-surface-block ul {
     padding-left: 1.25rem;
 }
 
-.section-surface .section-caption {
+.section-surface-block .section-caption {
     display: inline-flex;
     align-items: center;
     gap: 0.45rem;
@@ -108,18 +113,30 @@ APP_THEME_CSS = """
     color: rgba(15, 23, 42, 0.65);
 }
 
-.section-surface--hero .section-caption {
-    color: rgba(241, 245, 249, 0.85);
-}
-
-.section-surface .section-caption span {
+.section-surface-block .section-caption span {
     display: inline-flex;
     width: 40px;
     height: 2px;
     background: rgba(15, 23, 42, 0.12);
 }
 
-.section-surface--hero .section-caption span {
+.section-surface-block.section-surface--hero {
+    padding: 2.4rem 2.6rem;
+    background: linear-gradient(150deg, rgba(30, 64, 175, 0.85), rgba(59, 130, 246, 0.55));
+    color: #f8fafc;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    box-shadow: 0 28px 65px rgba(30, 64, 175, 0.32);
+}
+
+.section-surface-block.section-surface--hero::before {
+    display: none;
+}
+
+.section-surface-block.section-surface--hero .section-caption {
+    color: rgba(241, 245, 249, 0.85);
+}
+
+.section-surface-block.section-surface--hero .section-caption span {
     background: rgba(241, 245, 249, 0.35);
 }
 
@@ -528,17 +545,51 @@ st.markdown(STAGE_TEMPLATE_CSS, unsafe_allow_html=True)
 
 @contextmanager
 def section_surface(class_name: str = ""):
-    class_attr = f" {class_name}" if class_name else ""
-    wrapper = st.container()
-    wrapper.markdown(
-        f"<div class='section-surface{class_attr}'>", unsafe_allow_html=True
+    block = st.container()
+    marker_id = f"section-surface-{uuid4().hex}"
+    classes = "section-surface" + (f" {class_name}" if class_name else "")
+    marker = block.empty()
+    marker.markdown(f"<div id='{marker_id}' class='{classes}'></div>", unsafe_allow_html=True)
+
+    applied_classes = class_name.split() if class_name else []
+    class_script = "".join(f"block.classList.add('{cls}');" for cls in applied_classes)
+    components.html(
+        f"""
+<script>
+(function() {{
+  const attach = () => {{
+    const rootDoc = window.parent?.document;
+    if (!rootDoc) {{
+      return;
+    }}
+    const marker = rootDoc.getElementById('{marker_id}');
+    if (!marker) {{
+      return;
+    }}
+    const elementContainer = marker.closest('[data-testid="stElementContainer"]');
+    const wrapper = elementContainer?.parentElement?.nextElementSibling;
+    const block = wrapper?.querySelector('[data-testid="stVerticalBlock"]') ?? marker.closest('[data-testid="stVerticalBlock"]');
+    if (!block) {{
+      setTimeout(attach, 50);
+      return;
+    }}
+    block.classList.add('section-surface-block');
+    {class_script}
+    if (elementContainer) {{
+      elementContainer.remove();
+    }} else {{
+      marker.remove();
+    }}
+  }};
+  attach();
+}})();
+</script>
+""",
+        height=0,
     )
-    inner = wrapper.container()
-    try:
-        with inner:
-            yield inner
-    finally:
-        wrapper.markdown("</div>", unsafe_allow_html=True)
+
+    with block:
+        yield
 
 
 def _stage_card_html(
