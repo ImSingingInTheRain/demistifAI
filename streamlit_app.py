@@ -2401,7 +2401,7 @@ def render_intro_stage():
                     </div>
                     <div class="info-metric-card">
                         <div class="label">Key capabilities</div>
-                        <div class="value">Sentence embeddings + numeric cues, threshold presets, autonomy switches, and adaptive learning.</div>
+                        <div class="value">Understands message wording and simple patterns, lets you set how strict the filter is, offers manual or automatic handling, and keeps improving with your feedback.</div>
                     </div>
                     <div class="info-metric-card">
                         <div class="label">Why it matters</div>
