@@ -2418,14 +2418,8 @@ def render_intro_stage():
                 render_email_inbox_table(pd.DataFrame(), title="Inbox", subtitle="Inbox stream is empty.")
             else:
                 df_incoming = pd.DataFrame(ss["incoming"])
-                preview = df_incoming.head(10)
-                remaining = len(df_incoming) - len(preview)
-                subtitle = None
-                if remaining > 0:
-                    subtitle = (
-                        f"Showing {len(preview)} of {len(df_incoming)} pending emails. Process the rest in the **Use** tab."
-                    )
-                render_email_inbox_table(preview, title="Inbox", subtitle=subtitle, columns=["title", "body"])
+                preview = df_incoming.head(5)
+                render_email_inbox_table(preview, title="Inbox", columns=["title", "body"])
         with tips_col:
             st.markdown("### Once your AI system is ready to use")
             st.markdown(
@@ -2446,15 +2440,6 @@ def render_intro_stage():
             st.markdown("### Ready to make a machine learn?")
             st.write("Use the stage controls below or the sidebar to move through the build at your pace.")
         with flow_col:
-            if next_stage_key:
-                st.button(
-                    "🚀 Start your machine",
-                    key="intro_start_button",
-                    type="primary",
-                    on_click=set_active_stage,
-                    args=(next_stage_key,),
-                    width="stretch",
-                )
             st.markdown(
                 "- Each step builds on the previous one, and you can always hop back.\n"
                 "- Nerd Mode reveals deeper technical layers when you need them."
