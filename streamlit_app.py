@@ -369,7 +369,7 @@ def _stage_card_html(
     if clickable:
         params = {k: list(st.query_params.get_all(k)) for k in st.query_params}
         params["stage"] = [stage.key]
-        href_attr = f" href=\"?{urlencode(params, doseq=True)}\""
+        href_attr = f" href=\"?{urlencode(params, doseq=True)}\" target=\"_self\""
     aria_attr = " aria-current=\"step\"" if status_class == "active" else ""
     return (
         f"<{tag} class=\"{classes}\"{href_attr}{aria_attr}>"
