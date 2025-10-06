@@ -1016,6 +1016,28 @@ def compute_confusion(y_true01: np.ndarray, p_spam: np.ndarray, thr: float) -> D
     return {"TP": tp, "FP": fp, "TN": tn, "FN": fn}
 
 
+def _pr_acc_cm(y_true01: np.ndarray, p_spam: np.ndarray, thr: float) -> Tuple[float, float, float, float, Dict[str, int]]:
+    y_hat = (p_spam >= thr).astype(int)
+    acc = float((y_hat == y_true01).sum()) / max(1, len(y_true01))
+    p, r, f1, _ = precision_recall_fscore_support(y_true01, y_hat, average="binary", zero_division=0)
+    cm = compute_confusion(y_true01, p_spam, thr)
+    return acc, p, r, f1, cm
+
+
+def _fmt_pct(v: float) -> str:
+    return f"{v:.2%}"
+
+
+def _fmt_delta(new: float | int, old: float | int, pct: bool = True) -> str:
+    d = new - old
+    if abs(d) < 1e-9:
+        return "—"
+    arrow = "▲" if d > 0 else "▼"
+    if pct:
+        return f"{arrow}{d:+.2%}"
+    return f"{arrow}{d:+d}"
+
+
 def threshold_presets(y_true01: np.ndarray, p_spam: np.ndarray) -> Dict[str, float]:
     thrs = np.linspace(0.1, 0.9, 81)
     best_f1, thr_f1 = -1.0, 0.5
@@ -2063,11 +2085,52 @@ def render_evaluate_stage():
             f"At {temp_threshold:.2f}, accuracy would be **{acc_temp:.2%}** (TP {cm_temp['TP']}, FP {cm_temp['FP']}, TN {cm_temp['TN']}, FN {cm_temp['FN']})."
         )
 
+    acc_cur, p_cur, r_cur, f1_cur, cm_cur = _pr_acc_cm(y_true01, p_spam, current_thr)
+    acc_new, p_new, r_new, f1_new, cm_new = _pr_acc_cm(y_true01, p_spam, temp_threshold)
+
+    with st.container(border=True):
+        st.markdown("#### What changes when I move the threshold?")
+        st.caption("Comparing your **adopted** threshold vs. the **temporary** slider value above:")
+
+        col_left, col_right = st.columns(2)
+        with col_left:
+            st.markdown("**Current (adopted)**")
+            st.write(f"- Threshold: **{current_thr:.2f}**")
+            st.write(f"- Accuracy: {_fmt_pct(acc_cur)}")
+            st.write(f"- Precision (spam): {_fmt_pct(p_cur)}")
+            st.write(f"- Recall (spam): {_fmt_pct(r_cur)}")
+            st.write(f"- False positives (safe→spam): **{cm_cur['FP']}**")
+            st.write(f"- False negatives (spam→safe): **{cm_cur['FN']}**")
+
+        with col_right:
+            st.markdown("**If you adopt the slider value**")
+            st.write(f"- Threshold: **{temp_threshold:.2f}**")
+            st.write(f"- Accuracy: {_fmt_pct(acc_new)} ({_fmt_delta(acc_new, acc_cur)})")
+            st.write(f"- Precision (spam): {_fmt_pct(p_new)} ({_fmt_delta(p_new, p_cur)})")
+            st.write(f"- Recall (spam): {_fmt_pct(r_new)} ({_fmt_delta(r_new, r_cur)})")
+            st.write(
+                f"- False positives: **{cm_new['FP']}** ({_fmt_delta(cm_new['FP'], cm_cur['FP'], pct=False)})"
+            )
+            st.write(
+                f"- False negatives: **{cm_new['FN']}** ({_fmt_delta(cm_new['FN'], cm_cur['FN'], pct=False)})"
+            )
+
+        if temp_threshold > current_thr:
+            st.info(
+                "Raising the threshold makes the model **more cautious**: usually **fewer false positives** (protects inbox) but **more spam may slip through**."
+            )
+        elif temp_threshold < current_thr:
+            st.info(
+                "Lowering the threshold makes the model **more aggressive**: it **catches more spam** (higher recall) but may **flag more legit emails**."
+            )
+        else:
+            st.info("Same threshold as adopted — metrics unchanged.")
+
     with st.expander("📌 Suggestions to improve your model"):
         st.markdown(
             """
-- Add more labeled emails, especially tricky edge cases 
-- Balance the dataset between spam and safe 
+- Add more labeled emails, especially tricky edge cases
+- Balance the dataset between spam and safe
 - Use diverse wording in your examples 
 - Tune the spam threshold for your needs 
 - Review the confusion matrix to spot mistakes 
