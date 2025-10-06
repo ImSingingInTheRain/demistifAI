@@ -26,10 +26,19 @@ st.set_page_config(page_title="demistifAI", page_icon="📧", layout="wide")
 
 APP_THEME_CSS = """
 <style>
+:root {
+    --surface-radius: 24px;
+    --surface-border: rgba(15, 23, 42, 0.12);
+    --surface-shadow: 0 24px 48px rgba(15, 23, 42, 0.14);
+    --surface-gradient: linear-gradient(160deg, rgba(226, 232, 240, 0.9), rgba(255, 255, 255, 0.96));
+    --accent-primary: #1d4ed8;
+    --accent-muted: rgba(30, 64, 175, 0.16);
+}
+
 .stApp {
-    background: radial-gradient(circle at top left, rgba(148, 163, 184, 0.18), transparent 45%),
-        radial-gradient(circle at 85% 10%, rgba(96, 165, 250, 0.18), transparent 50%),
-        #f3f4f6;
+    background: radial-gradient(circle at top left, rgba(148, 163, 184, 0.16), transparent 45%),
+        radial-gradient(circle at 85% 10%, rgba(96, 165, 250, 0.16), transparent 50%),
+        #f8fafc;
     color: #0f172a;
     font-family: "Inter", "Segoe UI", sans-serif;
 }
@@ -52,12 +61,11 @@ APP_THEME_CSS = """
 .section-surface-block {
     position: relative;
     margin-bottom: 1.45rem;
-    border-radius: 24px;
-    border: 1px solid rgba(15, 23, 42, 0.08);
-    background: radial-gradient(circle at 0% 0%, rgba(248, 250, 252, 0.75), rgba(255, 255, 255, 0.92)),
-        linear-gradient(160deg, rgba(191, 219, 254, 0.25), rgba(248, 250, 252, 0.6));
-    box-shadow: 0 24px 48px rgba(15, 23, 42, 0.14);
-    padding: 1.75rem 2rem;
+    border-radius: var(--surface-radius);
+    border: 1px solid var(--surface-border);
+    background: var(--surface-gradient);
+    box-shadow: var(--surface-shadow);
+    padding: 1.85rem 2.1rem;
     overflow: hidden;
     color: #0f172a;
 }
@@ -121,11 +129,11 @@ APP_THEME_CSS = """
 }
 
 .section-surface-block.section-surface--hero {
-    padding: 2.4rem 2.6rem;
-    background: linear-gradient(150deg, rgba(30, 64, 175, 0.85), rgba(59, 130, 246, 0.55));
+    padding: 2.6rem 2.8rem;
+    background: linear-gradient(160deg, #1d4ed8, #312e81);
     color: #f8fafc;
-    border: 1px solid rgba(255, 255, 255, 0.25);
-    box-shadow: 0 28px 65px rgba(30, 64, 175, 0.32);
+    border: 1px solid rgba(255, 255, 255, 0.28);
+    box-shadow: 0 28px 70px rgba(30, 64, 175, 0.35);
 }
 
 .section-surface-block.section-surface--hero::before {
@@ -138,6 +146,88 @@ APP_THEME_CSS = """
 
 .section-surface-block.section-surface--hero .section-caption span {
     background: rgba(241, 245, 249, 0.35);
+}
+
+.section-surface-block .surface-columns {
+    display: grid;
+    gap: 1.4rem;
+}
+
+.section-surface-block .surface-columns.two {
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
+
+.section-surface-block .surface-columns.three {
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+}
+
+.nerd-toggle-card {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 1.1rem;
+    padding: 1.1rem 1.4rem;
+    border-radius: 18px;
+    border: 1px solid rgba(59, 130, 246, 0.28);
+    background: linear-gradient(150deg, rgba(37, 99, 235, 0.12), rgba(191, 219, 254, 0.22));
+    box-shadow: 0 16px 32px rgba(15, 23, 42, 0.12);
+    margin-bottom: 0.8rem;
+}
+
+.nerd-toggle-title {
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: #0f172a;
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+}
+
+.nerd-toggle-description {
+    font-size: 0.9rem;
+    color: #334155;
+    margin-top: 0.2rem;
+}
+
+.nerd-toggle-card label[data-testid="stToggle"] {
+    display: flex;
+    justify-content: flex-end;
+}
+
+.nerd-toggle-card label[data-testid="stToggle"] > div[role="switch"] {
+    background: rgba(148, 163, 184, 0.45);
+    box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.12);
+}
+
+.nerd-toggle-card label[data-testid="stToggle"] > div[role="switch"][aria-checked="true"] {
+    background: linear-gradient(120deg, rgba(37, 99, 235, 0.85), rgba(59, 130, 246, 0.75));
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.35);
+}
+
+.info-metric-grid {
+    display: grid;
+    gap: 0.9rem;
+}
+
+.info-metric-card {
+    padding: 0.95rem 1.1rem;
+    border-radius: 16px;
+    background: linear-gradient(145deg, rgba(15, 23, 42, 0.85), rgba(15, 23, 42, 0.75));
+    color: #e2e8f0;
+    box-shadow: 0 18px 36px rgba(15, 23, 42, 0.22);
+}
+
+.info-metric-card .label {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    opacity: 0.8;
+}
+
+.info-metric-card .value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-top: 0.35rem;
 }
 
 [data-testid="stSidebar"] {
@@ -712,6 +802,45 @@ def section_surface(class_name: str = ""):
 
     with block:
         yield
+
+
+def render_nerd_mode_toggle(
+    *,
+    key: str,
+    title: str = "Nerd Mode",
+    description: Optional[str] = None,
+    icon: str = "🧠",
+    default: Optional[bool] = None,
+) -> bool:
+    """Render a styled Nerd Mode toggle and return its value."""
+
+    existing = st.session_state.get(key, None)
+    initial_value = existing if existing is not None else default
+
+    container = st.container()
+    with container:
+        st.markdown("<div class='nerd-toggle-card'>", unsafe_allow_html=True)
+        info_col, toggle_col = st.columns([4, 1])
+        with info_col:
+            st.markdown(
+                f"<div class='nerd-toggle-title'>{html.escape(icon)} {html.escape(title)}</div>",
+                unsafe_allow_html=True,
+            )
+            if description:
+                st.markdown(
+                    f"<div class='nerd-toggle-description'>{html.escape(description)}</div>",
+                    unsafe_allow_html=True,
+                )
+        with toggle_col:
+            value = st.toggle(
+                title,
+                key=key,
+                value=bool(initial_value) if initial_value is not None else False,
+                label_visibility="collapsed",
+            )
+        st.markdown("</div>", unsafe_allow_html=True)
+
+    return value
 
 
 def _stage_card_html(
@@ -2198,37 +2327,86 @@ st.title("📧 demistifAI")
 def render_intro_stage():
 
     with section_surface("section-surface--hero"):
-        st.subheader("Welcome to DemistifAI! 🎉")
-        st.write("DemistifAI is an interactive playground to demystify the complexities of AI and the EU AI Act definition of AI System.")
-        st.write(
-            "AI systems are often considered black-boxes that can only be understood by AI practitioners. "
-            "While there are black-box AIs out there, every day you are likely to interact with AI systems that you can and should understand."
-        )
-        st.markdown("Your mission today will be to understand how an AI system with the intended purpose of preventing SPAM email from entering your inbox works… by building one.")
-        st.markdown("**Yes, you are going to build an AI Email SPAM Detector!**")
-        st.write(
-            "By the end of this playground, you’ll have the AI system classifying the emails in this inbox as **Spam** or **Safe**."
-        )
+        hero_left, hero_right = st.columns([3, 2], gap="large")
+        with hero_left:
+            st.subheader("Welcome to DemistifAI! 🎉")
+            st.write(
+                "DemistifAI is an interactive playground to demystify the complexities of AI and the EU AI Act "
+                "definition of an AI System."
+            )
+            st.write(
+                "AI systems are often considered black-boxes that can only be understood by AI practitioners. "
+                "While there are black-box AIs out there, every day you are likely to interact with AI systems that "
+                "you can and should understand."
+            )
+            st.markdown(
+                "Your mission today is to understand how an AI system with the intended purpose of keeping spam "
+                "out of your inbox works — by building one."
+            )
+            st.markdown("**Yes, you are going to build an AI Email SPAM Detector!**")
+            st.write(
+                "By the end of this playground, you’ll have the AI system classifying the emails in this inbox as "
+                "**Spam** or **Safe**."
+            )
+        with hero_right:
+            st.markdown(
+                """
+                <div class="info-metric-grid">
+                    <div class="info-metric-card">
+                        <div class="label">What you'll explore</div>
+                        <div class="value">7 guided stages</div>
+                    </div>
+                    <div class="info-metric-card">
+                        <div class="label">Outcome</div>
+                        <div class="value">Spam detector in action</div>
+                    </div>
+                    <div class="info-metric-card">
+                        <div class="label">Focus</div>
+                        <div class="value">AI Act concepts</div>
+                    </div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
 
     with section_surface():
-        st.markdown("### 📥 Your inbox")
-        if not ss["incoming"]:
-            render_email_inbox_table(pd.DataFrame(), title="Inbox", subtitle="Inbox stream is empty.")
-        else:
-            df_incoming = pd.DataFrame(ss["incoming"])
-            preview = df_incoming.head(10)
-            remaining = len(df_incoming) - len(preview)
-            subtitle = None
-            if remaining > 0:
-                subtitle = (
-                    f"Showing {len(preview)} of {len(df_incoming)} pending emails. Process the rest in the **Use** tab."
-                )
-            render_email_inbox_table(preview, title="Inbox", subtitle=subtitle, columns=["title", "body"])
-        st.write("No worries, you do not need to be a developer, data scientist, or AI expert to do this!")
+        inbox_col, tips_col = st.columns([3, 2], gap="large")
+        with inbox_col:
+            st.markdown("### 📥 Your inbox")
+            if not ss["incoming"]:
+                render_email_inbox_table(pd.DataFrame(), title="Inbox", subtitle="Inbox stream is empty.")
+            else:
+                df_incoming = pd.DataFrame(ss["incoming"])
+                preview = df_incoming.head(10)
+                remaining = len(df_incoming) - len(preview)
+                subtitle = None
+                if remaining > 0:
+                    subtitle = (
+                        f"Showing {len(preview)} of {len(df_incoming)} pending emails. Process the rest in the **Use** tab."
+                    )
+                render_email_inbox_table(preview, title="Inbox", subtitle=subtitle, columns=["title", "body"])
+        with tips_col:
+            st.markdown("### Why this matters")
+            st.markdown(
+                "- See emails arrive just like a real mailbox.\n"
+                "- Understand how the AI will eventually triage each one.\n"
+                "- Track remaining work at a glance."
+            )
+            st.info("No worries — you don’t need to be a developer or data scientist to follow along.")
 
     with section_surface():
-        st.markdown("### Are you ready to make a machine learn?")
-        st.caption("Use the navigation below to move through each stage of the build.")
+        ready_col, flow_col = st.columns([2, 3], gap="large")
+        with ready_col:
+            st.markdown("### Ready to make a machine learn?")
+            st.write("Use the stage controls below or the sidebar to move through the build at your pace.")
+        with flow_col:
+            st.markdown(
+                """
+                - Start with **Start your machine** to see the full journey.\n"
+                "- Each step builds on the previous one, and you can always hop back.\n"
+                "- Nerd Mode reveals deeper technical layers when you need them.
+                """
+            )
 
 
 def render_overview_stage():
@@ -2236,120 +2414,138 @@ def render_overview_stage():
     stage = STAGE_BY_KEY["overview"]
 
     with section_surface():
-        st.success(
-            "You’re in **Start your machine**. This page explains the flow and lets you toggle **Nerd Mode** for technical details."
-        )
-        st.subheader(f"{stage.icon} {stage.title} — the journey")
-        st.write(
-            "Right now, you are within a machine-based system, made of software and hardware.\n\n"
-            "To make this experience intuitive and formative, you will navigate through a user interface that will allow you to build and use an AI System.\n\n"
-            "The full legal definition lives in the sidebar; keep it in mind as you explore each stage."
-        )
-
-        st.toggle("Nerd Mode", key="nerd_mode")
-
-        if ss.get("nerd_mode"):
-            with st.expander("Nerd Mode — technical details", expanded=True):
-                st.markdown(
-                    "- **Architecture:** Streamlit app (Python) on Streamlit Cloud (CPU runtime).\n"
-                    "- **Model(s):** sentence embeddings (MiniLM) + Logistic Regression; optional hybrid numeric features (external links, suspicious TLDs, CAPS, punctuation bursts, money symbols, urgency terms).\n"
-                    "- **Packages:** `streamlit`, `scikit-learn`, `pandas`, `numpy`, optionally `sentence-transformers`, `torch`, `transformers`, and `matplotlib`.\n"
-                    "- **Data flow:** Title + body → embeddings (+ standardized numeric features) → linear classifier → probability **P(spam)** → autonomy recommendation/auto-routing.\n"
-                    "- **Reproducibility & caching:** random seed for splits; cached encoder; session-scoped data/models.\n"
-                )
+        intro_col, toggle_col = st.columns([3, 2], gap="large")
+        with intro_col:
+            st.success(
+                "You’re in **Start your machine**. This page explains the flow and lets you toggle **Nerd Mode** for technical details."
+            )
+            st.subheader(f"{stage.icon} {stage.title} — the journey")
+            st.write(
+                "Right now, you are within a machine-based system, made of software and hardware.\n\n"
+                "To make this experience intuitive and formative, you will navigate through a user interface that will allow you to build and use an AI System.\n\n"
+                "The full legal definition lives in the sidebar; keep it in mind as you explore each stage."
+            )
+        with toggle_col:
+            nerd_enabled = render_nerd_mode_toggle(
+                key="nerd_mode",
+                title="Nerd Mode",
+                description="Flip for architecture, packages, and data flow details.",
+            )
+            if nerd_enabled:
+                with st.expander("Nerd Mode — technical details", expanded=True):
+                    st.markdown(
+                        "- **Architecture:** Streamlit app (Python) on Streamlit Cloud (CPU runtime).\n"
+                        "- **Model(s):** sentence embeddings (MiniLM) + Logistic Regression; optional hybrid numeric features (external links, suspicious TLDs, CAPS, punctuation bursts, money symbols, urgency terms).\n"
+                        "- **Packages:** `streamlit`, `scikit-learn`, `pandas`, `numpy`, optionally `sentence-transformers`, `torch`, `transformers`, and `matplotlib`.\n"
+                        "- **Data flow:** Title + body → embeddings (+ standardized numeric features) → linear classifier → probability **P(spam)** → autonomy recommendation/auto-routing.\n"
+                        "- **Reproducibility & caching:** random seed for splits; cached encoder; session-scoped data/models.\n"
+                    )
 
     with section_surface():
-        st.markdown("### Lifecycle at a glance")
-        st.caption("Watch how the core stages flow into one another — it’s a continuous loop you’ll revisit.")
-        render_lifecycle_cycle(ss["active_stage"])
+        cycle_col, nav_col = st.columns([3, 2], gap="large")
+        with cycle_col:
+            st.markdown("### Lifecycle at a glance")
+            st.caption("Watch how the core stages flow into one another — it’s a continuous loop you’ll revisit.")
+            render_lifecycle_cycle(ss["active_stage"])
+        with nav_col:
+            st.markdown("### Navigation tips")
+            st.markdown(
+                "- Use the **Back** and **Next** buttons below to move sequentially without scrolling.\n"
+                "- Prefer a quick jump? Pick a stage from the selector right here.\n"
+                "- Toggle **Nerd Mode** any time for deeper technical context."
+            )
 
-    with section_surface():
-        st.markdown("### Navigation tips")
-        st.write(
-            "- Use the **Back** and **Next** buttons below to move sequentially without scrolling.\n"
-            "- Prefer a quick jump? Pick a stage from the selector right here.\n"
-            "- Toggle **Nerd Mode** any time for deeper technical context."
-        )
-
-        jump_labels = [f"{stage.icon} {stage.title}" for stage in STAGES]
-        current_index = STAGE_INDEX.get(ss["active_stage"], 0)
-        chosen = st.selectbox(
-            "Jump to a stage",
-            jump_labels,
-            index=current_index,
-            key="stage_jump_select",
-            label_visibility="collapsed",
-        )
-        chosen_stage = STAGES[jump_labels.index(chosen)]
-        if chosen_stage.key != ss["active_stage"]:
-            set_active_stage(chosen_stage.key)
+            jump_labels = [f"{stage.icon} {stage.title}" for stage in STAGES]
+            current_index = STAGE_INDEX.get(ss["active_stage"], 0)
+            chosen = st.selectbox(
+                "Jump to a stage",
+                jump_labels,
+                index=current_index,
+                key="stage_jump_select",
+                label_visibility="collapsed",
+            )
+            chosen_stage = STAGES[jump_labels.index(chosen)]
+            if chosen_stage.key != ss["active_stage"]:
+                set_active_stage(chosen_stage.key)
 
 
 def render_data_stage():
 
     with section_surface():
-        st.subheader("Prepare Data — curate and expand")
-        guidance_popover("Inference inputs (training)", """
-During **training**, inputs are example emails (title + body) paired with the **objective** (label: spam/safe).
-The model **infers** patterns that correlate with your labels — including **implicit objectives** such as click‑bait terms.
-""")
+        lead_col, side_col = st.columns([3, 2], gap="large")
+        with lead_col:
+            st.subheader("Prepare Data — curate and expand")
+            guidance_popover(
+                "Inference inputs (training)",
+                """
+                During **training**, inputs are example emails (title + body) paired with the **objective** (label: spam/safe).
+                The model **infers** patterns that correlate with your labels — including **implicit objectives** such as click‑bait terms.
+                """,
+            )
 
-        st.markdown("### Prepare Data")
-        st.markdown(
-            """
-            <div class=\"ai-quote-box\">
-                <p><strong>AI systems have explicit objectives...</strong></p>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
+            st.markdown("### Prepare Data")
+            st.markdown(
+                """
+                That means the system is built with a clear goal set by its developers — in this case, by **you**.
 
-        st.markdown(
-            """
-            That means they are built with a clear goal set by their developers — in this case, by **you**.
+                👉 **Decide whether each incoming email is “Spam” or “Safe.”**
 
-            For our spam detector, the explicit objective is simple:
-
-            👉 **Decide whether each incoming email is “Spam” or “Safe.”**
-
-            To do that, the model needs to be **trained**. In this case, training means showing it many examples of emails that are already labeled, so it can **learn the difference** between spam and safe messages.
-
-            To get you started quickly, you are provided with **500 pre-labeled emails**. These give the model a solid foundation.
-
-            If you’d like to go further, you can turn on **Nerd Mode** to explore the dataset more deeply or **add more labeled emails** to improve the model.
-            """
-        )
-
-        st.toggle("Nerd Mode", key="nerd_mode_data")
-
-        if ss["nerd_mode_data"]:
-            with st.expander("Nerd Mode (what’s under the hood)?", expanded=True):
-                st.markdown(
-                    "- **Labeled data** = input (**title + body**) plus the **label** (“spam” or “safe”).\n"
-                    "- The model learns patterns from these labels to generalize to new emails.\n"
-                    "- You can expand the dataset by **adding individual examples** or by **uploading a CSV** with this schema:\n"
-                    "  - `title` (string)\n"
-                    "  - `body` (string)\n"
-                    "  - `label` (string, values: `spam` or `safe`)\n\n"
-                    "Example CSV:\n"
-                    "```\n"
-                    "title,body,label\n"
-                    "\"Password reset\",\"Use the internal portal to change your password.\",\"safe\"\n"
-                    "\"WIN a prize now!!!\",\"Click the link to claim your reward.\",\"spam\"\n"
-                    "```\n"
-                )
+                Training shows the model labeled examples so it can **learn the difference** between spam and safe messages.
+                We’ve started you with **500 pre-labeled emails** for a strong baseline.
+                """
+            )
+        with side_col:
+            st.markdown(
+                """
+                <div class=\"ai-quote-box\">
+                    <p><strong>AI systems have explicit objectives...</strong></p>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+            nerd_data = render_nerd_mode_toggle(
+                key="nerd_mode_data",
+                title="Nerd Mode",
+                description="Peek into schema expectations and options to extend the dataset.",
+            )
+            if nerd_data:
+                with st.expander("Nerd Mode — dataset internals", expanded=True):
+                    st.markdown(
+                        "- **Labeled data** = input (**title + body**) plus the **label** (“spam” or “safe”).\n"
+                        "- The model learns patterns from these labels to generalize to new emails.\n"
+                        "- You can expand the dataset by **adding individual examples** or by **uploading a CSV** with this schema:\n"
+                        "  - `title` (string)\n"
+                        "  - `body` (string)\n"
+                        "  - `label` (string, values: `spam` or `safe`)\n\n"
+                        "Example CSV:\n"
+                        "```\n"
+                        "title,body,label\n"
+                        "\"Password reset\",\"Use the internal portal to change your password.\",\"safe\"\n"
+                        "\"WIN a prize now!!!\",\"Click the link to claim your reward.\",\"spam\"\n"
+                        "```\n"
+                    )
 
     with section_surface():
         df_lab = pd.DataFrame(ss["labeled"])
         df_display = df_lab if not df_lab.empty else pd.DataFrame(columns=["title", "body", "label"])
-        st.write("### ✅ Labeled dataset")
-        st.dataframe(df_display, width="stretch", hide_index=True)
-        if df_display.empty or "label" not in df_display:
-            st.caption("Size: 0 | Classes present: []")
-        else:
-            st.caption(f"Size: {len(df_display)} | Classes present: {sorted(set(df_display['label']))}")
+        table_col, summary_col = st.columns([3, 2], gap="large")
+        with table_col:
+            st.markdown("### ✅ Labeled dataset")
+            st.dataframe(df_display, width="stretch", hide_index=True)
+        with summary_col:
+            st.markdown("### Quick stats")
+            if df_display.empty or "label" not in df_display:
+                st.info("No labeled examples yet. Add some emails to start training.")
+            else:
+                classes_present = sorted(set(df_display["label"]))
+                st.metric("Total examples", len(df_display))
+                st.metric("Classes present", ", ".join(classes_present))
+                st.markdown(
+                    "- Balance spam and safe emails for better generalization.\n"
+                    "- Mix in real subject lines and bodies for richer signals."
+                )
 
-    if ss["nerd_mode_data"]:
+    if nerd_data:
         st.markdown("### 🔧 Expand the dataset (Nerd Mode)")
 
         with st.expander("➕ Add a labeled example (manual)", expanded=False):
@@ -2421,16 +2617,25 @@ The model **infers** patterns that correlate with your labels — including **im
 def render_train_stage():
 
     with section_surface():
-        st.subheader("2) Train — Teaching the model to infer")
-        st.write(
-            "The EU AI Act says: *“An AI system infers from the input it receives…”*  \n"
-            "That’s what we’ll do here. We’ll train the spam detector so it can **infer** whether each new email is **Spam** or **Safe**."
-        )
-        st.markdown(
-            "- In the previous step, you prepared **labeled examples** (emails marked as spam or safe).  \n"
-            "- The model now **looks for patterns** in those examples.  \n"
-            "- With enough clear examples, it learns to **generalize** to new emails."
-        )
+        main_col, aside_col = st.columns([3, 2], gap="large")
+        with main_col:
+            st.subheader("2) Train — Teaching the model to infer")
+            st.write(
+                "The EU AI Act says: *“An AI system infers from the input it receives…”*  \n"
+                "That’s what we’ll do here. We’ll train the spam detector so it can **infer** whether each new email is **Spam** or **Safe**."
+            )
+            st.markdown(
+                "- In the previous step, you prepared **labeled examples** (emails marked as spam or safe).  \n"
+                "- The model now **looks for patterns** in those examples.  \n"
+                "- With enough clear examples, it learns to **generalize** to new emails."
+            )
+        with aside_col:
+            st.markdown("### Training checklist")
+            st.markdown(
+                "- Ensure both **spam** and **safe** emails are labeled.\n"
+                "- Aim for a balanced mix of examples.\n"
+                "- Use Nerd Mode to tune advanced parameters when you’re ready."
+            )
 
     def _parse_split_cache(cache):
         if cache is None:
@@ -2461,51 +2666,67 @@ def render_train_stage():
         y_te = list(cache[-1]) if len(cache) >= 1 else []
         return [], [], [], [], y_tr, y_te
 
-    nerd_mode_train_enabled = st.toggle("🔬 Nerd Mode — advanced controls", key="nerd_mode_train")
+    nerd_mode_train_enabled = render_nerd_mode_toggle(
+        key="nerd_mode_train",
+        title="Nerd Mode — advanced controls",
+        description="Tweak the train/test split, solver iterations, and regularization strength.",
+        icon="🔬",
+    )
     if nerd_mode_train_enabled:
-        colA, colB = st.columns(2)
-        with colA:
-            ss["train_params"]["test_size"] = st.slider(
-                "Hold-out test fraction",
-                min_value=0.10,
-                max_value=0.50,
-                value=float(ss["train_params"]["test_size"]),
-                step=0.05,
-                help="How much labeled data to keep aside as a mini 'exam' (not used for learning).",
-            )
-            ss["train_params"]["random_state"] = st.number_input(
-                "Random seed",
-                min_value=0,
-                value=int(ss["train_params"]["random_state"]),
-                step=1,
-                help="Fix this to make your train/test split reproducible.",
-            )
-        with colB:
-            ss["train_params"]["max_iter"] = st.number_input(
-                "Max iterations (solver)",
-                min_value=200,
-                value=int(ss["train_params"]["max_iter"]),
-                step=100,
-                help="How many optimization steps the classifier can take before stopping.",
-            )
-            ss["train_params"]["C"] = st.number_input(
-                "Regularization strength C (inverse of regularization)",
-                min_value=0.01,
-                value=float(ss["train_params"]["C"]),
-                step=0.25,
-                format="%.2f",
-                help="Higher C fits training data more tightly; lower C adds regularization to reduce overfitting.",
+        with section_surface():
+            colA, colB = st.columns(2)
+            with colA:
+                ss["train_params"]["test_size"] = st.slider(
+                    "Hold-out test fraction",
+                    min_value=0.10,
+                    max_value=0.50,
+                    value=float(ss["train_params"]["test_size"]),
+                    step=0.05,
+                    help="How much labeled data to keep aside as a mini 'exam' (not used for learning).",
+                )
+                ss["train_params"]["random_state"] = st.number_input(
+                    "Random seed",
+                    min_value=0,
+                    value=int(ss["train_params"]["random_state"]),
+                    step=1,
+                    help="Fix this to make your train/test split reproducible.",
+                )
+            with colB:
+                ss["train_params"]["max_iter"] = st.number_input(
+                    "Max iterations (solver)",
+                    min_value=200,
+                    value=int(ss["train_params"]["max_iter"]),
+                    step=100,
+                    help="How many optimization steps the classifier can take before stopping.",
+                )
+                ss["train_params"]["C"] = st.number_input(
+                    "Regularization strength C (inverse of regularization)",
+                    min_value=0.01,
+                    value=float(ss["train_params"]["C"]),
+                    step=0.25,
+                    format="%.2f",
+                    help="Higher C fits training data more tightly; lower C adds regularization to reduce overfitting.",
+                )
+
+            st.info(
+                "• **Hold-out fraction**: keeps part of the data for an honest test.  \\\n"
+                "• **Random seed**: makes results repeatable.  \\\n"
+                "• **Max iterations / C**: learning dials—defaults are fine; feel free to experiment."
             )
 
-        st.info(
-            "• **Hold-out fraction**: keeps part of the data for an honest test.  \\n"
-            "• **Random seed**: makes results repeatable.  \\n"
-            "• **Max iterations / C**: learning dials—defaults are fine; feel free to experiment."
-        )
+    with section_surface():
+        action_col, context_col = st.columns([2, 3], gap="large")
+        with action_col:
+            st.markdown("### Train the model")
+            st.markdown("👉 When you’re ready, click **Train**.")
+            trigger_train = st.button("🚀 Train model", type="primary")
+        with context_col:
+            st.markdown(
+                "- Uses the labeled dataset curated in the previous stage.\n"
+                "- Applies the hyperparameters you set above."
+            )
 
-    st.markdown("👉 When you’re ready, click **Train**.")
-
-    if st.button("🚀 Train model", type="primary"):
+    if trigger_train:
         if len(ss["labeled"]) < 6:
             st.warning("Please label a few more emails first (≥6 examples).")
         else:
@@ -2746,27 +2967,26 @@ def render_evaluate_stage():
     emoji, verdict = verdict_label(acc, len(y_true01))
 
     with section_surface():
-        st.subheader("3) Evaluate — How well does your spam detector perform?")
-        st.write(
-            "Now that your model has learned from examples, it’s time to test how well it works. "
-            "During training, we kept some emails aside — the **test set**. The model hasn’t seen these before. "
-            "By checking its guesses against the true labels, we get a fair measure of performance."
-        )
-
-        st.success(f"**Accuracy:** {acc:.2%}  |  **Verdict:** {emoji} {verdict}")
-        st.caption(f"(Evaluated on {len(y_true01)} unseen emails at threshold {current_thr:.2f}.)")
-
-        st.markdown("### What do these results say?")
-        st.markdown(make_after_eval_story(len(y_true01), cm))
-
-        st.markdown("### Confusion matrix (plain language)")
-        c1, c2 = st.columns(2)
-        with c1:
-            st.write(f"**Spam correctly caught** ✅: {cm['TP']}")
-            st.write(f"**Spam that slipped through** ❌: {cm['FN']}")
-        with c2:
-            st.write(f"**Safe wrongly flagged** ⚠️: {cm['FP']}")
-            st.write(f"**Safe correctly passed** ✅: {cm['TN']}")
+        narrative_col, metrics_col = st.columns([3, 2], gap="large")
+        with narrative_col:
+            st.subheader("3) Evaluate — How well does your spam detector perform?")
+            st.write(
+                "Now that your model has learned from examples, it’s time to test how well it works. "
+                "During training, we kept some emails aside — the **test set**. The model hasn’t seen these before. "
+                "By checking its guesses against the true labels, we get a fair measure of performance."
+            )
+            st.markdown("### What do these results say?")
+            st.markdown(make_after_eval_story(len(y_true01), cm))
+        with metrics_col:
+            st.markdown("### Snapshot")
+            st.success(f"**Accuracy:** {acc:.2%}  |  {emoji} {verdict}")
+            st.caption(f"Evaluated on {len(y_true01)} unseen emails at threshold {current_thr:.2f}.")
+            st.markdown(
+                "- ✅ Spam caught: **{tp}**\n"
+                "- ❌ Spam missed: **{fn}**\n"
+                "- ⚠️ Safe mis-flagged: **{fp}**\n"
+                "- ✅ Safe passed: **{tn}**"
+            .format(tp=cm["TP"], fn=cm["FN"], fp=cm["FP"], tn=cm["TN"]))
 
     with section_surface():
         st.markdown("### Spam threshold")
@@ -2775,31 +2995,29 @@ def render_evaluate_stage():
         if "eval_temp_threshold" not in ss:
             ss["eval_temp_threshold"] = current_thr
 
-        slider_container = st.container()
-
-        colp1, colp2, colp3, colp4 = st.columns(4)
-        if colp1.button("Balanced (max F1)"):
-            ss["eval_temp_threshold"] = float(presets["balanced_f1"])
-            st.toast(f"Suggested threshold (max F1): {ss['eval_temp_threshold']:.2f}", icon="✅")
-        if colp2.button("Protect inbox (≥95% precision)"):
-            ss["eval_temp_threshold"] = float(presets["precision_95"])
-            st.toast(
-                f"Suggested threshold (precision≥95%): {ss['eval_temp_threshold']:.2f}",
-                icon="✅",
-            )
-        if colp3.button("Catch spam (≥90% recall)"):
-            ss["eval_temp_threshold"] = float(presets["recall_90"])
-            st.toast(
-                f"Suggested threshold (recall≥90%): {ss['eval_temp_threshold']:.2f}",
-                icon="✅",
-            )
-        if colp4.button("Adopt this threshold"):
-            ss["threshold"] = float(ss.get("eval_temp_threshold", current_thr))
-            st.success(
-                f"Adopted new operating threshold: **{ss['threshold']:.2f}**. This will be used in Classify and Full Autonomy."
-            )
-
-        with slider_container:
+        controls_col, slider_col = st.columns([2, 3], gap="large")
+        with controls_col:
+            if st.button("Balanced (max F1)", use_container_width=True):
+                ss["eval_temp_threshold"] = float(presets["balanced_f1"])
+                st.toast(f"Suggested threshold (max F1): {ss['eval_temp_threshold']:.2f}", icon="✅")
+            if st.button("Protect inbox (≥95% precision)", use_container_width=True):
+                ss["eval_temp_threshold"] = float(presets["precision_95"])
+                st.toast(
+                    f"Suggested threshold (precision≥95%): {ss['eval_temp_threshold']:.2f}",
+                    icon="✅",
+                )
+            if st.button("Catch spam (≥90% recall)", use_container_width=True):
+                ss["eval_temp_threshold"] = float(presets["recall_90"])
+                st.toast(
+                    f"Suggested threshold (recall≥90%): {ss['eval_temp_threshold']:.2f}",
+                    icon="✅",
+                )
+            if st.button("Adopt this threshold", use_container_width=True):
+                ss["threshold"] = float(ss.get("eval_temp_threshold", current_thr))
+                st.success(
+                    f"Adopted new operating threshold: **{ss['threshold']:.2f}**. This will be used in Classify and Full Autonomy."
+                )
+        with slider_col:
             temp_threshold = float(
                 st.slider(
                     "Adjust threshold (temporary)",
@@ -2872,10 +3090,15 @@ def render_evaluate_stage():
 """
             )
 
-    with section_surface():
-        nerd_mode_eval_enabled = st.toggle("🔬 Nerd Mode — technical details", key="nerd_mode_eval")
+    nerd_mode_eval_enabled = render_nerd_mode_toggle(
+        key="nerd_mode_eval",
+        title="Nerd Mode — technical details",
+        description="Inspect precision/recall tables, interpretability cues, and governance notes.",
+        icon="🔬",
+    )
 
-        if nerd_mode_eval_enabled:
+    if nerd_mode_eval_enabled:
+        with section_surface():
             temp_threshold = float(ss.get("eval_temp_threshold", current_thr))
             y_hat_temp = (p_spam >= temp_threshold).astype(int)
             prec_spam, rec_spam, f1_spam, sup_spam = precision_recall_fscore_support(
@@ -2967,53 +3190,59 @@ def render_evaluate_stage():
             except Exception as e:
                 st.caption(f"Interpretability view unavailable: {e}")
 
-                st.markdown("### Governance & reproducibility")
-                try:
-                    if len(cache) == 4:
-                        n_tr, n_te = len(y_tr), len(y_te)
-                    else:
-                        n_tr, n_te = len(y_tr), len(y_te)
-                    split = ss.get("train_params", {}).get("test_size", "—")
-                    seed = ss.get("train_params", {}).get("random_state", "—")
-                    ts = ss.get("eval_timestamp", "—")
-                    st.write(f"- Train set: {n_tr}  |  Test set: {n_te}  |  Hold-out fraction: {split}")
-                    st.write(f"- Random seed: {seed}")
-                    st.write(f"- Training time: {ts}")
-                    st.write(f"- Adopted threshold: {ss.get('threshold', 0.5):.2f}")
-                except Exception:
-                    st.caption("Governance info unavailable.")
+            st.markdown("### Governance & reproducibility")
+            try:
+                if len(cache) == 4:
+                    n_tr, n_te = len(y_tr), len(y_te)
+                else:
+                    n_tr, n_te = len(y_tr), len(y_te)
+                split = ss.get("train_params", {}).get("test_size", "—")
+                seed = ss.get("train_params", {}).get("random_state", "—")
+                ts = ss.get("eval_timestamp", "—")
+                st.write(f"- Train set: {n_tr}  |  Test set: {n_te}  |  Hold-out fraction: {split}")
+                st.write(f"- Random seed: {seed}")
+                st.write(f"- Training time: {ts}")
+                st.write(f"- Adopted threshold: {ss.get('threshold', 0.5):.2f}")
+            except Exception:
+                st.caption("Governance info unavailable.")
 
 
 def render_classify_stage():
 
     with section_surface():
-        st.subheader("4) Use — Run the spam detector")
-
-        st.info(
-            "**EU AI Act**: “…an AI system infers, from the input it receives, how to generate outputs such as "
-            "content, predictions, recommendations or decisions.”"
-        )
-
-        st.write(
-            "In this step, the system takes each email (title + body) as **input** and produces an **output**: "
-            "a **prediction** (*Spam* or *Safe*) with a confidence score. By default, it also gives a **recommendation** "
-            "about where to place the email (Spam or Inbox)."
-        )
+        overview_col, guidance_col = st.columns([3, 2], gap="large")
+        with overview_col:
+            st.subheader("4) Use — Run the spam detector")
+            st.write(
+                "In this step, the system takes each email (title + body) as **input** and produces an **output**: "
+                "a **prediction** (*Spam* or *Safe*) with a confidence score. By default, it also gives a **recommendation** "
+                "about where to place the email (Spam or Inbox)."
+            )
+        with guidance_col:
+            st.info(
+                "**EU AI Act**: “…an AI system infers, from the input it receives, how to generate outputs such as "
+                "content, predictions, recommendations or decisions.”"
+            )
+            st.markdown(
+                "- Monitor predictions before enabling full autonomy.\n"
+                "- Keep an eye on confidence values to decide when to intervene."
+            )
 
     with section_surface():
         st.markdown("### Autonomy")
         default_high_autonomy = ss.get("autonomy", AUTONOMY_LEVELS[0]).startswith("High")
-        col_auto1, col_auto2 = st.columns([1, 3])
-        with col_auto1:
+        auto_col, explain_col = st.columns([2, 3], gap="large")
+        with auto_col:
             use_high_autonomy = st.toggle(
                 "High autonomy (auto-move emails)", value=default_high_autonomy, key="use_high_autonomy"
             )
-        with col_auto2:
+        with explain_col:
             if use_high_autonomy:
                 ss["autonomy"] = AUTONOMY_LEVELS[1]
                 st.success("High autonomy ON — the system will **move** emails to Spam or Inbox automatically.")
             else:
                 ss["autonomy"] = AUTONOMY_LEVELS[0]
+                st.warning("High autonomy OFF — review recommendations before moving emails.")
         if not ss.get("model"):
             st.warning("Train a model first in the **Train** tab.")
             st.stop()
@@ -3093,61 +3322,63 @@ def render_classify_stage():
                 _append_audit("batch_processed_reco", {"n": preview_n})
 
     if ss.get("use_batch_results"):
-        st.markdown("### Results")
-        df_res = pd.DataFrame(ss["use_batch_results"])
-        show_cols = ["title", "pred", "p_spam", "action", "routed_to"]
-        existing_cols = [col for col in show_cols if col in df_res.columns]
-        display_df = df_res[existing_cols].rename(
-            columns={"pred": "Prediction", "p_spam": "P(spam)", "action": "Action", "routed_to": "Routed"}
-        )
-        render_email_inbox_table(display_df, title="Batch results", subtitle="Predictions and actions just taken.")
-        st.caption(
-            "Each row shows the predicted label, confidence (P(spam)), and the recommendation or action taken."
-        )
-
-        nerd_mode_enabled = st.toggle(
-            "🔬 Nerd Mode — details for this batch",
-            value=ss.get("nerd_mode_use", False),
-            key="nerd_mode_use",
-        )
-        if nerd_mode_enabled:
-            col_nm1, col_nm2 = st.columns([2, 1])
-            with col_nm1:
-                st.markdown("**Raw probabilities (per email)**")
-                detail_cols = ["title", "p_spam", "p_safe", "pred", "action", "routed_to"]
-                det_existing = [col for col in detail_cols if col in df_res.columns]
-                st.dataframe(df_res[det_existing], width="stretch", hide_index=True)
-            with col_nm2:
-                st.markdown("**Batch metrics**")
-                n_items = len(df_res)
-                mean_conf = float(df_res["p_spam"].mean()) if "p_spam" in df_res else 0.0
-                n_spam = int((df_res["pred"] == "spam").sum()) if "pred" in df_res else 0
-                n_safe = n_items - n_spam
-                st.write(f"- Items: {n_items}")
-                st.write(f"- Predicted Spam: {n_spam} | Safe: {n_safe}")
-                st.write(f"- Mean P(spam): {mean_conf:.2f}")
-
-                if "p_spam" in df_res:
-                    fig, ax = plt.subplots()
-                    ax.hist(df_res["p_spam"], bins=10)
-                    ax.set_xlabel("P(spam)")
-                    ax.set_ylabel("Count")
-                    ax.set_title("Spam score distribution")
-                    st.pyplot(fig)
-
-            st.markdown("**Per-email cues (if available)**")
+        with section_surface():
+            st.markdown("### Results")
+            df_res = pd.DataFrame(ss["use_batch_results"])
+            show_cols = ["title", "pred", "p_spam", "action", "routed_to"]
+            existing_cols = [col for col in show_cols if col in df_res.columns]
+            display_df = df_res[existing_cols].rename(
+                columns={"pred": "Prediction", "p_spam": "P(spam)", "action": "Action", "routed_to": "Routed"}
+            )
+            render_email_inbox_table(display_df, title="Batch results", subtitle="Predictions and actions just taken.")
             st.caption(
-                "If your model exposes feature weights or signals, show a brief ‘why’ per email here."
-            )
-            st.info(
-                "Tip: reuse your Train/Evaluate interpretability hooks to display top words or numeric feature weights for the selected email."
+                "Each row shows the predicted label, confidence (P(spam)), and the recommendation or action taken."
             )
 
-            st.markdown("**Audit trail (this session)**")
-            if ss.get("use_audit_log"):
-                st.dataframe(pd.DataFrame(ss["use_audit_log"]), width="stretch", hide_index=True)
-            else:
-                st.caption("No events recorded yet.")
+            nerd_mode_enabled = render_nerd_mode_toggle(
+                key="nerd_mode_use",
+                title="Nerd Mode — details for this batch",
+                description="Inspect raw probabilities, distributions, and the session audit trail.",
+                icon="🔬",
+            )
+            if nerd_mode_enabled:
+                col_nm1, col_nm2 = st.columns([2, 1])
+                with col_nm1:
+                    st.markdown("**Raw probabilities (per email)**")
+                    detail_cols = ["title", "p_spam", "p_safe", "pred", "action", "routed_to"]
+                    det_existing = [col for col in detail_cols if col in df_res.columns]
+                    st.dataframe(df_res[det_existing], width="stretch", hide_index=True)
+                with col_nm2:
+                    st.markdown("**Batch metrics**")
+                    n_items = len(df_res)
+                    mean_conf = float(df_res["p_spam"].mean()) if "p_spam" in df_res else 0.0
+                    n_spam = int((df_res["pred"] == "spam").sum()) if "pred" in df_res else 0
+                    n_safe = n_items - n_spam
+                    st.write(f"- Items: {n_items}")
+                    st.write(f"- Predicted Spam: {n_spam} | Safe: {n_safe}")
+                    st.write(f"- Mean P(spam): {mean_conf:.2f}")
+
+                    if "p_spam" in df_res:
+                        fig, ax = plt.subplots()
+                        ax.hist(df_res["p_spam"], bins=10)
+                        ax.set_xlabel("P(spam)")
+                        ax.set_ylabel("Count")
+                        ax.set_title("Spam score distribution")
+                        st.pyplot(fig)
+
+                st.markdown("**Per-email cues (if available)**")
+                st.caption(
+                    "If your model exposes feature weights or signals, show a brief ‘why’ per email here."
+                )
+                st.info(
+                    "Tip: reuse your Train/Evaluate interpretability hooks to display top words or numeric feature weights for the selected email."
+                )
+
+                st.markdown("**Audit trail (this session)**")
+                if ss.get("use_audit_log"):
+                    st.dataframe(pd.DataFrame(ss["use_audit_log"]), width="stretch", hide_index=True)
+                else:
+                    st.caption("No events recorded yet.")
 
             exp_df = _export_batch_df(ss["use_batch_results"])
             csv_bytes = exp_df.to_csv(index=False).encode("utf-8")
@@ -3284,10 +3515,12 @@ They help teams reason about risks and the appropriate oversight controls.
         n_samples = len(ss["labeled"])
         labels_present = sorted({row["label"] for row in ss["labeled"]}) if ss["labeled"] else []
         metrics_text = ""
+        holdout_n = 0
         if ss.get("model") and ss.get("split_cache"):
             _, X_te_t, _, X_te_b, _, y_te = ss["split_cache"]
             y_pred = ss["model"].predict(X_te_t, X_te_b)
-            metrics_text = f"Accuracy on hold‑out: {accuracy_score(y_te, y_pred):.2%} (n={len(y_te)})"
+            holdout_n = len(y_te)
+            metrics_text = f"Accuracy on hold‑out: {accuracy_score(y_te, y_pred):.2%} (n={holdout_n})"
         card_md = f"""
 # Model Card — demistifAI (Spam Detector)
 **Intended purpose**: Educational demo to illustrate the AI Act definition of an **AI system** via a spam classifier.
@@ -3316,8 +3549,39 @@ These are standardized and combined with the embedding before a linear classifie
     - **Varying autonomy**: user selects autonomy level; at high autonomy, the system acts.
 - **Adaptiveness**: optional feedback loop that updates the model.
 """
-        st.markdown(card_md)
-        download_text(card_md, "model_card.md", "Download model_card.md")
+        content_col, highlight_col = st.columns([3, 2], gap="large")
+        with content_col:
+            st.markdown(card_md)
+            download_text(card_md, "model_card.md", "Download model_card.md")
+        with highlight_col:
+            st.markdown(
+                """
+                <div class="info-metric-grid">
+                    <div class="info-metric-card">
+                        <div class="label">Labeled dataset</div>
+                        <div class="value">{samples}</div>
+                    </div>
+                    <div class="info-metric-card">
+                        <div class="label">Hold-out size</div>
+                        <div class="value">{holdout}</div>
+                    </div>
+                    <div class="info-metric-card">
+                        <div class="label">Autonomy</div>
+                        <div class="value">{autonomy}</div>
+                    </div>
+                    <div class="info-metric-card">
+                        <div class="label">Adaptiveness</div>
+                        <div class="value">{adaptive}</div>
+                    </div>
+                </div>
+                """.format(
+                    samples=n_samples,
+                    holdout=holdout_n or "—",
+                    autonomy=html.escape(ss.get("autonomy", AUTONOMY_LEVELS[0])),
+                    adaptive="On" if ss.get("adaptive") else "Off",
+                ),
+                unsafe_allow_html=True,
+            )
 
 
 STAGE_RENDERERS = {
