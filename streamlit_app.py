@@ -1469,6 +1469,30 @@ ss.setdefault("use_adaptiveness", bool(ss.get("adaptive", True)))
 ss.setdefault("use_audit_log", [])
 ss.setdefault("nerd_mode_use", False)
 
+
+def _set_adaptive_state(new_value: bool, *, source: str) -> None:
+    """Synchronize adaptiveness settings across UI controls."""
+
+    current_value = bool(ss.get("adaptive", False))
+    desired_value = bool(new_value)
+    if desired_value == current_value:
+        return
+
+    ss["adaptive"] = desired_value
+    ss["use_adaptiveness"] = desired_value
+
+    if source != "sidebar":
+        ss.pop("adaptive_sidebar", None)
+    if source != "stage":
+        ss.pop("adaptive_stage", None)
+
+
+def _handle_sidebar_adaptive_change() -> None:
+    _set_adaptive_state(ss.get("adaptive_sidebar", ss.get("adaptive", False)), source="sidebar")
+
+
+ss["use_adaptiveness"] = bool(ss.get("adaptive", False))
+
 st.sidebar.header("⚙️ Settings")
 ss["autonomy"] = st.sidebar.selectbox("Autonomy level", AUTONOMY_LEVELS, index=AUTONOMY_LEVELS.index(ss["autonomy"]))
 guidance_popover("Varying autonomy", """
@@ -1476,7 +1500,12 @@ guidance_popover("Varying autonomy", """
 **High**: system *acts* — it routes the email automatically based on the threshold.
 """)
 ss["threshold"] = st.sidebar.slider("Spam threshold (P(spam))", 0.1, 0.9, ss["threshold"], 0.05)
-st.sidebar.checkbox("Adaptive learning (learn from corrections)", value=ss["adaptive"], key="adaptive")
+st.sidebar.checkbox(
+    "Adaptive learning (learn from corrections)",
+    value=ss["adaptive"],
+    key="adaptive_sidebar",
+    on_change=_handle_sidebar_adaptive_change,
+)
 st.sidebar.caption("When enabled, your corrections are added to the dataset and the model retrains.")
 if st.sidebar.button("🔄 Reset demo data"):
     ss["labeled"] = STARTER_LABELED.copy()
@@ -1491,7 +1520,10 @@ if st.sidebar.button("🔄 Reset demo data"):
     ss["use_audit_log"] = []
     ss["nerd_mode_use"] = False
     ss["use_high_autonomy"] = ss.get("autonomy", AUTONOMY_LEVELS[0]).startswith("High")
-    ss["use_adaptiveness"] = bool(ss.get("adaptive", True))
+    ss["adaptive"] = True
+    ss["use_adaptiveness"] = True
+    ss.pop("adaptive_sidebar", None)
+    ss.pop("adaptive_stage", None)
     st.sidebar.success("Reset complete.")
 
 st.title("📧 demistifAI")
@@ -2485,11 +2517,16 @@ def render_classify_stage():
         "**EU AI Act**: “…AI systems may exhibit adaptiveness.” Enable adaptiveness to **confirm** or **correct** results; "
         "the model can retrain on your feedback."
     )
-    default_adaptiveness = bool(ss.get("adaptive", False))
-    use_adaptiveness = st.toggle(
-        "Enable adaptiveness (learn from feedback)", value=default_adaptiveness, key="use_adaptiveness"
+    def _handle_stage_adaptive_change() -> None:
+        _set_adaptive_state(ss.get("adaptive_stage", ss.get("adaptive", False)), source="stage")
+
+    st.toggle(
+        "Enable adaptiveness (learn from feedback)",
+        value=bool(ss.get("adaptive", False)),
+        key="adaptive_stage",
+        on_change=_handle_stage_adaptive_change,
     )
-    ss["adaptive"] = use_adaptiveness
+    use_adaptiveness = bool(ss.get("adaptive", False))
 
     if use_adaptiveness and ss.get("use_batch_results"):
         st.markdown("#### Review and give feedback")
