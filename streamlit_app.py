@@ -161,6 +161,61 @@ APP_THEME_CSS = """
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
 }
 
+
+.section-surface--hero [data-testid="column"]:nth-child(2) > div:first-of-type {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.section-surface--hero [data-testid="column"]:nth-child(2) > div:first-of-type > div[data-testid="stVerticalBlock"] {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.6rem;
+    width: 100%;
+}
+
+.section-surface--hero [data-testid="column"]:nth-child(2) > div:first-of-type > div[data-testid="stVerticalBlock"] > div {
+    width: 100%;
+}
+
+.section-surface--hero [data-testid="column"]:nth-child(2) > div:first-of-type > div[data-testid="stVerticalBlock"] > div[data-testid="stButton"] {
+    display: flex;
+    justify-content: center;
+}
+
+.section-surface--hero [data-testid="column"]:nth-child(2) > div:first-of-type > div[data-testid="stVerticalBlock"] > div[data-testid="stButton"] > button {
+    width: 100%;
+    max-width: 260px;
+}
+
+.section-surface--hero [data-testid="column"]:nth-child(2) .hero-info-grid {
+    width: 100%;
+    justify-items: center;
+    gap: 1.6rem;
+}
+
+.section-surface--hero [data-testid="column"]:nth-child(2) .hero-info-card {
+    text-align: center;
+    margin: 0 auto;
+    max-width: 360px;
+}
+
+.section-surface--hero [data-testid="column"]:nth-child(2) .hero-info-card h3,
+.section-surface--hero [data-testid="column"]:nth-child(2) .hero-info-card p {
+    text-align: center;
+}
+
+.section-surface--hero [data-testid="column"]:nth-child(2) [data-testid="stButton"] {
+    width: 100%;
+}
+
+.section-surface--hero [data-testid="column"]:nth-child(2) [data-testid="stButton"] > button {
+    max-width: 260px;
+    margin: 0 auto;
+}
+
 .callout {
     position: relative;
     border-radius: 18px;
