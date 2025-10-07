@@ -230,7 +230,7 @@ APP_THEME_CSS = """
 }
 
 .nerd-toggle-card {
-    display: grid;
+    display: content;
     grid-template-columns: minmax(0, 1fr) auto;
     align-items: center;
     gap: 1.1rem;
