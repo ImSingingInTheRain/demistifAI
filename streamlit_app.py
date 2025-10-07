@@ -2604,16 +2604,6 @@ def render_intro_stage():
                     </p>
                 </div>
                 <div class="hero-info-card">
-                    <h3>Guided system lifecycle</h3>
-                    <ol class="hero-info-steps">
-                        <li><span class="step-index">1</span><span>Start your machine</span></li>
-                        <li><span class="step-index">2</span><span>Prepare data</span></li>
-                        <li><span class="step-index">3</span><span>Train</span></li>
-                        <li><span class="step-index">4</span><span>Evaluate</span></li>
-                        <li><span class="step-index">5</span><span>Use the AI system</span></li>
-                    </ol>
-                </div>
-                <div class="hero-info-card">
                     <h3>Why demistifAI</h3>
                     <p>
                         AI systems are often seen as black boxes, and the EU AI Act can feel too abstract. This experience demystifies
