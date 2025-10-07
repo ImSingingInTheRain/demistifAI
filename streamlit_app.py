@@ -2425,7 +2425,6 @@ def render_intro_stage():
                 "This is a preview of your inbox. At the end of this experience your AI system will be able to predict if your "
                 "incoming emails are safe or spam."
             )
-            st.markdown("#### Inbox — 5 messages preview")
             if not ss["incoming"]:
                 render_email_inbox_table(pd.DataFrame(), title="Inbox", subtitle="Inbox stream is empty.")
             else:
