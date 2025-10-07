@@ -1965,7 +1965,7 @@ def eu_ai_quote_box(text: str, label: str = "EU AI Act") -> str:
     )
 
 
-def render_eu_ai_quote(text: str, label: str = "EU AI Act") -> None:
+def render_eu_ai_quote(text: str, label: str = "From the EU AI Act, Article 3") -> None:
     st.markdown(eu_ai_quote_box(text, label), unsafe_allow_html=True)
 
 
