@@ -2595,8 +2595,8 @@ def render_intro_stage():
                 <div class="callout callout--outcome">
                     <span class="callout-icon">🤖</span>
                     <div class="callout-body">
-                        <h5>Working spam detector</h5>
-                        <p>A working AI email spam detector.</p>
+                        <h5>A working AI system</h5>
+                        <p>A A functioning AI email spam detector.</p>
                     </div>
                 </div>
                 <div class="callout callout--outcome">
