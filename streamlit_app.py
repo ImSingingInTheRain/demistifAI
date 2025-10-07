@@ -2622,8 +2622,8 @@ def render_intro_stage():
             st.markdown(
                 """
                 <div>
-                    <h4>Your AI system Lifecycle at a glance</h4>
-                    <p>Watch how the core stages flow into one another — it’s a continuous loop you’ll revisit.</p>
+                    <h4>Your AI system lifecycle at a glance</h4>
+                    <p>These are the core stages you will navigate. They flow into one another — it’s a continuous loop you can revisit.</p>
                     <div class="lifecycle-flow">
                         <div class="lifecycle-step">
                             <span class="lifecycle-icon">📊</span>
