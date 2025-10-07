@@ -2663,7 +2663,7 @@ def render_intro_stage():
             st.markdown(hero_info_html, unsafe_allow_html=True)
 
             if next_stage_key:
-            _, button_col = st.columns([1, 1])
+                _, button_col = st.columns([1, 1])
                 with button_col:
                     st.button(
                         "🚀 Start your machine",
