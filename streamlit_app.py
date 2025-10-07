@@ -2505,6 +2505,128 @@ def encode_texts(texts: list, model_name: str = "sentence-transformers/all-MiniL
     return np.asarray(embs, dtype=np.float32)
 
 
+@st.cache_data(show_spinner=False)
+def cache_train_embeddings(texts: list[str]) -> np.ndarray:
+    if not texts:
+        return np.empty((0, 0), dtype=np.float32)
+    return encode_texts(texts)
+
+
+def get_nearest_training_examples(
+    query_text: str,
+    X_train_texts: list[str],
+    y_train: list[str],
+    X_train_emb: np.ndarray | None = None,
+    k: int = 3,
+) -> list[dict[str, Any]]:
+    if not X_train_texts:
+        return []
+    if X_train_emb is None or getattr(X_train_emb, "size", 0) == 0:
+        X_train_emb = cache_train_embeddings(X_train_texts)
+    if getattr(X_train_emb, "size", 0) == 0:
+        return []
+
+    q = encode_texts([query_text])[0]
+    try:
+        sims = X_train_emb @ q
+    except ValueError:
+        return []
+    idx = np.argsort(-sims)[:k]
+    out: list[dict[str, Any]] = []
+    for i in idx:
+        if i < 0 or i >= len(X_train_texts):
+            continue
+        out.append(
+            {
+                "text": X_train_texts[i],
+                "label": y_train[i] if i < len(y_train) else "?",
+                "similarity": float(sims[i]),
+            }
+        )
+    return out
+
+
+def predict_spam_probability(model: Any, title: str, body: str) -> Optional[float]:
+    if model is None:
+        return None
+    try:
+        probs = model.predict_proba([title], [body])
+    except TypeError:
+        text = combine_text(title, body)
+        probs = model.predict_proba([text])
+    except Exception:
+        return None
+
+    probs_arr = np.asarray(probs)
+    if probs_arr.ndim != 2 or probs_arr.shape[0] == 0:
+        return None
+
+    classes = list(getattr(model, "classes_", []))
+    if classes and "spam" in classes:
+        idx_spam = classes.index("spam")
+    else:
+        idx_spam = 1 if probs_arr.shape[1] > 1 else 0
+    try:
+        return float(probs_arr[0, idx_spam])
+    except (IndexError, TypeError, ValueError):
+        return None
+
+
+def numeric_feature_contributions(model: Any, title: str, body: str) -> list[tuple[str, float, float]]:
+    raw = compute_numeric_features(title, body)
+    vec = np.array([[raw[k] for k in FEATURE_ORDER]], dtype=np.float32)
+    try:
+        z = model.scaler.transform(vec)[0]
+    except Exception:
+        return []
+
+    n_num = len(FEATURE_ORDER)
+    try:
+        w = model.lr.coef_[0][-n_num:]
+    except Exception:
+        return []
+    contrib = z * w
+    return list(zip(FEATURE_ORDER, z.tolist(), contrib.tolist()))
+
+
+def top_token_importances(
+    model: Any,
+    title: str,
+    body: str,
+    *,
+    max_tokens: int = 20,
+) -> tuple[Optional[float], list[dict[str, Any]]]:
+    text = combine_text(title, body)
+    tokens = re.findall(r"\b[a-zA-Z]{3,}\b", text)
+    seen: set[str] = set()
+    candidates: list[str] = []
+    for tok in tokens:
+        key = tok.lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        candidates.append(tok)
+        if len(candidates) >= max_tokens:
+            break
+
+    base = predict_spam_probability(model, title, body)
+    if base is None:
+        return None, []
+
+    rows: list[dict[str, Any]] = []
+    body_text = body or ""
+    for tok in candidates:
+        masked_body = re.sub(rf"\b{re.escape(tok)}\b", "", body_text, count=1)
+        masked_prob = predict_spam_probability(model, title, masked_body)
+        if masked_prob is None:
+            continue
+        delta = base - masked_prob
+        rows.append({"token": tok, "importance": round(delta, 4)})
+
+    rows.sort(key=lambda x: x["importance"], reverse=True)
+    return base, rows
+
+
 def combine_text(title: str, body: str) -> str:
     return (title or "") + "\n" + (body or "")
 
@@ -3525,6 +3647,11 @@ def render_train_stage():
                 ss["split_cache"] = (X_tr_t, X_te_t, X_tr_b, X_te_b, y_tr, y_te)
                 ss["eval_timestamp"] = datetime.now().isoformat(timespec="seconds")
                 ss["eval_temp_threshold"] = float(ss.get("threshold", 0.6))
+                try:
+                    train_texts_cache = [combine_text(t, b) for t, b in zip(X_tr_t, X_tr_b)]
+                    cache_train_embeddings(train_texts_cache)
+                except Exception:
+                    pass
 
     parsed_split = None
     y_tr_labels = None
@@ -4135,13 +4262,127 @@ def render_classify_stage():
                         ax.set_title("Spam score distribution")
                         st.pyplot(fig)
 
-                st.markdown("**Per-email cues (if available)**")
-                st.caption(
-                    "If your model exposes feature weights or signals, show a brief ‘why’ per email here."
-                )
-                st.info(
-                    "Tip: reuse your Train/Evaluate interpretability hooks to display top words or numeric feature weights for the selected email."
-                )
+            with section_surface():
+                st.markdown("### Why did it decide this way? (per email)")
+
+                split_cache = ss.get("split_cache")
+                train_texts: list[str] = []
+                train_labels: list[str] = []
+                train_emb: Optional[np.ndarray] = None
+                if split_cache:
+                    try:
+                        if len(split_cache) == 6:
+                            X_tr_t, _, X_tr_b, _, y_tr_vals, _ = split_cache
+                            train_texts = [combine_text(t, b) for t, b in zip(X_tr_t, X_tr_b)]
+                            train_labels = list(y_tr_vals)
+                        else:
+                            X_tr_texts, _, y_tr_vals, _ = split_cache
+                            train_texts = list(X_tr_texts)
+                            train_labels = list(y_tr_vals)
+                        if train_texts:
+                            train_emb = cache_train_embeddings(train_texts)
+                    except Exception:
+                        train_texts = []
+                        train_labels = []
+                        train_emb = None
+
+                threshold_val = float(ss.get("threshold", 0.5))
+                model_obj = ss.get("model")
+
+                for email_idx, row in enumerate(ss["use_batch_results"]):
+                    title = row.get("title", "")
+                    body = row.get("body", "")
+                    pred_label = row.get("pred", "")
+                    p_spam_val = row.get("p_spam")
+                    try:
+                        p_spam_float = float(p_spam_val)
+                    except (TypeError, ValueError):
+                        p_spam_float = None
+
+                    header = title or "(no subject)"
+                    with st.container(border=True):
+                        st.markdown(f"#### {header}")
+                        st.caption(f"Predicted **{pred_label or '—'}**")
+
+                        if p_spam_float is not None:
+                            margin = p_spam_float - threshold_val
+                            decision = "Spam" if p_spam_float >= threshold_val else "Safe"
+                            st.markdown(
+                                f"**Decision summary:** P(spam) = {p_spam_float:.2f} vs threshold {threshold_val:.2f} → **{decision}** "
+                                f"(margin {margin:+.2f})"
+                            )
+                        else:
+                            st.caption("Probability not available for this email.")
+
+                        if train_texts and train_labels:
+                            try:
+                                nn_examples = get_nearest_training_examples(
+                                    combine_text(title, body), train_texts, train_labels, train_emb, k=3
+                                )
+                            except Exception:
+                                nn_examples = []
+                        else:
+                            nn_examples = []
+
+                        if nn_examples:
+                            st.markdown("**Similar training emails (semantic evidence):**")
+                            for example in nn_examples:
+                                text_full = example["text"]
+                                title_example = text_full.split("\n", 1)[0]
+                                st.write(
+                                    f"- *{title_example.strip() or '(no subject)'}* — label: **{example['label']}** "
+                                    f"(sim {example['similarity']:.2f})"
+                                )
+                        else:
+                            st.caption("No similar training emails available.")
+
+                        if hasattr(model_obj, "scaler") and hasattr(model_obj, "lr"):
+                            contribs = numeric_feature_contributions(model_obj, title, body)
+                            if contribs:
+                                contribs_sorted = sorted(contribs, key=lambda x: x[2], reverse=True)
+                                st.markdown("**Numeric cues (how they nudged the decision):**")
+                                st.dataframe(
+                                    pd.DataFrame(
+                                        [
+                                            {
+                                                "feature": feat,
+                                                "standardized": val,
+                                                "toward_spam_logit": contrib,
+                                            }
+                                            for feat, val, contrib in contribs_sorted
+                                        ]
+                                    ).round(3),
+                                    use_container_width=True,
+                                    hide_index=True,
+                                )
+                                st.caption("Positive values push toward **Spam**; negative toward **Safe**.")
+                            else:
+                                st.caption("Numeric feature contributions unavailable for this email.")
+                        else:
+                            st.caption("Numeric cue breakdown requires the hybrid model.")
+
+                        if model_obj is not None:
+                            with st.expander("🖍️ Highlight influential words (experimental)", expanded=False):
+                                st.caption(
+                                    "Runs extra passes to see which words reduce P(spam) the most when removed."
+                                )
+                                if st.checkbox(
+                                    "Compute highlights for this email", key=f"hl_{email_idx}", value=False
+                                ):
+                                    base_prob, rows_imp = top_token_importances(model_obj, title, body)
+                                    if base_prob is None:
+                                        st.caption("Unable to compute token importances for this model/email.")
+                                    else:
+                                        st.caption(
+                                            f"Base P(spam) = {base_prob:.2f}. Higher importance means removing the word lowers P(spam) more."
+                                        )
+                                        if rows_imp:
+                                            df_imp = pd.DataFrame(rows_imp[:10])
+                                            st.dataframe(df_imp, use_container_width=True, hide_index=True)
+                                        else:
+                                            st.caption("No influential words found among the sampled tokens.")
+                        else:
+                            st.caption("Word highlights require a trained model.")
 
             with section_surface():
                 st.markdown("### Audit trail (this session)")
