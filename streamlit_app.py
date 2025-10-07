@@ -2726,7 +2726,7 @@ def render_overview_stage():
             key="nerd_mode",
             title="Nerd Mode",
             icon="🧠",
-            description="At every stage you can activate a **Nerd Mode** to learn more and get access to additional functionalities. Toggle the switch on the right to know more about your machine.",
+            description="At every stage you can activate a Nerd Mode to learn more and get access to additional functionalities. </br> Toggle the switch on the right to know more about your machine.",
         )
     if nerd_enabled:
         with section_surface():
