@@ -2906,13 +2906,13 @@ def render_intro_stage():
                         use_container_width=True,
                     )
     with section_surface():
-            st.markdown(
-                """
-                <div>
-                    <h4>Your AI system lifecycle at a glance</h4>
-                    <p>These are the core stages you will navigate. They flow into one another — it’s a continuous loop you can revisit.</p>
-                    <div class="lifecycle-flow">
-                        <div class="lifecycle-step">
+        st.markdown(
+            """
+            <div>
+                <h4>Your AI system lifecycle at a glance</h4>
+                <p>These are the core stages you will navigate. They flow into one another — it’s a continuous loop you can revisit.</p>
+                <div class="lifecycle-flow">
+                    <div class="lifecycle-step">
                             <span class="lifecycle-icon">📊</span>
                             <span class="lifecycle-label">Prepare Data</span>
                         </div>
