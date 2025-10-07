@@ -354,6 +354,98 @@ APP_THEME_CSS = """
     font-weight: 600;
 }
 
+.hero-info-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.9rem;
+}
+
+.hero-info-card {
+    position: relative;
+    border-radius: 20px;
+    padding: 1.15rem 1.35rem 1.25rem;
+    background: linear-gradient(160deg, rgba(191, 219, 254, 0.85), rgba(147, 197, 253, 0.65));
+    border: 1px solid rgba(59, 130, 246, 0.28);
+    box-shadow: 0 24px 46px rgba(30, 64, 175, 0.18);
+    color: #0f172a;
+}
+
+.hero-info-card::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: linear-gradient(140deg, rgba(59, 130, 246, 0.12), rgba(29, 78, 216, 0.12));
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+}
+
+.hero-info-card:hover::after {
+    opacity: 1;
+}
+
+.hero-info-card > * {
+    position: relative;
+    z-index: 1;
+}
+
+.hero-info-card h3 {
+    margin: 0 0 0.55rem;
+    font-size: 1.05rem;
+    color: #1d4ed8;
+}
+
+.hero-info-card p {
+    margin: 0;
+    font-size: 0.95rem;
+    line-height: 1.6;
+    color: rgba(15, 23, 42, 0.82);
+}
+
+.hero-info-steps {
+    margin: 0.55rem 0 0;
+    padding: 0;
+    list-style: none;
+    display: grid;
+    gap: 0.4rem;
+}
+
+.hero-info-steps li {
+    display: grid;
+    grid-template-columns: 32px minmax(0, 1fr);
+    gap: 0.5rem;
+    align-items: start;
+    font-size: 0.93rem;
+    color: rgba(15, 23, 42, 0.82);
+}
+
+.hero-info-steps .step-index {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 999px;
+    background: rgba(37, 99, 235, 0.18);
+    color: #1d4ed8;
+    font-weight: 600;
+    font-size: 0.85rem;
+    box-shadow: inset 0 0 0 1px rgba(37, 99, 235, 0.28);
+}
+
+@media (max-width: 1024px) {
+    .hero-info-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 768px) {
+    .hero-info-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
 .mailbox-summary-card .summary-list {
     margin: 0.45rem 0 0;
     padding-left: 1.1rem;
@@ -2398,18 +2490,35 @@ def render_intro_stage():
                     args=(next_stage_key,),
                 )
         with hero_right:
-            st.markdown("### What you’ll do")
-            st.markdown(
-                "Build an email spam detector that identifies patterns in messages. You’ll set how strict the filter is "
-                "(threshold), choose the autonomy level, and optionally enable adaptiveness to learn from your feedback."
-            )
-            st.markdown("### Guided system lifecycle")
-            st.markdown("1) Start your machine → 2) Prepare data → 3) Train → 4) Evaluate → 5) Use")
-            st.markdown("### Why demistifAI")
-            st.markdown(
-                "AI systems are often seen as black boxes, and the EU AI Act can feel too abstract. This experience demystifies "
-                "both—showing how everyday AI works in practice."
-            )
+            hero_info_html = """
+            <div class="hero-info-grid">
+                <div class="hero-info-card">
+                    <h3>What you’ll do</h3>
+                    <p>
+                        Build an email spam detector that identifies patterns in messages. You’ll set how strict the filter is
+                        (threshold), choose the autonomy level, and optionally enable adaptiveness to learn from your feedback.
+                    </p>
+                </div>
+                <div class="hero-info-card">
+                    <h3>Guided system lifecycle</h3>
+                    <ol class="hero-info-steps">
+                        <li><span class="step-index">1</span><span>Start your machine</span></li>
+                        <li><span class="step-index">2</span><span>Prepare data</span></li>
+                        <li><span class="step-index">3</span><span>Train</span></li>
+                        <li><span class="step-index">4</span><span>Evaluate</span></li>
+                        <li><span class="step-index">5</span><span>Use the AI system</span></li>
+                    </ol>
+                </div>
+                <div class="hero-info-card">
+                    <h3>Why demistifAI</h3>
+                    <p>
+                        AI systems are often seen as black boxes, and the EU AI Act can feel too abstract. This experience demystifies
+                        both—showing how everyday AI works in practice.
+                    </p>
+                </div>
+            </div>
+            """
+            st.markdown(hero_info_html, unsafe_allow_html=True)
 
     with section_surface():
         block2_left, block2_right = st.columns([3, 2], gap="large")
