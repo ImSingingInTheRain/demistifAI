@@ -3012,33 +3012,6 @@ def render_overview_stage():
             """
             st.markdown(components_html, unsafe_allow_html=True)
 
-            # Outcomes remain; keep your existing markup for consistency
-            st.markdown("#### By the end you’ll have:")
-
-            outcomes_html = """
-            <div class="callout-grid">
-                <div class="callout callout--outcome">
-                    <span class="callout-icon">🤖</span>
-                    <div class="callout-body">
-                        <h5>A working AI system</h5>
-                        <p>A functioning AI email spam detector.</p>
-                    </div>
-                </div>
-                <div class="callout callout--outcome">
-                    <span class="callout-icon">📋</span>
-                    <div class="callout-body">
-                        <h5>Audit-ready model card</h5>
-                        <p>An audit-ready model card with purpose, data, metrics, threshold, and autonomy.</p>
-                    </div>
-                </div>
-                <div class="callout callout--outcome">
-                    <span class="callout-icon">📘</span>
-                    <div class="callout-body">
-                        <h5>EU AI Act clarity</h5>
-                        <p>A clearer grasp of EU AI Act terminology in action.</p>
-                    </div>
-                </div>
-            </div>
             """
             st.markdown(outcomes_html, unsafe_allow_html=True)
 
