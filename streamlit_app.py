@@ -2664,7 +2664,7 @@ def render_intro_stage():
 
             if next_stage_key:
                 _, button_col = st.columns([1, 1])
-                    with button_col:
+                with button_col:
                     st.button(
                         "🚀 Start your machine",
                         key="flow_start_machine",
