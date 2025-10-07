@@ -2936,59 +2936,6 @@ def render_intro_stage():
                 """,
                 unsafe_allow_html=True,
             )
-
-
-    with section_surface():
-        block2_left, block2_right = st.columns([3, 2], gap="large")
-        with block2_left:
-            mission_html = """
-            <div class="callout callout--mission">
-                <h4>Your mission</h4>
-                <p>Keep spam out of your inbox by walking through hands-on stages that tie governance concepts to practical ML workflows.</p>
-            </div>
-            """
-            st.markdown(mission_html, unsafe_allow_html=True)
-
-            st.markdown("#### By the end you’ll have:")
-
-            outcomes_html = """
-            <div class="callout-grid">
-                <div class="callout callout--outcome">
-                    <span class="callout-icon">🤖</span>
-                    <div class="callout-body">
-                        <h5>A working AI system</h5>
-                        <p>A A functioning AI email spam detector.</p>
-                    </div>
-                </div>
-                <div class="callout callout--outcome">
-                    <span class="callout-icon">📋</span>
-                    <div class="callout-body">
-                        <h5>Audit-ready model card</h5>
-                        <p>An audit-ready model card with purpose, data, metrics, threshold, and autonomy.</p>
-                    </div>
-                </div>
-                <div class="callout callout--outcome">
-                    <span class="callout-icon">📘</span>
-                    <div class="callout-body">
-                        <h5>EU AI Act clarity</h5>
-                        <p>A clearer grasp of EU AI Act terminology in action.</p>
-                    </div>
-                </div>
-            </div>
-            """
-            st.markdown(outcomes_html, unsafe_allow_html=True)
-        with block2_right:
-            st.markdown("#### 📥 Your inbox")
-            st.markdown(
-                "This is a preview of your inbox. At the end of this experience your AI system will be able to predict if your "
-                "incoming emails are safe or spam."
-            )
-            if not ss["incoming"]:
-                render_email_inbox_table(pd.DataFrame(), title="Inbox", subtitle="Inbox stream is empty.")
-            else:
-                df_incoming = pd.DataFrame(ss["incoming"])
-                preview = df_incoming.head(5)
-                render_email_inbox_table(preview, title="Inbox", columns=["title", "body"])
             
     with section_surface():
         ready_left, ready_right = st.columns([3, 2], gap="large")
@@ -3043,53 +2990,56 @@ def render_overview_stage():
             )
 
     with section_surface():
-        cycle_col, nav_col = st.columns(2, gap="large")
-        with cycle_col:
-            st.markdown(
-                """
-                <div class="callout callout--info">
-                    <h4>Your AI system Lifecycle at a glance</h4>
-                    <p>Watch how the core stages flow into one another — it’s a continuous loop you’ll revisit.</p>
-                    <div class="lifecycle-flow">
-                        <div class="lifecycle-step">
-                            <span class="lifecycle-icon">📊</span>
-                            <span class="lifecycle-label">Prepare Data</span>
-                        </div>
-                        <span class="lifecycle-arrow">➝</span>
-                        <div class="lifecycle-step">
-                            <span class="lifecycle-icon">🧠</span>
-                            <span class="lifecycle-label">Train</span>
-                        </div>
-                        <span class="lifecycle-arrow">➝</span>
-                        <div class="lifecycle-step">
-                            <span class="lifecycle-icon">🧪</span>
-                            <span class="lifecycle-label">Evaluate</span>
-                        </div>
-                        <span class="lifecycle-arrow">➝</span>
-                        <div class="lifecycle-step">
-                            <span class="lifecycle-icon">📬</span>
-                            <span class="lifecycle-label">Use</span>
-                        </div>
-                        <span class="lifecycle-loop">↺</span>
+        block2_left, block2_right = st.columns([3, 2], gap="large")
+        with block2_left:
+            mission_html = """
+            <div class="callout callout--mission">
+                <h4>Your mission</h4>
+                <p>Keep spam out of your inbox by walking through hands-on stages that tie governance concepts to practical ML workflows.</p>
+            </div>
+            """
+            st.markdown(mission_html, unsafe_allow_html=True)
+
+            st.markdown("#### By the end you’ll have:")
+
+            outcomes_html = """
+            <div class="callout-grid">
+                <div class="callout callout--outcome">
+                    <span class="callout-icon">🤖</span>
+                    <div class="callout-body">
+                        <h5>A working AI system</h5>
+                        <p>A A functioning AI email spam detector.</p>
                     </div>
                 </div>
-                """,
-                unsafe_allow_html=True,
-            )
-        with nav_col:
-            st.markdown(
-                """
-                <div class="callout callout--info">
-                    <h4>Navigation tips</h4>
-                    <ul>
-                        <li>Use the <strong>Back</strong> and <strong>Next</strong> buttons below to move through different stages.</li>
-                        <li>Toggle <strong>Nerd Mode</strong> any time for deeper technical context.</li>
-                    </ul>
+                <div class="callout callout--outcome">
+                    <span class="callout-icon">📋</span>
+                    <div class="callout-body">
+                        <h5>Audit-ready model card</h5>
+                        <p>An audit-ready model card with purpose, data, metrics, threshold, and autonomy.</p>
+                    </div>
                 </div>
-                """,
-                unsafe_allow_html=True,
+                <div class="callout callout--outcome">
+                    <span class="callout-icon">📘</span>
+                    <div class="callout-body">
+                        <h5>EU AI Act clarity</h5>
+                        <p>A clearer grasp of EU AI Act terminology in action.</p>
+                    </div>
+                </div>
+            </div>
+            """
+            st.markdown(outcomes_html, unsafe_allow_html=True)
+        with block2_right:
+            st.markdown("#### 📥 Your inbox")
+            st.markdown(
+                "This is a preview of your inbox. At the end of this experience your AI system will be able to predict if your "
+                "incoming emails are safe or spam."
             )
-
+            if not ss["incoming"]:
+                render_email_inbox_table(pd.DataFrame(), title="Inbox", subtitle="Inbox stream is empty.")
+            else:
+                df_incoming = pd.DataFrame(ss["incoming"])
+                preview = df_incoming.head(5)
+                render_email_inbox_table(preview, title="Inbox", columns=["title", "body"])
 
 def render_data_stage():
 
