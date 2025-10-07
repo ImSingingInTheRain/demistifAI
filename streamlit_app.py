@@ -2652,6 +2652,20 @@ def render_intro_stage():
                 """,
                 unsafe_allow_html=True,
             )
+            with nav_col:
+            st.markdown(
+                """
+                <div class="callout callout--info">
+                    <h4>Navigation tips</h4>
+                    <ul>
+                        <li>Use the <strong>Back</strong> and <strong>Next</strong> buttons below to move through different stages.</li>
+                        <li>Toggle <strong>Nerd Mode</strong> any time for deeper technical context.</li>
+                    </ul>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+
     with section_surface():
         block2_left, block2_right = st.columns([3, 2], gap="large")
         with block2_left:
