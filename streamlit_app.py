@@ -3660,9 +3660,93 @@ def render_train_stage():
         try:
             parsed_split = _parse_split_cache(ss["split_cache"])
             X_tr_t, X_te_t, X_tr_b, X_te_b, y_tr_labels, y_te_labels = parsed_split
+
+            # Existing success + story (kept)
             story = make_after_training_story(y_tr_labels, y_te_labels)
             st.success("Training finished.")
             st.markdown(story)
+
+            # --- New: Training Storyboard (plain language, for everyone) ---
+            with section_surface():
+                st.markdown("### Training story — what just happened")
+
+                # 1) What data was used
+                ct = _counts(list(y_tr_labels))
+                st.markdown(
+                    f"- The system trained on **{len(y_tr_labels)} emails** "
+                    f"(Spam: {ct['spam']}, Safe: {ct['safe']}).\n"
+                    "- It looked for patterns that distinguish **Spam** from **Safe**.\n"
+                    "- It saved these patterns as simple rules (weights) it can use later to decide."
+                )
+
+                # Mini class-balance chart
+                try:
+                    bal_df = pd.DataFrame(
+                        {"class": ["spam", "safe"], "count": [ct["spam"], ct["safe"]]}
+                    ).set_index("class")
+                    st.caption("Training set balance")
+                    st.bar_chart(bal_df, width="stretch")
+                except Exception:
+                    pass
+
+                # 2) Top signals the model noticed (plain list)
+                shown_any_signals = False
+                try:
+                    # Prefer numeric-feature view if available (Hybrid model)
+                    if hasattr(ss["model"], "numeric_feature_details"):
+                        nfd = ss["model"].numeric_feature_details().copy()
+                        nfd["friendly_name"] = nfd["feature"].map(FEATURE_DISPLAY_NAMES)
+                        # Positive weights → Spam, Negative → Safe
+                        top_spam = (
+                            nfd.sort_values("weight_per_std", ascending=False)
+                            .head(3)["friendly_name"].tolist()
+                        )
+                        top_safe = (
+                            nfd.sort_values("weight_per_std", ascending=True)
+                            .head(3)["friendly_name"].tolist()
+                        )
+                        st.markdown("**Top signals the model picked up**")
+                        st.write(f"• Toward **Spam**: {', '.join(top_spam) if top_spam else '—'}")
+                        st.write(f"• Toward **Safe**: {', '.join(top_safe) if top_safe else '—'}")
+                        st.caption(
+                            "These are simple cues (e.g., links, ALL-CAPS bursts, money/urgency hints) that nudged decisions."
+                        )
+                        shown_any_signals = True
+                except Exception:
+                    pass
+
+                if not shown_any_signals:
+                    # Fallback wording if coefficients aren’t available
+                    st.markdown("**What it learned**")
+                    st.write(
+                        "The model pays more attention to words and cues that frequently appear in spam (e.g., urgent offers, suspicious links) "
+                        "and learns to ignore everyday business phrases that tend to be safe."
+                    )
+
+                # 3) A couple of concrete examples the model saw (subjects only)
+                try:
+                    if X_tr_t and X_tr_b and y_tr_labels:
+                        train_subjects = list(X_tr_t)
+                        y_arr = list(y_tr_labels)
+                        # pick first spam + first safe subject line available
+                        spam_subj = next((s for s, y in zip(train_subjects, y_arr) if y == "spam"), None)
+                        safe_subj = next((s for s, y in zip(train_subjects, y_arr) if y == "safe"), None)
+                        if spam_subj or safe_subj:
+                            st.markdown("**Examples it learned from**")
+                            if spam_subj:
+                                st.write(f"• Spam example: *{spam_subj[:100]}{'…' if len(spam_subj)>100 else ''}*")
+                            if safe_subj:
+                                st.write(f"• Safe example: *{safe_subj[:100]}{'…' if len(safe_subj)>100 else ''}*")
+                except Exception:
+                    pass
+
+                # 4) What this means / next step
+                st.markdown(
+                    "Your model now has a simple **mental map** of what Spam vs. Safe looks like. "
+                    "Next, we’ll check how well this map works on emails it hasn’t seen before."
+                )
+                st.info("Go to **3) Evaluate** to test performance and choose a spam threshold.")
+
         except Exception as e:
             st.info(f"Training complete. (Details unavailable: {e})")
             parsed_split = None
