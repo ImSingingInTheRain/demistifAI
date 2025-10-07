@@ -2652,7 +2652,7 @@ def render_intro_stage():
                 """,
                 unsafe_allow_html=True,
             )
-            with nav_col:
+        with nav_col:
             st.markdown(
                 """
                 <div class="callout callout--info">
@@ -2665,6 +2665,7 @@ def render_intro_stage():
                 """,
                 unsafe_allow_html=True,
             )
+
 
     with section_surface():
         block2_left, block2_right = st.columns([3, 2], gap="large")
