@@ -640,6 +640,182 @@ APP_THEME_CSS = """
     }
 }
 
+[data-testid="stSidebar"] {
+    background: linear-gradient(185deg, rgba(226, 232, 240, 0.78), rgba(248, 250, 252, 0.96));
+    border-right: 1px solid rgba(148, 163, 184, 0.28);
+    color: #0f172a;
+}
+
+[data-testid="stSidebar"] > div:first-child {
+    padding: 2.6rem 1.6rem 2.1rem;
+}
+
+.sidebar-shell {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+}
+
+.sidebar-brand {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.sidebar-brand .sidebar-title {
+    margin: 0;
+    font-size: 1.18rem;
+    font-weight: 700;
+    color: #1d4ed8;
+}
+
+.sidebar-brand .sidebar-subtitle {
+    margin: 0;
+    color: rgba(15, 23, 42, 0.7);
+    line-height: 1.6;
+    font-size: 0.95rem;
+}
+
+.sidebar-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.sidebar-nav [data-testid="stWidgetLabel"] > label {
+    font-size: 0.75rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-weight: 700;
+    color: rgba(15, 23, 42, 0.45);
+    margin-bottom: 0.2rem;
+}
+
+.sidebar-nav [role="radiogroup"] {
+    display: grid;
+    gap: 0.55rem;
+}
+
+.sidebar-nav [role="radiogroup"] label {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    padding: 0.75rem 0.95rem;
+    border-radius: 16px;
+    border: 1px solid rgba(148, 163, 184, 0.4);
+    background: rgba(255, 255, 255, 0.82);
+    box-shadow: 0 14px 28px rgba(15, 23, 42, 0.12);
+    font-weight: 600;
+    color: #1e293b;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.sidebar-nav [role="radiogroup"] label:hover {
+    border-color: rgba(37, 99, 235, 0.45);
+    box-shadow: 0 20px 36px rgba(30, 64, 175, 0.18);
+    background: rgba(191, 219, 254, 0.6);
+}
+
+.sidebar-nav [role="radiogroup"] label input {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+}
+
+.sidebar-nav [role="radiogroup"] label:has(input:checked) {
+    border-color: rgba(37, 99, 235, 0.55);
+    background: linear-gradient(150deg, rgba(37, 99, 235, 0.18), rgba(59, 130, 246, 0.32));
+    box-shadow: 0 24px 46px rgba(30, 64, 175, 0.22);
+}
+
+.sidebar-section-title {
+    font-size: 0.75rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-weight: 700;
+    color: rgba(15, 23, 42, 0.45);
+    margin-bottom: 0.3rem;
+}
+
+.sidebar-stage-card {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 0.85rem;
+    padding: 0.95rem 1.05rem;
+    border-radius: 18px;
+    border: 1px solid rgba(148, 163, 184, 0.32);
+    background: rgba(255, 255, 255, 0.88);
+    box-shadow: 0 20px 42px rgba(15, 23, 42, 0.16);
+}
+
+.sidebar-stage-card__icon {
+    display: grid;
+    place-items: center;
+    width: 48px;
+    height: 48px;
+    border-radius: 16px;
+    background: rgba(59, 130, 246, 0.14);
+    color: #1d4ed8;
+    font-size: 1.3rem;
+    box-shadow: inset 0 0 0 1px rgba(59, 130, 246, 0.28);
+}
+
+.sidebar-stage-card__meta {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+}
+
+.sidebar-stage-card__eyebrow {
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: rgba(15, 23, 42, 0.55);
+}
+
+.sidebar-stage-card__title {
+    margin: 0;
+    font-size: 1.02rem;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.sidebar-stage-card__description {
+    margin: 0;
+    color: rgba(15, 23, 42, 0.7);
+    line-height: 1.55;
+    font-size: 0.9rem;
+}
+
+[data-testid="stSidebar"] .stToggle {
+    padding: 0.5rem 0.25rem 0.2rem;
+}
+
+[data-testid="stSidebar"] .stButton > button {
+    width: 100%;
+    border-radius: 14px;
+    border: none;
+    background: linear-gradient(140deg, #1d4ed8, #312e81);
+    color: #f8fafc;
+    font-weight: 600;
+    box-shadow: 0 18px 42px rgba(30, 64, 175, 0.28);
+}
+
+[data-testid="stSidebar"] .stButton > button:hover {
+    background: linear-gradient(140deg, #1e40af, #1d4ed8);
+    box-shadow: 0 22px 48px rgba(30, 64, 175, 0.32);
+}
+
+
+[data-testid="stSidebar"] .stButton > button:focus-visible {
+    outline: 3px solid rgba(59, 130, 246, 0.55);
+    outline-offset: 2px;
+}
+
 .metric-highlight {
     display: flex;
     align-items: center;
@@ -2582,31 +2758,87 @@ def _handle_sidebar_adaptive_change() -> None:
 
 ss["use_adaptiveness"] = bool(ss.get("adaptive", False))
 
-st.sidebar.markdown("### 🧭 EU AI Act — definition of an AI system")
-st.sidebar.write(
-    "“AI system” means a machine-based system designed to operate with varying levels of autonomy and that "
-    "may exhibit adaptiveness after deployment and that, for explicit or implicit objectives, infers, from the "
-    "input it receives, how to generate outputs such as predictions, content, recommendations or decisions that "
-    "can influence physical or virtual environments.”"
-)
-if st.sidebar.button("🔄 Reset demo data"):
-    ss["labeled"] = STARTER_LABELED.copy()
-    ss["incoming"] = STARTER_INCOMING.copy()
-    ss["model"] = None
-    ss["split_cache"] = None
-    ss["mail_inbox"].clear(); ss["mail_spam"].clear()
-    ss["metrics"] = {"TP": 0, "FP": 0, "TN": 0, "FN": 0}
-    ss["last_classification"] = None
-    ss["numeric_adjustments"] = {feat: 0.0 for feat in FEATURE_ORDER}
-    ss["use_batch_results"] = []
-    ss["use_audit_log"] = []
-    ss["nerd_mode_use"] = False
-    ss["use_high_autonomy"] = ss.get("autonomy", AUTONOMY_LEVELS[0]).startswith("High")
-    ss["adaptive"] = True
-    ss["use_adaptiveness"] = True
-    ss.pop("adaptive_sidebar", None)
-    ss.pop("adaptive_stage", None)
-    st.sidebar.success("Reset complete.")
+with st.sidebar:
+    st.markdown("<div class='sidebar-shell'>", unsafe_allow_html=True)
+    st.markdown(
+        """
+        <div class="sidebar-brand">
+            <p class="sidebar-title">demistifAI control room</p>
+            <p class="sidebar-subtitle">Navigate the lifecycle, review guidance, and manage your session without losing progress.</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    stage_keys = [stage.key for stage in STAGES]
+    active_index = STAGE_INDEX.get(ss.get("active_stage", STAGES[0].key), 0)
+
+    st.markdown("<div class='sidebar-nav'>", unsafe_allow_html=True)
+    selected_stage = st.radio(
+        "Navigate demistifAI",
+        stage_keys,
+        index=active_index,
+        key="sidebar_stage_nav",
+        label_visibility="collapsed",
+        format_func=lambda key: f"{STAGE_BY_KEY[key].icon} {STAGE_BY_KEY[key].title}",
+    )
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    if selected_stage != ss.get("active_stage"):
+        set_active_stage(selected_stage)
+
+    current_stage = STAGE_BY_KEY.get(ss.get("active_stage", selected_stage))
+    if current_stage is not None:
+        st.markdown(
+            """
+            <div class="sidebar-stage-card">
+                <div class="sidebar-stage-card__icon">{icon}</div>
+                <div class="sidebar-stage-card__meta">
+                    <span class="sidebar-stage-card__eyebrow">Current stage</span>
+                    <p class="sidebar-stage-card__title">{title}</p>
+                    <p class="sidebar-stage-card__description">{description}</p>
+                </div>
+            </div>
+            """.format(
+                icon=html.escape(current_stage.icon),
+                title=html.escape(current_stage.title),
+                description=html.escape(current_stage.description),
+            ),
+            unsafe_allow_html=True,
+        )
+
+    st.markdown("<div class='sidebar-section-title'>Session controls</div>", unsafe_allow_html=True)
+    st.toggle(
+        "Learn from my corrections (adaptiveness)",
+        value=ss.get("adaptive", True),
+        key="adaptive_sidebar",
+        help="When enabled, your corrections in the Use stage will update the model during the session.",
+    )
+    _handle_sidebar_adaptive_change()
+
+    if st.button("🔄 Reset demo data", use_container_width=True):
+        ss["labeled"] = STARTER_LABELED.copy()
+        ss["incoming"] = STARTER_INCOMING.copy()
+        ss["model"] = None
+        ss["split_cache"] = None
+        ss["mail_inbox"].clear(); ss["mail_spam"].clear()
+        ss["metrics"] = {"TP": 0, "FP": 0, "TN": 0, "FN": 0}
+        ss["last_classification"] = None
+        ss["numeric_adjustments"] = {feat: 0.0 for feat in FEATURE_ORDER}
+        ss["use_batch_results"] = []
+        ss["use_audit_log"] = []
+        ss["nerd_mode_use"] = False
+        ss["use_high_autonomy"] = ss.get("autonomy", AUTONOMY_LEVELS[0]).startswith("High")
+        ss["adaptive"] = True
+        ss["use_adaptiveness"] = True
+        ss.pop("adaptive_sidebar", None)
+        ss.pop("adaptive_stage", None)
+        st.success("Reset complete.")
+
+    st.caption(
+        "Need a refresher? Use the navigation above to revisit any step without restarting your scenario."
+    )
+    st.markdown("</div>", unsafe_allow_html=True)
 
 st.title("📧 demistifAI")
 
@@ -3985,7 +4217,6 @@ STAGE_RENDERERS = {
 
 
 active_stage = ss['active_stage']
-render_stage_cards(active_stage, variant='progress')
 renderer = STAGE_RENDERERS.get(active_stage, render_intro_stage)
 renderer()
 render_stage_navigation_controls(active_stage)
