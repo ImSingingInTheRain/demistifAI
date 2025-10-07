@@ -3010,7 +3010,7 @@ def render_overview_stage():
                 </div>
             </div>
             """
-            st.markdown(outcomes_html, unsafe_allow_html=True)
+            st.markdown(components_html, unsafe_allow_html=True)
 
         with right:
             # Mission + Inbox preview side by side with the callouts
