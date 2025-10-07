@@ -2585,14 +2585,7 @@ def render_intro_stage():
                 "receives, how to generate outputs such as predictions, content, recommendations, or decisions that can "
                 "influence physical or virtual environments.”"
             )
-            if next_stage_key:
-                st.button(
-                    "🚀 Start your machine",
-                    key="hero_start_machine",
-                    type="primary",
-                    on_click=set_active_stage,
-                    args=(next_stage_key,),
-                )
+            
         with hero_right:
             hero_info_html = """
             <div class="hero-info-grid">
@@ -2610,7 +2603,16 @@ def render_intro_stage():
                         both—showing how everyday AI works in practice.
                     </p>
                 </div>
+                     if next_stage_key:
+                st.button(
+                    "🚀 Start your machine",
+                    key="hero_start_machine",
+                    type="primary",
+                    on_click=set_active_stage,
+                    args=(next_stage_key,),
+                )
             </div>
+       
             """
             st.markdown(hero_info_html, unsafe_allow_html=True)
 
