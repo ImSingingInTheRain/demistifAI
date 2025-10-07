@@ -284,6 +284,86 @@ APP_THEME_CSS = """
     color: rgba(15, 23, 42, 0.82);
 }
 
+.mission-preview-stack {
+    display: grid;
+    gap: 1.1rem;
+}
+
+.mission-card,
+.inbox-preview-card {
+    position: relative;
+    border-radius: 20px;
+    border: 1px solid rgba(37, 99, 235, 0.18);
+    padding: 1.35rem 1.5rem;
+    box-shadow: 0 22px 44px rgba(15, 23, 42, 0.12);
+}
+
+.mission-card {
+    background: linear-gradient(150deg, rgba(191, 219, 254, 0.45), rgba(59, 130, 246, 0.2));
+}
+
+.inbox-preview-card {
+    background: linear-gradient(150deg, rgba(248, 250, 252, 0.9), rgba(191, 219, 254, 0.55));
+    border-color: rgba(37, 99, 235, 0.16);
+}
+
+.mission-card::before,
+.inbox-preview-card::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    opacity: 0.45;
+    pointer-events: none;
+}
+
+.mission-header,
+.preview-header {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+}
+
+.mission-header-icon,
+.preview-header-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    border-radius: 16px;
+    background: rgba(37, 99, 235, 0.18);
+    font-size: 1.5rem;
+}
+
+.mission-header h4,
+.preview-header h4 {
+    margin: 0;
+    font-size: 1.15rem;
+}
+
+.mission-header p,
+.preview-header p {
+    margin: 0.2rem 0 0 0;
+    font-size: 0.95rem;
+    color: rgba(15, 23, 42, 0.75);
+}
+
+.mission-points {
+    margin: 1rem 0 0 0;
+    padding-left: 1.1rem;
+    font-size: 0.96rem;
+    line-height: 1.6;
+    color: rgba(15, 23, 42, 0.86);
+}
+
+.preview-note {
+    margin: 0.9rem 0 0 0;
+    font-size: 0.86rem;
+    color: rgba(15, 23, 42, 0.65);
+}
+
 .nerd-toggle-card {
     display: contents;
     grid-template-columns: minmax(0, 1fr) auto;
@@ -3013,25 +3093,50 @@ def render_overview_stage():
             st.markdown(components_html, unsafe_allow_html=True)
 
         with right:
-            # Mission + Inbox preview side by side with the callouts
-            st.markdown("#### 🎯 Your mission")
-            mission_md = (
-                "Keep spam out of your inbox. After the AI system analyzes each email, the goal is:\n\n"
-                "- **Spam** → goes to **Spam**\n"
-                "- **Safe** → lands in **Inbox**"
+            st.markdown(
+                """
+                <div class="mission-preview-stack">
+                    <div class="mission-card">
+                        <div class="mission-header">
+                            <span class="mission-header-icon">🎯</span>
+                            <div>
+                                <h4>Your mission</h4>
+                                <p>Keep unwanted email out while letting the important messages through.</p>
+                            </div>
+                        </div>
+                        <ul class="mission-points">
+                            <li>Label examples so the model understands what <strong>spam</strong> and <strong>safe</strong> mean to you.</li>
+                            <li>Dial in the decision threshold to balance caution with convenience.</li>
+                            <li>Choose how much autonomy the system should have before you press <em>Start your machine</em>.</li>
+                        </ul>
+                    </div>
+                    <div class="inbox-preview-card">
+                        <div class="preview-header">
+                            <span class="preview-header-icon">📥</span>
+                            <div>
+                                <h4>Inbox preview</h4>
+                                <p>A snapshot of the next messages waiting to be classified.</p>
+                            </div>
+                        </div>
+                """,
+                unsafe_allow_html=True,
             )
-            st.markdown(mission_md)
 
-            st.markdown("#### 📥 Your inbox (preview)")
-            st.caption(
-                "Preview only — links are inert. You’ll process emails later in **Use** with your chosen threshold and autonomy."
-            )
             if not ss["incoming"]:
                 render_email_inbox_table(pd.DataFrame(), title="Inbox", subtitle="Inbox stream is empty.")
             else:
                 df_incoming = pd.DataFrame(ss["incoming"])
                 preview = df_incoming.head(5)
                 render_email_inbox_table(preview, title="Inbox", columns=["title", "body"])
+
+            st.markdown(
+                """
+                        <p class="preview-note">Preview only — you'll process batches in <strong>Use</strong> once your system is ready.</p>
+                    </div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
 
     # --- Nerd Mode details (mirrors the 3 components; adds governance/packages/limits) ---
     if nerd_enabled:
