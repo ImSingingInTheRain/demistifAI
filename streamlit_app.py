@@ -2603,19 +2603,21 @@ def render_intro_stage():
                         both—showing how everyday AI works in practice.
                     </p>
                 </div>
-                
-               if next_stage_key:
-                st.button(
-                    "🚀 Start your machine",
-                    key="flow_start_machine",
-                    type="primary",
-                    on_click=set_active_stage,
-                    args=(next_stage_key,),
-                )
             </div>
-       
             """
             st.markdown(hero_info_html, unsafe_allow_html=True)
+
+            if next_stage_key:
+                _, button_col = st.columns([1, 1])
+                with button_col:
+                    st.button(
+                        "🚀 Start your machine",
+                        key="flow_start_machine",
+                        type="primary",
+                        on_click=set_active_stage,
+                        args=(next_stage_key,),
+                        use_container_width=True,
+                    )
 
     with section_surface():
         block2_left, block2_right = st.columns([3, 2], gap="large")
