@@ -2618,7 +2618,40 @@ def render_intro_stage():
                         args=(next_stage_key,),
                         use_container_width=True,
                     )
-
+    with section_surface():
+        cycle_col, nav_col = st.columns(2, gap="large")
+        with cycle_col:
+            st.markdown(
+                """
+                <div class="callout callout--info">
+                    <h4>Your AI system Lifecycle at a glance</h4>
+                    <p>Watch how the core stages flow into one another — it’s a continuous loop you’ll revisit.</p>
+                    <div class="lifecycle-flow">
+                        <div class="lifecycle-step">
+                            <span class="lifecycle-icon">📊</span>
+                            <span class="lifecycle-label">Prepare Data</span>
+                        </div>
+                        <span class="lifecycle-arrow">➝</span>
+                        <div class="lifecycle-step">
+                            <span class="lifecycle-icon">🧠</span>
+                            <span class="lifecycle-label">Train</span>
+                        </div>
+                        <span class="lifecycle-arrow">➝</span>
+                        <div class="lifecycle-step">
+                            <span class="lifecycle-icon">🧪</span>
+                            <span class="lifecycle-label">Evaluate</span>
+                        </div>
+                        <span class="lifecycle-arrow">➝</span>
+                        <div class="lifecycle-step">
+                            <span class="lifecycle-icon">📬</span>
+                            <span class="lifecycle-label">Use</span>
+                        </div>
+                        <span class="lifecycle-loop">↺</span>
+                    </div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
     with section_surface():
         block2_left, block2_right = st.columns([3, 2], gap="large")
         with block2_left:
