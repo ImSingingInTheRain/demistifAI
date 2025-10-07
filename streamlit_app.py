@@ -424,8 +424,8 @@ APP_THEME_CSS = """
 
 .hero-info-grid {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 0.9rem;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1.1rem;
 }
 
 .hero-info-card {
@@ -436,6 +436,7 @@ APP_THEME_CSS = """
     border: 1px solid rgba(59, 130, 246, 0.28);
     box-shadow: 0 24px 46px rgba(30, 64, 175, 0.18);
     color: #0f172a;
+    width: 100%;
 }
 
 .hero-info-card::after {
@@ -553,18 +554,6 @@ APP_THEME_CSS = """
     color: #1d4ed8;
     font-size: 1.1rem;
     box-shadow: inset 0 0 0 1px rgba(37, 99, 235, 0.22);
-}
-
-@media (max-width: 1024px) {
-    .hero-info-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-}
-
-@media (max-width: 768px) {
-    .hero-info-grid {
-        grid-template-columns: 1fr;
-    }
 }
 
 .mailbox-summary-card .summary-list {
