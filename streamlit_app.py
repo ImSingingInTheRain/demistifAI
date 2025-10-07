@@ -3010,9 +3010,6 @@ def render_overview_stage():
                 </div>
             </div>
             """
-            st.markdown(components_html, unsafe_allow_html=True)
-
-            """
             st.markdown(outcomes_html, unsafe_allow_html=True)
 
         with right:
