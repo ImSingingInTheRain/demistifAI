@@ -2896,15 +2896,14 @@ def render_intro_stage():
 
             if next_stage_key:
                 _, button_col = st.columns([1, 1])
-                with button_col:
-                    st.button(
-                        "🚀 Start your machine",
-                        key="flow_start_machine",
-                        type="primary",
-                        on_click=set_active_stage,
-                        args=(next_stage_key,),
-                        use_container_width=True,
-                    )
+                button_col.button(
+                    "🚀 Start your machine",
+                    key="flow_start_machine",
+                    type="primary",
+                    on_click=set_active_stage,
+                    args=(next_stage_key,),
+                    use_container_width=True,
+                )
     with section_surface():
         st.markdown(
             """
