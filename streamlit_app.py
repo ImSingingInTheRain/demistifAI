@@ -2720,17 +2720,14 @@ def render_overview_stage():
                 """,
                 unsafe_allow_html=True,
             )
-            st.markdown(
-                "At every stage of the process you can activate a **Nerd Mode** to learn more and get access to additional functionalities. "
-                "Try this out below to know more about the machine-based system you will be working with."
-            )
 
     with section_surface():
         nerd_enabled = render_nerd_mode_toggle(
             key="nerd_mode",
             title="Nerd Mode",
             icon="🧠",
-            description="Flip to know more about this machine-based system.",
+            description="At every stage you can activate a **Nerd Mode** to learn more and get access to additional functionalities."
+                "Toggle the switch on the right to know more about your machine."",
         )
     if nerd_enabled:
         with section_surface():
