@@ -502,6 +502,59 @@ APP_THEME_CSS = """
     box-shadow: inset 0 0 0 1px rgba(37, 99, 235, 0.28);
 }
 
+.lifecycle-flow {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+    padding: 0.85rem 1rem;
+    margin-top: 0.85rem;
+    border-radius: 999px;
+    background: linear-gradient(120deg, rgba(191, 219, 254, 0.65), rgba(147, 197, 253, 0.35));
+    box-shadow: inset 0 0 0 1px rgba(59, 130, 246, 0.22);
+}
+
+.lifecycle-step {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.35rem 0.75rem;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.85);
+    box-shadow: 0 12px 28px rgba(30, 64, 175, 0.18);
+    color: #1d4ed8;
+    font-weight: 600;
+    font-size: 0.95rem;
+}
+
+.lifecycle-step .lifecycle-icon {
+    font-size: 1.1rem;
+}
+
+.lifecycle-step .lifecycle-label {
+    color: #0f172a;
+    font-weight: 600;
+}
+
+.lifecycle-arrow {
+    font-size: 1.15rem;
+    color: rgba(15, 23, 42, 0.7);
+}
+
+.lifecycle-loop {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: rgba(30, 64, 175, 0.12);
+    color: #1d4ed8;
+    font-size: 1.1rem;
+    box-shadow: inset 0 0 0 1px rgba(37, 99, 235, 0.22);
+}
+
 @media (max-width: 1024px) {
     .hero-info-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -2698,7 +2751,28 @@ def render_overview_stage():
                 <div class="callout callout--info">
                     <h4>Your AI system Lifecycle at a glance</h4>
                     <p>Watch how the core stages flow into one another — it’s a continuous loop you’ll revisit.</p>
-                    <p><strong>📊Prepare Data ➝ 🧠Train ➝ 🧪Evaluate ➝ 📬Use ↺</strong></p>
+                    <div class="lifecycle-flow">
+                        <div class="lifecycle-step">
+                            <span class="lifecycle-icon">📊</span>
+                            <span class="lifecycle-label">Prepare Data</span>
+                        </div>
+                        <span class="lifecycle-arrow">➝</span>
+                        <div class="lifecycle-step">
+                            <span class="lifecycle-icon">🧠</span>
+                            <span class="lifecycle-label">Train</span>
+                        </div>
+                        <span class="lifecycle-arrow">➝</span>
+                        <div class="lifecycle-step">
+                            <span class="lifecycle-icon">🧪</span>
+                            <span class="lifecycle-label">Evaluate</span>
+                        </div>
+                        <span class="lifecycle-arrow">➝</span>
+                        <div class="lifecycle-step">
+                            <span class="lifecycle-icon">📬</span>
+                            <span class="lifecycle-label">Use</span>
+                        </div>
+                        <span class="lifecycle-loop">↺</span>
+                    </div>
                 </div>
                 """,
                 unsafe_allow_html=True,
