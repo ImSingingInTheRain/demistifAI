@@ -234,7 +234,7 @@ APP_THEME_CSS = """
     grid-template-columns: minmax(0, 1fr) auto;
     align-items: center;
     gap: 1.1rem;
-    padding: 1.1rem 1.4rem;
+    padding: 1.1rem 1.1rem;
     border-radius: 18px;
     border: 1px solid rgba(59, 130, 246, 0.28);
     background: linear-gradient(150deg, rgba(37, 99, 235, 0.12), rgba(191, 219, 254, 0.22));
