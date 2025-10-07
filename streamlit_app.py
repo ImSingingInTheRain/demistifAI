@@ -2379,10 +2379,15 @@ def render_intro_stage():
             )
             st.markdown("#### The EU AI Act definition of AI system")
             st.markdown(
-                "“a machine-based system that is designed to operate with varying levels of autonomy and that may exhibit "
-                "adaptiveness after deployment, and that, for explicit or implicit objectives, infers, from the input it "
-                "receives, how to generate outputs such as predictions, content, recommendations, or decisions that can "
-                "influence physical or virtual environments.”"
+                """
+                <span class="ai-quote-box_source">
+                “a machine-based system that is designed to operate with varying levels of autonomy and that may exhibit
+                adaptiveness after deployment, and that, for explicit or implicit objectives, infers, from the input it
+                receives, how to generate outputs such as predictions, content, recommendations, or decisions that can
+                influence physical or virtual environments.”
+                </span>
+                """,
+                unsafe_allow_html=True,
             )
             if next_stage_key:
                 st.button(
