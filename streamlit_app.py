@@ -2955,52 +2955,62 @@ def render_intro_stage():
 
 
 def render_overview_stage():
-
+    # --- Intro: EU AI Act quote + context card ---
     with section_surface():
         intro_left, intro_right = st.columns(2, gap="large")
         with intro_left:
-            render_eu_ai_quote("The EU AI Act says that “An AI system is a machine based system”.")
+            # Fix grammar: machine-based
+            render_eu_ai_quote(
+                "The EU AI Act says that “An AI system is a machine-based system”."
+            )
         with intro_right:
             st.markdown(
                 """
                 <div class="callout callout--info">
                     <h4>🧭 Start your machine</h4>
-                    <p>Right now, you are within a machine-based system, made of software and hardware.</p>
-                    <p>To make this experience intuitive and formative, you will navigate through a user interface that will allow you to build and use an AI System.</p>
+                    <p>You are already inside a <strong>machine-based system</strong>: the Streamlit UI (software) running in the cloud (hardware).</p>
+                    <p>Use this simple interface to <strong>build, evaluate, and operate</strong> a small email spam detector.</p>
                 </div>
                 """,
                 unsafe_allow_html=True,
             )
 
+    # --- Nerd Mode toggle (copy kept, text refined slightly) ---
     with section_surface():
         nerd_enabled = render_nerd_mode_toggle(
             key="nerd_mode",
             title="Nerd Mode",
             icon="🧠",
-            description="At every stage you can activate a Nerd Mode to learn more and get access to additional functionalities.Toggle the switch on the right to know more about your machine.",
+            description="Toggle to see technical details and extra functionality. You can enable it at any stage to look under the hood.",
         )
-    if nerd_enabled:
-        with section_surface():
-            st.markdown("### Nerd Mode — technical details")
-            st.markdown(
-                "- **Architecture:** Streamlit app (Python) on Streamlit Cloud (CPU runtime).\n"
-                "- **Model(s):** sentence embeddings (MiniLM) + Logistic Regression; optional hybrid numeric features (external links, suspicious TLDs, CAPS, punctuation bursts, money symbols, urgency terms).\n"
-                "- **Packages:** `streamlit`, `scikit-learn`, `pandas`, `numpy`, optionally `sentence-transformers`, `torch`, `transformers`, and `matplotlib`.\n"
-                "- **Data flow:** Title + body → embeddings (+ standardized numeric features) → linear classifier → probability **P(spam)** → autonomy recommendation/auto-routing.\n"
-                "- **Reproducibility & caching:** random seed for splits; cached encoder; session-scoped data/models.\n"
-            )
 
+    # --- Meet the machine (left) + Mission & Inbox preview (right) ---
     with section_surface():
-        mission_left, mission_right = st.columns([3, 2], gap="large")
-        with mission_left:
-            mission_html = """
-            <div class="callout callout--mission">
-                <h4>Your mission</h4>
-                <p>Keep spam out of your inbox by walking through hands-on stages that tie governance concepts to practical ML workflows.</p>
+        left, right = st.columns([3, 2], gap="large")
+
+        with left:
+            st.markdown("### Meet the machine")
+
+            # 3 callouts: User interface, AI model, Inbox interface
+            components_html = """
+            <div class="callout-grid">
+                <div class="callout callout--info">
+                    <h5>🖥️ User interface</h5>
+                    <p>The control panel for your AI system. Step through <strong>Prepare data</strong>, <strong>Train</strong>, <strong>Evaluate</strong>, and <strong>Use</strong>. Tooltips and short explainers guide you; <em>Nerd Mode</em> reveals more.</p>
+                </div>
+                <div class="callout callout--info">
+                    <h5>🧠 AI model (how it learns & infers)</h5>
+                    <p>The model learns from <strong>labeled examples</strong> you provide to tell <strong>Spam</strong> from <strong>Safe</strong>. For each new email it produces a <strong>spam score</strong> (P(spam)); your <strong>threshold</strong> turns that score into a recommendation or decision.</p>
+                </div>
+                <div class="callout callout--info">
+                    <h5>📥 Inbox interface</h5>
+                    <p>A simulated inbox feeds emails into the system. Preview items, process a batch or review one by one, and optionally enable <strong>adaptiveness</strong> so your confirmations/corrections help the model improve.</p>
+                </div>
             </div>
             """
-            st.markdown(mission_html, unsafe_allow_html=True)
+            st.markdown(components_html, unsafe_allow_html=True)
 
+            # Outcomes remain; keep your existing markup for consistency
             st.markdown("#### By the end you’ll have:")
 
             outcomes_html = """
@@ -3029,11 +3039,20 @@ def render_overview_stage():
             </div>
             """
             st.markdown(outcomes_html, unsafe_allow_html=True)
-        with mission_right:
-            st.markdown("#### 📥 Your inbox")
-            st.markdown(
-                "This is a preview of your inbox. At the end of this experience your AI system will be able to predict if your "
-                "incoming emails are safe or spam."
+
+        with right:
+            # Mission + Inbox preview side by side with the callouts
+            st.markdown("#### 🎯 Your mission")
+            mission_md = (
+                "Keep spam out of your inbox. After the AI system analyzes each email, the goal is:\n\n"
+                "- **Spam** → goes to **Spam**\n"
+                "- **Safe** → lands in **Inbox**"
+            )
+            st.markdown(mission_md)
+
+            st.markdown("#### 📥 Your inbox (preview)")
+            st.caption(
+                "Preview only — links are inert. You’ll process emails later in **Use** with your chosen threshold and autonomy."
             )
             if not ss["incoming"]:
                 render_email_inbox_table(pd.DataFrame(), title="Inbox", subtitle="Inbox stream is empty.")
@@ -3041,6 +3060,54 @@ def render_overview_stage():
                 df_incoming = pd.DataFrame(ss["incoming"])
                 preview = df_incoming.head(5)
                 render_email_inbox_table(preview, title="Inbox", columns=["title", "body"])
+
+    # --- Nerd Mode details (mirrors the 3 components; adds governance/packages/limits) ---
+    if nerd_enabled:
+        with section_surface():
+            st.markdown("### 🔬 Nerd Mode — technical details")
+
+            st.markdown("**User interface (software & runtime)**")
+            st.markdown(
+                "- Streamlit UI + Python backend running on **Streamlit Cloud (CPU)**\n"
+                "- State & caching: `st.session_state` for datasets/model/threshold/autonomy; "
+                "`st.cache_resource` for the encoder; `st.cache_data` for embeddings/splits\n"
+                "- Guidance patterns: popovers/expanders for definitions (EU AI Act terms), small inline tooltips"
+            )
+
+            st.markdown("**AI model (under the hood)**")
+            st.markdown(
+                "- Architecture: sentence embeddings (e.g., `all-MiniLM-L6-v2`) → **Logistic Regression**\n"
+                "- Optional hybrid: concatenate a few **interpretable numeric features** (links, suspicious TLDs, ALL-CAPS ratio, punctuation bursts, money symbols, urgency terms)\n"
+                "- Training: stratified hold-out split (e.g., 70/30) with a **random seed**; class weighting for imbalance\n"
+                "- Inference: outputs P(spam); **threshold** chosen in **Evaluate** (presets: max F1, precision≥95%, recall≥90%)\n"
+                "- Interpretability: nearest neighbors/prototypes for embeddings, or numeric-feature weights"
+            )
+
+            st.markdown("**Inbox interface (data plumbing)**")
+            st.markdown(
+                "- Data: `ss['incoming']` (unlabeled), `ss['labeled']` (training), `ss['mail_inbox']` & `ss['mail_spam']` (routed results)\n"
+                "- Batch: process the first N (e.g., 10) items\n"
+                "- Autonomy: moderate (recommendations) vs high (auto-routing)\n"
+                "- Adaptiveness: when ON, confirmations/corrections append to `ss['labeled']`; optional “Retrain now”"
+            )
+
+            st.markdown("**Governance & transparency**")
+            st.markdown(
+                "- Model card records: purpose, data summary, metrics, threshold, autonomy, adaptiveness, seed, timestamps\n"
+                "- Risk view: track **false positives** (legit→Spam) vs **false negatives** (Spam→Inbox) and how threshold affects each\n"
+                "- Optional session audit log: batch actions, corrections, retrains"
+            )
+
+            st.markdown("**Packages**")
+            st.markdown(
+                "`streamlit`, `pandas`, `numpy`, `scikit-learn`, optional `sentence-transformers`, `torch`, `transformers`, `matplotlib`"
+            )
+
+            st.markdown("**Limits (demo scope)**")
+            st.markdown(
+                "- Synthetic/curated text; no live mail access\n"
+                "- Educational clarity over production security"
+            )
 
 
 def render_data_stage():
