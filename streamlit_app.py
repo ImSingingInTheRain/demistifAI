@@ -2621,7 +2621,7 @@ def render_intro_stage():
     with section_surface():
             st.markdown(
                 """
-                <div class="callout callout--info">
+                <div>
                     <h4>Your AI system Lifecycle at a glance</h4>
                     <p>Watch how the core stages flow into one another — it’s a continuous loop you’ll revisit.</p>
                     <div class="lifecycle-flow">
