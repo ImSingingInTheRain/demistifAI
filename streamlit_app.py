@@ -2617,7 +2617,6 @@ def render_intro_stage():
             """
             st.markdown(outcomes_html, unsafe_allow_html=True)
         with block2_right:
-            <div class="callout callout--mission">
             st.markdown("#### 📥 Your inbox")
             st.markdown(
                 "This is a preview of your inbox. At the end of this experience your AI system will be able to predict if your "
@@ -2629,8 +2628,7 @@ def render_intro_stage():
                 df_incoming = pd.DataFrame(ss["incoming"])
                 preview = df_incoming.head(5)
                 render_email_inbox_table(preview, title="Inbox", columns=["title", "body"])
-                   </div>
-
+            
     with section_surface():
         ready_left, ready_right = st.columns([3, 2], gap="large")
         with ready_left:
