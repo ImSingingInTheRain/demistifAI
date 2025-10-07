@@ -2895,15 +2895,15 @@ def render_intro_stage():
             st.markdown(hero_info_html, unsafe_allow_html=True)
 
             if next_stage_key:
-                _, button_col = st.columns([1, 1])
-                button_col.button(
+                 st.button(
                     "🚀 Start your machine",
-                    key="flow_start_machine_hero",
+                    key="flow_start_machine_ready",
                     type="primary",
                     on_click=set_active_stage,
                     args=(next_stage_key,),
-                    use_container_width=True,
+                    use_container_width=True
                 )
+               
     with section_surface():
         st.markdown(
             """
