@@ -487,6 +487,7 @@ APP_THEME_CSS = """
     position: relative;
     border-radius: 20px;
     padding: 1.15rem 1.35rem 1.25rem;
+    margin-bottom: 20px;
     background: linear-gradient(160deg, rgba(191, 219, 254, 0.85), rgba(147, 197, 253, 0.65));
     border: 1px solid rgba(59, 130, 246, 0.28);
     box-shadow: 0 24px 46px rgba(30, 64, 175, 0.18);
