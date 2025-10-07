@@ -189,6 +189,11 @@ APP_THEME_CSS = """
     border-color: rgba(37, 99, 235, 0.3);
 }
 
+.callout--info {
+    background: linear-gradient(150deg, rgba(191, 219, 254, 0.35), rgba(219, 234, 254, 0.65));
+    border-color: rgba(37, 99, 235, 0.25);
+}
+
 .callout-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -2647,22 +2652,33 @@ def render_intro_stage():
 
 def render_overview_stage():
 
-    stage = STAGE_BY_KEY["overview"]
+    with section_surface():
+        intro_left, intro_right = st.columns(2, gap="large")
+        with intro_left:
+            render_eu_ai_quote("The EU AI Act says that “An AI system is a machine based system”.")
+        with intro_right:
+            st.markdown(
+                """
+                <div class="callout callout--info">
+                    <h4>🧭 Start your machine</h4>
+                    <p>Right now, you are within a machine-based system, made of software and hardware.</p>
+                    <p>To make this experience intuitive and formative, you will navigate through a user interface that will allow you to build and use an AI System.</p>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+            st.markdown(
+                "At every stage of the process you can activate a **Nerd Mode** to learn more and get access to additional functionalities. "
+                "Try this out below to know more about the machine-based system you will be working with."
+            )
 
     with section_surface():
-        render_eu_ai_quote("The EU AI Act says that “An AI system is a machine based system”.")
-        st.subheader(f"{stage.icon} {stage.title}")
-        st.write(
-            "Right now, you are within a machine-based system, made of software and hardware.\n\n"
-            "To make this experience intuitive and formative, you will navigate through a user interface that will allow you to build and use an AI System.\n\n"
-            "The full legal definition lives in the sidebar; keep it in mind as you explore each stage."
+        nerd_enabled = render_nerd_mode_toggle(
+            key="nerd_mode",
+            title="Nerd Mode",
+            icon="🧠",
+            description="Flip to know more about this machine-based system.",
         )
-
-    nerd_enabled = render_nerd_mode_toggle(
-        key="nerd_mode",
-        title="Nerd Mode",
-        description="Flip for architecture, packages, and data flow details.",
-    )
     if nerd_enabled:
         with section_surface():
             st.markdown("### Nerd Mode — technical details")
@@ -2675,31 +2691,31 @@ def render_overview_stage():
             )
 
     with section_surface():
-        cycle_col, nav_col = st.columns([3, 2], gap="large")
+        cycle_col, nav_col = st.columns(2, gap="large")
         with cycle_col:
-            st.markdown("### Lifecycle at a glance")
-            st.caption("Watch how the core stages flow into one another — it’s a continuous loop you’ll revisit.")
-            render_lifecycle_cycle(ss["active_stage"])
-        with nav_col:
-            st.markdown("### Navigation tips")
             st.markdown(
-                "- Use the **Back** and **Next** buttons below to move sequentially without scrolling.\n"
-                "- Prefer a quick jump? Pick a stage from the selector right here.\n"
-                "- Toggle **Nerd Mode** any time for deeper technical context."
+                """
+                <div class="callout callout--info">
+                    <h4>Your AI system Lifecycle at a glance</h4>
+                    <p>Watch how the core stages flow into one another — it’s a continuous loop you’ll revisit.</p>
+                    <p><strong>📊Prepare Data ➝ 🧠Train ➝ 🧪Evaluate ➝ 📬Use ↺</strong></p>
+                </div>
+                """,
+                unsafe_allow_html=True,
             )
-
-            jump_labels = [f"{stage.icon} {stage.title}" for stage in STAGES]
-            current_index = STAGE_INDEX.get(ss["active_stage"], 0)
-            chosen = st.selectbox(
-                "Jump to a stage",
-                jump_labels,
-                index=current_index,
-                key="stage_jump_select",
-                label_visibility="collapsed",
+        with nav_col:
+            st.markdown(
+                """
+                <div class="callout callout--info">
+                    <h4>Navigation tips</h4>
+                    <ul>
+                        <li>Use the <strong>Back</strong> and <strong>Next</strong> buttons below to move through different stages.</li>
+                        <li>Toggle <strong>Nerd Mode</strong> any time for deeper technical context.</li>
+                    </ul>
+                </div>
+                """,
+                unsafe_allow_html=True,
             )
-            chosen_stage = STAGES[jump_labels.index(chosen)]
-            if chosen_stage.key != ss["active_stage"]:
-                set_active_stage(chosen_stage.key)
 
 
 def render_data_stage():
