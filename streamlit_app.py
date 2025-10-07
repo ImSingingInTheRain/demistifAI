@@ -161,6 +161,61 @@ APP_THEME_CSS = """
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
 }
 
+
+.section-surface--hero [data-testid="column"]:nth-child(2) > div:first-of-type {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.section-surface--hero [data-testid="column"]:nth-child(2) > div:first-of-type > div[data-testid="stVerticalBlock"] {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.6rem;
+    width: 100%;
+}
+
+.section-surface--hero [data-testid="column"]:nth-child(2) > div:first-of-type > div[data-testid="stVerticalBlock"] > div {
+    width: 100%;
+}
+
+.section-surface--hero [data-testid="column"]:nth-child(2) > div:first-of-type > div[data-testid="stVerticalBlock"] > div[data-testid="stButton"] {
+    display: flex;
+    justify-content: center;
+}
+
+.section-surface--hero [data-testid="column"]:nth-child(2) > div:first-of-type > div[data-testid="stVerticalBlock"] > div[data-testid="stButton"] > button {
+    width: 100%;
+    max-width: 260px;
+}
+
+.section-surface--hero [data-testid="column"]:nth-child(2) .hero-info-grid {
+    width: 100%;
+    justify-items: center;
+    gap: 1.6rem;
+}
+
+.section-surface--hero [data-testid="column"]:nth-child(2) .hero-info-card {
+    text-align: center;
+    margin: 0 auto;
+    max-width: 360px;
+}
+
+.section-surface--hero [data-testid="column"]:nth-child(2) .hero-info-card h3,
+.section-surface--hero [data-testid="column"]:nth-child(2) .hero-info-card p {
+    text-align: center;
+}
+
+.section-surface--hero [data-testid="column"]:nth-child(2) [data-testid="stButton"] {
+    width: 100%;
+}
+
+.section-surface--hero [data-testid="column"]:nth-child(2) [data-testid="stButton"] > button {
+    max-width: 260px;
+    margin: 0 auto;
+}
+
 .callout {
     position: relative;
     border-radius: 18px;
@@ -2608,16 +2663,14 @@ def render_intro_stage():
             st.markdown(hero_info_html, unsafe_allow_html=True)
 
             if next_stage_key:
-                _, button_col = st.columns([1, 1])
-                with button_col:
-                    st.button(
-                        "🚀 Start your machine",
-                        key="flow_start_machine",
-                        type="primary",
-                        on_click=set_active_stage,
-                        args=(next_stage_key,),
-                        use_container_width=True,
-                    )
+                st.button(
+                    "🚀 Start your machine",
+                    key="flow_start_machine",
+                    type="primary",
+                    on_click=set_active_stage,
+                    args=(next_stage_key,),
+                    use_container_width=True,
+                )
 
     with section_surface():
         block2_left, block2_right = st.columns([3, 2], gap="large")
