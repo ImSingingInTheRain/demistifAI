@@ -3038,48 +3038,101 @@ def render_overview_stage():
         with section_surface():
             st.markdown("### 🔬 Nerd Mode — technical details")
 
-            st.markdown("**User interface (software & runtime)**")
-            st.markdown(
-                "- Streamlit UI + Python backend running on **Streamlit Cloud (CPU)**\n"
-                "- State & caching: `st.session_state` for datasets/model/threshold/autonomy; "
-                "`st.cache_resource` for the encoder; `st.cache_data` for embeddings/splits\n"
-                "- Guidance patterns: popovers/expanders for definitions (EU AI Act terms), small inline tooltips"
-            )
-
-            st.markdown("**AI model (under the hood)**")
-            st.markdown(
-                "- Architecture: sentence embeddings (e.g., `all-MiniLM-L6-v2`) → **Logistic Regression**\n"
-                "- Optional hybrid: concatenate a few **interpretable numeric features** (links, suspicious TLDs, ALL-CAPS ratio, punctuation bursts, money symbols, urgency terms)\n"
-                "- Training: stratified hold-out split (e.g., 70/30) with a **random seed**; class weighting for imbalance\n"
-                "- Inference: outputs P(spam); **threshold** chosen in **Evaluate** (presets: max F1, precision≥95%, recall≥90%)\n"
-                "- Interpretability: nearest neighbors/prototypes for embeddings, or numeric-feature weights"
-            )
-
-            st.markdown("**Inbox interface (data plumbing)**")
-            st.markdown(
-                "- Data: `ss['incoming']` (unlabeled), `ss['labeled']` (training), `ss['mail_inbox']` & `ss['mail_spam']` (routed results)\n"
-                "- Batch: process the first N (e.g., 10) items\n"
-                "- Autonomy: moderate (recommendations) vs high (auto-routing)\n"
-                "- Adaptiveness: when ON, confirmations/corrections append to `ss['labeled']`; optional “Retrain now”"
-            )
-
-            st.markdown("**Governance & transparency**")
-            st.markdown(
-                "- Model card records: purpose, data summary, metrics, threshold, autonomy, adaptiveness, seed, timestamps\n"
-                "- Risk view: track **false positives** (legit→Spam) vs **false negatives** (Spam→Inbox) and how threshold affects each\n"
-                "- Optional session audit log: batch actions, corrections, retrains"
-            )
-
-            st.markdown("**Packages**")
-            st.markdown(
-                "`streamlit`, `pandas`, `numpy`, `scikit-learn`, optional `sentence-transformers`, `torch`, `transformers`, `matplotlib`"
-            )
-
-            st.markdown("**Limits (demo scope)**")
-            st.markdown(
-                "- Synthetic/curated text; no live mail access\n"
-                "- Educational clarity over production security"
-            )
+            nerd_details_html = """
+            <div class="callout-grid">
+                <div class="callout callout--info callout--outcome">
+                    <div class="callout-icon">🖥️</div>
+                    <div class="callout-body">
+                        <h5>User interface (software &amp; runtime)</h5>
+                        <ul>
+                            <li>You’re using a simple Streamlit (Python) web app running in the cloud.</li>
+                            <li>The app remembers your session choices — data, model, threshold, autonomy — so you can move around without losing progress.</li>
+                            <li>Short tips and popovers appear where helpful; toggle <em>Nerd Mode</em> any time to dive deeper.</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="callout callout--info callout--outcome">
+                    <div class="callout-icon">🧠</div>
+                    <div class="callout-body">
+                        <h5>AI model (how it works, without the math)</h5>
+                        <ul>
+                            <li><strong>What’s inside:</strong>
+                                <ul>
+                                    <li>A MiniLM sentence-transformer turns each email’s title + body into meaning-rich numbers.</li>
+                                    <li>A Logistic Regression layer draws the boundary between Spam and Safe.</li>
+                                </ul>
+                            </li>
+                            <li><strong>How it learns (training):</strong>
+                                <ul>
+                                    <li>You supply labeled examples (Spam/Safe).</li>
+                                    <li>The app trains on most of them and holds out a slice for fair evaluation later.</li>
+                                    <li>Training is repeatable via a fixed random seed; class weights rebalance skewed datasets.</li>
+                                </ul>
+                            </li>
+                            <li><strong>How it predicts (inference):</strong>
+                                <ul>
+                                    <li>For a new email, the model outputs a spam score between 0 and 1.</li>
+                                    <li>A threshold converts that score into action: below = Safe, above = Spam.</li>
+                                    <li>In <em>Evaluate</em>, tune the threshold with presets such as Balanced, Protect inbox, or Catch spam.</li>
+                                </ul>
+                            </li>
+                            <li><strong>Why it decided that (interpretability):</strong>
+                                <ul>
+                                    <li>View similar training emails and simple clues (urgent tone, suspicious links, ALL-CAPS bursts).</li>
+                                    <li>Enable numeric signals to see which features nudged the call toward Spam or Safe.</li>
+                                </ul>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="callout callout--info callout--outcome">
+                    <div class="callout-icon">📥</div>
+                    <div class="callout-body">
+                        <h5>Inbox interface (your data in and out)</h5>
+                        <ul>
+                            <li>The app manages incoming (unlabeled) emails, labeled training emails, and the routed Inbox/Spam buckets.</li>
+                            <li>Process emails in small batches (e.g., the first 10) or handle them one by one.</li>
+                            <li><strong>Autonomy levels:</strong>
+                                <ul>
+                                    <li>Moderate (default): the system recommends a route; you decide.</li>
+                                    <li>High autonomy: the system routes automatically using your chosen threshold.</li>
+                                </ul>
+                            </li>
+                            <li><strong>Adaptiveness (optional):</strong> confirm or correct outcomes to add feedback, then retrain to personalize the model.</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="callout callout--info callout--outcome">
+                    <div class="callout-icon">🛡️</div>
+                    <div class="callout-body">
+                        <h5>Governance &amp; transparency</h5>
+                        <ul>
+                            <li>A model card records purpose, data summary, metrics, chosen threshold, autonomy, adaptiveness, seed, and timestamps.</li>
+                            <li>We track risks: false positives (legit to Spam) and false negatives (Spam to Inbox).</li>
+                            <li>An optional audit log lists batch actions, corrections, and retraining events for the session.</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="callout callout--info callout--outcome">
+                    <div class="callout-icon">🧩</div>
+                    <div class="callout-body">
+                        <h5>Packages (what powers this)</h5>
+                        <p>streamlit (UI), pandas/numpy (data), scikit-learn (training &amp; evaluation), optional sentence-transformers + torch/transformers (embeddings), matplotlib (plots)</p>
+                    </div>
+                </div>
+                <div class="callout callout--info callout--outcome">
+                    <div class="callout-icon">📏</div>
+                    <div class="callout-body">
+                        <h5>Limits (demo scope)</h5>
+                        <ul>
+                            <li>Uses synthetic or curated text — there’s no live mailbox connection.</li>
+                            <li>Designed for learning clarity rather than production-grade email security.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            """
+            st.markdown(nerd_details_html, unsafe_allow_html=True)
 
 
 def render_data_stage():
