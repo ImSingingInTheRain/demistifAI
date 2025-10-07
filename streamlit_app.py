@@ -2603,10 +2603,11 @@ def render_intro_stage():
                         both—showing how everyday AI works in practice.
                     </p>
                 </div>
-                     if next_stage_key:
+                
+               if next_stage_key:
                 st.button(
                     "🚀 Start your machine",
-                    key="hero_start_machine",
+                    key="flow_start_machine",
                     type="primary",
                     on_click=set_active_stage,
                     args=(next_stage_key,),
