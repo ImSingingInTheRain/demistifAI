@@ -2619,8 +2619,6 @@ def render_intro_stage():
                         use_container_width=True,
                     )
     with section_surface():
-        cycle_col, nav_col = st.columns(2, gap="large")
-        with cycle_col:
             st.markdown(
                 """
                 <div class="callout callout--info">
@@ -2648,19 +2646,6 @@ def render_intro_stage():
                         </div>
                         <span class="lifecycle-loop">↺</span>
                     </div>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
-        with nav_col:
-            st.markdown(
-                """
-                <div class="callout callout--info">
-                    <h4>Navigation tips</h4>
-                    <ul>
-                        <li>Use the <strong>Back</strong> and <strong>Next</strong> buttons below to move through different stages.</li>
-                        <li>Toggle <strong>Nerd Mode</strong> any time for deeper technical context.</li>
-                    </ul>
                 </div>
                 """,
                 unsafe_allow_html=True,
