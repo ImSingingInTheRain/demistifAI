@@ -2663,14 +2663,49 @@ def render_intro_stage():
             st.markdown(hero_info_html, unsafe_allow_html=True)
 
             if next_stage_key:
-                st.button(
-                    "🚀 Start your machine",
-                    key="flow_start_machine",
-                    type="primary",
-                    on_click=set_active_stage,
-                    args=(next_stage_key,),
-                    use_container_width=True,
-                )
+                _, button_col = st.columns([1, 1])
+                with button_col:
+                    st.button(
+                        "🚀 Start your machine",
+                        key="flow_start_machine",
+                        type="primary",
+                        on_click=set_active_stage,
+                        args=(next_stage_key,),
+                        use_container_width=True,
+                    )
+    with section_surface():
+            st.markdown(
+                """
+                <div>
+                    <h4>Your AI system lifecycle at a glance</h4>
+                    <p>These are the core stages you will navigate. They flow into one another — it’s a continuous loop you can revisit.</p>
+                    <div class="lifecycle-flow">
+                        <div class="lifecycle-step">
+                            <span class="lifecycle-icon">📊</span>
+                            <span class="lifecycle-label">Prepare Data</span>
+                        </div>
+                        <span class="lifecycle-arrow">➝</span>
+                        <div class="lifecycle-step">
+                            <span class="lifecycle-icon">🧠</span>
+                            <span class="lifecycle-label">Train</span>
+                        </div>
+                        <span class="lifecycle-arrow">➝</span>
+                        <div class="lifecycle-step">
+                            <span class="lifecycle-icon">🧪</span>
+                            <span class="lifecycle-label">Evaluate</span>
+                        </div>
+                        <span class="lifecycle-arrow">➝</span>
+                        <div class="lifecycle-step">
+                            <span class="lifecycle-icon">📬</span>
+                            <span class="lifecycle-label">Use</span>
+                        </div>
+                        <span class="lifecycle-loop">↺</span>
+                    </div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+
 
     with section_surface():
         block2_left, block2_right = st.columns([3, 2], gap="large")
