@@ -362,7 +362,7 @@ APP_THEME_CSS = """
 [data-testid="stSidebar"] h2,
 [data-testid="stSidebar"] h3,
 [data-testid="stSidebar"] p {
-    color: rgb(49, 51, 63);
+    color: #0f172a;
 }
 
 [data-testid="stSidebar"]::-webkit-scrollbar-thumb {
