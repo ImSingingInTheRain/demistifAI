@@ -2660,7 +2660,7 @@ def render_intro_stage():
                 </div>
             </div>
             """
-            st.markdown(hero_info_html, unsafe_allow_html=True)
+            st.markdown
 
             if next_stage_key:
                 _, button_col = st.columns([1, 1])
