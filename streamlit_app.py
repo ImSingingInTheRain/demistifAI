@@ -2365,23 +2365,24 @@ def render_intro_stage():
     with section_surface("section-surface--hero"):
         hero_left, hero_right = st.columns([3, 2], gap="large")
         with hero_left:
-            st.subheader("Welcome to DemistifAI! 🎉")
-            st.write(
-                "DemistifAI is a guided EU AI Act lab where you will build, evaluate, and operate a spam "
-                "detector while connecting each step to the legal definition of an AI system."
+            st.subheader("Welcome to demistifAI! 🎉")
+            st.markdown(
+                "demistifAI is an interactive experience where you will build, evaluate, and operate an AI system—"
+                "applying key concepts from the EU AI Act."
             )
             st.markdown(
-                "Along the way you will see how a **machine-based system** comes together, how the model learns "
-                "its **objective** from labeled examples, how different **autonomy modes** influence the inbox, "
-                "and how optional **adaptiveness** feeds user feedback back into training."
+                "Along the way you’ll see:\n"
+                "- how an AI system works end-to-end,\n"
+                "- how it infers using AI models,\n"
+                "- how models learn from data to achieve an explicit objective,\n"
+                "- how autonomy levels affect you as a user, and how optional adaptiveness feeds your feedback back into training."
             )
+            st.markdown("#### The EU AI Act definition of AI system")
             st.markdown(
-                "Your mission is to keep spam out of the inbox by walking through seven hands-on stages that tie "
-                "governance concepts to practical machine learning workflows."
-            )
-            st.markdown(
-                "By the end of the experience you will have a working AI email spam detector, an audit-ready model "
-                "card, and a clearer understanding of the EU AI Act terminology in action."
+                "“a machine-based system that is designed to operate with varying levels of autonomy and that may exhibit "
+                "adaptiveness after deployment, and that, for explicit or implicit objectives, infers, from the input it "
+                "receives, how to generate outputs such as predictions, content, recommendations, or decisions that can "
+                "influence physical or virtual environments.”"
             )
             if next_stage_key:
                 st.button(
@@ -2392,51 +2393,52 @@ def render_intro_stage():
                     args=(next_stage_key,),
                 )
         with hero_right:
+            st.markdown("### What you’ll do")
             st.markdown(
-                """
-                <div class="info-metric-grid">
-                    <div class="info-metric-card">
-                        <div class="label">Stage tour</div>
-                        <div class="value">7 chapters from mission briefing to model card, covering data prep, training, evaluation, and use.</div>
-                    </div>
-                    <div class="info-metric-card">
-                        <div class="label">Key capabilities</div>
-                        <div class="value">Understands message wording and simple patterns, lets you set how strict the filter is, offers manual or automatic handling, and keeps improving with your feedback.</div>
-                    </div>
-                    <div class="info-metric-card">
-                        <div class="label">Why it matters</div>
-                        <div class="value">See EU AI Act concepts—system, objectives, outputs, autonomy, adaptiveness—applied to a real spam detector.</div>
-                    </div>
-                </div>
-                """,
-                unsafe_allow_html=True,
+                "Build an email spam detector that identifies patterns in messages. You’ll set how strict the filter is "
+                "(threshold), choose the autonomy level, and optionally enable adaptiveness to learn from your feedback."
+            )
+            st.markdown("### Guided system lifecycle")
+            st.markdown("1) Start your machine → 2) Prepare data → 3) Train → 4) Evaluate → 5) Use")
+            st.markdown("### Why demistifAI")
+            st.markdown(
+                "AI systems are often seen as black boxes, and the EU AI Act can feel too abstract. This experience demystifies "
+                "both—showing how everyday AI works in practice."
             )
 
     with section_surface():
-        inbox_col, tips_col = st.columns([3, 2], gap="large")
-        with inbox_col:
-            st.markdown("### 📥 Your inbox")
+        block2_left, block2_right = st.columns([3, 2], gap="large")
+        with block2_left:
+            st.markdown("#### Your mission")
+            st.markdown(
+                "Keep spam out of your inbox by walking through hands-on stages that tie governance concepts to practical ML workflows."
+            )
+            st.markdown("#### By the end you’ll have:")
+            st.markdown(
+                "- a working AI email spam detector,\n"
+                "- an audit-ready model card (purpose, data, metrics, threshold, autonomy),\n"
+                "- a clearer grasp of EU AI Act terminology in action."
+            )
+        with block2_right:
+            st.markdown("#### 📥 Your inbox")
+            st.markdown(
+                "This is a preview of your inbox. At the end of this experience your AI system will be able to predict if your "
+                "incoming emails are safe or spam."
+            )
+            st.markdown("#### Inbox — 5 messages preview")
             if not ss["incoming"]:
                 render_email_inbox_table(pd.DataFrame(), title="Inbox", subtitle="Inbox stream is empty.")
             else:
                 df_incoming = pd.DataFrame(ss["incoming"])
                 preview = df_incoming.head(5)
                 render_email_inbox_table(preview, title="Inbox", columns=["title", "body"])
-        with tips_col:
-            st.markdown("### Once your AI system is ready to use")
-            st.markdown(
-                "- Your incoming emails will be automatically processed as safe or spam\n"
-                "- You will understand how an AI model will reach this conclusion\n"
-                "- You will be able to review and correct mistakes done by the AI system"
-            )
-            st.info("No worries — you don’t need to be a developer or data scientist to follow along.")
 
     with section_surface():
-        ready_col, flow_col = st.columns([2, 3], gap="large")
-        with ready_col:
+        ready_left, ready_right = st.columns([3, 2], gap="large")
+        with ready_left:
             st.markdown("### Ready to make a machine learn?")
-            st.write("Use the stage controls below or the sidebar to move through the build at your pace.")
-        with flow_col:
+            st.markdown("No worries — you don’t need to be a developer or data scientist to follow along.")
+        with ready_right:
             if next_stage_key:
                 st.button(
                     "🚀 Start your machine",
@@ -2445,10 +2447,6 @@ def render_intro_stage():
                     on_click=set_active_stage,
                     args=(next_stage_key,),
                 )
-            st.markdown(
-                "- Each step builds on the previous one, and you can always hop back.\n"
-                "- Nerd Mode reveals deeper technical layers when you need them."
-            )
 
 
 def render_overview_stage():
