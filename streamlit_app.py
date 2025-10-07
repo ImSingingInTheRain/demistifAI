@@ -161,6 +161,69 @@ APP_THEME_CSS = """
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
 }
 
+.callout {
+    position: relative;
+    border-radius: 18px;
+    border: 1px solid var(--surface-border);
+    background: rgba(255, 255, 255, 0.92);
+    box-shadow: 0 20px 40px rgba(15, 23, 42, 0.08);
+    padding: 1.35rem 1.5rem;
+    backdrop-filter: blur(6px);
+}
+
+.callout h4,
+.callout h5 {
+    margin: 0 0 0.65rem 0;
+    font-weight: 600;
+    color: inherit;
+}
+
+.callout p {
+    margin: 0;
+    font-size: 0.98rem;
+    line-height: 1.6;
+}
+
+.callout--mission {
+    background: linear-gradient(145deg, rgba(59, 130, 246, 0.12), rgba(191, 219, 254, 0.35));
+    border-color: rgba(37, 99, 235, 0.3);
+}
+
+.callout-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1rem;
+    margin-top: 0.9rem;
+}
+
+.callout--outcome {
+    display: flex;
+    gap: 0.85rem;
+    align-items: flex-start;
+    border-color: rgba(15, 23, 42, 0.08);
+}
+
+.callout-icon {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 14px;
+    background: rgba(37, 99, 235, 0.12);
+    font-size: 1.35rem;
+}
+
+.callout-body h5 {
+    margin-bottom: 0.35rem;
+}
+
+.callout-body p {
+    font-size: 0.95rem;
+    color: rgba(15, 23, 42, 0.82);
+}
+
 .nerd-toggle-card {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
@@ -2517,16 +2580,42 @@ def render_intro_stage():
     with section_surface():
         block2_left, block2_right = st.columns([3, 2], gap="large")
         with block2_left:
-            st.markdown("#### Your mission")
-            st.markdown(
-                "Keep spam out of your inbox by walking through hands-on stages that tie governance concepts to practical ML workflows."
-            )
+            mission_html = """
+            <div class="callout callout--mission">
+                <h4>Your mission</h4>
+                <p>Keep spam out of your inbox by walking through hands-on stages that tie governance concepts to practical ML workflows.</p>
+            </div>
+            """
+            st.markdown(mission_html, unsafe_allow_html=True)
+
             st.markdown("#### By the end you’ll have:")
-            st.markdown(
-                "- a working AI email spam detector,\n"
-                "- an audit-ready model card (purpose, data, metrics, threshold, autonomy),\n"
-                "- a clearer grasp of EU AI Act terminology in action."
-            )
+
+            outcomes_html = """
+            <div class="callout-grid">
+                <div class="callout callout--outcome">
+                    <span class="callout-icon">🤖</span>
+                    <div class="callout-body">
+                        <h5>Working spam detector</h5>
+                        <p>A working AI email spam detector.</p>
+                    </div>
+                </div>
+                <div class="callout callout--outcome">
+                    <span class="callout-icon">📋</span>
+                    <div class="callout-body">
+                        <h5>Audit-ready model card</h5>
+                        <p>An audit-ready model card with purpose, data, metrics, threshold, and autonomy.</p>
+                    </div>
+                </div>
+                <div class="callout callout--outcome">
+                    <span class="callout-icon">📘</span>
+                    <div class="callout-body">
+                        <h5>EU AI Act clarity</h5>
+                        <p>A clearer grasp of EU AI Act terminology in action.</p>
+                    </div>
+                </div>
+            </div>
+            """
+            st.markdown(outcomes_html, unsafe_allow_html=True)
         with block2_right:
             st.markdown("#### 📥 Your inbox")
             st.markdown(
