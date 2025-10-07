@@ -2617,6 +2617,7 @@ def render_intro_stage():
             """
             st.markdown(outcomes_html, unsafe_allow_html=True)
         with block2_right:
+            class="callout callout--mission"
             st.markdown("#### 📥 Your inbox")
             st.markdown(
                 "This is a preview of your inbox. At the end of this experience your AI system will be able to predict if your "
