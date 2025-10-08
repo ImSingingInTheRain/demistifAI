@@ -113,6 +113,13 @@ TOKEN_POLICY = {
 }
 
 
+def _streamlit_rerun() -> None:
+    rerun_fn = getattr(st, "rerun", None) or getattr(st, "experimental_rerun", None)
+    if rerun_fn is None:
+        raise AttributeError("Streamlit rerun function unavailable")
+    rerun_fn()
+
+
 PII_DISPLAY_LABELS = [
     ("iban", "IBAN"),
     ("credit_card", "Card"),
@@ -1723,7 +1730,7 @@ def render_data_stage():
                                 "field": field,
                                 "token": token,
                             }
-                            st.experimental_rerun()
+                            _streamlit_rerun()
 
                         with token_columns[0]:
                             if st.button("{{EMAIL}}", key=f"pii_token_email_{row_id}"):
@@ -1776,13 +1783,13 @@ def render_data_stage():
                                     st.toast("Still detecting PII — try replacing with tokens.", icon="⚠️")
                                 else:
                                     st.toast("Looks like some PII remains. Replace with tokens like {{EMAIL}}.", icon="ℹ️")
-                            st.experimental_rerun()
+                            _streamlit_rerun()
 
                         if skip_row:
                             ss["pii_streak"] = 0
                             if flagged_ids:
                                 ss["pii_queue_idx"] = (idx + 1) % len(flagged_ids)
-                            st.experimental_rerun()
+                            _streamlit_rerun()
 
                         if finish_cleanup:
                             updated_detailed = lint_dataset_detailed(preview_rows)
