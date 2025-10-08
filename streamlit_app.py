@@ -406,6 +406,7 @@ ss.setdefault("nerd_mode_use", False)
 ss.setdefault("dataset_config", DEFAULT_DATASET_CONFIG.copy())
 if "dataset_summary" not in ss:
     ss["dataset_summary"] = compute_dataset_summary(ss["labeled"])
+ss.setdefault("dataset_last_built_at", datetime.now().isoformat(timespec="seconds"))
 ss.setdefault("previous_dataset_summary", None)
 ss.setdefault("dataset_preview", None)
 ss.setdefault("dataset_preview_config", None)
@@ -1091,6 +1092,7 @@ def render_data_stage():
                 ss["last_dataset_delta_story"] = None
                 ss["active_dataset_snapshot"] = None
                 ss["dataset_snapshot_name"] = ""
+                ss["dataset_last_built_at"] = datetime.now().isoformat(timespec="seconds")
                 ss["dataset_preview"] = None
                 ss["dataset_preview_config"] = None
                 ss["dataset_preview_summary"] = None
@@ -1643,6 +1645,7 @@ def render_data_stage():
                         ss["labeled"] = final_rows
                         ss["active_dataset_snapshot"] = None
                         ss["dataset_snapshot_name"] = ""
+                        ss["dataset_last_built_at"] = datetime.now().isoformat(timespec="seconds")
                         _clear_dataset_preview_state()
                         health_evaluation = _evaluate_dataset_health(new_summary, lint_counts)
                         spam_ratio = new_summary.get("spam_ratio") or 0.0
@@ -1687,9 +1690,100 @@ def render_data_stage():
 
     with section_surface():
         st.markdown("### 3 · Snapshot & provenance")
-        config_json = json.dumps(ss.get("dataset_config", DEFAULT_DATASET_CONFIG), indent=2, sort_keys=True)
+        current_config = ss.get("dataset_config", DEFAULT_DATASET_CONFIG)
+        config_json = json.dumps(current_config, indent=2, sort_keys=True)
+        current_summary = ss.get("dataset_summary") or compute_dataset_summary(ss.get("labeled", []))
         st.caption("Save immutable snapshots to reference in the model card and audits.")
-        st.json(json.loads(config_json))
+
+        total_rows = current_summary.get("total") if isinstance(current_summary, dict) else None
+        if total_rows is None:
+            total_rows = len(ss.get("labeled", []))
+        rows_display = total_rows
+        try:
+            rows_display = int(total_rows)
+        except (TypeError, ValueError):
+            rows_display = total_rows or "—"
+
+        spam_ratio_val = None
+        if isinstance(current_summary, dict):
+            spam_ratio_val = current_summary.get("spam_ratio")
+        if spam_ratio_val is None:
+            spam_share_display = "—"
+        else:
+            try:
+                spam_share_display = f"{float(spam_ratio_val) * 100:.1f}%"
+            except (TypeError, ValueError):
+                spam_share_display = "—"
+
+        edge_cases = current_config.get("edge_cases") if isinstance(current_config, dict) else None
+        edge_display = None
+        if edge_cases is not None:
+            try:
+                edge_display = int(edge_cases)
+            except (TypeError, ValueError):
+                edge_display = edge_cases
+
+        labeled_rows = ss.get("labeled", [])
+        try:
+            snapshot_hash = compute_dataset_hash(labeled_rows)[:10]
+        except Exception:
+            snapshot_hash = "—"
+        timestamp_display = ss.get("dataset_last_built_at") or "—"
+        seed_value = current_config.get("seed") if isinstance(current_config, dict) else None
+        seed_display = seed_value if seed_value is not None else "—"
+
+        summary_rows_html = [
+            "<div style='display:flex;justify-content:space-between;'><span>Rows</span><strong>{}</strong></div>".format(
+                html.escape(str(rows_display))
+            ),
+            "<div style='display:flex;justify-content:space-between;'><span>Spam share</span><strong>{}</strong></div>".format(
+                html.escape(str(spam_share_display))
+            ),
+        ]
+        if edge_display is not None:
+            summary_rows_html.append(
+                "<div style='display:flex;justify-content:space-between;'><span>Edge cases</span><strong>{}</strong></div>".format(
+                    html.escape(str(edge_display))
+                )
+            )
+
+        fingerprint_rows_html = [
+            "<div style='display:flex;justify-content:space-between;'><span>Short hash</span><strong>{}</strong></div>".format(
+                html.escape(str(snapshot_hash))
+            ),
+            "<div style='display:flex;justify-content:space-between;'><span>Timestamp</span><strong>{}</strong></div>".format(
+                html.escape(str(timestamp_display))
+            ),
+            "<div style='display:flex;justify-content:space-between;'><span>Seed</span><strong>{}</strong></div>".format(
+                html.escape(str(seed_display))
+            ),
+        ]
+
+        card_html = """
+            <div style="border:1px solid #E5E7EB;border-radius:12px;padding:1rem 1.25rem;margin-bottom:0.75rem;">
+                <div style="display:flex;gap:1.5rem;flex-wrap:wrap;">
+                    <div style="flex:1 1 240px;min-width:220px;">
+                        <div style="font-weight:600;font-size:0.95rem;margin-bottom:0.6rem;">Summary</div>
+                        <div style="display:flex;flex-direction:column;gap:0.4rem;font-size:0.9rem;">
+                            {summary_rows}
+                        </div>
+                    </div>
+                    <div style="flex:1 1 240px;min-width:220px;">
+                        <div style="font-weight:600;font-size:0.95rem;margin-bottom:0.6rem;">Fingerprint</div>
+                        <div style="display:flex;flex-direction:column;gap:0.4rem;font-size:0.9rem;">
+                            {fingerprint_rows}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        """.format(
+            summary_rows="".join(summary_rows_html),
+            fingerprint_rows="".join(fingerprint_rows_html),
+        )
+        st.markdown(card_html, unsafe_allow_html=True)
+
+        with st.expander("View JSON", expanded=False):
+            st.json(json.loads(config_json))
         ss["dataset_snapshot_name"] = st.text_input(
             "Snapshot name",
             value=ss.get("dataset_snapshot_name", ""),
@@ -1714,8 +1808,77 @@ def render_data_stage():
             st.success(f"Snapshot saved with id `{snapshot_id[:10]}…`. Use it in the model card.")
 
         if ss.get("datasets"):
-            df_snap = pd.DataFrame(ss["datasets"])
-            st.dataframe(df_snap[["name", "id", "timestamp", "rows"]], hide_index=True, width="stretch")
+            st.markdown("#### Saved snapshots")
+            header_cols = st.columns([3, 2.2, 2.2, 1.4, 1.2])
+            for col, label in zip(header_cols, ["Name", "Fingerprint", "Saved", "Rows", ""]):
+                col.markdown(f"**{label}**")
+
+            datasets_sorted = sorted(
+                ss["datasets"],
+                key=lambda snap: snap.get("timestamp", ""),
+                reverse=True,
+            )
+            for idx, snap in enumerate(datasets_sorted):
+                name_col, fp_col, ts_col, rows_col, action_col = st.columns([3, 2.2, 2.2, 1.4, 1.2])
+                is_active = snap.get("id") == ss.get("active_dataset_snapshot")
+                name_value = snap.get("name") or "(unnamed snapshot)"
+                badge_html = ""
+                if is_active:
+                    badge_html = (
+                        "<span style='margin-left:0.35rem;background:#DCFCE7;color:#166534;font-size:0.7rem;font-weight:600;"
+                        "padding:2px 8px;border-radius:999px;vertical-align:middle;'>Active</span>"
+                    )
+                name_col.markdown(
+                    "<div style='display:flex;align-items:center;gap:0.25rem;'><span style='font-weight:600;'>{}</span>{}</div>".format(
+                        html.escape(name_value),
+                        badge_html,
+                    ),
+                    unsafe_allow_html=True,
+                )
+
+                snapshot_id = snap.get("id", "")
+                short_id = "—"
+                if snapshot_id:
+                    short_id = snapshot_id if len(snapshot_id) <= 10 else f"{snapshot_id[:10]}…"
+                fp_col.markdown(f"`{short_id}`")
+                ts_col.markdown(snap.get("timestamp", "—"))
+                rows_col.markdown(str(snap.get("rows", "—")))
+
+                button_label = "Set active"
+                button_disabled = is_active
+                button_key = f"set_active_snapshot_{idx}_{snapshot_id[:6]}"
+                if action_col.button(button_label, key=button_key, disabled=button_disabled):
+                    config = snap.get("config")
+                    if isinstance(config, str) and config:
+                        try:
+                            config = json.loads(config)
+                        except json.JSONDecodeError:
+                            config = None
+                    if not isinstance(config, dict):
+                        st.error("Snapshot is missing a valid configuration.")
+                    else:
+                        dataset_rows = build_dataset_from_config(config)
+                        summary = compute_dataset_summary(dataset_rows)
+                        lint_counts = lint_dataset(dataset_rows) or {}
+                        ss["labeled"] = dataset_rows
+                        ss["dataset_config"] = config
+                        ss["dataset_summary"] = summary
+                        ss["previous_dataset_summary"] = None
+                        ss["dataset_compare_delta"] = None
+                        ss["last_dataset_delta_story"] = None
+                        ss["dataset_snapshot_name"] = snap.get("name", "")
+                        ss["active_dataset_snapshot"] = snap.get("id")
+                        ss["dataset_last_built_at"] = datetime.now().isoformat(timespec="seconds")
+                        _clear_dataset_preview_state()
+                        st.success(
+                            f"Snapshot '{snap.get('name', 'snapshot')}' activated. Dataset rebuilt with {len(dataset_rows)} rows."
+                        )
+                        if any(lint_counts.values()):
+                            st.warning(
+                                "Lint warnings present in restored snapshot (credit cards: {} | IBAN: {}).".format(
+                                    lint_counts.get("credit_card", 0), lint_counts.get("iban", 0)
+                                )
+                            )
         else:
             st.caption("No snapshots yet. Save one after curating your first dataset.")
 
