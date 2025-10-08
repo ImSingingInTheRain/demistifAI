@@ -525,7 +525,7 @@ def render_intro_stage():
             
         with hero_right:
             
-            hero_info_html = """
+        hero_info_html = """
             <div class="hero-info-grid">
             
                 <div class="hero-info-card">
