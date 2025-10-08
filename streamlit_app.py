@@ -1959,6 +1959,42 @@ def _safe_title_body(rng: random.Random) -> tuple[str, str]:
     return title, body
 
 
+class DatasetConfig(TypedDict, total=False):
+    seed: int
+    n_total: int
+    spam_ratio: float
+    susp_link_level: str
+    susp_tld_level: str
+    caps_intensity: str
+    money_urgency: str
+    attachments_mix: Dict[str, float]
+    edge_cases: int
+    label_noise_pct: float
+    poison_demo: bool
+
+
+ATTACHMENT_TYPES = ["html", "zip", "xlsm", "exe", "pdf"]
+DEFAULT_ATTACHMENT_MIX: Dict[str, float] = {"html": 0.15, "zip": 0.15, "xlsm": 0.1, "exe": 0.1, "pdf": 0.5}
+ATTACHMENT_MIX_PRESETS: Dict[str, Dict[str, float]] = {
+    "Mostly PDF": {"html": 0.05, "zip": 0.05, "xlsm": 0.05, "exe": 0.05, "pdf": 0.80},
+    "Balanced": DEFAULT_ATTACHMENT_MIX.copy(),
+    "Aggressive (macro-heavy)": {"html": 0.2, "zip": 0.25, "xlsm": 0.25, "exe": 0.15, "pdf": 0.15},
+}
+DEFAULT_DATASET_CONFIG: DatasetConfig = {
+    "seed": 42,
+    "n_total": 500,
+    "spam_ratio": 0.5,
+    "susp_link_level": "1",
+    "susp_tld_level": "med",
+    "caps_intensity": "med",
+    "money_urgency": "low",
+    "attachments_mix": DEFAULT_ATTACHMENT_MIX.copy(),
+    "edge_cases": 2,
+    "label_noise_pct": 0.0,
+    "poison_demo": False,
+}
+
+
 def generate_labeled_dataset(n_total: int = 500, seed: int = 7) -> List[Dict[str, str]]:
     config = DEFAULT_DATASET_CONFIG.copy()
     config.update({"n_total": n_total, "seed": seed, "spam_ratio": 0.5, "edge_cases": 0, "label_noise_pct": 0.0})
@@ -1998,42 +2034,6 @@ STARTER_INCOMING: List[Dict] = [
     {"title": "Voicemail transcript download", "body": "Listen by installing the attached plugin and entering your mailbox password."},
     {"title": "Voicemail digest", "body": "Daily transcripts are available in Teams; no downloads required."},
 ]
-
-
-class DatasetConfig(TypedDict, total=False):
-    seed: int
-    n_total: int
-    spam_ratio: float
-    susp_link_level: str
-    susp_tld_level: str
-    caps_intensity: str
-    money_urgency: str
-    attachments_mix: Dict[str, float]
-    edge_cases: int
-    label_noise_pct: float
-    poison_demo: bool
-
-
-ATTACHMENT_TYPES = ["html", "zip", "xlsm", "exe", "pdf"]
-DEFAULT_ATTACHMENT_MIX: Dict[str, float] = {"html": 0.15, "zip": 0.15, "xlsm": 0.1, "exe": 0.1, "pdf": 0.5}
-ATTACHMENT_MIX_PRESETS: Dict[str, Dict[str, float]] = {
-    "Mostly PDF": {"html": 0.05, "zip": 0.05, "xlsm": 0.05, "exe": 0.05, "pdf": 0.80},
-    "Balanced": DEFAULT_ATTACHMENT_MIX.copy(),
-    "Aggressive (macro-heavy)": {"html": 0.2, "zip": 0.25, "xlsm": 0.25, "exe": 0.15, "pdf": 0.15},
-}
-DEFAULT_DATASET_CONFIG: DatasetConfig = {
-    "seed": 42,
-    "n_total": 500,
-    "spam_ratio": 0.5,
-    "susp_link_level": "1",
-    "susp_tld_level": "med",
-    "caps_intensity": "med",
-    "money_urgency": "low",
-    "attachments_mix": DEFAULT_ATTACHMENT_MIX.copy(),
-    "edge_cases": 2,
-    "label_noise_pct": 0.0,
-    "poison_demo": False,
-}
 
 SUSPICIOUS_LINKS = [
     "http://account-secure-reset.top",
