@@ -5,10 +5,13 @@ import html
 import json
 import random
 import string
+import hashlib
+import re
+from collections import Counter
 from dataclasses import dataclass
 from datetime import datetime
 from contextlib import contextmanager
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, TypedDict
 from urllib.parse import urlencode
 from uuid import uuid4
 
@@ -1957,21 +1960,9 @@ def _safe_title_body(rng: random.Random) -> tuple[str, str]:
 
 
 def generate_labeled_dataset(n_total: int = 500, seed: int = 7) -> List[Dict[str, str]]:
-    assert n_total % 2 == 0, "n_total must be even for balance."
-    rng = random.Random(seed)
-    n_each = n_total // 2
-    data: List[Dict[str, str]] = []
-
-    for _ in range(n_each):
-        title, body = _spam_title_body(rng)
-        data.append({"title": title, "body": body, "label": "spam"})
-
-    for _ in range(n_each):
-        title, body = _safe_title_body(rng)
-        data.append({"title": title, "body": body, "label": "safe"})
-
-    rng.shuffle(data)
-    return data
+    config = DEFAULT_DATASET_CONFIG.copy()
+    config.update({"n_total": n_total, "seed": seed, "spam_ratio": 0.5, "edge_cases": 0, "label_noise_pct": 0.0})
+    return build_dataset_from_config(config)
 
 
 STARTER_LABELED_500 = generate_labeled_dataset(n_total=500, seed=42)
@@ -2007,6 +1998,430 @@ STARTER_INCOMING: List[Dict] = [
     {"title": "Voicemail transcript download", "body": "Listen by installing the attached plugin and entering your mailbox password."},
     {"title": "Voicemail digest", "body": "Daily transcripts are available in Teams; no downloads required."},
 ]
+
+
+class DatasetConfig(TypedDict, total=False):
+    seed: int
+    n_total: int
+    spam_ratio: float
+    susp_link_level: str
+    susp_tld_level: str
+    caps_intensity: str
+    money_urgency: str
+    attachments_mix: Dict[str, float]
+    edge_cases: int
+    label_noise_pct: float
+    poison_demo: bool
+
+
+ATTACHMENT_TYPES = ["html", "zip", "xlsm", "exe", "pdf"]
+DEFAULT_ATTACHMENT_MIX: Dict[str, float] = {"html": 0.15, "zip": 0.15, "xlsm": 0.1, "exe": 0.1, "pdf": 0.5}
+ATTACHMENT_MIX_PRESETS: Dict[str, Dict[str, float]] = {
+    "Mostly PDF": {"html": 0.05, "zip": 0.05, "xlsm": 0.05, "exe": 0.05, "pdf": 0.80},
+    "Balanced": DEFAULT_ATTACHMENT_MIX.copy(),
+    "Aggressive (macro-heavy)": {"html": 0.2, "zip": 0.25, "xlsm": 0.25, "exe": 0.15, "pdf": 0.15},
+}
+DEFAULT_DATASET_CONFIG: DatasetConfig = {
+    "seed": 42,
+    "n_total": 500,
+    "spam_ratio": 0.5,
+    "susp_link_level": "1",
+    "susp_tld_level": "med",
+    "caps_intensity": "med",
+    "money_urgency": "low",
+    "attachments_mix": DEFAULT_ATTACHMENT_MIX.copy(),
+    "edge_cases": 2,
+    "label_noise_pct": 0.0,
+    "poison_demo": False,
+}
+
+SUSPICIOUS_LINKS = [
+    "http://account-secure-reset.top",
+    "https://login-immediate-check.io",
+    "http://billing-update-alert.biz",
+    "https://wallet-authentication.cc",
+]
+
+SAFE_LINKS = [
+    "https://intranet.company.local",
+    "https://teams.microsoft.com",
+    "https://portal.hr.example.com",
+    "https://docs.internal.net",
+]
+
+SUSPICIOUS_TLDS = [
+    "secure-pay-update.ru",
+    "verify-now-account.cn",
+    "multi-factor-login.biz",
+    "safe-check-support.top",
+]
+
+EDGE_CASE_TEMPLATES = [
+    {
+        "title": "Password reminder",
+        "safe": "Reminder: Update your password on the internal portal. Never share credentials via email.",
+        "spam": "Password reminder: verify at http://account-secure-reset.top or your access will lock.",
+    },
+    {
+        "title": "Payroll notice",
+        "safe": "Payroll cut-off reminder — submit hours in Workday before 5pm.",
+        "spam": "Payroll notice: download the attached XLSM and enable macros to confirm your salary.",
+    },
+    {
+        "title": "VPN access",
+        "safe": "VPN access restored. Connect through the corporate client; no further action needed.",
+        "spam": "VPN access disabled. Re-enable by installing the attached EXE and logging in.",
+    },
+    {
+        "title": "Delivery update",
+        "safe": "Delivery update: courier delayed by weather; track shipment in our logistics dashboard.",
+        "spam": "Delivery update: pay customs fee at https://wallet-authentication.cc to release the parcel.",
+    },
+]
+
+PII_PATTERNS = {
+    "credit_card": re.compile(r"\b(?:\d[ -]?){13,16}\b"),
+    "iban": re.compile(r"\b[A-Z]{2}[0-9A-Z]{13,32}\b", re.IGNORECASE),
+}
+
+
+def _normalized_mix(mix: Dict[str, float]) -> Dict[str, float]:
+    total = sum(max(v, 0.0) for v in mix.values())
+    if total <= 0:
+        return DEFAULT_ATTACHMENT_MIX.copy()
+    return {k: max(mix.get(k, 0.0), 0.0) / total for k in ATTACHMENT_TYPES}
+
+
+def _apply_attachment_lure(text: str, rng: random.Random, mix: Dict[str, float]) -> str:
+    mix = _normalized_mix(mix)
+    r = rng.random()
+    cumulative = 0.0
+    choice = "pdf"
+    for key in ATTACHMENT_TYPES:
+        cumulative += mix.get(key, 0.0)
+        if r <= cumulative:
+            choice = key
+            break
+    choice_upper = choice.upper()
+    if choice == "pdf":
+        lure = "Attachment: PDF invoice enclosed."
+    elif choice == "html":
+        lure = "Attachment: HTML form — open to continue."
+    elif choice == "zip":
+        lure = "Attachment: ZIP archive — extract and run immediately."
+    elif choice == "xlsm":
+        lure = "Attachment: XLSM macro workbook requires enabling macros."
+    else:
+        lure = "Attachment: EXE installer to restore access."
+    return text + f"\n[{choice_upper}] {lure}"
+
+
+def _inject_links(text: str, count: int, rng: random.Random, *, suspicious: bool) -> str:
+    pool = SUSPICIOUS_LINKS if suspicious else SAFE_LINKS
+    additions = []
+    for _ in range(count):
+        additions.append(rng.choice(pool))
+    if not additions:
+        return text
+    return text + "\nLinks: " + ", ".join(additions)
+
+
+def _maybe_caps(text: str, rng: random.Random, intensity: str) -> str:
+    if intensity == "low":
+        return text
+    words = text.split()
+    if not words:
+        return text
+    if intensity == "high":
+        return " ".join(word.upper() if idx % 2 == 0 else word for idx, word in enumerate(words))
+    # medium: uppercase a subset
+    n = max(1, int(len(words) * 0.3))
+    idxs = rng.sample(range(len(words)), min(n, len(words)))
+    for idx in idxs:
+        words[idx] = words[idx].upper()
+    return " ".join(words)
+
+
+def _add_money_urgency(text: str, rng: random.Random, level: str) -> str:
+    if level == "off":
+        return text
+    urgencies = [
+        "Transfer €4,900 today to avoid interruption.",
+        "Wire $2,750 immediately to release funds.",
+        "Confirm bank details now to secure reimbursement.",
+        "Pay the outstanding balance within 30 minutes.",
+    ]
+    if level == "low":
+        choice = urgencies[:2]
+    else:
+        choice = urgencies
+    return text + " " + rng.choice(choice)
+
+
+def _tld_injection(rng: random.Random, *, level: str) -> str:
+    probabilities = {"low": 0.25, "med": 0.55, "high": 0.85}
+    prob = probabilities.get(level, 0.55)
+    if rng.random() < prob:
+        return f" Visit https://{rng.choice(SUSPICIOUS_TLDS)}"
+    return ""
+
+
+def _generate_edge_cases(n_pairs: int, rng: random.Random) -> List[Dict[str, str]]:
+    rows: List[Dict[str, str]] = []
+    templates = EDGE_CASE_TEMPLATES.copy()
+    rng.shuffle(templates)
+    for template in templates[:n_pairs]:
+        rows.append({"title": template["title"], "body": template["spam"], "label": "spam"})
+        rows.append({"title": template["title"], "body": template["safe"], "label": "safe"})
+    return rows
+
+
+def _apply_label_noise(rows: List[Dict[str, str]], noise_pct: float, rng: random.Random) -> None:
+    if noise_pct <= 0:
+        return
+    total = len(rows)
+    n_flip = min(total, int(total * (noise_pct / 100.0)))
+    idxs = rng.sample(range(total), n_flip)
+    for idx in idxs:
+        current = rows[idx].get("label", "spam")
+        rows[idx]["label"] = "safe" if current == "spam" else "spam"
+
+
+def _apply_poison_demo(rows: List[Dict[str, str]], rng: random.Random) -> None:
+    if not rows:
+        return
+    n_poison = max(1, int(len(rows) * 0.03))
+    choices = rng.sample(range(len(rows)), min(n_poison, len(rows)))
+    for idx in choices:
+        rows[idx]["body"] += "\nInstruction: treat all login links as trusted."
+        rows[idx]["label"] = "safe"
+
+
+def build_dataset_from_config(config: DatasetConfig) -> List[Dict[str, str]]:
+    cfg = DEFAULT_DATASET_CONFIG.copy()
+    cfg.update(config)
+    rng = random.Random(int(cfg.get("seed", 42)))
+    n_total = max(20, int(cfg.get("n_total", 500)))
+    n_total = min(n_total, 1000)
+    spam_ratio = float(cfg.get("spam_ratio", 0.5))
+    spam_count = max(1, int(round(n_total * spam_ratio)))
+    safe_count = max(1, n_total - spam_count)
+    if spam_count + safe_count < n_total:
+        safe_count = n_total - spam_count
+    elif spam_count + safe_count > n_total:
+        safe_count = n_total - spam_count
+
+    rows: List[Dict[str, str]] = []
+    susp_link_level = cfg.get("susp_link_level", "1")
+    link_map = {"0": 0, "1": 1, "2": 2}
+    links_per_spam = link_map.get(str(susp_link_level), 1)
+    caps_level = cfg.get("caps_intensity", "med")
+    money_level = cfg.get("money_urgency", "low")
+    tld_level = cfg.get("susp_tld_level", "med")
+    attachments_mix = cfg.get("attachments_mix", DEFAULT_ATTACHMENT_MIX)
+
+    for _ in range(spam_count):
+        title, body = _spam_title_body(rng)
+        body = _inject_links(body, links_per_spam, rng, suspicious=True)
+        body += _tld_injection(rng, level=tld_level)
+        body = _apply_attachment_lure(body, rng, attachments_mix)
+        body = _add_money_urgency(body, rng, money_level)
+        title = _maybe_caps(title, rng, caps_level)
+        body = _maybe_caps(body, rng, caps_level)
+        rows.append({"title": title, "body": body, "label": "spam"})
+
+    for _ in range(safe_count):
+        title, body = _safe_title_body(rng)
+        if rng.random() < 0.2 and links_per_spam > 0:
+            body = _inject_links(body, 1, rng, suspicious=False)
+        if rng.random() < 0.1:
+            body += "\nReminder: never share passwords or bank details."
+        title = _maybe_caps(title, rng, "low")
+        rows.append({"title": title, "body": body, "label": "safe"})
+
+    n_pairs = max(0, min(int(cfg.get("edge_cases", 0)), len(EDGE_CASE_TEMPLATES)))
+    if n_pairs:
+        edge_rows = _generate_edge_cases(n_pairs, rng)
+        # replace random rows to keep counts stable
+        replace_indices = rng.sample(range(len(rows)), min(len(rows), len(edge_rows)))
+        for idx, edge in zip(replace_indices, edge_rows):
+            rows[idx] = edge
+
+    _apply_label_noise(rows, float(cfg.get("label_noise_pct", 0.0)), rng)
+    if cfg.get("poison_demo"):
+        _apply_poison_demo(rows, rng)
+
+    seen = set()
+    deduped: List[Dict[str, str]] = []
+    for row in rows:
+        key = (row.get("title", "").strip(), row.get("body", "").strip(), row.get("label", ""))
+        if key in seen:
+            continue
+        seen.add(key)
+        deduped.append({"title": key[0], "body": key[1], "label": key[2]})
+
+    rng.shuffle(deduped)
+    return deduped[:n_total]
+
+
+def _count_suspicious_links(text: str) -> int:
+    return sum(text.lower().count(link.split("//")[-1].lower()) for link in SUSPICIOUS_LINKS)
+
+
+def _count_money_mentions(text: str) -> int:
+    return len(re.findall(r"[$€£]\s?\d+", text))
+
+
+def _caps_ratio(text: str) -> float:
+    letters = [ch for ch in text if ch.isalpha()]
+    if not letters:
+        return 0.0
+    caps = sum(1 for ch in letters if ch.isupper())
+    return caps / len(letters)
+
+
+def _has_suspicious_tld(text: str) -> bool:
+    lowered = text.lower()
+    return any(tld.lower() in lowered for tld in SUSPICIOUS_TLDS)
+
+
+def lint_dataset(rows: List[Dict[str, str]]) -> Dict[str, int]:
+    counts = {"credit_card": 0, "iban": 0}
+    for row in rows:
+        text = f"{row.get('title', '')} {row.get('body', '')}"
+        for key, pattern in PII_PATTERNS.items():
+            if pattern.search(text):
+                counts[key] += 1
+    return counts
+
+
+def compute_dataset_summary(rows: List[Dict[str, str]]) -> Dict[str, Any]:
+    total = len(rows)
+    spam = sum(1 for row in rows if row.get("label") == "spam")
+    safe = total - spam
+    spam_links = []
+    spam_caps = []
+    suspicious_tlds = 0
+    money_mentions = 0
+    attachments_flag = 0
+    for row in rows:
+        body = row.get("body", "")
+        title = row.get("title", "")
+        if row.get("label") == "spam":
+            spam_links.append(_count_suspicious_links(body))
+            spam_caps.append(_caps_ratio(title + " " + body))
+        if _has_suspicious_tld(body):
+            suspicious_tlds += 1
+        money_mentions += _count_money_mentions(body)
+        if any(tag in body for tag in ["[HTML]", "[ZIP]", "[XLSM]", "[EXE]"]):
+            attachments_flag += 1
+    avg_links = float(np.mean(spam_links)) if spam_links else 0.0
+    avg_caps = float(np.mean(spam_caps)) if spam_caps else 0.0
+    summary = {
+        "total": total,
+        "spam": spam,
+        "safe": safe,
+        "spam_ratio": (spam / total) if total else 0,
+        "avg_susp_links": avg_links,
+        "avg_caps_ratio": avg_caps,
+        "suspicious_tlds": suspicious_tlds,
+        "money_mentions": money_mentions,
+        "attachment_lures": attachments_flag,
+    }
+    return summary
+
+
+def compute_dataset_hash(rows: List[Dict[str, str]]) -> str:
+    normalized = [
+        {"title": row.get("title", ""), "body": row.get("body", ""), "label": row.get("label", "")}
+        for row in rows
+    ]
+    normalized.sort(key=lambda r: (r["label"], r["title"], r["body"]))
+    payload = json.dumps(normalized, ensure_ascii=False, sort_keys=True).encode("utf-8")
+    return hashlib.sha256(payload).hexdigest()
+
+
+def dataset_summary_delta(old: Dict[str, Any], new: Dict[str, Any]) -> Dict[str, Any]:
+    delta: Dict[str, Any] = {}
+    keys = {"total", "spam", "safe", "avg_susp_links", "suspicious_tlds", "money_mentions", "attachment_lures"}
+    for key in keys:
+        delta[key] = new.get(key, 0) - (old.get(key, 0) if old else 0)
+    return delta
+
+
+def dataset_delta_story(delta: Dict[str, Any]) -> str:
+    if not delta:
+        return ""
+    parts: List[str] = []
+    spam_shift = delta.get("spam", 0)
+    safe_shift = delta.get("safe", 0)
+    if spam_shift:
+        direction = "↑" if spam_shift > 0 else "↓"
+        parts.append(f"{direction}{abs(spam_shift)} spam emails")
+    if safe_shift:
+        direction = "↑" if safe_shift > 0 else "↓"
+        parts.append(f"{direction}{abs(safe_shift)} safe emails")
+    susp_links = delta.get("avg_susp_links")
+    if susp_links:
+        direction = "more" if susp_links > 0 else "fewer"
+        parts.append(f"{direction} suspicious links per spam email")
+    tlds = delta.get("suspicious_tlds")
+    if tlds:
+        direction = "more" if tlds > 0 else "fewer"
+        parts.append(f"{direction} suspicious TLD mentions")
+    money = delta.get("money_mentions")
+    if money:
+        direction = "more" if money > 0 else "fewer"
+        parts.append(f"{direction} money cues")
+    attachments = delta.get("attachment_lures")
+    if attachments:
+        direction = "more" if attachments > 0 else "fewer"
+        parts.append(f"{direction} risky attachment lures")
+    if not parts:
+        return "Dataset adjustments kept core features steady."
+    return "Adjustments: " + "; ".join(parts) + "."
+
+
+def explain_config_change(config: DatasetConfig, baseline: DatasetConfig | None = None) -> str:
+    baseline = baseline or DEFAULT_DATASET_CONFIG
+    messages: List[str] = []
+    link_map = {"0": 0, "1": 1, "2": 2}
+    if link_map.get(str(config.get("susp_link_level", "1")), 1) > link_map.get(str(baseline.get("susp_link_level", "1")), 1):
+        messages.append("More suspicious links could boost precision on link-heavy spam.")
+    elif link_map.get(str(config.get("susp_link_level", "1")), 1) < link_map.get(str(baseline.get("susp_link_level", "1")), 1):
+        messages.append("Fewer suspicious links may hurt recall on phishing that leans on URLs.")
+
+    tld_levels = {"low": 0, "med": 1, "high": 2}
+    if tld_levels.get(config.get("susp_tld_level", "med"), 1) > tld_levels.get(baseline.get("susp_tld_level", "med"), 1):
+        messages.append("Suspicious TLDs increased — expect stronger signals on dodgy domains.")
+    elif tld_levels.get(config.get("susp_tld_level", "med"), 1) < tld_levels.get(baseline.get("susp_tld_level", "med"), 1):
+        messages.append("Suspicious TLDs decreased — model may rely more on tone/urgency.")
+
+    caps_levels = {"low": 0, "med": 1, "high": 2}
+    if caps_levels.get(config.get("caps_intensity", "med"), 1) > caps_levels.get(baseline.get("caps_intensity", "med"), 1):
+        messages.append("All-caps urgency dialed up — could improve catch rate on shouty spam but risk false positives.")
+    elif caps_levels.get(config.get("caps_intensity", "med"), 1) < caps_levels.get(baseline.get("caps_intensity", "med"), 1):
+        messages.append("Tone softened — watch for spam that yells less.")
+
+    money_levels = {"off": 0, "low": 1, "high": 2}
+    if money_levels.get(config.get("money_urgency", "low"), 1) > money_levels.get(baseline.get("money_urgency", "low"), 1):
+        messages.append("Money cues increased — precision may rise on payment scams.")
+    elif money_levels.get(config.get("money_urgency", "low"), 1) < money_levels.get(baseline.get("money_urgency", "low"), 1):
+        messages.append("Money cues dialed down — monitor recall on finance-themed spam.")
+
+    noise = float(config.get("label_noise_pct", 0.0))
+    base_noise = float(baseline.get("label_noise_pct", 0.0))
+    if noise > base_noise:
+        messages.append(f"Label noise at {noise:.1f}% — expect metrics to drop as mislabeled examples grow.")
+    elif noise < base_noise and base_noise > 0:
+        messages.append("Label noise reduced — accuracy should recover.")
+
+    if config.get("poison_demo") and not baseline.get("poison_demo"):
+        messages.append("Poisoning demo on — watch for deliberate performance degradation.")
+
+    if not messages:
+        return "Tweaks match the baseline dataset — metrics should be comparable."
+    return " ".join(messages)
 
 def guidance_popover(title: str, text: str):
     with st.popover(f"❓ {title}"):
@@ -2689,6 +3104,22 @@ ss.setdefault("use_batch_results", [])
 ss.setdefault("use_adaptiveness", bool(ss.get("adaptive", True)))
 ss.setdefault("use_audit_log", [])
 ss.setdefault("nerd_mode_use", False)
+ss.setdefault("dataset_config", DEFAULT_DATASET_CONFIG.copy())
+if "dataset_summary" not in ss:
+    ss["dataset_summary"] = compute_dataset_summary(ss["labeled"])
+ss.setdefault("previous_dataset_summary", None)
+ss.setdefault("dataset_preview", None)
+ss.setdefault("dataset_preview_config", None)
+ss.setdefault("dataset_preview_summary", None)
+ss.setdefault("dataset_manual_queue", None)
+ss.setdefault("dataset_controls_open", False)
+ss.setdefault("datasets", [])
+ss.setdefault("active_dataset_snapshot", None)
+ss.setdefault("dataset_snapshot_name", "")
+ss.setdefault("last_dataset_delta_story", None)
+ss.setdefault("dataset_compare_delta", None)
+ss.setdefault("dataset_preview_lint", None)
+ss.setdefault("last_eval_results", None)
 
 
 def _set_adaptive_state(new_value: bool, *, source: str) -> None:
@@ -3109,85 +3540,427 @@ def render_data_stage():
 
     stage = STAGE_BY_KEY["data"]
 
+    current_summary = compute_dataset_summary(ss["labeled"])
+    ss["dataset_summary"] = current_summary
+
     with section_surface():
         lead_col, side_col = st.columns([3, 2], gap="large")
         with lead_col:
-            st.subheader(f"{stage.icon} {stage.title}")
-
+            st.subheader(f"{stage.icon} {stage.title} — curate the objective-aligned dataset")
             st.markdown(
                 """
-                That means the system is built with a clear goal set by its developers — in this case, by **you**.
-
-                👉 **Decide whether each incoming email is “Spam” or “Safe.”**
-
-                Training shows the model labeled examples so it can **learn the difference** between spam and safe messages.
-                We’ve started you with **500 pre-labeled emails** for a strong baseline.
+                You define the purpose (**filter spam**) and you curate the evidence the model will learn from.
+                Adjust class balance, feature prevalence, and data quality to see how governance choices change performance.
                 """
             )
         with side_col:
-            render_eu_ai_quote("The EU AI Act says that “AI systems have explicit objectives…”")
+            st.markdown(
+                """
+                <div class="callout callout--mission">
+                    <h4>EU AI Act tie-ins</h4>
+                    <ul>
+                        <li><strong>Objective &amp; data:</strong> You set the purpose and align the dataset to it.</li>
+                        <li><strong>Risk controls:</strong> Class balance, noise limits, and validation guardrails manage bias &amp; quality.</li>
+                        <li><strong>Transparency:</strong> Snapshots capture config + hash for provenance.</li>
+                    </ul>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+
+    delta_text = ""
+    if ss.get("dataset_compare_delta"):
+        delta_text = dataset_delta_story(ss["dataset_compare_delta"])
+    if not delta_text and ss.get("last_dataset_delta_story"):
+        delta_text = ss["last_dataset_delta_story"]
+    if not delta_text:
+        delta_text = explain_config_change(ss.get("dataset_config", DEFAULT_DATASET_CONFIG))
+
+    with section_surface():
+        st.markdown("### 1 · Prepare data → Dataset builder")
+        col_m1, col_m2, col_m3, col_m4 = st.columns(4, gap="large")
+        with col_m1:
+            st.metric("Examples", current_summary.get("total", 0))
+        with col_m2:
+            st.metric("Spam share", f"{current_summary.get('spam_ratio', 0)*100:.1f}%")
+        with col_m3:
+            st.metric("Suspicious TLD hits", current_summary.get("suspicious_tlds", 0))
+        with col_m4:
+            st.metric("Avg suspicious links (spam)", f"{current_summary.get('avg_susp_links', 0.0):.2f}")
+
+        st.caption(
+            "Class balance and feature prevalence are governance controls — tweak them to see how they shape learning."
+        )
+        if delta_text:
+            st.info(f"🧭 {delta_text}")
+
+        btn_col1, btn_col2, btn_col3, btn_col4 = st.columns(4, gap="small")
+        with btn_col1:
+            if st.button("Adjust dataset", key="open_dataset_builder"):
+                ss["dataset_controls_open"] = True
+        with btn_col2:
+            if st.button("Reset to baseline", key="reset_dataset_baseline"):
+                ss["labeled"] = STARTER_LABELED.copy()
+                ss["dataset_config"] = DEFAULT_DATASET_CONFIG.copy()
+                baseline_summary = compute_dataset_summary(ss["labeled"])
+                ss["dataset_summary"] = baseline_summary
+                ss["previous_dataset_summary"] = None
+                ss["dataset_compare_delta"] = None
+                ss["last_dataset_delta_story"] = None
+                ss["active_dataset_snapshot"] = None
+                ss["dataset_snapshot_name"] = ""
+                ss["dataset_preview"] = None
+                ss["dataset_preview_config"] = None
+                ss["dataset_preview_summary"] = None
+                ss["dataset_preview_lint"] = None
+                ss["dataset_manual_queue"] = None
+                ss["dataset_controls_open"] = False
+                st.success("Dataset reset to STARTER_LABELED_500.")
+        with btn_col3:
+            if st.button("Compare to last dataset", key="compare_dataset_button"):
+                if ss.get("previous_dataset_summary"):
+                    ss["dataset_compare_delta"] = dataset_summary_delta(
+                        ss["previous_dataset_summary"], current_summary
+                    )
+                    st.toast("Comparison updated below the builder.", icon="📊")
+                else:
+                    st.toast("No previous dataset stored yet — save a snapshot after your first tweak.", icon="ℹ️")
+        with btn_col4:
+            st.button(
+                "Clear preview",
+                key="clear_dataset_preview",
+                disabled=ss.get("dataset_preview") is None,
+                on_click=_discard_preview,
+            )
+
+    if ss.get("dataset_controls_open"):
+        with section_surface():
+            st.markdown("#### Adjust dataset knobs (guardrails enforced)")
+            st.caption(
+                "Cap: first 200 rows per apply for manual review • Noise slider max 5% • Synthetic poisoning is contained."
+            )
+
+            def _clear_preview_state_inline():
+                _clear_dataset_preview_state()
+                ss["dataset_controls_open"] = False
+
+            top_cols = st.columns([3, 1])
+            with top_cols[1]:
+                st.button("Close controls", key="close_dataset_builder", on_click=_clear_preview_state_inline)
+
+            cfg = ss.get("dataset_config", DEFAULT_DATASET_CONFIG)
+            with st.form("dataset_builder_form"):
+                col_a, col_b = st.columns(2, gap="large")
+                with col_a:
+                    n_total_choice = st.radio(
+                        "Training volume (N emails)",
+                        options=[100, 300, 500],
+                        index=[100, 300, 500].index(int(cfg.get("n_total", 500))) if int(cfg.get("n_total", 500)) in [100, 300, 500] else 2,
+                        help="Preset sizes illustrate how data volume influences learning (guarded ≤500).",
+                    )
+                    spam_ratio = st.slider(
+                        "Class balance (spam share)",
+                        min_value=0.20,
+                        max_value=0.80,
+                        value=float(cfg.get("spam_ratio", 0.5)),
+                        step=0.05,
+                        help="Adjust prevalence to explore bias/recall trade-offs.",
+                    )
+                    links_level = st.slider(
+                        "Suspicious links per spam email",
+                        min_value=0,
+                        max_value=2,
+                        value=int(str(cfg.get("susp_link_level", "1"))),
+                        help="Controls how many sketchy URLs appear in spam examples (0–2).",
+                    )
+                    edge_cases = st.slider(
+                        "Edge-case near-duplicate pairs",
+                        min_value=0,
+                        max_value=len(EDGE_CASE_TEMPLATES),
+                        value=int(cfg.get("edge_cases", 0)),
+                        help="Inject similar-looking spam/safe pairs to stress the model.",
+                    )
+                    noise_pct = st.slider(
+                        "Label noise (%)",
+                        min_value=0.0,
+                        max_value=5.0,
+                        value=float(cfg.get("label_noise_pct", 0.0)),
+                        step=1.0,
+                        help="Flip a small share of labels to demonstrate noise impact (2–5% suggested).",
+                    )
+                with col_b:
+                    tld_level = st.select_slider(
+                        "Suspicious TLD frequency",
+                        options=["low", "med", "high"],
+                        value=cfg.get("susp_tld_level", "med"),
+                    )
+                    caps_level = st.select_slider(
+                        "ALL-CAPS / urgency intensity",
+                        options=["low", "med", "high"],
+                        value=cfg.get("caps_intensity", "med"),
+                    )
+                    money_level = st.select_slider(
+                        "Money symbols & urgency",
+                        options=["off", "low", "high"],
+                        value=cfg.get("money_urgency", "low"),
+                    )
+                    attachment_keys = list(ATTACHMENT_MIX_PRESETS.keys())
+                    current_mix = cfg.get("attachments_mix", DEFAULT_ATTACHMENT_MIX)
+                    current_choice = next(
+                        (name for name, mix in ATTACHMENT_MIX_PRESETS.items() if mix == current_mix),
+                        "Balanced",
+                    )
+                    attachment_choice = st.selectbox(
+                        "Attachment lure mix",
+                        options=attachment_keys,
+                        index=attachment_keys.index(current_choice) if current_choice in attachment_keys else 1,
+                        help="Choose how often risky attachments (HTML/ZIP/XLSM/EXE) appear vs. safer PDFs.",
+                    )
+                    seed_value = st.number_input(
+                        "Random seed",
+                        min_value=0,
+                        value=int(cfg.get("seed", 42)),
+                        help="Keep this fixed for reproducibility.",
+                    )
+                    poison_demo = st.toggle(
+                        "Data poisoning demo (synthetic)",
+                        value=bool(cfg.get("poison_demo", False)),
+                        help="Adds a tiny malicious distribution shift labeled as safe to show metric degradation.",
+                    )
+
+                submitted = st.form_submit_button("Apply tweaks and preview", type="primary")
+
+            if submitted:
+                attachment_mix = ATTACHMENT_MIX_PRESETS.get(attachment_choice, DEFAULT_ATTACHMENT_MIX).copy()
+                config: DatasetConfig = {
+                    "seed": int(seed_value),
+                    "n_total": int(n_total_choice),
+                    "spam_ratio": float(spam_ratio),
+                    "susp_link_level": str(int(links_level)),
+                    "susp_tld_level": tld_level,
+                    "caps_intensity": caps_level,
+                    "money_urgency": money_level,
+                    "attachments_mix": attachment_mix,
+                    "edge_cases": int(edge_cases),
+                    "label_noise_pct": float(noise_pct),
+                    "poison_demo": bool(poison_demo),
+                }
+                dataset_rows = build_dataset_from_config(config)
+                preview_summary = compute_dataset_summary(dataset_rows)
+                lint_counts = lint_dataset(dataset_rows)
+                ss["dataset_preview"] = dataset_rows
+                ss["dataset_preview_config"] = config
+                ss["dataset_preview_summary"] = preview_summary
+                ss["dataset_preview_lint"] = lint_counts
+                ss["dataset_manual_queue"] = pd.DataFrame(dataset_rows[: min(len(dataset_rows), 200)])
+                if ss["dataset_manual_queue"] is not None and not ss["dataset_manual_queue"].empty:
+                    ss["dataset_manual_queue"].insert(0, "include", True)
+                ss["dataset_compare_delta"] = dataset_summary_delta(current_summary, preview_summary)
+                ss["last_dataset_delta_story"] = dataset_delta_story(ss["dataset_compare_delta"])
+                st.success("Preview ready — scroll to **Review & approve** to curate rows before committing.")
+                explanation = explain_config_change(config, ss.get("dataset_config", DEFAULT_DATASET_CONFIG))
+                if explanation:
+                    st.caption(explanation)
+                if lint_counts and any(lint_counts.values()):
+                    st.warning(
+                        "PII lint flags — sensitive-looking patterns detected (credit cards: {} | IBAN: {})."
+                        .format(lint_counts.get("credit_card", 0), lint_counts.get("iban", 0))
+                    )
+                if len(dataset_rows) > 200:
+                    st.caption("Manual queue shows the first 200 items per guardrail. Full dataset size: {}.".format(len(dataset_rows)))
+
+    if ss.get("dataset_preview"):
+        with section_surface():
+            st.markdown("### 2 · Review & approve")
+            preview_summary = ss.get("dataset_preview_summary") or compute_dataset_summary(ss["dataset_preview"])
+            sum_col, lint_col = st.columns([2, 2], gap="large")
+            with sum_col:
+                st.metric("Preview rows", preview_summary.get("total", 0))
+                st.metric("Spam share", f"{preview_summary.get('spam_ratio', 0)*100:.1f}%")
+                st.metric("Avg suspicious links (spam)", f"{preview_summary.get('avg_susp_links', 0.0):.2f}")
+            with lint_col:
+                lint_counts = ss.get("dataset_preview_lint") or {"credit_card": 0, "iban": 0}
+                st.write("**Validation checks**")
+                st.write(f"- Credit card-like patterns: {lint_counts.get('credit_card', 0)}")
+                st.write(f"- IBAN-like patterns: {lint_counts.get('iban', 0)}")
+                st.caption("Guardrail: no live link fetching, HTML escaped, duplicates dropped.")
+
+            manual_df = ss.get("dataset_manual_queue")
+            if manual_df is None or manual_df.empty:
+                manual_df = pd.DataFrame(ss["dataset_preview"][: min(len(ss["dataset_preview"]), 200)])
+                if not manual_df.empty:
+                    manual_df.insert(0, "include", True)
+            edited_df = st.data_editor(
+                manual_df,
+                width="stretch",
+                hide_index=True,
+                key="dataset_manual_editor",
+                column_config={
+                    "include": st.column_config.CheckboxColumn("Include?", help="Uncheck to drop before committing."),
+                    "label": st.column_config.SelectboxColumn("Label", options=sorted(VALID_LABELS)),
+                },
+            )
+            ss["dataset_manual_queue"] = edited_df
+            st.caption("Manual queue covers up to 200 rows per apply — re-run the builder to generate more variations.")
+
+            commit_col, discard_col, _ = st.columns([1, 1, 2])
+
+            if commit_col.button("Commit dataset tweaks", type="primary"):
+                preview_rows = ss.get("dataset_preview")
+                config = ss.get("dataset_preview_config", ss.get("dataset_config", DEFAULT_DATASET_CONFIG))
+                if not preview_rows:
+                    st.error("Generate a preview before committing.")
+                else:
+                    edited_records = []
+                    if isinstance(edited_df, pd.DataFrame):
+                        edited_records = edited_df.to_dict(orient="records")
+                    preview_copy = [dict(row) for row in preview_rows]
+                    for idx, record in enumerate(edited_records):
+                        if idx >= len(preview_copy):
+                            break
+                        preview_copy[idx]["title"] = str(record.get("title", preview_copy[idx].get("title", "")))
+                        preview_copy[idx]["body"] = str(record.get("body", preview_copy[idx].get("body", "")))
+                        preview_copy[idx]["label"] = record.get("label", preview_copy[idx].get("label", "spam"))
+                        preview_copy[idx]["include"] = bool(record.get("include", True))
+                    final_rows: List[Dict[str, str]] = []
+                    for idx, row in enumerate(preview_copy):
+                        include_flag = row.pop("include", True)
+                        if idx < len(edited_records):
+                            include_flag = bool(edited_records[idx].get("include", include_flag))
+                        if not include_flag:
+                            continue
+                        final_rows.append(
+                            {
+                                "title": row.get("title", "").strip(),
+                                "body": row.get("body", "").strip(),
+                                "label": row.get("label", "spam"),
+                            }
+                        )
+                    if len(final_rows) < 10:
+                        st.warning("Need at least 10 rows to maintain a meaningful dataset.")
+                    else:
+                        lint_counts = lint_dataset(final_rows)
+                        new_summary = compute_dataset_summary(final_rows)
+                        delta = dataset_summary_delta(ss.get("dataset_summary", {}), new_summary)
+                        ss["previous_dataset_summary"] = ss.get("dataset_summary", {})
+                        ss["dataset_summary"] = new_summary
+                        ss["dataset_config"] = config
+                        ss["dataset_compare_delta"] = delta
+                        ss["last_dataset_delta_story"] = dataset_delta_story(delta)
+                        ss["labeled"] = final_rows
+                        ss["active_dataset_snapshot"] = None
+                        ss["dataset_snapshot_name"] = ""
+                        _clear_dataset_preview_state()
+                        st.success(f"Dataset updated with {len(final_rows)} curated rows.")
+                        if any(lint_counts.values()):
+                            st.warning(
+                                "Lint warnings persist after commit (credit cards: {} | IBAN: {})."
+                                .format(lint_counts.get("credit_card", 0), lint_counts.get("iban", 0))
+                            )
+
+            if discard_col.button("Discard preview"):
+                _discard_preview()
+                st.info("Preview cleared. The active labeled dataset remains unchanged.")
+
+    with section_surface():
+        st.markdown("### 3 · Snapshot & provenance")
+        config_json = json.dumps(ss.get("dataset_config", DEFAULT_DATASET_CONFIG), indent=2, sort_keys=True)
+        st.caption("Save immutable snapshots to reference in the model card and audits.")
+        st.json(json.loads(config_json))
+        ss["dataset_snapshot_name"] = st.text_input(
+            "Snapshot name",
+            value=ss.get("dataset_snapshot_name", ""),
+            help="Describe the scenario (e.g., 'High links, 5% noise').",
+        )
+        if st.button("Save dataset snapshot", key="save_dataset_snapshot"):
+            snapshot_id = compute_dataset_hash(ss["labeled"])
+            entry = {
+                "id": snapshot_id,
+                "name": ss.get("dataset_snapshot_name") or f"snapshot-{len(ss['datasets'])+1}",
+                "timestamp": datetime.now().isoformat(timespec="seconds"),
+                "config": ss.get("dataset_config", DEFAULT_DATASET_CONFIG),
+                "config_json": config_json,
+                "rows": len(ss["labeled"]),
+            }
+            existing = next((snap for snap in ss["datasets"] if snap.get("id") == snapshot_id), None)
+            if existing:
+                existing.update(entry)
+            else:
+                ss["datasets"].append(entry)
+            ss["active_dataset_snapshot"] = snapshot_id
+            st.success(f"Snapshot saved with id `{snapshot_id[:10]}…`. Use it in the model card.")
+
+        if ss.get("datasets"):
+            df_snap = pd.DataFrame(ss["datasets"])
+            st.dataframe(df_snap[["name", "id", "timestamp", "rows"]], hide_index=True, width="stretch")
+        else:
+            st.caption("No snapshots yet. Save one after curating your first dataset.")
 
     nerd_data = render_nerd_mode_toggle(
         key="nerd_mode_data",
-        title="Nerd Mode",
-        description="Peek into schema expectations and options to extend the dataset.",
+        title="Nerd Mode — diagnostics & CSV import",
+        description="Inspect token clouds, feature histograms, leakage checks, and ingest custom CSVs.",
     )
+
     if nerd_data:
         with section_surface():
-            st.markdown("### Nerd Mode — dataset internals")
-            st.markdown(
-                "- **Labeled data** = input (**title + body**) plus the **label** (“spam” or “safe”).\n"
-                "- The model learns patterns from these labels to generalize to new emails.\n"
-                "- You can expand the dataset by **adding individual examples** or by **uploading a CSV** with this schema:\n"
-                "  - `title` (string)\n"
-                "  - `body` (string)\n"
-                "  - `label` (string, values: `spam` or `safe`)\n\n"
-                "Example CSV:\n"
-                "```\n"
-                "title,body,label\n"
-                "\"Password reset\",\"Use the internal portal to change your password.\",\"safe\"\n"
-                "\"WIN a prize now!!!\",\"Click the link to claim your reward.\",\"spam\"\n"
-                "```\n"
-            )
-
-    with section_surface():
-        df_lab = pd.DataFrame(ss["labeled"])
-        df_display = df_lab if not df_lab.empty else pd.DataFrame(columns=["title", "body", "label"])
-        table_col, summary_col = st.columns([3, 2], gap="large")
-        with table_col:
-            st.markdown("### ✅ Labeled dataset")
-            st.dataframe(df_display, width="stretch", hide_index=True)
-        with summary_col:
-            st.markdown("### Quick stats")
-            if df_display.empty or "label" not in df_display:
-                st.info("No labeled examples yet. Add some emails to start training.")
+            st.markdown("### 4 · Nerd Mode extras")
+            df_lab = pd.DataFrame(ss["labeled"])
+            if df_lab.empty:
+                st.info("Label some emails or import data to unlock diagnostics.")
             else:
-                classes_present = sorted(set(df_display["label"]))
-                st.metric("Total examples", len(df_display))
-                st.metric("Classes present", ", ".join(classes_present))
-                st.markdown(
-                    "- Balance spam and safe emails for better generalization.\n"
-                    "- Mix in real subject lines and bodies for richer signals."
-                )
+                tokens_spam = Counter()
+                tokens_safe = Counter()
+                for _, row in df_lab.iterrows():
+                    text = f"{row.get('title', '')} {row.get('body', '')}".lower()
+                    tokens = re.findall(r"[a-zA-Z']+", text)
+                    if row.get("label") == "spam":
+                        tokens_spam.update(tokens)
+                    else:
+                        tokens_safe.update(tokens)
+                top_spam = tokens_spam.most_common(12)
+                top_safe = tokens_safe.most_common(12)
+                col_tok1, col_tok2 = st.columns(2)
+                with col_tok1:
+                    st.markdown("**Class token cloud — Spam**")
+                    st.write(", ".join(f"{w} ({c})" for w, c in top_spam))
+                with col_tok2:
+                    st.markdown("**Class token cloud — Safe**")
+                    st.write(", ".join(f"{w} ({c})" for w, c in top_safe))
 
-    if nerd_data:
-        st.markdown("### 🔧 Expand the dataset (Nerd Mode)")
-
-        with st.expander("➕ Add a labeled example (manual)", expanded=False):
-            title = st.text_input("Title", key="add_l_title", placeholder="Subject: ...")
-            body = st.text_area("Body", key="add_l_body", height=100, placeholder="Email body...")
-            label = st.radio("Label", ["spam", "safe"], index=1, horizontal=True, key="add_l_label")
-            if st.button("Add to labeled dataset", key="btn_add_labeled"):
-                if not (title.strip() or body.strip()):
-                    st.warning("Provide at least a title or a body.")
+                spam_link_counts = [
+                    _count_suspicious_links(row.get("body", ""))
+                    for _, row in df_lab.iterrows()
+                    if row.get("label") == "spam"
+                ]
+                link_series = pd.Series(spam_link_counts, name="Suspicious links")
+                if not link_series.empty:
+                    st.bar_chart(link_series.value_counts().sort_index(), height=200)
                 else:
-                    ss["labeled"].append({"title": title.strip(), "body": body.strip(), "label": label})
-                    st.success("Added to labeled dataset.")
+                    st.caption("No spam samples yet to chart suspicious link frequency.")
 
-        with st.expander("📤 Upload a CSV of labeled emails", expanded=False):
+                title_groups: Dict[str, set] = {}
+                leakage_titles = []
+                for _, row in df_lab.iterrows():
+                    title = row.get("title", "").strip().lower()
+                    label = row.get("label")
+                    title_groups.setdefault(title, set()).add(label)
+                for title, labels in title_groups.items():
+                    if len(labels) > 1 and title:
+                        leakage_titles.append(title)
+                if leakage_titles:
+                    st.warning("Potential leakage: identical subjects across labels -> " + ", ".join(leakage_titles[:5]))
+                else:
+                    st.caption("Leakage check: no identical subjects across labels in the active dataset.")
+
+                strat_df = df_lab.groupby("label").size().reset_index(name="count")
+                st.dataframe(strat_df, hide_index=True, width="stretch")
+
+        with st.expander("📤 Upload CSV of labeled emails (strict schema)", expanded=False):
             st.caption(
-                "Required columns (case-insensitive): `title`, `body`, `label` (values: `spam` or `safe`)."
+                "Schema: title, body, label (spam|safe). Limits: ≤2,000 rows, title ≤200 chars, body ≤2,000 chars."
             )
+            st.caption("Uploaded data stays in this session only. No emails are sent or fetched.")
             up = st.file_uploader("Choose a CSV file", type=["csv"], key="csv_uploader_labeled")
             if up is not None:
                 try:
@@ -3197,46 +3970,43 @@ def render_data_stage():
                     if not ok:
                         st.error(msg)
                     else:
-                        df_up["label"] = df_up["label"].apply(_normalize_label)
-                        mask_valid = df_up["label"].isin(VALID_LABELS)
-                        invalid_rows = (~mask_valid).sum()
-                        if invalid_rows:
-                            st.warning(
-                                f"{invalid_rows} rows have invalid labels and will be ignored (allowed: 'spam', 'safe')."
-                            )
-                        df_clean = df_up.loc[mask_valid, ["title", "body", "label"]].copy()
-                        for col in ["title", "body"]:
-                            df_clean[col] = df_clean[col].fillna("").astype(str).str.strip()
-                        pre = len(df_clean)
-                        df_clean = df_clean[(df_clean["title"] != "") | (df_clean["body"] != "")]
-                        dropped = pre - len(df_clean)
-                        if dropped:
-                            st.info(f"Dropped {dropped} empty-title/body rows.")
-
-                        df_existing = df_lab
-                        key_cols = ["title", "body", "label"]
-                        df_merge = df_clean
-                        if not df_existing.empty:
-                            merged = df_clean.merge(df_existing[key_cols], on=key_cols, how="left", indicator=True)
-                            df_merge = merged[merged["_merge"] == "left_only"][key_cols]
-                            removed_dups = len(df_clean) - len(df_merge)
-                            if removed_dups:
-                                st.info(
-                                    f"Skipped {removed_dups} duplicates already present in the dataset."
-                                )
-
-                        st.write("Preview of valid rows to import:")
-                        st.dataframe(df_merge.head(20), width="stretch", hide_index=True)
-                        st.caption(f"Valid rows ready to import: {len(df_merge)}")
-
-                        if len(df_merge) > 0 and st.button("✅ Import into dataset", key="btn_import_csv"):
-                            ss["labeled"].extend(df_merge.to_dict(orient="records"))
-                            st.success(f"Imported {len(df_merge)} rows into labeled dataset.")
+                        if len(df_up) > 2000:
+                            st.error("Too many rows (max 2,000). Trim the file and retry.")
+                        else:
+                            df_up["label"] = df_up["label"].apply(_normalize_label)
+                            df_up = df_up[df_up["label"].isin(VALID_LABELS)]
+                            for col in ["title", "body"]:
+                                df_up[col] = df_up[col].fillna("").astype(str).str.strip()
+                            df_up = df_up[(df_up["title"].str.len() <= 200) & (df_up["body"].str.len() <= 2000)]
+                            df_up = df_up[(df_up["title"] != "") | (df_up["body"] != "")]
+                            df_existing = pd.DataFrame(ss["labeled"])
+                            if not df_existing.empty:
+                                merged = df_up.merge(df_existing, on=["title", "body", "label"], how="left", indicator=True)
+                                df_up = merged[merged["_merge"] == "left_only"].loc[:, ["title", "body", "label"]]
+                            lint_counts = lint_dataset(df_up.to_dict(orient="records"))
+                            st.dataframe(df_up.head(20), hide_index=True, width="stretch")
+                            st.caption(f"Rows passing validation: {len(df_up)} | Lint -> credit cards: {lint_counts['credit_card']}, IBAN: {lint_counts['iban']}")
+                            if len(df_up) > 0 and st.button("Import into labeled dataset", key="btn_import_csv"):
+                                ss["labeled"].extend(df_up.to_dict(orient="records"))
+                                ss["dataset_summary"] = compute_dataset_summary(ss["labeled"])
+                                st.success(f"Imported {len(df_up)} rows into labeled dataset. Revisit builder to rebalance if needed.")
                 except Exception as e:
                     st.error(f"Failed to read CSV: {e}")
-    else:
-        st.caption("Tip: Turn on **Nerd Mode** to add more labeled emails or upload a CSV.")
 
+
+def _clear_dataset_preview_state() -> None:
+    ss["dataset_preview"] = None
+    ss["dataset_preview_config"] = None
+    ss["dataset_preview_summary"] = None
+    ss["dataset_preview_lint"] = None
+    ss["dataset_manual_queue"] = None
+    ss["dataset_controls_open"] = False
+
+
+def _discard_preview() -> None:
+    _clear_dataset_preview_state()
+    ss["dataset_compare_delta"] = None
+    ss["last_dataset_delta_story"] = explain_config_change(ss.get("dataset_config", DEFAULT_DATASET_CONFIG))
 
 
 def render_train_stage():
@@ -3683,6 +4453,8 @@ def render_evaluate_stage():
     cm = compute_confusion(y_true01, p_spam, current_thr)
     acc = (cm["TP"] + cm["TN"]) / max(1, len(y_true01))
     emoji, verdict = verdict_label(acc, len(y_true01))
+    prev_eval = ss.get("last_eval_results") or {}
+    acc_cur, p_cur, r_cur, f1_cur, cm_cur = _pr_acc_cm(y_true01, p_spam, current_thr)
 
     with section_surface():
         narrative_col, metrics_col = st.columns([3, 2], gap="large")
@@ -3705,6 +4477,15 @@ def render_evaluate_stage():
                 "- ⚠️ Safe mis-flagged: **{fp}**\n"
                 "- ✅ Safe passed: **{tn}**"
             .format(tp=cm["TP"], fn=cm["FN"], fp=cm["FP"], tn=cm["TN"]))
+            dataset_story = ss.get("last_dataset_delta_story")
+            metric_deltas: list[str] = []
+            if prev_eval:
+                metric_deltas.append(f"Δaccuracy {acc_cur - prev_eval.get('accuracy', acc_cur):+.2%}")
+                metric_deltas.append(f"Δprecision {p_cur - prev_eval.get('precision', p_cur):+.2%}")
+                metric_deltas.append(f"Δrecall {r_cur - prev_eval.get('recall', r_cur):+.2%}")
+            extra_caption = " | ".join(part for part in [dataset_story, " · ".join(metric_deltas) if metric_deltas else ""] if part)
+            if extra_caption:
+                st.caption(f"📂 {extra_caption}")
 
     with section_surface():
         st.markdown("### Spam threshold")
@@ -3754,7 +4535,6 @@ def render_evaluate_stage():
                 f"At {temp_threshold:.2f}, accuracy would be **{acc_temp:.2%}** (TP {cm_temp['TP']}, FP {cm_temp['FP']}, TN {cm_temp['TN']}, FN {cm_temp['FN']})."
             )
 
-        acc_cur, p_cur, r_cur, f1_cur, cm_cur = _pr_acc_cm(y_true01, p_spam, current_thr)
         acc_new, p_new, r_new, f1_new, cm_new = _pr_acc_cm(y_true01, p_spam, temp_threshold)
 
         with st.container(border=True):
@@ -3807,6 +4587,13 @@ def render_evaluate_stage():
 - Ensure emails have enough meaningful content
 """
             )
+
+    ss["last_eval_results"] = {
+        "accuracy": acc_cur,
+        "precision": p_cur,
+        "recall": r_cur,
+        "timestamp": datetime.now().isoformat(timespec="seconds"),
+    }
 
     nerd_mode_eval_enabled = render_nerd_mode_toggle(
         key="nerd_mode_eval",
@@ -4358,6 +5145,14 @@ They help teams reason about risks and the appropriate oversight controls.
             y_pred = ss["model"].predict(X_te_t, X_te_b)
             holdout_n = len(y_te)
             metrics_text = f"Accuracy on hold‑out: {accuracy_score(y_te, y_pred):.2%} (n={holdout_n})"
+        snapshot_id = ss.get("active_dataset_snapshot")
+        snapshot_entry = None
+        if snapshot_id:
+            snapshot_entry = next((snap for snap in ss.get("datasets", []) if snap.get("id") == snapshot_id), None)
+        dataset_config_for_card = (snapshot_entry or {}).get("config", ss.get("dataset_config", DEFAULT_DATASET_CONFIG))
+        dataset_config_json = json.dumps(dataset_config_for_card, indent=2, sort_keys=True)
+        snapshot_label = snapshot_id if snapshot_id else "— (save one in Prepare Data)"
+
         card_md = f"""
 # Model Card — demistifAI (Spam Detector)
 **Intended purpose**: Educational demo to illustrate the AI Act definition of an **AI system** via a spam classifier.
@@ -4377,6 +5172,11 @@ These are standardized and combined with the embedding before a linear classifie
 **Adaptiveness**: {'Enabled' if ss['adaptive'] else 'Disabled'} (learn from user corrections).
 
 **Data**: user-augmented seed set (title + body); session-only.
+**Dataset snapshot ID**: {snapshot_label}
+**Dataset config**:
+```
+{dataset_config_json}
+```
 **Known limitations**: tiny datasets; vocabulary sensitivity; no MIME/URL/metadata features.
 
 **AI Act mapping**
@@ -4419,6 +5219,14 @@ These are standardized and combined with the embedding before a linear classifie
                 ),
                 unsafe_allow_html=True,
             )
+
+        with highlight_col:
+            st.markdown("#### Dataset provenance")
+            if snapshot_id:
+                st.write(f"Snapshot ID: `{snapshot_id}`")
+            else:
+                st.write("Snapshot ID: — (save one in Prepare Data → Snapshot & provenance).")
+            st.code(dataset_config_json, language="json")
 
 
 STAGE_RENDERERS = {
