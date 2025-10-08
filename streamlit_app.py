@@ -261,8 +261,8 @@ def render_pii_cleanup_banner(lint_counts: Dict[str, int]) -> bool:
         st.markdown(
             f"""
             <div class="callout callout--warn">
-              <h4>🔎 PII found in preview</h4>
-              <p>We spotted sensitive patterns (like IBANs or card numbers). Clean them to protect privacy and avoid leakage.</p>
+              <h4>🔎 PII found in safe emails</h4>
+              <p>We spotted sensitive patterns (like IBANs or card numbers) inside safe-labeled emails. Clean them to protect privacy and avoid leakage.</p>
               <p><strong>Summary:</strong> {format_pii_summary(lint_counts)}</p>
             </div>
             """,
@@ -1288,7 +1288,7 @@ def render_data_stage():
             st.caption(explanation)
         if lint_counts and any(lint_counts.values()):
             st.warning(
-                "PII lint flags — sensitive-looking patterns detected ({}).".format(
+                "PII lint flags — sensitive-looking patterns detected in safe emails ({}).".format(
                     format_pii_summary(lint_counts)
                 )
             )
