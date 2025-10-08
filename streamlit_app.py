@@ -186,6 +186,63 @@ def download_text(text: str, filename: str, label: str = "Download"):
     st.markdown(f'<a href="data:text/plain;base64,{b64}" download="{filename}">{label}</a>', unsafe_allow_html=True)
 
 
+def _evaluate_dataset_health(
+    summary: Dict[str, Any] | None,
+    lint_counts: Optional[Dict[str, int]],
+) -> Dict[str, Any]:
+    summary = summary or {}
+    if lint_counts is None:
+        lint_counts = {}
+        lint_label = "Unknown"
+    else:
+        lint_flags = sum(int(v or 0) for v in lint_counts.values())
+        lint_label = "Clean" if lint_flags == 0 else f"{lint_flags} flag{'s' if lint_flags != 1 else ''}"
+    lint_flags = sum(int(v or 0) for v in lint_counts.values())
+    spam_ratio = summary.get("spam_ratio")
+    total_rows = summary.get("total")
+
+    badge_text = None
+    health_emoji = None
+    spam_pct = None
+    failures = 0
+    missing_required = spam_ratio is None or total_rows is None
+
+    if not missing_required:
+        try:
+            spam_pct = max(0.0, min(100.0, float(spam_ratio) * 100.0))
+        except (TypeError, ValueError):
+            missing_required = True
+        if not isinstance(total_rows, (int, float)):
+            missing_required = True
+        else:
+            if total_rows < 300:
+                failures += 1
+        if spam_pct is not None and not (40.0 <= spam_pct <= 60.0):
+            failures += 1
+        if lint_counts and lint_flags > 0:
+            failures += 1
+
+    if not missing_required:
+        if failures == 0:
+            badge_text = "🟢 Good"
+            health_emoji = "🟢"
+        elif failures <= 2:
+            badge_text = "🟡 Needs work"
+            health_emoji = "🟡"
+        else:
+            badge_text = "🔴 Risky"
+            health_emoji = "🔴"
+
+    return {
+        "badge_text": badge_text,
+        "health_emoji": health_emoji,
+        "spam_pct": spam_pct,
+        "total_rows": total_rows,
+        "lint_label": lint_label,
+        "lint_flags": lint_flags,
+    }
+
+
 def render_nerd_mode_toggle(
     *,
     key: str,
@@ -916,44 +973,15 @@ def render_data_stage():
         unsafe_allow_html=True,
     )
 
-    spam_ratio = current_summary.get("spam_ratio")
-    total_rows = current_summary.get("total")
     try:
         lint_counts = lint_dataset(ss["labeled"])
     except Exception:
         lint_counts = None
-    lint_flags = sum(int(v or 0) for v in lint_counts.values()) if lint_counts else 0
-    lint_label = (
-        "Unknown"
-        if lint_counts is None
-        else ("Clean" if lint_flags == 0 else f"{lint_flags} flag{'s' if lint_flags != 1 else ''}")
-    )
-
-    badge_text = None
-    failures = 0
-    missing_required = spam_ratio is None or total_rows is None
-    spam_pct = None
-    if not missing_required:
-        try:
-            spam_pct = max(0.0, min(100.0, float(spam_ratio) * 100.0))
-        except (TypeError, ValueError):
-            missing_required = True
-        if spam_pct is not None and not (40.0 <= spam_pct <= 60.0):
-            failures += 1
-        if isinstance(total_rows, (int, float)):
-            if total_rows < 300:
-                failures += 1
-        else:
-            missing_required = True
-        if lint_counts is not None and lint_flags > 0:
-            failures += 1
-        if not missing_required:
-            if failures == 0:
-                badge_text = "🟢 Good"
-            elif failures <= 2:
-                badge_text = "🟡 Needs work"
-            else:
-                badge_text = "🔴 Risky"
+    health = _evaluate_dataset_health(current_summary, lint_counts)
+    spam_pct = health["spam_pct"]
+    total_rows = health["total_rows"]
+    lint_label = health["lint_label"]
+    badge_text = health["badge_text"]
 
     with section_surface():
         st.markdown(
@@ -1568,7 +1596,7 @@ def render_data_stage():
 
             commit_col, discard_col, _ = st.columns([1, 1, 2])
 
-            if commit_col.button("Commit dataset tweaks", type="primary"):
+            if commit_col.button("Commit dataset", type="primary"):
                 preview_rows = ss.get("dataset_preview")
                 config = ss.get("dataset_preview_config", ss.get("dataset_config", DEFAULT_DATASET_CONFIG))
                 if not preview_rows:
@@ -1602,10 +1630,12 @@ def render_data_stage():
                     if len(final_rows) < 10:
                         st.warning("Need at least 10 rows to maintain a meaningful dataset.")
                     else:
-                        lint_counts = lint_dataset(final_rows)
+                        previous_summary = ss.get("dataset_summary", {})
+                        previous_config = ss.get("dataset_config", DEFAULT_DATASET_CONFIG)
+                        lint_counts = lint_dataset(final_rows) or {}
                         new_summary = compute_dataset_summary(final_rows)
-                        delta = dataset_summary_delta(ss.get("dataset_summary", {}), new_summary)
-                        ss["previous_dataset_summary"] = ss.get("dataset_summary", {})
+                        delta = dataset_summary_delta(previous_summary, new_summary)
+                        ss["previous_dataset_summary"] = previous_summary
                         ss["dataset_summary"] = new_summary
                         ss["dataset_config"] = config
                         ss["dataset_compare_delta"] = delta
@@ -1614,14 +1644,44 @@ def render_data_stage():
                         ss["active_dataset_snapshot"] = None
                         ss["dataset_snapshot_name"] = ""
                         _clear_dataset_preview_state()
-                        st.success(f"Dataset updated with {len(final_rows)} curated rows.")
+                        health_evaluation = _evaluate_dataset_health(new_summary, lint_counts)
+                        spam_ratio = new_summary.get("spam_ratio") or 0.0
+                        spam_share_pct = max(0.0, min(100.0, float(spam_ratio) * 100.0))
+                        committed_rows = new_summary.get("total", len(final_rows))
+                        try:
+                            committed_display = int(committed_rows)
+                        except (TypeError, ValueError):
+                            committed_display = len(final_rows)
+                        health_token = health_evaluation.get("health_emoji") or "—"
+                        summary_line = (
+                            f"Committed {committed_display} rows • "
+                            f"Spam share {spam_share_pct:.1f}% • Health: {health_token}"
+                        )
+
+                        prev_spam_ratio = previous_summary.get("spam_ratio") if previous_summary else None
+                        spam_delta_pp = 0.0
+                        if prev_spam_ratio is not None:
+                            try:
+                                spam_delta_pp = (float(spam_ratio) - float(prev_spam_ratio)) * 100.0
+                            except (TypeError, ValueError):
+                                spam_delta_pp = 0.0
+                        prev_edge_cases = previous_config.get("edge_cases", 0)
+                        new_edge_cases = config.get("edge_cases", prev_edge_cases)
+                        if spam_delta_pp >= 10.0:
+                            hint_line = "Expect recall ↑, precision may ↓; tune threshold in Evaluate."
+                        elif new_edge_cases > prev_edge_cases:
+                            hint_line = "Boundary likely sharpened; training may need more iterations."
+                        else:
+                            hint_line = "Mix steady; train to refresh the model, then tune the threshold in Evaluate."
+
+                        st.success(f"{summary_line}\n{hint_line}")
                         if any(lint_counts.values()):
                             st.warning(
                                 "Lint warnings persist after commit (credit cards: {} | IBAN: {})."
                                 .format(lint_counts.get("credit_card", 0), lint_counts.get("iban", 0))
                             )
 
-            if discard_col.button("Discard preview"):
+            if discard_col.button("Discard preview", type="secondary"):
                 _discard_preview()
                 st.info("Preview cleared. The active labeled dataset remains unchanged.")
 
