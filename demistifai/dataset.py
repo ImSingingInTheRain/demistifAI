@@ -359,20 +359,14 @@ EDGE_CASE_TEMPLATES = [
 ]
 
 _RE_EMAIL = re.compile(r"\b[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[A-Za-z]{2,}\b")
-_RE_PHONE = re.compile(r"\b(?:\+?\d{1,3}[\s-]?)?(?:\(?\d{2,4}\)?[\s-]?)?\d{3,4}[\s-]?\d{3,4}\b")
 _RE_IBAN = re.compile(r"\b[A-Z]{2}\d{2}[A-Z0-9]{11,30}\b")
 _RE_CARD16 = re.compile(r"\b(?:\d[ -]*?){13,19}\b")
-_RE_OTP6 = re.compile(r"\b(?:OTP|code|token)\D{0,3}(\d{6})\b", re.IGNORECASE)
-_RE_SUS_URL = re.compile(r"\bhttps?://[^\s)>\]]+\b", re.IGNORECASE)
 
 
 PII_PATTERNS = {
     "credit_card": _RE_CARD16,
     "iban": _RE_IBAN,
     "email": _RE_EMAIL,
-    "phone": _RE_PHONE,
-    "otp6": _RE_OTP6,
-    "url": _RE_SUS_URL,
 }
 
 
@@ -399,14 +393,6 @@ def lint_text_spans(text: str) -> List[Dict[str, Any]]:
         fragment = text[start:end]
         if _luhn_ok(fragment):
             spans.append({"start": start, "end": end, "type": "card16"})
-    for match in _RE_PHONE.finditer(text):
-        spans.append({"start": match.start(), "end": match.end(), "type": "phone"})
-    for match in _RE_OTP6.finditer(text):
-        spans.append({"start": match.start(1), "end": match.end(1), "type": "otp6"})
-    for match in _RE_SUS_URL.finditer(text):
-        url = match.group(0)
-        if any(keyword in url.lower() for keyword in ["reset", "login", "verify", "auth"]):
-            spans.append({"start": match.start(), "end": match.end(), "type": "url"})
 
     spans.sort(key=lambda span: (span["start"], -(span["end"] - span["start"])))
     merged: List[Dict[str, Any]] = []
@@ -544,6 +530,75 @@ def _apply_poison_demo(rows: List[Dict[str, str]], rng: random.Random) -> None:
         rows[idx]["label"] = "safe"
 
 
+def _generate_fake_email(rng: random.Random) -> str:
+    local_length = rng.randint(6, 12)
+    local_part = "".join(rng.choices(string.ascii_lowercase + string.digits, k=local_length))
+    domain = rng.choice(DATASET_LEGIT_DOMAINS)
+    return f"{local_part}@{domain}"
+
+
+def _generate_fake_card_number(rng: random.Random) -> str:
+    digits = [4] + [rng.randint(0, 9) for _ in range(14)]
+
+    total = 0
+    alt = True
+    for value in reversed(digits):
+        doubled = value * 2
+        total += (doubled - 9) if alt and doubled > 9 else (doubled if alt else value)
+        alt = not alt
+    check_digit = (10 - (total % 10)) % 10
+    digits.append(check_digit)
+    return "".join(str(d) for d in digits)
+
+
+def _generate_fake_iban(rng: random.Random) -> str:
+    countries = ["DE", "FR", "NL", "ES", "IT", "BE", "PT", "IE", "AT", "DK"]
+    country = rng.choice(countries)
+    checksum = f"{rng.randint(0, 99):02d}"
+    length = rng.randint(11, 18)
+    body = "".join(rng.choices(string.ascii_uppercase + string.digits, k=length))
+    return f"{country}{checksum}{body}"
+
+
+def _inject_pii_tokens(rows: List[Dict[str, str]], rng: random.Random, *, max_total: int = 50) -> None:
+    if not rows or max_total <= 0:
+        return
+
+    required_types = ["iban", "card", "email"]
+    target = max(3, len(rows) // 10)
+    target = max(target, len(required_types))
+    target = min(max_total, target)
+
+    generators = {
+        "iban": _generate_fake_iban,
+        "card": _generate_fake_card_number,
+        "email": _generate_fake_email,
+    }
+
+    pii_types: List[str] = required_types.copy()
+    while len(pii_types) < target:
+        pii_types.append(rng.choice(required_types))
+
+    candidate_indices = [idx for idx, row in enumerate(rows) if row.get("label") == "spam"]
+    if not candidate_indices:
+        candidate_indices = list(range(len(rows)))
+
+    for pii_type in pii_types:
+        generator = generators.get(pii_type)
+        if not generator:
+            continue
+        idx = rng.choice(candidate_indices)
+        value = generator(rng)
+        if pii_type == "iban":
+            addition = f"\nRequested IBAN: {value}"
+        elif pii_type == "card":
+            addition = f"\nCard number on file: {value}"
+        else:
+            addition = f"\nReply-to email: {value}"
+        body = rows[idx].get("body", "")
+        rows[idx]["body"] = f"{body}{addition}"
+
+
 def build_dataset_from_config(config: DatasetConfig) -> List[Dict[str, str]]:
     cfg = DEFAULT_DATASET_CONFIG.copy()
     cfg.update(config)
@@ -597,6 +652,8 @@ def build_dataset_from_config(config: DatasetConfig) -> List[Dict[str, str]]:
     if cfg.get("poison_demo"):
         _apply_poison_demo(rows, rng)
 
+    _inject_pii_tokens(rows, rng, max_total=50)
+
     seen = set()
     deduped: List[Dict[str, str]] = []
     for row in rows:
@@ -644,7 +701,7 @@ def _has_suspicious_tld(text: str) -> bool:
 
 
 def lint_dataset(rows: List[Dict[str, str]]) -> Dict[str, int]:
-    counts = {"credit_card": 0, "iban": 0, "email": 0, "phone": 0, "otp6": 0, "url": 0}
+    counts = {"credit_card": 0, "iban": 0, "email": 0}
     for row in rows:
         combined = f"{row.get('title', '')}\n{row.get('body', '')}"
         spans = lint_text_spans(combined)
@@ -652,7 +709,7 @@ def lint_dataset(rows: List[Dict[str, str]]) -> Dict[str, int]:
             span_type = span.get("type")
             if span_type == "card16":
                 counts["credit_card"] += 1
-            elif span_type in {"iban", "email", "phone", "otp6", "url"}:
+            elif span_type in {"iban", "email"}:
                 counts[span_type] += 1
     return counts
 
