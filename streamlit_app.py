@@ -184,6 +184,111 @@ def download_text(text: str, filename: str, label: str = "Download"):
     b64 = base64.b64encode(text.encode("utf-8")).decode()
     st.markdown(f'<a href="data:text/plain;base64,{b64}" download="{filename}">{label}</a>', unsafe_allow_html=True)
 
+
+def render_nerd_mode_toggle(
+    *,
+    key: str,
+    title: str,
+    description: str,
+    icon: Optional[str] = "🧠",
+) -> bool:
+    """Render a consistently styled Nerd Mode toggle block."""
+
+    toggle_label = f"{icon} {title}" if icon else title
+    value = st.toggle(toggle_label, key=key, value=bool(ss.get(key, False)))
+    if description:
+        st.caption(description)
+    return value
+
+
+def render_email_inbox_table(
+    df: pd.DataFrame,
+    *,
+    title: str,
+    subtitle: Optional[str] = None,
+    columns: Optional[List[str]] = None,
+) -> None:
+    """Display a small email-centric table with shared styling."""
+
+    with st.container(border=True):
+        st.markdown(f"**{title}**")
+        if subtitle:
+            st.caption(subtitle)
+
+        if df is None or df.empty:
+            st.caption("No emails to display.")
+            return
+
+        display_df = df.copy()
+        if columns:
+            existing = [col for col in columns if col in display_df.columns]
+            if existing:
+                display_df = display_df[existing]
+
+        st.dataframe(display_df, hide_index=True, width="stretch")
+
+
+def render_mailbox_panel(
+    messages: Optional[List[Dict[str, Any]]],
+    *,
+    mailbox_title: str,
+    filled_subtitle: str,
+    empty_subtitle: str,
+) -> None:
+    """Render a mailbox tab with consistent styling and fallbacks."""
+
+    with st.container(border=True):
+        st.markdown(f"**{mailbox_title}**")
+        records = messages or []
+        if not records:
+            st.caption(empty_subtitle)
+            return
+
+        st.caption(filled_subtitle)
+        df_box = pd.DataFrame(records)
+        column_order = ["title", "pred", "p_spam", "body"]
+        rename_map = {
+            "title": "Title",
+            "pred": "Predicted",
+            "p_spam": "P(spam)",
+            "body": "Body",
+        }
+        existing = [col for col in column_order if col in df_box.columns]
+        if existing:
+            df_display = df_box[existing].rename(columns=rename_map)
+        else:
+            df_display = df_box
+        st.dataframe(df_display, hide_index=True, width="stretch")
+
+
+def _append_audit(event: str, details: Optional[Dict[str, Any]] = None) -> None:
+    """Record an audit log entry for the current session."""
+
+    entry = {
+        "timestamp": datetime.now().isoformat(timespec="seconds"),
+        "event": event,
+    }
+    if details:
+        entry["details"] = details
+
+    log = ss.setdefault("use_audit_log", [])
+    log.append(entry)
+
+
+def _export_batch_df(rows: Optional[List[Dict[str, Any]]]) -> pd.DataFrame:
+    """Normalize batch result rows into a consistent DataFrame for export."""
+
+    base_cols = ["title", "body", "pred", "p_spam", "p_safe", "action", "routed_to"]
+    if not rows:
+        return pd.DataFrame(columns=base_cols)
+
+    df_rows = pd.DataFrame(rows)
+    for col in base_cols:
+        if col not in df_rows.columns:
+            df_rows[col] = None
+    return df_rows[base_cols]
+
+
 ss = st.session_state
 requested_stage_values = st.query_params.get_all("stage")
 requested_stage = requested_stage_values[0] if requested_stage_values else None
