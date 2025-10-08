@@ -2001,9 +2001,6 @@ def generate_labeled_dataset(n_total: int = 500, seed: int = 7) -> List[Dict[str
     return build_dataset_from_config(config)
 
 
-STARTER_LABELED_500 = generate_labeled_dataset(n_total=500, seed=42)
-STARTER_LABELED: List[Dict] = STARTER_LABELED_500
-
 STARTER_INCOMING: List[Dict] = [
     {"title": "Payroll direct deposit suspended", "body": "Your salary is on hold. Re-authenticate at http://payroll-auth.safe-bonus.io within 30 minutes to avoid delay."},
     {"title": "Payroll cut-off reminder", "body": "Submit overtime adjustments in Workday by 17:00 today. No attachments required."},
@@ -2262,6 +2259,10 @@ def build_dataset_from_config(config: DatasetConfig) -> List[Dict[str, str]]:
 
     rng.shuffle(deduped)
     return deduped[:n_total]
+
+
+STARTER_LABELED_500 = generate_labeled_dataset(n_total=500, seed=42)
+STARTER_LABELED: List[Dict] = STARTER_LABELED_500
 
 
 def _count_suspicious_links(text: str) -> int:
