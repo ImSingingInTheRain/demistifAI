@@ -519,14 +519,15 @@ def render_intro_stage():
            
             
         with hero_right:
-            hero_info_html = """
-            <div class="hero-info-grid">
              render_eu_ai_quote(
                 "“AI system means a machine-based system that is designed to operate with varying levels of autonomy and that may exhibit "
                 "adaptiveness after deployment, and that, for explicit or implicit objectives, infers, from the input it "
                 "receives, how to generate outputs such as predictions, content, recommendations, or decisions that can "
                 "influence physical or virtual environments.”"
             )
+            hero_info_html = """
+            <div class="hero-info-grid">
+            
                 <div class="hero-info-card">
                     <h3>What you’ll do</h3>
                     <p>
