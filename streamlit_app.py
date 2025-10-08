@@ -2097,12 +2097,13 @@ def render_data_stage():
                                     alt.Tooltip("count()", title="Count"),
                                 ],
                             )
+                            .properties(height=220)
                         )
                         chart = (
                             base_chart
                             .facet(column=alt.Column("label:N", title=None))
                             .resolve_scale(y="independent")
-                            .properties(height=220, title=feature_label)
+                            .properties(title=feature_label)
                         )
                         st.altair_chart(chart, use_container_width=True)
 
