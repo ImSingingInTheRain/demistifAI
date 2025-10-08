@@ -516,7 +516,7 @@ def render_intro_stage():
                 "- how models learn from data to achieve an explicit objective,\n"
                 "- how autonomy levels affect you as a user, and how optional adaptiveness feeds your feedback back into training."
             )
-                  render_eu_ai_quote(
+            render_eu_ai_quote(
                 "“AI system means a machine-based system that is designed to operate with varying levels of autonomy and that may exhibit "
                 "adaptiveness after deployment, and that, for explicit or implicit objectives, infers, from the input it "
                 "receives, how to generate outputs such as predictions, content, recommendations, or decisions that can "
