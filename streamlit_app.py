@@ -298,6 +298,7 @@ ss.setdefault("active_stage", default_stage)
 if requested_stage in STAGE_BY_KEY:
     if requested_stage != ss["active_stage"]:
         ss["active_stage"] = requested_stage
+        ss["stage_scroll_to_top"] = True
 else:
     if st.query_params.get_all("stage") != [ss["active_stage"]]:
         st.query_params["stage"] = ss["active_stage"]
@@ -371,6 +372,7 @@ def set_active_stage(stage_key: str) -> None:
 
     if ss.get("active_stage") != stage_key:
         ss["active_stage"] = stage_key
+        ss["stage_scroll_to_top"] = True
 
     # Keep the sidebar radio selection aligned with the active stage so the
     # UI immediately reflects navigation triggered by buttons elsewhere.
@@ -2658,6 +2660,25 @@ STAGE_RENDERERS = {
 
 active_stage = ss['active_stage']
 renderer = STAGE_RENDERERS.get(active_stage, render_intro_stage)
+
+if ss.pop("stage_scroll_to_top", False):
+    components.html(
+        """
+        <script>
+        (function() {
+            const main = window.parent.document.querySelector('section.main');
+            if (main && typeof main.scrollTo === 'function') {
+                main.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+            if (window.parent && typeof window.parent.scrollTo === 'function') {
+                window.parent.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        })();
+        </script>
+        """,
+        height=0,
+    )
+
 renderer()
 render_stage_navigation_controls(active_stage)
 
