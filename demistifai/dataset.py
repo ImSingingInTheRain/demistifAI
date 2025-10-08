@@ -19,6 +19,7 @@ from .constants import (
     SUSPICIOUS_TLD_SUFFIXES,
     URGENCY,
 )
+from .incoming_generator import generate_incoming_batch
 
 
 __all__ = [
@@ -31,7 +32,7 @@ __all__ = [
     "build_dataset_from_config",
     "STARTER_LABELED",
     "starter_dataset_copy",
-    "STARTER_INCOMING",
+    "generate_incoming_batch",
     "SUSPICIOUS_LINKS",
     "SAFE_LINKS",
     "SUSPICIOUS_DOMAINS",
@@ -310,37 +311,6 @@ def generate_labeled_dataset(n_total: int = 500, seed: int = 7) -> List[Dict[str
     config.update({"n_total": n_total, "seed": seed, "spam_ratio": 0.5, "edge_cases": 0, "label_noise_pct": 0.0})
     return build_dataset_from_config(config)
 
-
-STARTER_INCOMING: List[Dict] = [
-    {"title": "Payroll direct deposit suspended", "body": "Your salary is on hold. Re-authenticate at http://payroll-auth.safe-bonus.io within 30 minutes to avoid delay."},
-    {"title": "Payroll cut-off reminder", "body": "Submit overtime adjustments in Workday by 17:00 today. No attachments required."},
-    {"title": "Security MFA reset request", "body": "We noticed a login issue. Download the attached HTML and sign in to restore access."},
-    {"title": "Security MFA reset confirmed", "body": "Your MFA reset was approved. Instructions are on the internal security portal."},
-    {"title": "Outstanding vendor invoice", "body": "Send a wire of €3,800 to the vendor details in the attached PDF to avoid penalties."},
-    {"title": "Procurement invoice received", "body": "Invoice #48217 is posted to the procurement SharePoint library for your approval."},
-    {"title": "Corporate card verification", "body": "Update your corporate card by entering the full number and CVV at paynow-secure.net."},
-    {"title": "Corporate card policy refresh", "body": "Policy deck is now in Teams. Review ahead of next week's finance sync."},
-    {"title": "Mailbox storage upgrade", "body": "Quota reached. Pay €1.95 via our partner site to unlock more space."},
-    {"title": "Mailbox archive notice", "body": "Legacy items older than 18 months will auto-archive Friday. No action required."},
-    {"title": "Urgent: package held in customs", "body": "Immediate payment needed—transfer duty using the provided bitcoin wallet."},
-    {"title": "Logistics: courier delay update", "body": "Courier delayed by weather. New delivery ETA is Friday; track in our logistics dashboard."},
-    {"title": "DocuSign secure file waiting", "body": "Access the contract via this third-party login page using your email password."},
-    {"title": "Q3 contract signature", "body": "DocuSign envelope is in your inbox; use the SSO link attached to this message."},
-    {"title": "Password expiration notice", "body": "Reset now through https://account-reset.security-check.io to prevent lockout."},
-    {"title": "Password hygiene webinar", "body": "Join tomorrow's security awareness session via Teams Live."},
-    {"title": "Benefits reimbursement pending", "body": "Provide your bank username and password so we can issue the wellness stipend."},
-    {"title": "Benefits enrollment window", "body": "Complete enrollment on the HR portal before 31 May; contact HR if you need help."},
-    {"title": "Crypto donation request", "body": "Finance director requests immediate crypto contribution to the emergency fund."},
-    {"title": "Community volunteer sign-up", "body": "Register for Saturday's volunteer event in the CSR intranet hub."},
-    {"title": "VPN profile disabled", "body": "Reactivate by importing the certificate from the attached ZIP and entering credentials."},
-    {"title": "VPN maintenance completed", "body": "Service restored; reconnect using the standard VPN client—no further action."},
-    {"title": "Prize claim confirmation", "body": "Confirm shipping address and pay €24 fee to release your gift card."},
-    {"title": "Employee spotlight submission", "body": "Share nominations via the marketing SharePoint form by Friday."},
-    {"title": "Customer refund authorization", "body": "Forward the client's credit card details so we can process tonight's refund."},
-    {"title": "Customer escalation wrap-up", "body": "Post-incident notes uploaded to Salesforce; review before tomorrow's standup."},
-    {"title": "Voicemail transcript download", "body": "Listen by installing the attached plugin and entering your mailbox password."},
-    {"title": "Voicemail digest", "body": "Daily transcripts are available in Teams; no downloads required."},
-]
 
 SUSPICIOUS_LINKS = [
     "http://account-secure-reset.top",

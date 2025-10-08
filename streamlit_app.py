@@ -45,7 +45,7 @@ from demistifai.dataset import (
     EDGE_CASE_TEMPLATES,
     DatasetConfig,
     STARTER_LABELED,
-    STARTER_INCOMING,
+    generate_incoming_batch,
     SUSPICIOUS_TLD_SUFFIXES,
     starter_dataset_copy,
     build_dataset_from_config,
@@ -309,7 +309,12 @@ ss.setdefault("eval_timestamp", None)
 ss.setdefault("eval_temp_threshold", float(ss["threshold"]))
 ss.setdefault("adaptive", True)
 ss.setdefault("labeled", starter_dataset_copy())      # list of dicts: title, body, label
-ss.setdefault("incoming", STARTER_INCOMING.copy())    # list of dicts: title, body
+if "incoming_seed" not in ss:
+    ss["incoming_seed"] = None
+if not ss.get("incoming"):
+    seed = random.randint(1, 1_000_000)
+    ss["incoming_seed"] = seed
+    ss["incoming"] = generate_incoming_batch(n=30, seed=seed, spam_ratio=0.32)
 ss.setdefault("model", None)
 ss.setdefault("split_cache", None)
 ss.setdefault("mail_inbox", [])  # list of dicts: title, body, pred, p_spam
@@ -461,7 +466,9 @@ with st.sidebar:
 
     if st.button("🔄 Reset demo data", use_container_width=True):
         ss["labeled"] = starter_dataset_copy()
-        ss["incoming"] = STARTER_INCOMING.copy()
+        seed = random.randint(1, 1_000_000)
+        ss["incoming_seed"] = seed
+        ss["incoming"] = generate_incoming_batch(n=30, seed=seed, spam_ratio=0.32)
         ss["model"] = None
         ss["split_cache"] = None
         ss["mail_inbox"].clear(); ss["mail_spam"].clear()
