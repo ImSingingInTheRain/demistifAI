@@ -240,6 +240,26 @@ ss.setdefault("dataset_preview_lint", None)
 ss.setdefault("last_eval_results", None)
 
 
+def set_active_stage(stage_key: str) -> None:
+    """Update the active stage and synchronize related navigation state."""
+
+    if stage_key not in STAGE_BY_KEY:
+        return
+
+    if ss.get("active_stage") != stage_key:
+        ss["active_stage"] = stage_key
+
+    # Keep the sidebar radio selection aligned with the active stage so the
+    # UI immediately reflects navigation triggered by buttons elsewhere.
+    if ss.get("sidebar_stage_nav") != stage_key:
+        ss["sidebar_stage_nav"] = stage_key
+
+    # Mirror the active stage in the URL query parameter for deep-linking and
+    # to support refresh persistence.
+    if st.query_params.get_all("stage") != [stage_key]:
+        st.query_params["stage"] = stage_key
+
+
 def _set_adaptive_state(new_value: bool, *, source: str) -> None:
     """Synchronize adaptiveness settings across UI controls."""
 
@@ -2347,6 +2367,57 @@ These are standardized and combined with the embedding before a linear classifie
             else:
                 st.write("Snapshot ID: — (save one in Prepare Data → Snapshot & provenance).")
             st.code(dataset_config_json, language="json")
+
+
+def render_stage_navigation_controls(active_stage_key: str) -> None:
+    """Display previous/next controls for the staged experience."""
+
+    stage_keys = [stage.key for stage in STAGES]
+    if active_stage_key not in stage_keys:
+        return
+
+    stage_index = stage_keys.index(active_stage_key)
+    current_stage = STAGE_BY_KEY[active_stage_key]
+    previous_stage = STAGE_BY_KEY.get(stage_keys[stage_index - 1]) if stage_index > 0 else None
+    next_stage = (
+        STAGE_BY_KEY.get(stage_keys[stage_index + 1])
+        if stage_index < len(stage_keys) - 1
+        else None
+    )
+
+    prev_col, info_col, next_col = st.columns([1, 2, 1], gap="large")
+
+    with prev_col:
+        if previous_stage is not None:
+            st.button(
+                f"⬅️ {previous_stage.icon} {previous_stage.title}",
+                key=f"stage_nav_prev_{previous_stage.key}",
+                on_click=set_active_stage,
+                args=(previous_stage.key,),
+                use_container_width=True,
+            )
+
+    with info_col:
+        st.markdown(
+            f"""
+            <div class="stage-navigation-info">
+                <div class="stage-navigation-step">Stage {stage_index + 1} of {len(stage_keys)}</div>
+                <div class="stage-navigation-title">{html.escape(current_stage.icon)} {html.escape(current_stage.title)}</div>
+                <p class="stage-navigation-description">{html.escape(current_stage.description)}</p>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+    with next_col:
+        if next_stage is not None:
+            st.button(
+                f"{next_stage.icon} {next_stage.title} ➡️",
+                key=f"stage_nav_next_{next_stage.key}",
+                on_click=set_active_stage,
+                args=(next_stage.key,),
+                use_container_width=True,
+            )
 
 
 STAGE_RENDERERS = {

@@ -718,6 +718,41 @@ STAGE_TEMPLATE_CSS = """
 </style>
 """
 
+STAGE_TEMPLATE_CSS += """
+<style>
+.stage-navigation-info {
+    text-align: center;
+    padding: 1.2rem 1.5rem;
+    border-radius: 18px;
+    border: 1px solid rgba(148, 163, 184, 0.35);
+    background: linear-gradient(150deg, rgba(255, 255, 255, 0.96), rgba(226, 232, 240, 0.88));
+    box-shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
+    color: #0f172a;
+}
+
+.stage-navigation-step {
+    font-size: 0.85rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgba(15, 23, 42, 0.55);
+    margin-bottom: 0.35rem;
+}
+
+.stage-navigation-title {
+    font-size: 1.3rem;
+    font-weight: 700;
+    margin-bottom: 0.35rem;
+}
+
+.stage-navigation-description {
+    font-size: 0.95rem;
+    line-height: 1.6;
+    margin: 0;
+    color: rgba(15, 23, 42, 0.75);
+}
+</style>
+"""
+
 EMAIL_INBOX_TABLE_CSS = """
 <style>
 .email-inbox-wrapper {
