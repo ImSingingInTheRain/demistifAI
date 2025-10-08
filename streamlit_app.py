@@ -1686,6 +1686,22 @@ def render_data_stage():
                         if body_key not in st.session_state:
                             st.session_state[body_key] = body_default
 
+                        pending_token = ss.pop("pii_pending_token", None)
+                        if pending_token:
+                            if pending_token.get("row_id") == row_id:
+                                target_field = pending_token.get("field", "body")
+                                target_key = title_key if target_field == "title" else body_key
+                                current_text = st.session_state.get(
+                                    target_key,
+                                    row_data.get(target_field, ""),
+                                )
+                                token_text = pending_token.get("token", "")
+                                if token_text:
+                                    spacer = " " if current_text and not current_text.endswith(" ") else ""
+                                    st.session_state[target_key] = f"{current_text}{spacer}{token_text}"
+                            else:
+                                ss["pii_pending_token"] = pending_token
+
                         if ss.get("pii_mode") == "guided":
                             st.markdown("**Title (highlighted)**", help="Highlights show detected PII.")
                             st.markdown(_highlight_spans_html(st.session_state[title_key], title_spans), unsafe_allow_html=True)
@@ -1701,20 +1717,28 @@ def render_data_stage():
                         st.caption("Replacements")
                         st.write("Click to insert tokens at cursor or paste them:")
                         token_columns = st.columns(2)
+                        def _queue_token(token: str, field: str = "body") -> None:
+                            st.session_state["pii_pending_token"] = {
+                                "row_id": row_id,
+                                "field": field,
+                                "token": token,
+                            }
+                            st.experimental_rerun()
+
                         with token_columns[0]:
                             if st.button("{{EMAIL}}", key=f"pii_token_email_{row_id}"):
-                                st.session_state[body_key] = f"{st.session_state.get(body_key, '')} {{EMAIL}}"
+                                _queue_token("{{EMAIL}}")
                             if st.button("{{IBAN}}", key=f"pii_token_iban_{row_id}"):
-                                st.session_state[body_key] = f"{st.session_state.get(body_key, '')} {{IBAN}}"
+                                _queue_token("{{IBAN}}")
                             if st.button("{{CARD_16}}", key=f"pii_token_card_{row_id}"):
-                                st.session_state[body_key] = f"{st.session_state.get(body_key, '')} {{CARD_16}}"
+                                _queue_token("{{CARD_16}}")
                         with token_columns[1]:
                             if st.button("{{PHONE}}", key=f"pii_token_phone_{row_id}"):
-                                st.session_state[body_key] = f"{st.session_state.get(body_key, '')} {{PHONE}}"
+                                _queue_token("{{PHONE}}")
                             if st.button("{{OTP_6}}", key=f"pii_token_otp_{row_id}"):
-                                st.session_state[body_key] = f"{st.session_state.get(body_key, '')} {{OTP_6}}"
+                                _queue_token("{{OTP_6}}")
                             if st.button("{{URL_SUSPICIOUS}}", key=f"pii_token_url_{row_id}"):
-                                st.session_state[body_key] = f"{st.session_state.get(body_key, '')} {{URL_SUSPICIOUS}}"
+                                _queue_token("{{URL_SUSPICIOUS}}")
 
                         st.divider()
                         action_columns = st.columns([1.2, 1, 1.2])
