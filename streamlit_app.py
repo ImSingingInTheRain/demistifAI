@@ -105,6 +105,21 @@ st.markdown(STAGE_TEMPLATE_CSS, unsafe_allow_html=True)
 st.markdown(EMAIL_INBOX_TABLE_CSS, unsafe_allow_html=True)
 st.markdown(LIFECYCLE_CYCLE_CSS, unsafe_allow_html=True)
 
+
+@contextmanager
+def section_surface(extra_class: Optional[str] = None):
+    """Render a consistently styled section surface container."""
+
+    base_class = "section-surface"
+    classes = f"{base_class} {extra_class}" if extra_class else base_class
+
+    st.markdown(f'<div class="{classes}">', unsafe_allow_html=True)
+    try:
+        yield
+    finally:
+        st.markdown("</div>", unsafe_allow_html=True)
+
+
 def guidance_popover(title: str, text: str):
     with st.popover(f"❓ {title}"):
         st.write(text)
