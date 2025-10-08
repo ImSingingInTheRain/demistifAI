@@ -16,6 +16,7 @@ from .constants import (
     COURIERS,
     DATASET_LEGIT_DOMAINS,
     DATASET_SUSPICIOUS_TLDS,
+    SUSPICIOUS_TLD_SUFFIXES,
     URGENCY,
 )
 
@@ -28,6 +29,8 @@ __all__ = [
     "DEFAULT_DATASET_CONFIG",
     "generate_labeled_dataset",
     "build_dataset_from_config",
+    "STARTER_LABELED",
+    "starter_dataset_copy",
     "STARTER_INCOMING",
     "SUSPICIOUS_LINKS",
     "SAFE_LINKS",
@@ -360,20 +363,6 @@ SUSPICIOUS_DOMAINS = [
     "safe-check-support.top",
 ]
 
-SUSPICIOUS_TLD_SUFFIXES = {
-    ".ru",
-    ".top",
-    ".xyz",
-    ".click",
-    ".pw",
-    ".info",
-    ".icu",
-    ".win",
-    ".gq",
-    ".tk",
-    ".cn",
-}
-
 EDGE_CASE_TEMPLATES = [
     {
         "title": "Password reminder",
@@ -580,6 +569,15 @@ def build_dataset_from_config(config: DatasetConfig) -> List[Dict[str, str]]:
 
     rng.shuffle(deduped)
     return deduped
+
+
+STARTER_LABELED: List[Dict[str, str]] = build_dataset_from_config(DEFAULT_DATASET_CONFIG)
+
+
+def starter_dataset_copy() -> List[Dict[str, str]]:
+    """Return a deep-ish copy of the starter labeled dataset."""
+
+    return [row.copy() for row in STARTER_LABELED]
 
 
 def _count_suspicious_links(text: str) -> int:

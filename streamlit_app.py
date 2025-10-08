@@ -44,8 +44,10 @@ from demistifai.dataset import (
     DEFAULT_DATASET_CONFIG,
     EDGE_CASE_TEMPLATES,
     DatasetConfig,
+    STARTER_LABELED,
     STARTER_INCOMING,
     SUSPICIOUS_TLD_SUFFIXES,
+    starter_dataset_copy,
     build_dataset_from_config,
     compute_dataset_hash,
     compute_dataset_summary,
@@ -185,7 +187,7 @@ ss.setdefault("nerd_mode_eval", False)
 ss.setdefault("eval_timestamp", None)
 ss.setdefault("eval_temp_threshold", float(ss["threshold"]))
 ss.setdefault("adaptive", True)
-ss.setdefault("labeled", STARTER_LABELED.copy())      # list of dicts: title, body, label
+ss.setdefault("labeled", starter_dataset_copy())      # list of dicts: title, body, label
 ss.setdefault("incoming", STARTER_INCOMING.copy())    # list of dicts: title, body
 ss.setdefault("model", None)
 ss.setdefault("split_cache", None)
@@ -305,7 +307,7 @@ with st.sidebar:
     _handle_sidebar_adaptive_change()
 
     if st.button("🔄 Reset demo data", use_container_width=True):
-        ss["labeled"] = STARTER_LABELED.copy()
+        ss["labeled"] = starter_dataset_copy()
         ss["incoming"] = STARTER_INCOMING.copy()
         ss["model"] = None
         ss["split_cache"] = None
@@ -701,7 +703,7 @@ def render_data_stage():
                 ss["dataset_controls_open"] = True
         with btn_col2:
             if st.button("Reset to baseline", key="reset_dataset_baseline"):
-                ss["labeled"] = STARTER_LABELED.copy()
+                ss["labeled"] = starter_dataset_copy()
                 ss["dataset_config"] = DEFAULT_DATASET_CONFIG.copy()
                 baseline_summary = compute_dataset_summary(ss["labeled"])
                 ss["dataset_summary"] = baseline_summary
@@ -716,7 +718,9 @@ def render_data_stage():
                 ss["dataset_preview_lint"] = None
                 ss["dataset_manual_queue"] = None
                 ss["dataset_controls_open"] = False
-                st.success("Dataset reset to STARTER_LABELED_500.")
+                st.success(
+                    f"Dataset reset to starter baseline ({len(STARTER_LABELED)} rows)."
+                )
         with btn_col3:
             if st.button("Compare to last dataset", key="compare_dataset_button"):
                 if ss.get("previous_dataset_summary"):
