@@ -218,6 +218,62 @@ APP_THEME_CSS = """
     margin: 0 auto;
 }
 
+.ai-quote-box {
+    position: relative;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 1rem;
+    padding: 1.25rem 1.4rem;
+    margin: 1.2rem 0;
+    border-radius: 18px;
+    border: 1px solid rgba(30, 64, 175, 0.18);
+    background: linear-gradient(145deg, rgba(30, 64, 175, 0.08), rgba(30, 64, 175, 0));
+    box-shadow: 0 18px 42px rgba(15, 23, 42, 0.12);
+    color: #0f172a;
+}
+
+.ai-quote-box::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    border: 1px solid rgba(59, 130, 246, 0.16);
+    pointer-events: none;
+}
+
+.ai-quote-box__icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    border-radius: 14px;
+    background: rgba(30, 64, 175, 0.12);
+    font-size: 1.6rem;
+    line-height: 1;
+    color: #1d4ed8;
+}
+
+.ai-quote-box__content {
+    display: grid;
+    gap: 0.35rem;
+}
+
+.ai-quote-box__source {
+    font-weight: 600;
+    font-size: 0.95rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: rgba(30, 64, 175, 0.82);
+}
+
+.ai-quote-box__content p {
+    margin: 0;
+    font-size: 0.98rem;
+    line-height: 1.7;
+    color: rgba(15, 23, 42, 0.92);
+}
+
 [data-testid="column"] > div[data-testid="stVerticalBlock"] {
     display: flex;
     flex-direction: column;
