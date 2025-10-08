@@ -2123,7 +2123,7 @@ def _inject_links(text: str, count: int, rng: random.Random, *, suspicious: bool
     return text + "\nLinks: " + ", ".join(additions)
 
 
-def _maybe_caps(text: str, rng: random.Random, intensity: str) -> str:
+def _maybe_caps_with_intensity(text: str, rng: random.Random, intensity: str) -> str:
     if intensity == "low":
         return text
     words = text.split()
@@ -2223,8 +2223,8 @@ def build_dataset_from_config(config: DatasetConfig) -> List[Dict[str, str]]:
         body += _tld_injection(rng, level=tld_level)
         body = _apply_attachment_lure(body, rng, attachments_mix)
         body = _add_money_urgency(body, rng, money_level)
-        title = _maybe_caps(title, rng, caps_level)
-        body = _maybe_caps(body, rng, caps_level)
+        title = _maybe_caps_with_intensity(title, rng, caps_level)
+        body = _maybe_caps_with_intensity(body, rng, caps_level)
         rows.append({"title": title, "body": body, "label": "spam"})
 
     for _ in range(safe_count):
@@ -2233,7 +2233,7 @@ def build_dataset_from_config(config: DatasetConfig) -> List[Dict[str, str]]:
             body = _inject_links(body, 1, rng, suspicious=False)
         if rng.random() < 0.1:
             body += "\nReminder: never share passwords or bank details."
-        title = _maybe_caps(title, rng, "low")
+        title = _maybe_caps_with_intensity(title, rng, "low")
         rows.append({"title": title, "body": body, "label": "safe"})
 
     n_pairs = max(0, min(int(cfg.get("edge_cases", 0)), len(EDGE_CASE_TEMPLATES)))
