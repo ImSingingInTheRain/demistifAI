@@ -1269,19 +1269,23 @@ def render_data_stage():
     if not delta_text:
         delta_text = explain_config_change(ss.get("dataset_config", DEFAULT_DATASET_CONFIG))
 
-    def _generate_preview_from_config(config: DatasetConfig) -> None:
+    def _generate_preview_from_config(config: DatasetConfig) -> Dict[str, Any]:
         dataset_rows = build_dataset_from_config(config)
         preview_summary = compute_dataset_summary(dataset_rows)
         lint_counts = lint_dataset(dataset_rows)
+
+        manual_df = pd.DataFrame(dataset_rows[: min(len(dataset_rows), 200)])
+        if not manual_df.empty:
+            manual_df.insert(0, "include", True)
+
         ss["dataset_preview"] = dataset_rows
         ss["dataset_preview_config"] = config
         ss["dataset_preview_summary"] = preview_summary
         ss["dataset_preview_lint"] = lint_counts
-        ss["dataset_manual_queue"] = pd.DataFrame(dataset_rows[: min(len(dataset_rows), 200)])
-        if ss["dataset_manual_queue"] is not None and not ss["dataset_manual_queue"].empty:
-            ss["dataset_manual_queue"].insert(0, "include", True)
+        ss["dataset_manual_queue"] = manual_df
         ss["dataset_compare_delta"] = dataset_summary_delta(current_summary, preview_summary)
         ss["last_dataset_delta_story"] = dataset_delta_story(ss["dataset_compare_delta"])
+
         st.success("Preview ready — scroll to **Review & approve** to curate rows before committing.")
         explanation = explain_config_change(config, ss.get("dataset_config", DEFAULT_DATASET_CONFIG))
         if explanation:
@@ -1298,148 +1302,8 @@ def render_data_stage():
                     len(dataset_rows)
                 )
             )
-            if delta_summary:
-                _add_panel_item("Examples", delta_summary.get("total"))
-                _add_panel_item("Avg suspicious links", delta_summary.get("avg_susp_links"), decimals=2)
-                _add_panel_item("Suspicious TLD hits", delta_summary.get("suspicious_tlds"))
-                _add_panel_item("Money cues", delta_summary.get("money_mentions"))
-                _add_panel_item("Attachment lures", delta_summary.get("attachment_lures"))
 
-            effect_hint = ""
-            if spam_share_delta_pp is not None and abs(spam_share_delta_pp) >= 0.1:
-                if spam_share_delta_pp > 0:
-                    effect_hint = "Higher spam share → recall ↑, precision may ↓; adjust threshold later in Evaluate."
-                else:
-                    effect_hint = (
-                        "Lower spam share → precision ↑, recall may ↓; consider rebalancing spam examples before training."
-                    )
-            elif delta_summary:
-                link_delta = float(delta_summary.get("avg_susp_links") or 0.0)
-                tld_delta = float(delta_summary.get("suspicious_tlds") or 0.0)
-                money_delta = float(delta_summary.get("money_mentions") or 0.0)
-                attachment_delta = float(delta_summary.get("attachment_lures") or 0.0)
-                if link_delta > 0:
-                    effect_hint = "More suspicious links → phishing recall should improve via URL cues."
-                elif link_delta < 0:
-                    effect_hint = "Fewer suspicious links → URL-heavy spam might slip by; monitor precision/recall."
-                elif tld_delta > 0:
-                    effect_hint = "Suspicious TLD hits increased — domain heuristics strengthen spam recall."
-                elif tld_delta < 0:
-                    effect_hint = "Suspicious TLD hits dropped — rely more on text patterns and validate in Evaluate."
-                elif money_delta > 0:
-                    effect_hint = "Money cues rose — expect better coverage on payment scams."
-                elif money_delta < 0:
-                    effect_hint = "Money cues fell — finance-themed recall could dip."
-                elif attachment_delta > 0:
-                    effect_hint = "Attachment lures increased — the model leans on risky file signals."
-                elif attachment_delta < 0:
-                    effect_hint = "Attachment lures decreased — detection may hinge on text clues."
-
-            if not effect_hint:
-                if panel_items:
-                    effect_hint = "Changes logged — move to Evaluate to measure the impact."
-                else:
-                    effect_hint = "No changes yet—adjust and preview."
-
-                panel_html = ["<div class='dataset-delta-panel'>", "<h5>What changed</h5>"]
-                if panel_items:
-                    panel_html.append("<div class='dataset-delta-panel__items'>")
-                    for label, arrow, arrow_class, value_str in panel_items:
-                        panel_html.append(
-                            "<div class='dataset-delta-panel__item'><span>{label}</span><span class='delta-arrow {cls}'>{arrow} {value}</span></div>"
-                            .format(
-                                label=html.escape(label),
-                                cls=arrow_class,
-                                arrow=html.escape(arrow),
-                                value=html.escape(value_str),
-                            )
-                        )
-                    panel_html.append("</div>")
-                else:
-                    panel_html.append(
-                        "<p class='dataset-delta-panel__story'>No changes yet—adjust and preview.</p>"
-                    )
-                    effect_hint = ""
-
-                if effect_hint:
-                    panel_html.append(
-                        "<div class='dataset-delta-panel__hint'>{}</div>".format(html.escape(effect_hint))
-                    )
-                if delta_text:
-                    panel_html.append(
-                        "<div class='dataset-delta-panel__story'>{}</div>".format(html.escape(delta_text))
-                    )
-                panel_html.append("</div>")
-                st.markdown("".join(panel_html), unsafe_allow_html=True)
-
-            if reset_clicked:
-                ss["labeled"] = starter_dataset_copy()
-                ss["dataset_config"] = DEFAULT_DATASET_CONFIG.copy()
-                baseline_summary = compute_dataset_summary(ss["labeled"])
-                ss["dataset_summary"] = baseline_summary
-                ss["previous_dataset_summary"] = None
-                ss["dataset_compare_delta"] = None
-                ss["last_dataset_delta_story"] = None
-                ss["active_dataset_snapshot"] = None
-                ss["dataset_snapshot_name"] = ""
-                ss["dataset_preview"] = None
-                ss["dataset_preview_config"] = None
-                ss["dataset_preview_summary"] = None
-                ss["dataset_preview_lint"] = None
-                ss["dataset_manual_queue"] = None
-                ss["dataset_controls_open"] = False
-                _set_advanced_knob_state(ss["dataset_config"], force=True)
-                st.success(
-                    f"Dataset reset to starter baseline ({len(STARTER_LABELED)} rows)."
-                )
-
-            spam_ratio = float(spam_share_pct) / 100.0
-
-            if preview_clicked:
-                attachment_choice = st.session_state.get(
-                    "adv_attachment_choice",
-                    next(
-                        (name for name, mix in ATTACHMENT_MIX_PRESETS.items() if mix == cfg.get("attachments_mix", DEFAULT_ATTACHMENT_MIX)),
-                        "Balanced",
-                    ),
-                )
-                attachment_mix = ATTACHMENT_MIX_PRESETS.get(attachment_choice, DEFAULT_ATTACHMENT_MIX).copy()
-                links_level_value = int(
-                    st.session_state.get(
-                        "adv_links_level",
-                        int(str(cfg.get("susp_link_level", "1"))),
-                    )
-                )
-                tld_level_value = str(
-                    st.session_state.get("adv_tld_level", cfg.get("susp_tld_level", "med"))
-                )
-                caps_level_value = str(
-                    st.session_state.get("adv_caps_level", cfg.get("caps_intensity", "med"))
-                )
-                money_level_value = str(
-                    st.session_state.get("adv_money_level", cfg.get("money_urgency", "low"))
-                )
-                noise_pct_value = float(
-                    st.session_state.get("adv_label_noise_pct", float(cfg.get("label_noise_pct", 0.0)))
-                )
-                seed_value = int(st.session_state.get("adv_seed", int(cfg.get("seed", 42))))
-                poison_demo_value = bool(
-                    st.session_state.get("adv_poison_demo", bool(cfg.get("poison_demo", False)))
-                )
-                config: DatasetConfig = {
-                    "seed": int(seed_value),
-                    "n_total": int(dataset_size),
-                    "spam_ratio": float(spam_ratio),
-                    "susp_link_level": str(int(links_level_value)),
-                    "susp_tld_level": tld_level_value,
-                    "caps_intensity": caps_level_value,
-                    "money_urgency": money_level_value,
-                    "attachments_mix": attachment_mix,
-                    "edge_cases": int(edge_cases),
-                    "label_noise_pct": float(noise_pct_value),
-                    "poison_demo": bool(poison_demo_value),
-                }
-                _generate_preview_from_config(config)
+        return preview_summary
 
     nerd_mode_data_enabled = bool(ss.get("nerd_mode_data"))
 
@@ -1618,6 +1482,89 @@ def render_data_stage():
                     reset_clicked = st.form_submit_button("Reset to baseline", type="secondary")
                 st.markdown("</div>", unsafe_allow_html=True)
 
+        spam_ratio = float(spam_share_pct) / 100.0
+
+        if reset_clicked:
+            ss["labeled"] = starter_dataset_copy()
+            ss["dataset_config"] = DEFAULT_DATASET_CONFIG.copy()
+            baseline_summary = compute_dataset_summary(ss["labeled"])
+            ss["dataset_summary"] = baseline_summary
+            ss["previous_dataset_summary"] = None
+            ss["dataset_compare_delta"] = None
+            ss["last_dataset_delta_story"] = None
+            ss["active_dataset_snapshot"] = None
+            ss["dataset_snapshot_name"] = ""
+            ss["dataset_last_built_at"] = datetime.now().isoformat(timespec="seconds")
+            ss["dataset_preview"] = None
+            ss["dataset_preview_config"] = None
+            ss["dataset_preview_summary"] = None
+            ss["dataset_preview_lint"] = None
+            ss["dataset_manual_queue"] = None
+            ss["dataset_controls_open"] = False
+            _set_advanced_knob_state(ss["dataset_config"], force=True)
+            st.success(f"Dataset reset to starter baseline ({len(STARTER_LABELED)} rows).")
+            current_summary = baseline_summary
+            delta_summary = ss.get("dataset_compare_delta")
+            delta_text = explain_config_change(ss.get("dataset_config", DEFAULT_DATASET_CONFIG))
+            base_summary_for_delta = compute_dataset_summary(STARTER_LABELED)
+            target_summary_for_delta = current_summary
+
+        preview_summary_local: Optional[Dict[str, Any]] = None
+        if preview_clicked:
+            attachment_choice = st.session_state.get(
+                "adv_attachment_choice",
+                next(
+                    (
+                        name
+                        for name, mix in ATTACHMENT_MIX_PRESETS.items()
+                        if mix == cfg.get("attachments_mix", DEFAULT_ATTACHMENT_MIX)
+                    ),
+                    "Balanced",
+                ),
+            )
+            attachment_mix = ATTACHMENT_MIX_PRESETS.get(attachment_choice, DEFAULT_ATTACHMENT_MIX).copy()
+            links_level_value = int(
+                st.session_state.get(
+                    "adv_links_level",
+                    int(str(cfg.get("susp_link_level", "1"))),
+                )
+            )
+            tld_level_value = str(
+                st.session_state.get("adv_tld_level", cfg.get("susp_tld_level", "med"))
+            )
+            caps_level_value = str(
+                st.session_state.get("adv_caps_level", cfg.get("caps_intensity", "med"))
+            )
+            money_level_value = str(
+                st.session_state.get("adv_money_level", cfg.get("money_urgency", "low"))
+            )
+            noise_pct_value = float(
+                st.session_state.get("adv_label_noise_pct", float(cfg.get("label_noise_pct", 0.0)))
+            )
+            seed_value = int(st.session_state.get("adv_seed", int(cfg.get("seed", 42))))
+            poison_demo_value = bool(
+                st.session_state.get("adv_poison_demo", bool(cfg.get("poison_demo", False)))
+            )
+            config: DatasetConfig = {
+                "seed": int(seed_value),
+                "n_total": int(dataset_size),
+                "spam_ratio": float(spam_ratio),
+                "susp_link_level": str(int(links_level_value)),
+                "susp_tld_level": tld_level_value,
+                "caps_intensity": caps_level_value,
+                "money_urgency": money_level_value,
+                "attachments_mix": attachment_mix,
+                "edge_cases": int(edge_cases),
+                "label_noise_pct": float(noise_pct_value),
+                "poison_demo": bool(poison_demo_value),
+            }
+            preview_summary_local = _generate_preview_from_config(config)
+            delta_summary = ss.get("dataset_compare_delta")
+            if delta_summary:
+                delta_text = dataset_delta_story(delta_summary)
+            base_summary_for_delta = current_summary
+            target_summary_for_delta = preview_summary_local
+
         with builder_cols[1]:
             action_cols = st.columns(2, gap="small")
             with action_cols[0]:
@@ -1626,6 +1573,8 @@ def render_data_stage():
                         ss["dataset_compare_delta"] = dataset_summary_delta(
                             ss["previous_dataset_summary"], current_summary
                         )
+                        delta_summary = ss["dataset_compare_delta"]
+                        delta_text = dataset_delta_story(delta_summary)
                         st.toast("Comparison updated below the builder.", icon="📊")
                     else:
                         st.toast(
@@ -1643,7 +1592,7 @@ def render_data_stage():
             panel_items: list[tuple[str, str, str, str]] = []
             spam_share_delta_pp: Optional[float] = None
 
-            def _add_panel_item(label: str, value: Any, *, unit: str = "", decimals: Optional[int] = None):
+            def _add_panel_item(label: str, value: Any, *, unit: str = "", decimals: Optional[int] = None) -> None:
                 if value is None:
                     return
                 try:
@@ -1724,7 +1673,8 @@ def render_data_stage():
                 panel_html.append("<div class='dataset-delta-panel__items'>")
                 for label, arrow, arrow_class, value_str in panel_items:
                     panel_html.append(
-                        "<div class='dataset-delta-panel__item'><span>{label}</span><span class='delta-arrow {cls}'>{arrow}{value}</span></div>".format(
+                        "<div class='dataset-delta-panel__item'><span>{label}</span><span class='delta-arrow {cls}'>{arrow}{value}</span></div>"
+                        .format(
                             label=html.escape(label),
                             cls=arrow_class,
                             arrow=html.escape(arrow),
@@ -1748,78 +1698,6 @@ def render_data_stage():
                 )
             panel_html.append("</div>")
             st.markdown("".join(panel_html), unsafe_allow_html=True)
-
-        if reset_clicked:
-            ss["labeled"] = starter_dataset_copy()
-            ss["dataset_config"] = DEFAULT_DATASET_CONFIG.copy()
-            baseline_summary = compute_dataset_summary(ss["labeled"])
-            ss["dataset_summary"] = baseline_summary
-            ss["previous_dataset_summary"] = None
-            ss["dataset_compare_delta"] = None
-            ss["last_dataset_delta_story"] = None
-            ss["active_dataset_snapshot"] = None
-            ss["dataset_snapshot_name"] = ""
-            ss["dataset_last_built_at"] = datetime.now().isoformat(timespec="seconds")
-            ss["dataset_preview"] = None
-            ss["dataset_preview_config"] = None
-            ss["dataset_preview_summary"] = None
-            ss["dataset_preview_lint"] = None
-            ss["dataset_manual_queue"] = None
-            ss["dataset_controls_open"] = False
-            _set_advanced_knob_state(ss["dataset_config"], force=True)
-            st.success(f"Dataset reset to starter baseline ({len(STARTER_LABELED)} rows).")
-
-        spam_ratio = float(spam_share_pct) / 100.0
-
-        if preview_clicked:
-            attachment_choice = st.session_state.get(
-                "adv_attachment_choice",
-                next(
-                    (
-                        name
-                        for name, mix in ATTACHMENT_MIX_PRESETS.items()
-                        if mix == cfg.get("attachments_mix", DEFAULT_ATTACHMENT_MIX)
-                    ),
-                    "Balanced",
-                ),
-            )
-            attachment_mix = ATTACHMENT_MIX_PRESETS.get(attachment_choice, DEFAULT_ATTACHMENT_MIX).copy()
-            links_level_value = int(
-                st.session_state.get(
-                    "adv_links_level",
-                    int(str(cfg.get("susp_link_level", "1"))),
-                )
-            )
-            tld_level_value = str(
-                st.session_state.get("adv_tld_level", cfg.get("susp_tld_level", "med"))
-            )
-            caps_level_value = str(
-                st.session_state.get("adv_caps_level", cfg.get("caps_intensity", "med"))
-            )
-            money_level_value = str(
-                st.session_state.get("adv_money_level", cfg.get("money_urgency", "low"))
-            )
-            noise_pct_value = float(
-                st.session_state.get("adv_label_noise_pct", float(cfg.get("label_noise_pct", 0.0)))
-            )
-            seed_value = int(st.session_state.get("adv_seed", int(cfg.get("seed", 42))))
-            poison_demo_value = bool(
-                st.session_state.get("adv_poison_demo", bool(cfg.get("poison_demo", False)))
-            )
-            config: DatasetConfig = {
-                "seed": int(seed_value),
-                "n_total": int(dataset_size),
-                "spam_ratio": float(spam_ratio),
-                "susp_link_level": str(int(links_level_value)),
-                "susp_tld_level": tld_level_value,
-                "caps_intensity": caps_level_value,
-                "money_urgency": money_level_value,
-                "attachments_mix": attachment_mix,
-                "edge_cases": int(edge_cases),
-                "label_noise_pct": float(noise_pct_value),
-                "poison_demo": bool(poison_demo_value),
-            }
-            _generate_preview_from_config(config)
 
     if ss.get("dataset_preview"):
         # ===== PII Cleanup (mini-game) ================================================
