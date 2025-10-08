@@ -11,8 +11,10 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 from sentence_transformers import SentenceTransformer
+from sklearn.calibration import CalibratedClassifierCV
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import confusion_matrix, precision_recall_fscore_support
+from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 
 from .constants import SUSPICIOUS_TLD_SUFFIXES
@@ -332,11 +334,24 @@ def numeric_feature_contributions(model: Any, title: str, body: str) -> list[tup
         return []
 
     n_num = len(FEATURE_ORDER)
-    try:
-        w = model.lr.coef_[0][-n_num:]
-    except Exception:
+    weights = None
+    if hasattr(model, "lr_num") and getattr(model, "lr_num", None) is not None:
+        try:
+            coef = model.lr_num.coef_[0][:n_num]
+            adj_dict = getattr(model, "_user_adj", {})
+            adj = np.array([adj_dict.get(feat, 0.0) for feat in FEATURE_ORDER], dtype=np.float32)
+            weights = coef + adj
+        except Exception:
+            weights = None
+    elif hasattr(model, "lr"):
+        try:
+            weights = model.lr.coef_[0][-n_num:]
+        except Exception:
+            weights = None
+
+    if weights is None:
         return []
-    contrib = z * w
+    contrib = z * weights
     return list(zip(FEATURE_ORDER, z.tolist(), contrib.tolist()))
 
 
@@ -509,104 +524,204 @@ def features_matrix(titles: List[str], bodies: List[str]) -> np.ndarray:
 
 
 class HybridEmbedFeatsLogReg:
-    """
-    Frozen sentence-embedding encoder + small numeric features (standardized) concatenated,
-    then LogisticRegression (balanced).
-    """
+    """Guarded hybrid model combining text embeddings with numeric cues."""
 
-    def __init__(self, model_name: str = "sentence-transformers/all-MiniLM-L6-v2"):
-        self.model_name = model_name
-        self.lr = LogisticRegression(
-            max_iter=2000,
-            C=1.0,
-            class_weight="balanced",
-            n_jobs=None,
-        )
+    def __init__(
+        self,
+        max_iter: int = 1000,
+        C: float = 1.0,
+        random_state: int = 42,
+        # guarded-combination params
+        uncertainty_band: float = 0.08,
+        numeric_scale: float = 0.5,
+        numeric_logit_cap: float = 1.0,
+        combine_strategy: str = "blend",
+        # threshold-shift micro-rules
+        shift_suspicious_tld: float = -0.04,
+        shift_many_links: float = -0.03,
+        shift_calm_text: float = +0.02,
+    ):
+        self.max_iter = max_iter
+        self.C = C
+        self.random_state = random_state
+
+        self.lr_text: CalibratedClassifierCV | None = None
+        self.lr_num: LogisticRegression | None = None
+
         self.scaler = StandardScaler()
-        self.classes_ = None
-        self.base_num_coefs_: Optional[np.ndarray] = None
-        self.numeric_adjustments_: np.ndarray = np.zeros(len(FEATURE_ORDER), dtype=float)
+        self.classes_ = np.array(["safe", "spam"])
 
-    def _embed(self, texts: list[str]) -> np.ndarray:
-        return encode_texts(texts, model_name=self.model_name)
+        self.uncertainty_band = float(uncertainty_band)
+        self.numeric_scale = float(numeric_scale)
+        self.numeric_logit_cap = float(numeric_logit_cap)
+        self.combine_strategy = str(combine_strategy)
 
-    def _feats(self, titles: List[str], bodies: List[str]) -> np.ndarray:
-        return features_matrix(titles, bodies)
+        self.shift_suspicious_tld = float(shift_suspicious_tld)
+        self.shift_many_links = float(shift_many_links)
+        self.shift_calm_text = float(shift_calm_text)
 
-    def fit(self, X_titles: List[str], X_bodies: List[str], y: List[str]):
-        texts = [(t or "") + "\n" + (b or "") for t, b in zip(X_titles, X_bodies)]
-        X_emb = self._embed(texts)
-        X_f = self._feats(X_titles, X_bodies)
-        X_f_std = self.scaler.fit_transform(X_f)
-        X_cat = np.concatenate([X_emb, X_f_std], axis=1)
-        self.lr.fit(X_cat, y)
-        self.classes_ = list(self.lr.classes_)
-        n_num = len(FEATURE_ORDER)
-        self.base_num_coefs_ = self.lr.coef_[0][-n_num:].copy()
-        self.numeric_adjustments_ = np.zeros_like(self.base_num_coefs_)
-        return self
+        self.notes: list[str] = []
+        self._user_adj = {k: 0.0 for k in FEATURE_ORDER}
+        self.last_thr_eff: tuple[np.ndarray, np.ndarray] | None = None
 
-    def _prep(self, X_titles: List[str], X_bodies: List[str]) -> np.ndarray:
-        texts = [(t or "") + "\n" + (b or "") for t, b in zip(X_titles, X_bodies)]
-        X_emb = self._embed(texts)
-        X_f = self._feats(X_titles, X_bodies)
-        X_f_std = self.scaler.transform(X_f)
-        return np.concatenate([X_emb, X_f_std], axis=1)
+    # --- compatibility helpers ---
+    def _encode_concat(self, titles, bodies):
+        texts = [combine_text(t, b) for t, b in zip(titles, bodies)]
+        emb = encode_texts(texts)
+        return emb
 
-    def predict(self, X_titles: List[str], X_bodies: List[str]) -> np.ndarray:
-        X = self._prep(X_titles, X_bodies)
-        return self.lr.predict(X)
+    def _numeric_raw(self, titles, bodies):
+        rows = []
+        for t, b in zip(titles, bodies):
+            feats = compute_numeric_features(t, b)
+            rows.append([feats[k] for k in FEATURE_ORDER])
+        return np.array(rows, dtype=np.float32)
 
-    def predict_proba(self, X_titles: List[str], X_bodies: List[str]) -> np.ndarray:
-        X = self._prep(X_titles, X_bodies)
-        return self.lr.predict_proba(X)
+    def _numeric_std_block(self, titles, bodies):
+        X_num = self._numeric_raw(titles, bodies)
+        X_std = self.scaler.transform(X_num)
+        return X_std
 
-    # Convenience for introspection of numeric feature coefficients
-    def numeric_feature_details(self) -> pd.DataFrame:
-        """Return dataframe with standardized weights + training stats."""
+    def numeric_feature_details(self):
+        coef = np.zeros(len(FEATURE_ORDER))
+        if self.lr_num is not None:
+            coef = self.lr_num.coef_[0]
+        train_mean = getattr(self, "_train_num_mean", np.zeros_like(coef))
+        train_std = getattr(self, "_train_num_std", np.ones_like(coef))
+        base = coef
+        adj = np.array([self._user_adj[k] for k in FEATURE_ORDER], dtype=np.float32)
+        final = base + adj
+        odds_mult = np.exp(final)
+        import pandas as _pd
 
-        if not hasattr(self.lr, "coef_"):
-            raise RuntimeError("Model is not trained")
-
-        n_total = self.lr.coef_.shape[1]
-        n_num = len(FEATURE_ORDER)
-        if n_total < n_num:
-            raise RuntimeError("Logistic regression is missing numeric feature coefficients")
-
-        current_coefs = self.lr.coef_[0][-n_num:]
-        means = getattr(self.scaler, "mean_", np.zeros(n_num))
-        stds = getattr(self.scaler, "scale_", np.ones(n_num))
-        base = self.base_num_coefs_ if self.base_num_coefs_ is not None else current_coefs.copy()
-        adjustments = self.numeric_adjustments_ if hasattr(self, "numeric_adjustments_") else np.zeros_like(current_coefs)
-
-        df = pd.DataFrame(
+        return _pd.DataFrame(
             {
                 "feature": FEATURE_ORDER,
-                "base_weight_per_std": base.astype(float),
-                "user_adjustment": adjustments.astype(float),
-                "weight_per_std": current_coefs.astype(float),
-                "train_mean": means.astype(float),
-                "train_std": stds.astype(float),
+                "base_weight_per_std": base,
+                "user_adjustment": adj,
+                "weight_per_std": final,
+                "odds_multiplier_per_std": odds_mult,
+                "train_mean": train_mean,
+                "train_std": train_std,
             }
         )
 
-        # Odds change for a +1 standard deviation move in the original (unscaled) feature
-        df["odds_multiplier_per_std"] = np.exp(df["weight_per_std"])
+    def apply_numeric_adjustments(self, adj_dict: dict):
+        for k, v in adj_dict.items():
+            if k in self._user_adj:
+                self._user_adj[k] = float(v)
 
-        # Translate back to effect per raw-unit (avoid division by ~0)
-        safe_std = df["train_std"].replace(0, np.nan)
-        df["weight_per_unit"] = df["weight_per_std"] / safe_std
+    def fit(self, titles, bodies, y):
+        y_bin = np.array([1 if _y == "spam" else 0 for _y in y], dtype=np.int32)
 
-        return df
+        X_emb = self._encode_concat(titles, bodies)
 
-    def numeric_feature_coefs(self) -> Dict[str, float]:
-        details = self.numeric_feature_details()
-        return dict(zip(details["feature"], details["weight_per_std"]))
+        X_num_raw = self._numeric_raw(titles, bodies)
+        self.scaler.fit(X_num_raw)
+        self._train_num_mean = self.scaler.mean_.copy()
+        self._train_num_std = np.sqrt(self.scaler.var_.copy())
 
-    def apply_numeric_adjustments(self, adjustments: Dict[str, float]):
-        if self.base_num_coefs_ is None:
-            return
-        ordered = np.array([adjustments.get(feat, 0.0) for feat in FEATURE_ORDER], dtype=float)
-        self.numeric_adjustments_ = ordered
-        self.lr.coef_[0][-len(FEATURE_ORDER):] = self.base_num_coefs_ + ordered
+        X_num_std = self.scaler.transform(X_num_raw)
+
+        X_emb_tr, X_emb_val, y_tr, y_val = train_test_split(
+            X_emb, y_bin, test_size=0.2, stratify=y_bin, random_state=self.random_state
+        )
+
+        base_text = LogisticRegression(
+            max_iter=self.max_iter, C=self.C, random_state=self.random_state
+        )
+        base_text.fit(X_emb_tr, y_tr)
+        self.lr_text = CalibratedClassifierCV(base_text, method="isotonic", cv="prefit")
+        self.lr_text.fit(X_emb_val, y_val)
+
+        self.lr_num = LogisticRegression(
+            max_iter=1000,
+            C=0.8,
+            class_weight="balanced",
+            random_state=self.random_state,
+        )
+        self.lr_num.fit(X_num_std, y_bin)
+
+        expected_pos = {"external_link_count", "suspicious_tld", "all_caps_ratio"}
+        coef = self.lr_num.coef_[0]
+        for i, feat in enumerate(FEATURE_ORDER):
+            if feat in expected_pos and coef[i] < 0:
+                coef[i] *= 0.5
+                self.notes.append(f"Auto-damped numeric weight sign for {feat}")
+        self.lr_num.coef_[0] = coef
+
+        return self
+
+    @property
+    def _i_spam(self):
+        return 1
+
+    def _p_text(self, titles, bodies):
+        if self.lr_text is None:
+            raise RuntimeError("Text model not trained")
+        X_emb = self._encode_concat(titles, bodies)
+        return self.lr_text.predict_proba(X_emb)[:, self._i_spam]
+
+    def _p_num(self, titles, bodies):
+        if self.lr_num is None:
+            raise RuntimeError("Numeric model not trained")
+        X_std = self._numeric_std_block(titles, bodies)
+        adj = np.array([self._user_adj[k] for k in FEATURE_ORDER], dtype=np.float32)
+        logit = (X_std @ (self.lr_num.coef_[0] + adj)) + self.lr_num.intercept_[0]
+        logit = np.clip(logit, -abs(self.numeric_logit_cap), +abs(self.numeric_logit_cap))
+        p = 1.0 / (1.0 + np.exp(-logit))
+        return p, X_std
+
+    def predict_proba(self, titles, bodies, threshold: float = 0.5):
+        self.last_thr_eff = None
+        p_txt = self._p_text(titles, bodies)
+        low, high = threshold - self.uncertainty_band, threshold + self.uncertainty_band
+        consult = (p_txt >= low) & (p_txt <= high)
+
+        if not np.any(consult):
+            return np.vstack([1 - p_txt, p_txt]).T
+
+        p_out = p_txt.copy()
+        idx = np.where(consult)[0]
+
+        if self.combine_strategy == "blend":
+            p_num, _ = self._p_num([titles[i] for i in idx], [bodies[i] for i in idx])
+            p_blend = p_txt[idx] * (1 - self.numeric_scale) + p_num * self.numeric_scale
+            p_out[idx] = p_blend
+        else:
+            p_num, X_std = self._p_num([titles[i] for i in idx], [bodies[i] for i in idx])
+
+            feat_index = {f: i for i, f in enumerate(FEATURE_ORDER)}
+
+            def has_feat(std_row, name, raw_threshold_std=0.0):
+                j = feat_index.get(name, None)
+                if j is None:
+                    return False
+                return std_row[j] > raw_threshold_std
+
+            shifts = []
+            for r in range(X_std.shape[0]):
+                row = X_std[r]
+                shift = 0.0
+                if has_feat(row, "suspicious_tld", raw_threshold_std=0.5):
+                    shift += self.shift_suspicious_tld
+                if has_feat(row, "external_link_count", raw_threshold_std=0.5):
+                    shift += self.shift_many_links
+                if not has_feat(row, "all_caps_ratio", raw_threshold_std=0.0):
+                    shift += self.shift_calm_text
+                shifts.append(shift)
+
+            thr_eff = np.clip(threshold + np.array(shifts), 0.05, 0.95)
+            self.last_thr_eff = (idx, thr_eff)
+
+        return np.vstack([1 - p_out, p_out]).T
+
+    def predict(self, titles, bodies, threshold: float = 0.5):
+        probs = self.predict_proba(titles, bodies, threshold=threshold)[:, self._i_spam]
+        thr = np.full_like(probs, threshold, dtype=float)
+        if self.combine_strategy == "threshold_shift" and self.last_thr_eff is not None:
+            idxs, thr_eff = self.last_thr_eff
+            thr[idxs] = thr_eff
+        labels = np.where(probs >= thr, "spam", "safe")
+        return labels
 
