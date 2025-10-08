@@ -564,27 +564,37 @@ def render_intro_stage():
             <div>
                 <h4>Your AI system lifecycle at a glance</h4>
                 <p>These are the core stages you will navigate. They flow into one another — it’s a continuous loop you can revisit.</p>
-                <div class="lifecycle-flow">
-                    <div class="lifecycle-step">
-                            <span class="lifecycle-icon">📊</span>
-                            <span class="lifecycle-label">Prepare Data</span>
+                <div class="lifecycle-cycle">
+                    <div class="cycle-ring">
+                        <div class="cycle-node cycle-node--prepare">
+                            <span class="cycle-icon">📊</span>
+                            <span class="cycle-title">Prepare Data</span>
                         </div>
-                        <span class="lifecycle-arrow">➝</span>
-                        <div class="lifecycle-step">
-                            <span class="lifecycle-icon">🧠</span>
-                            <span class="lifecycle-label">Train</span>
+                        <div class="cycle-arrow cycle-arrow--prepare-train">
+                            <span>➝</span>
                         </div>
-                        <span class="lifecycle-arrow">➝</span>
-                        <div class="lifecycle-step">
-                            <span class="lifecycle-icon">🧪</span>
-                            <span class="lifecycle-label">Evaluate</span>
+                        <div class="cycle-node cycle-node--train">
+                            <span class="cycle-icon">🧠</span>
+                            <span class="cycle-title">Train</span>
                         </div>
-                        <span class="lifecycle-arrow">➝</span>
-                        <div class="lifecycle-step">
-                            <span class="lifecycle-icon">📬</span>
-                            <span class="lifecycle-label">Use</span>
+                        <div class="cycle-arrow cycle-arrow--train-evaluate">
+                            <span>➝</span>
                         </div>
-                        <span class="lifecycle-loop">↺</span>
+                        <div class="cycle-node cycle-node--evaluate">
+                            <span class="cycle-icon">🧪</span>
+                            <span class="cycle-title">Evaluate</span>
+                        </div>
+                        <div class="cycle-arrow cycle-arrow--evaluate-use">
+                            <span>➝</span>
+                        </div>
+                        <div class="cycle-node cycle-node--use">
+                            <span class="cycle-icon">📬</span>
+                            <span class="cycle-title">Use</span>
+                        </div>
+                        <div class="cycle-arrow cycle-arrow--use-prepare">
+                            <span>➝</span>
+                        </div>
+                        <div class="cycle-loop">↺</div>
                     </div>
                 </div>
                 """,
