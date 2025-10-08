@@ -198,6 +198,88 @@ APP_THEME_CSS = """
     gap: 1.6rem;
 }
 
+.indicator-chip-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    align-items: center;
+}
+
+.lint-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    border-radius: 999px;
+    border: 1px solid rgba(15, 23, 42, 0.18);
+    padding: 0.2rem 0.65rem;
+    font-size: 0.78rem;
+    font-weight: 600;
+    background: rgba(148, 163, 184, 0.18);
+    color: #0f172a;
+    letter-spacing: 0.01em;
+}
+
+.lint-chip__icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.35rem;
+    height: 1.35rem;
+    border-radius: 50%;
+    background: rgba(15, 23, 42, 0.12);
+    font-size: 0.82rem;
+}
+
+.lint-chip__text {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.sample-card__label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #475569;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+.sample-card__label-icon {
+    font-size: 0.85rem;
+}
+
+.edge-case-card__label {
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.cta-sticky {
+    position: sticky;
+    bottom: 0;
+    padding: 0.75rem 0 0.5rem 0;
+    margin-top: 1rem;
+    background: linear-gradient(180deg, rgba(248, 250, 252, 0.95), rgba(255, 255, 255, 0.98));
+    border-top: 1px solid rgba(15, 23, 42, 0.08);
+    box-shadow: 0 -12px 24px rgba(15, 23, 42, 0.08);
+    z-index: 5;
+}
+
+.cta-sticky > div[data-testid="column"] {
+    margin-bottom: 0;
+}
+
+.cta-sticky [data-testid="stButton"] > button,
+.cta-sticky [data-testid="stFormSubmitButton"] > button {
+    width: 100%;
+}
+
 .section-surface--hero [data-testid="column"]:nth-child(2) .hero-info-card {
     text-align: center;
     margin: 0 auto;

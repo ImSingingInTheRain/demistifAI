@@ -943,6 +943,11 @@ def render_data_stage():
             align-items: center;
             gap: 1rem;
         }
+        .dataset-health-panel__row--meta {
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
         .dataset-health-panel__bar {
             flex: 1;
             display: flex;
@@ -1036,6 +1041,17 @@ def render_data_stage():
     total_rows = health["total_rows"]
     lint_label = health["lint_label"]
     badge_text = health["badge_text"]
+    lint_flags_total = health["lint_flags"]
+    if lint_label == "Unknown":
+        lint_icon = "ℹ️"
+    elif lint_flags_total:
+        lint_icon = "⚠️"
+    else:
+        lint_icon = "🛡️"
+    lint_chip_html = (
+        "<span class='lint-chip'><span class='lint-chip__icon'>{icon}</span>"
+        "<span class='lint-chip__text'>PII lint: {label}</span></span>"
+    ).format(icon=lint_icon, label=html.escape(lint_label or "Unknown"))
 
     with section_surface():
         st.markdown(
@@ -1056,9 +1072,9 @@ def render_data_stage():
                                 <span class="dataset-health-panel__bar-safe" style="width: {safe_width}%"></span>
                             </div>
                         </div>
-                        <div class="dataset-health-panel__row" style="justify-content: space-between;">
+                        <div class="dataset-health-panel__row dataset-health-panel__row--meta">
                             <small>Balance: {spam_pct:.0f}% spam • Total: {total_rows}</small>
-                            <small>PII lint: {lint_label}</small>
+                            <div class="indicator-chip-row">{lint_chip}</div>
                         </div>
                     </div>
                     """.format(
@@ -1066,7 +1082,7 @@ def render_data_stage():
                         safe_width=f"{safe_pct:.1f}",
                         spam_pct=spam_pct,
                         total_rows=total_display,
-                        lint_label=lint_label,
+                        lint_chip=lint_chip_html,
                     ),
                     unsafe_allow_html=True,
                 )
@@ -1279,11 +1295,13 @@ def render_data_stage():
                         help="Inject similar-looking spam/safe pairs to stress the model.",
                     )
 
+                    st.markdown("<div class='cta-sticky'>", unsafe_allow_html=True)
                     btn_primary, btn_secondary = st.columns([1, 1])
                     with btn_primary:
                         preview_clicked = st.form_submit_button("Preview dataset", type="primary")
                     with btn_secondary:
                         reset_clicked = st.form_submit_button("Reset to baseline", type="secondary")
+                    st.markdown("</div>", unsafe_allow_html=True)
 
             with builder_cols[1]:
                 panel_items: list[tuple[str, str, str, str]] = []
@@ -1498,16 +1516,33 @@ def render_data_stage():
                 st.markdown(bar_html, unsafe_allow_html=True)
 
                 chips = [
-                    ("Credit card", lint_counts.get("credit_card", 0)),
-                    ("IBAN", lint_counts.get("iban", 0)),
+                    ("💳", "Credit card", lint_counts.get("credit_card", 0)),
+                    ("🏦", "IBAN", lint_counts.get("iban", 0)),
                 ]
-                chip_html = "".join(
-                    f"<span style='display:inline-block;background:#F3F4F6;border-radius:12px;padding:4px 10px;margin:0 6px 6px 0;font-size:0.75rem;font-weight:500;'>"
-                    f"{label}: {count}</span>"
-                    for label, count in chips
-                )
+                chip_parts: list[str] = []
+                for icon, label, count in chips:
+                    if isinstance(count, (int, float)):
+                        count_value = float(count)
+                        if abs(count_value - round(count_value)) < 1e-6:
+                            count_display = str(int(round(count_value)))
+                        else:
+                            count_display = f"{count_value:.2f}".rstrip("0").rstrip(".")
+                    else:
+                        count_display = html.escape(str(count))
+                    chip_parts.append(
+                        "<span class='lint-chip'><span class='lint-chip__icon'>{icon}</span>"
+                        "<span class='lint-chip__text'>{label}: {count}</span></span>".format(
+                            icon=icon,
+                            label=html.escape(label),
+                            count=count_display,
+                        )
+                    )
+                chip_html = "".join(chip_parts)
                 if chip_html:
-                    st.markdown(f"<div style='margin-bottom:0.25rem;'>{chip_html}</div>", unsafe_allow_html=True)
+                    st.markdown(
+                        f"<div class='indicator-chip-row' style='margin-bottom:0.25rem;'>{chip_html}</div>",
+                        unsafe_allow_html=True,
+                    )
                 st.caption("Guardrail: no live link fetching, HTML escaped, duplicates dropped.")
 
             with sample_col:
@@ -1539,13 +1574,15 @@ def render_data_stage():
                     st.info("Preview examples will appear here once generated.")
                 else:
                     for card in cards:
-                        label = card.get("label", "").title()
+                        label_value = (card.get("label", "") or "").strip().lower()
+                        label_text = label_value.title() if label_value else "Unlabeled"
+                        label_icon = {"spam": "🚩", "safe": "📥"}.get(label_value, "✉️")
                         body = card.get("body", "") or ""
                         excerpt = (body[:160] + ("…" if len(body) > 160 else "")).replace("\n", " ")
                         st.markdown(
                             f"""
                             <div style="border:1px solid #E5E7EB;border-radius:10px;padding:0.75rem;margin-bottom:0.5rem;">
-                                <div style="font-size:0.75rem;font-weight:600;color:#6B7280;">{label}</div>
+                                <div class="sample-card__label"><span class="sample-card__label-icon">{label_icon}</span><span>{html.escape(label_text)}</span></div>
                                 <div style="font-weight:600;margin:0.25rem 0 0.35rem 0;">{html.escape(card.get('title', ''))}</div>
                                 <div style="font-size:0.85rem;color:#374151;line-height:1.35;">{html.escape(excerpt)}</div>
                             </div>
@@ -1583,11 +1620,11 @@ def render_data_stage():
                                     <div style="font-weight:600;margin-bottom:0.4rem;">{html.escape(spam_row.get('title', 'Untitled'))}</div>
                                     <div style="display:flex;gap:0.5rem;">
                                         <div style="flex:1;background:#FEE2E2;border-radius:8px;padding:0.5rem;font-size:0.8rem;">
-                                            <div style="font-weight:600;color:#B91C1C;margin-bottom:0.25rem;">Spam</div>
+                                            <div class="edge-case-card__label" style="color:#B91C1C;margin-bottom:0.25rem;"><span class="sample-card__label-icon">🚩</span><span>Spam</span></div>
                                             <div style="color:#7F1D1D;line-height:1.35;">{html.escape(spam_excerpt)}</div>
                                         </div>
                                         <div style="flex:1;background:#DBEAFE;border-radius:8px;padding:0.5rem;font-size:0.8rem;">
-                                            <div style="font-weight:600;color:#1D4ED8;margin-bottom:0.25rem;">Safe</div>
+                                            <div class="edge-case-card__label" style="color:#1D4ED8;margin-bottom:0.25rem;"><span class="sample-card__label-icon">📥</span><span>Safe</span></div>
                                             <div style="color:#1E3A8A;line-height:1.35;">{html.escape(safe_excerpt)}</div>
                                         </div>
                                     </div>
@@ -1615,6 +1652,7 @@ def render_data_stage():
             ss["dataset_manual_queue"] = edited_df
             st.caption("Manual queue covers up to 200 rows per apply — re-run the builder to generate more variations.")
 
+            st.markdown("<div class='cta-sticky'>", unsafe_allow_html=True)
             commit_col, discard_col, _ = st.columns([1, 1, 2])
 
             if commit_col.button("Commit dataset", type="primary"):
@@ -1707,6 +1745,7 @@ def render_data_stage():
             if discard_col.button("Discard preview", type="secondary"):
                 _discard_preview()
                 st.info("Preview cleared. The active labeled dataset remains unchanged.")
+            st.markdown("</div>", unsafe_allow_html=True)
 
     with section_surface():
         st.markdown("### 3 · Snapshot & provenance")
@@ -1984,6 +2023,7 @@ def render_data_stage():
             else:
                 preview_base = dict(preview_base)
 
+            st.markdown("<div class='cta-sticky'>", unsafe_allow_html=True)
             if st.button("Preview dataset", key="nerd_preview_dataset", type="primary"):
                 attachment_choice = st.session_state.get("adv_attachment_choice", "Balanced")
                 attachment_mix = ATTACHMENT_MIX_PRESETS.get(attachment_choice, DEFAULT_ATTACHMENT_MIX).copy()
@@ -2001,6 +2041,7 @@ def render_data_stage():
                     }
                 )
                 _generate_preview_from_config(config)
+            st.markdown("</div>", unsafe_allow_html=True)
 
         with section_surface():
             st.markdown("### Nerd Mode diagnostics")
@@ -2043,20 +2084,25 @@ def render_data_stage():
                             alt.Chart(sub_df.dropna())
                             .mark_bar(opacity=0.75)
                             .encode(
-                                alt.X("value:Q", bin=alt.Bin(maxbins=10), title=feature_label),
+                                alt.X("value:Q", bin=alt.Bin(maxbins=10), title="Feature value"),
                                 alt.Y("count()", title="Count"),
                                 alt.Color(
                                     "label:N",
                                     scale=alt.Scale(domain=["spam", "safe"], range=["#ef4444", "#1d4ed8"]),
                                     legend=None,
                                 ),
+                                tooltip=[
+                                    alt.Tooltip("label:N", title="Class"),
+                                    alt.Tooltip("value:Q", bin=alt.Bin(maxbins=10), title="Feature value"),
+                                    alt.Tooltip("count()", title="Count"),
+                                ],
                             )
                         )
                         chart = (
                             base_chart
                             .facet(column=alt.Column("label:N", title=None))
                             .resolve_scale(y="independent")
-                            .properties(height=220)
+                            .properties(height=220, title=feature_label)
                         )
                         st.altair_chart(chart, use_container_width=True)
 
