@@ -819,6 +819,134 @@ def render_data_stage():
     current_summary = compute_dataset_summary(ss["labeled"])
     ss["dataset_summary"] = current_summary
 
+    st.markdown(
+        """
+        <style>
+        .dataset-health-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        .dataset-health-panel__row {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        .dataset-health-panel__bar {
+            flex: 1;
+            display: flex;
+            height: 10px;
+            border-radius: 999px;
+            overflow: hidden;
+            background: rgba(15, 23, 42, 0.08);
+        }
+        .dataset-health-panel__bar span {
+            display: block;
+            height: 100%;
+        }
+        .dataset-health-panel__bar-spam {
+            background: linear-gradient(90deg, #fb7185 0%, #f43f5e 100%);
+        }
+        .dataset-health-panel__bar-safe {
+            background: linear-gradient(90deg, #38bdf8 0%, #0ea5e9 100%);
+        }
+        .dataset-health-panel__badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.25rem 0.6rem;
+            border-radius: 999px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            background: rgba(15, 23, 42, 0.06);
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    spam_ratio = current_summary.get("spam_ratio")
+    total_rows = current_summary.get("total")
+    try:
+        lint_counts = lint_dataset(ss["labeled"])
+    except Exception:
+        lint_counts = None
+    lint_flags = sum(int(v or 0) for v in lint_counts.values()) if lint_counts else 0
+    lint_label = (
+        "Unknown"
+        if lint_counts is None
+        else ("Clean" if lint_flags == 0 else f"{lint_flags} flag{'s' if lint_flags != 1 else ''}")
+    )
+
+    badge_text = None
+    failures = 0
+    missing_required = spam_ratio is None or total_rows is None
+    spam_pct = None
+    if not missing_required:
+        try:
+            spam_pct = max(0.0, min(100.0, float(spam_ratio) * 100.0))
+        except (TypeError, ValueError):
+            missing_required = True
+        if spam_pct is not None and not (40.0 <= spam_pct <= 60.0):
+            failures += 1
+        if isinstance(total_rows, (int, float)):
+            if total_rows < 300:
+                failures += 1
+        else:
+            missing_required = True
+        if lint_counts is not None and lint_flags > 0:
+            failures += 1
+        if not missing_required:
+            if failures == 0:
+                badge_text = "🟢 Good"
+            elif failures <= 2:
+                badge_text = "🟡 Needs work"
+            else:
+                badge_text = "🔴 Risky"
+
+    with section_surface():
+        st.markdown(
+            "#### Dataset health",
+            help="Quick pulse on balance, volume, and lint signals for the active dataset.",
+        )
+        health_cols = st.columns([2, 1], gap="large")
+        with health_cols[0]:
+            if spam_pct is not None and total_rows is not None:
+                safe_pct = max(0.0, min(100.0, 100.0 - spam_pct))
+                total_display = int(total_rows) if isinstance(total_rows, (int, float)) else total_rows
+                st.markdown(
+                    """
+                    <div class="dataset-health-panel">
+                        <div class="dataset-health-panel__row">
+                            <div class="dataset-health-panel__bar">
+                                <span class="dataset-health-panel__bar-spam" style="width: {spam_width}%"></span>
+                                <span class="dataset-health-panel__bar-safe" style="width: {safe_width}%"></span>
+                            </div>
+                        </div>
+                        <div class="dataset-health-panel__row" style="justify-content: space-between;">
+                            <small>Balance: {spam_pct:.0f}% spam • Total: {total_rows}</small>
+                            <small>PII lint: {lint_label}</small>
+                        </div>
+                    </div>
+                    """.format(
+                        spam_width=f"{spam_pct:.1f}",
+                        safe_width=f"{safe_pct:.1f}",
+                        spam_pct=spam_pct,
+                        total_rows=total_display,
+                        lint_label=lint_label,
+                    ),
+                    unsafe_allow_html=True,
+                )
+            else:
+                st.caption("Dataset summary not available.")
+        with health_cols[1]:
+            if badge_text:
+                st.markdown(
+                    f"<div class='dataset-health-panel__badge'>{badge_text}</div>",
+                    unsafe_allow_html=True,
+                )
+            else:
+                st.caption("Health badge unavailable.")
+
     with section_surface():
         lead_col, side_col = st.columns([3, 2], gap="large")
         with lead_col:
