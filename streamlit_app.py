@@ -2046,12 +2046,28 @@ SAFE_LINKS = [
     "https://docs.internal.net",
 ]
 
-SUSPICIOUS_TLDS = [
+SUSPICIOUS_DOMAINS = [
     "secure-pay-update.ru",
     "verify-now-account.cn",
     "multi-factor-login.biz",
     "safe-check-support.top",
 ]
+
+# Keep suffixes separate so they can be reused across dataset generation and
+# feature engineering without clobbering the domain list used for sampling.
+SUSPICIOUS_TLD_SUFFIXES = {
+    ".ru",
+    ".top",
+    ".xyz",
+    ".click",
+    ".pw",
+    ".info",
+    ".icu",
+    ".win",
+    ".gq",
+    ".tk",
+    ".cn",
+}
 
 EDGE_CASE_TEMPLATES = [
     {
@@ -2159,7 +2175,7 @@ def _tld_injection(rng: random.Random, *, level: str) -> str:
     probabilities = {"low": 0.25, "med": 0.55, "high": 0.85}
     prob = probabilities.get(level, 0.55)
     if rng.random() < prob:
-        return f" Visit https://{rng.choice(SUSPICIOUS_TLDS)}"
+        return f" Visit https://{rng.choice(SUSPICIOUS_DOMAINS)}"
     return ""
 
 
@@ -2283,7 +2299,9 @@ def _caps_ratio(text: str) -> float:
 
 def _has_suspicious_tld(text: str) -> bool:
     lowered = text.lower()
-    return any(tld.lower() in lowered for tld in SUSPICIOUS_TLDS)
+    if any(domain.lower() in lowered for domain in SUSPICIOUS_DOMAINS):
+        return True
+    return any(suffix in lowered for suffix in SUSPICIOUS_TLD_SUFFIXES)
 
 
 def lint_dataset(rows: List[Dict[str, str]]) -> Dict[str, int]:
@@ -2856,8 +2874,6 @@ import re
 from typing import List, Dict, Tuple
 from urllib.parse import urlparse
 import numpy as np
-
-SUSPICIOUS_TLDS = {".ru", ".top", ".xyz", ".click", ".pw", ".info", ".icu", ".win", ".gq", ".tk", ".cn"}
 URGENCY_TERMS = {"urgent", "immediately", "now", "asap", "final", "last chance", "act now", "action required", "limited time", "expires", "today only"}
 
 URL_REGEX = re.compile(r"https?://[^\s)>\]}]+", re.IGNORECASE)
@@ -2886,7 +2902,7 @@ def compute_numeric_features(title: str, body: str) -> Dict[str, float]:
     external_links = 0
     for u in urls:
         dom, tld = get_domain_tld(u)
-        if tld in SUSPICIOUS_TLDS:
+        if tld in SUSPICIOUS_TLD_SUFFIXES:
             suspicious = 1
         # treat anything with a dot and not an intranet-like suffix as external (demo logic)
         if dom and "." in dom:
