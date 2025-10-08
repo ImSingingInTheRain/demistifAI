@@ -408,6 +408,8 @@ def lint_text_spans(text: str) -> List[Dict[str, Any]]:
 def lint_dataset_detailed(rows: List[Dict[str, str]]) -> Dict[int, Dict[str, List[Dict[str, Any]]]]:
     detailed: Dict[int, Dict[str, List[Dict[str, Any]]]] = {}
     for index, row in enumerate(rows):
+        if row.get("label") != "safe":
+            continue
         title_text = str(row.get("title", "") or "")
         body_text = str(row.get("body", "") or "")
         title_spans = lint_text_spans(title_text)
@@ -560,7 +562,7 @@ def _generate_fake_iban(rng: random.Random) -> str:
     return f"{country}{checksum}{body}"
 
 
-def _inject_pii_tokens(rows: List[Dict[str, str]], rng: random.Random, *, max_total: int = 50) -> None:
+def _inject_pii_tokens(rows: List[Dict[str, str]], rng: random.Random, *, max_total: int = 5) -> None:
     if not rows or max_total <= 0:
         return
 
@@ -579,9 +581,9 @@ def _inject_pii_tokens(rows: List[Dict[str, str]], rng: random.Random, *, max_to
     while len(pii_types) < target:
         pii_types.append(rng.choice(required_types))
 
-    candidate_indices = [idx for idx, row in enumerate(rows) if row.get("label") == "spam"]
+    candidate_indices = [idx for idx, row in enumerate(rows) if row.get("label") == "safe"]
     if not candidate_indices:
-        candidate_indices = list(range(len(rows)))
+        return
 
     for pii_type in pii_types:
         generator = generators.get(pii_type)
@@ -590,11 +592,11 @@ def _inject_pii_tokens(rows: List[Dict[str, str]], rng: random.Random, *, max_to
         idx = rng.choice(candidate_indices)
         value = generator(rng)
         if pii_type == "iban":
-            addition = f"\nRequested IBAN: {value}"
+            addition = f"\nReference IBAN on record: {value}"
         elif pii_type == "card":
-            addition = f"\nCard number on file: {value}"
+            addition = f"\nInternal reference card number: {value}"
         else:
-            addition = f"\nReply-to email: {value}"
+            addition = f"\nPrimary contact email: {value}"
         body = rows[idx].get("body", "")
         rows[idx]["body"] = f"{body}{addition}"
 
@@ -652,7 +654,7 @@ def build_dataset_from_config(config: DatasetConfig) -> List[Dict[str, str]]:
     if cfg.get("poison_demo"):
         _apply_poison_demo(rows, rng)
 
-    _inject_pii_tokens(rows, rng, max_total=50)
+    _inject_pii_tokens(rows, rng, max_total=5)
 
     seen = set()
     deduped: List[Dict[str, str]] = []
@@ -703,6 +705,8 @@ def _has_suspicious_tld(text: str) -> bool:
 def lint_dataset(rows: List[Dict[str, str]]) -> Dict[str, int]:
     counts = {"credit_card": 0, "iban": 0, "email": 0}
     for row in rows:
+        if row.get("label") != "safe":
+            continue
         combined = f"{row.get('title', '')}\n{row.get('body', '')}"
         spans = lint_text_spans(combined)
         for span in spans:
