@@ -874,6 +874,20 @@ AUTONOMY_LEVELS = [
     "High autonomy (auto-route)",
 ]
 
+SUSPICIOUS_TLD_SUFFIXES = (
+    ".ru",
+    ".top",
+    ".xyz",
+    ".click",
+    ".pw",
+    ".info",
+    ".icu",
+    ".win",
+    ".gq",
+    ".tk",
+    ".cn",
+)
+
 DATASET_SUSPICIOUS_TLDS = [
     ".ru",
     ".xyz",
