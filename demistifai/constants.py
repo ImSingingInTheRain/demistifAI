@@ -37,21 +37,23 @@ APP_THEME_CSS = """
 }
 
 .section-surface {
-    display: none;
+    display: contents;
 }
 
+.section-surface > div[data-testid="stVerticalBlock"],
 .section-surface-block {
     position: relative;
-    margin-bottom: 1.45rem;
+    margin-bottom: clamp(1.2rem, 1.2vw + 0.8rem, 1.8rem);
     border-radius: var(--surface-radius);
     border: 1px solid var(--surface-border);
     background: var(--surface-gradient);
     box-shadow: var(--surface-shadow);
-    padding: 1.85rem 2.1rem;
+    padding: clamp(1.4rem, 1.4vw + 1rem, 2.1rem);
     overflow: hidden;
     color: #0f172a;
 }
 
+.section-surface > div[data-testid="stVerticalBlock"]::before,
 .section-surface-block::before {
     content: "";
     position: absolute;
@@ -62,19 +64,26 @@ APP_THEME_CSS = """
     pointer-events: none;
 }
 
+.section-surface > div[data-testid="stVerticalBlock"]:hover::before,
 .section-surface-block:hover::before {
     opacity: 1;
 }
 
+.section-surface > div[data-testid="stVerticalBlock"] > [data-testid="stElementContainer"],
 .section-surface-block > [data-testid="stElementContainer"] {
     margin-bottom: 0.9rem;
 }
 
+.section-surface > div[data-testid="stVerticalBlock"] > [data-testid="stElementContainer"]:first-child,
+.section-surface > div[data-testid="stVerticalBlock"] > [data-testid="stElementContainer"]:last-child,
 .section-surface-block > [data-testid="stElementContainer"]:first-child,
 .section-surface-block > [data-testid="stElementContainer"]:last-child {
     margin-bottom: 0;
 }
 
+.section-surface > div[data-testid="stVerticalBlock"] h2,
+.section-surface > div[data-testid="stVerticalBlock"] h3,
+.section-surface > div[data-testid="stVerticalBlock"] h4,
 .section-surface-block h2,
 .section-surface-block h3,
 .section-surface-block h4 {
@@ -82,6 +91,8 @@ APP_THEME_CSS = """
     color: inherit;
 }
 
+.section-surface > div[data-testid="stVerticalBlock"] p,
+.section-surface > div[data-testid="stVerticalBlock"] ul,
 .section-surface-block p,
 .section-surface-block ul {
     font-size: 0.98rem;
@@ -89,10 +100,12 @@ APP_THEME_CSS = """
     color: inherit;
 }
 
+.section-surface > div[data-testid="stVerticalBlock"] ul,
 .section-surface-block ul {
     padding-left: 1.25rem;
 }
 
+.section-surface > div[data-testid="stVerticalBlock"] .section-caption,
 .section-surface-block .section-caption {
     display: inline-flex;
     align-items: center;
@@ -103,6 +116,7 @@ APP_THEME_CSS = """
     color: rgba(15, 23, 42, 0.65);
 }
 
+.section-surface > div[data-testid="stVerticalBlock"] .section-caption span,
 .section-surface-block .section-caption span {
     display: inline-flex;
     width: 40px;
@@ -110,6 +124,7 @@ APP_THEME_CSS = """
     background: rgba(15, 23, 42, 0.12);
 }
 
+.section-surface.section-surface--hero > div[data-testid="stVerticalBlock"],
 .section-surface-block.section-surface--hero {
     padding: 2.6rem 2.8rem;
     background: linear-gradient(160deg, #1d4ed8, #312e81);
@@ -118,27 +133,33 @@ APP_THEME_CSS = """
     box-shadow: 0 28px 70px rgba(30, 64, 175, 0.35);
 }
 
+.section-surface.section-surface--hero > div[data-testid="stVerticalBlock"]::before,
 .section-surface-block.section-surface--hero::before {
     display: none;
 }
 
+.section-surface.section-surface--hero > div[data-testid="stVerticalBlock"] .section-caption,
 .section-surface-block.section-surface--hero .section-caption {
     color: rgba(241, 245, 249, 0.85);
 }
 
+.section-surface.section-surface--hero > div[data-testid="stVerticalBlock"] .section-caption span,
 .section-surface-block.section-surface--hero .section-caption span {
     background: rgba(241, 245, 249, 0.35);
 }
 
+.section-surface > div[data-testid="stVerticalBlock"] .surface-columns,
 .section-surface-block .surface-columns {
     display: grid;
     gap: 1.4rem;
 }
 
+.section-surface > div[data-testid="stVerticalBlock"] .surface-columns.two,
 .section-surface-block .surface-columns.two {
     grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
 }
 
+.section-surface > div[data-testid="stVerticalBlock"] .surface-columns.three,
 .section-surface-block .surface-columns.three {
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
 }
@@ -195,6 +216,243 @@ APP_THEME_CSS = """
 .section-surface--hero [data-testid="column"]:nth-child(2) [data-testid="stButton"] > button {
     max-width: 260px;
     margin: 0 auto;
+}
+
+[data-testid="column"] > div[data-testid="stVerticalBlock"] {
+    display: flex;
+    flex-direction: column;
+    gap: 1.1rem;
+    height: 100%;
+}
+
+[data-testid="column"] > div[data-testid="stVerticalBlock"] > div[data-testid="stVerticalBlock"] {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+[data-testid="column"] > div[data-testid="stVerticalBlock"] > div[data-testid="stVerticalBlock"] > div[data-testid="stElementContainer"] {
+    margin: 0;
+}
+
+.stTabs [data-baseweb="tab-list"] {
+    gap: 0.35rem;
+    padding: 0.4rem;
+    background: rgba(15, 23, 42, 0.05);
+    border-radius: 14px;
+    border: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+.stTabs [data-baseweb="tab"] {
+    border-radius: 12px;
+    padding: 0.55rem 1.1rem;
+    background: transparent;
+    color: #1f2937;
+    font-weight: 600;
+    border: 1px solid transparent;
+    transition: all 0.2s ease;
+}
+
+.stTabs [data-baseweb="tab"]:hover {
+    background: rgba(37, 99, 235, 0.08);
+    border-color: rgba(37, 99, 235, 0.18);
+}
+
+.stTabs [aria-selected="true"] {
+    background: linear-gradient(140deg, rgba(37, 99, 235, 0.92), rgba(30, 64, 175, 0.88));
+    color: #f8fafc;
+    box-shadow: 0 12px 26px rgba(30, 64, 175, 0.22);
+    border-color: transparent;
+}
+
+[data-testid="stExpander"] details {
+    border-radius: 18px;
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    background: rgba(255, 255, 255, 0.92);
+    box-shadow: 0 18px 32px rgba(15, 23, 42, 0.12);
+    padding: 0.2rem 0.4rem;
+    transition: box-shadow 0.3s ease;
+}
+
+[data-testid="stExpander"] details[open] {
+    box-shadow: 0 24px 46px rgba(37, 99, 235, 0.16);
+    border-color: rgba(37, 99, 235, 0.25);
+}
+
+[data-testid="stExpander"] summary {
+    font-weight: 600;
+    font-size: 1.02rem;
+    color: #1f2937;
+    padding: 0.85rem 1rem;
+}
+
+[data-testid="stExpander"] summary:hover {
+    color: #1d4ed8;
+}
+
+[data-testid="stExpander"] p {
+    margin: 0.5rem 0 1rem;
+    color: #334155;
+    font-size: 0.95rem;
+}
+
+[data-testid="stDataFrame"] {
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 22px 45px rgba(15, 23, 42, 0.15);
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    background: rgba(255, 255, 255, 0.96);
+}
+
+[data-testid="stDataFrame"] div[data-testid="stHorizontalBlock"] {
+    margin: 0;
+}
+
+.stDataFrame tbody tr:nth-child(odd) {
+    background: rgba(226, 232, 240, 0.45);
+}
+
+.stDataFrame tbody tr:hover {
+    background: rgba(37, 99, 235, 0.12);
+}
+
+.stDataFrame th {
+    background: linear-gradient(120deg, rgba(37, 99, 235, 0.9), rgba(59, 130, 246, 0.75));
+    color: #f8fafc;
+    font-weight: 600;
+}
+
+[data-testid="stMetricValue"] {
+    font-weight: 700;
+    color: #1f2937;
+}
+
+[data-testid="stMetricLabel"] {
+    color: rgba(71, 85, 105, 0.85);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-size: 0.75rem;
+}
+
+.stAlert {
+    border-radius: 18px;
+    border: 1px solid rgba(37, 99, 235, 0.2);
+    box-shadow: 0 18px 32px rgba(37, 99, 235, 0.14);
+    background: linear-gradient(145deg, rgba(191, 219, 254, 0.65), rgba(59, 130, 246, 0.35));
+    color: #1f2937;
+}
+
+.stAlert button[kind="secondary"] {
+    border-radius: 12px;
+    border: 1px solid rgba(37, 99, 235, 0.35);
+    background: rgba(255, 255, 255, 0.85);
+}
+
+.stAlert button[kind="secondary"]:hover {
+    background: rgba(255, 255, 255, 0.95);
+    border-color: rgba(37, 99, 235, 0.5);
+}
+
+.stButton > button {
+    border-radius: 14px;
+    padding: 0.65rem 1.4rem;
+    font-weight: 600;
+    border: none;
+    background: linear-gradient(135deg, #1d4ed8, #1e3a8a);
+    color: #f8fafc;
+    box-shadow: 0 18px 40px rgba(30, 64, 175, 0.28);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.stButton > button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 24px 50px rgba(30, 64, 175, 0.32);
+}
+
+.stButton > button:focus-visible {
+    outline: 3px solid rgba(59, 130, 246, 0.45);
+    outline-offset: 2px;
+}
+
+.stSelectbox div[data-baseweb="select"],
+.stMultiSelect div[data-baseweb="select"],
+.stRadio,
+.stCheckbox,
+.stDateInput,
+.stTextInput,
+.stNumberInput {
+    border-radius: 14px;
+    border: 1px solid rgba(15, 23, 42, 0.12);
+    padding: 0.65rem 0.85rem;
+    background: rgba(255, 255, 255, 0.85);
+    box-shadow: 0 12px 24px rgba(15, 23, 42, 0.08);
+}
+
+.stSelectbox div[data-baseweb="select"]:focus-within,
+.stMultiSelect div[data-baseweb="select"]:focus-within,
+.stTextInput input:focus,
+.stNumberInput input:focus {
+    border-color: rgba(37, 99, 235, 0.45);
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.18);
+}
+
+.stTextInput input,
+.stNumberInput input {
+    background: transparent;
+}
+
+@media (max-width: 1024px) {
+    .main .block-container {
+        padding-left: 1.1rem;
+        padding-right: 1.1rem;
+    }
+
+    .section-surface > div[data-testid="stVerticalBlock"],
+    .section-surface-block {
+        padding: 1.6rem 1.8rem;
+    }
+}
+
+@media (max-width: 768px) {
+    [data-testid="stSidebar"] > div:first-child {
+        padding: 2rem 1.25rem;
+    }
+
+    .section-surface.section-surface--hero > div[data-testid="stVerticalBlock"],
+    .section-surface-block.section-surface--hero {
+        padding: 2.1rem 2rem;
+    }
+
+    .stTabs [data-baseweb="tab-list"] {
+        padding: 0.3rem;
+        gap: 0.25rem;
+    }
+
+    .stTabs [data-baseweb="tab"] {
+        padding: 0.5rem 0.9rem;
+        font-size: 0.92rem;
+    }
+}
+
+@media (max-width: 640px) {
+    .main .block-container {
+        padding-left: 0.85rem;
+        padding-right: 0.85rem;
+    }
+
+    [data-testid="column"] > div[data-testid="stVerticalBlock"] {
+        gap: 0.9rem;
+    }
+
+    .section-surface > div[data-testid="stVerticalBlock"],
+    .section-surface-block {
+        padding: 1.4rem 1.35rem;
+    }
+
+    .stButton > button {
+        width: 100%;
+    }
 }
 
 .callout {
