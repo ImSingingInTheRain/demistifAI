@@ -1420,33 +1420,149 @@ def render_data_stage():
         with section_surface():
             st.markdown("### 2 · Review & approve")
             preview_summary = ss.get("dataset_preview_summary") or compute_dataset_summary(ss["dataset_preview"])
-            sum_col, lint_col = st.columns([2, 2], gap="large")
-            with sum_col:
+            lint_counts = ss.get("dataset_preview_lint") or {"credit_card": 0, "iban": 0}
+
+            kpi_col, sample_col, edge_col = st.columns([1.1, 1.2, 1.1], gap="large")
+
+            with kpi_col:
+                st.write("**KPIs**")
                 st.metric("Preview rows", preview_summary.get("total", 0))
-                st.metric("Spam share", f"{preview_summary.get('spam_ratio', 0)*100:.1f}%")
+                spam_ratio = preview_summary.get("spam_ratio", 0.0)
+                st.metric("Spam share", f"{spam_ratio * 100:.1f}%")
                 st.metric("Avg suspicious links (spam)", f"{preview_summary.get('avg_susp_links', 0.0):.2f}")
-            with lint_col:
-                lint_counts = ss.get("dataset_preview_lint") or {"credit_card": 0, "iban": 0}
-                st.write("**Validation checks**")
-                st.write(f"- Credit card-like patterns: {lint_counts.get('credit_card', 0)}")
-                st.write(f"- IBAN-like patterns: {lint_counts.get('iban', 0)}")
+
+                safe_ratio = 1 - spam_ratio
+                spam_pct = spam_ratio * 100
+                safe_pct = safe_ratio * 100
+                bar_html = f"""
+                    <div style="border-radius: 6px; overflow: hidden; border: 1px solid #DDD; font-size: 0.75rem; margin: 0.5rem 0 0.75rem 0;">
+                        <div style="display: flex; height: 28px;">
+                            <div style="background-color: #ff4b4b; color: white; padding: 4px 8px; flex: {spam_ratio:.4f}; display: flex; align-items: center; justify-content: center;">
+                                Spam {spam_pct:.0f}%
+                            </div>
+                            <div style="background-color: #1c83e1; color: white; padding: 4px 8px; flex: {safe_ratio:.4f}; display: flex; align-items: center; justify-content: center;">
+                                Safe {safe_pct:.0f}%
+                            </div>
+                        </div>
+                    </div>
+                """
+                st.markdown(bar_html, unsafe_allow_html=True)
+
+                chips = [
+                    ("Credit card", lint_counts.get("credit_card", 0)),
+                    ("IBAN", lint_counts.get("iban", 0)),
+                ]
+                chip_html = "".join(
+                    f"<span style='display:inline-block;background:#F3F4F6;border-radius:12px;padding:4px 10px;margin:0 6px 6px 0;font-size:0.75rem;font-weight:500;'>"
+                    f"{label}: {count}</span>"
+                    for label, count in chips
+                )
+                if chip_html:
+                    st.markdown(f"<div style='margin-bottom:0.25rem;'>{chip_html}</div>", unsafe_allow_html=True)
                 st.caption("Guardrail: no live link fetching, HTML escaped, duplicates dropped.")
+
+            with sample_col:
+                st.write("**Stratified sample**")
+                preview_rows = ss.get("dataset_preview", [])
+                spam_examples = [row for row in preview_rows if row.get("label") == "spam"]
+                safe_examples = [row for row in preview_rows if row.get("label") == "safe"]
+                max_cards = 10
+                cards: List[Dict[str, str]] = []
+                idx_spam = idx_safe = 0
+                for i in range(max_cards):
+                    if i % 2 == 0:
+                        if idx_spam < len(spam_examples):
+                            cards.append(spam_examples[idx_spam])
+                            idx_spam += 1
+                        elif idx_safe < len(safe_examples):
+                            cards.append(safe_examples[idx_safe])
+                            idx_safe += 1
+                    else:
+                        if idx_safe < len(safe_examples):
+                            cards.append(safe_examples[idx_safe])
+                            idx_safe += 1
+                        elif idx_spam < len(spam_examples):
+                            cards.append(spam_examples[idx_spam])
+                            idx_spam += 1
+                    if len(cards) >= max_cards:
+                        break
+                if not cards:
+                    st.info("Preview examples will appear here once generated.")
+                else:
+                    for card in cards:
+                        label = card.get("label", "").title()
+                        body = card.get("body", "") or ""
+                        excerpt = (body[:160] + ("…" if len(body) > 160 else "")).replace("\n", " ")
+                        st.markdown(
+                            f"""
+                            <div style="border:1px solid #E5E7EB;border-radius:10px;padding:0.75rem;margin-bottom:0.5rem;">
+                                <div style="font-size:0.75rem;font-weight:600;color:#6B7280;">{label}</div>
+                                <div style="font-weight:600;margin:0.25rem 0 0.35rem 0;">{html.escape(card.get('title', ''))}</div>
+                                <div style="font-size:0.85rem;color:#374151;line-height:1.35;">{html.escape(excerpt)}</div>
+                            </div>
+                            """,
+                            unsafe_allow_html=True,
+                        )
+
+            with edge_col:
+                st.write("**Edge-case pairs**")
+                preview_config = ss.get("dataset_preview_config", {})
+                if preview_config.get("edge_cases", 0) <= 0:
+                    st.caption("Add edge cases in the builder to surface look-alike contrasts here.")
+                else:
+                    by_title: Dict[str, Dict[str, Dict[str, str]]] = {}
+                    for row in ss.get("dataset_preview", []):
+                        title = (row.get("title", "") or "").strip()
+                        label = row.get("label", "")
+                        if not title or label not in VALID_LABELS:
+                            continue
+                        by_title.setdefault(title, {})[label] = row
+                    pairs = [
+                        (data.get("spam"), data.get("safe"))
+                        for title, data in by_title.items()
+                        if data.get("spam") and data.get("safe")
+                    ]
+                    if not pairs:
+                        st.info("No contrasting pairs surfaced yet — regenerate to refresh examples.")
+                    else:
+                        for spam_row, safe_row in pairs[:3]:
+                            spam_excerpt = ((spam_row.get("body", "") or "")[:120] + ("…" if len(spam_row.get("body", "")) > 120 else "")).replace("\n", " ")
+                            safe_excerpt = ((safe_row.get("body", "") or "")[:120] + ("…" if len(safe_row.get("body", "")) > 120 else "")).replace("\n", " ")
+                            st.markdown(
+                                f"""
+                                <div style="border:1px solid #E5E7EB;border-radius:10px;padding:0.75rem;margin-bottom:0.5rem;">
+                                    <div style="font-weight:600;margin-bottom:0.4rem;">{html.escape(spam_row.get('title', 'Untitled'))}</div>
+                                    <div style="display:flex;gap:0.5rem;">
+                                        <div style="flex:1;background:#FEE2E2;border-radius:8px;padding:0.5rem;font-size:0.8rem;">
+                                            <div style="font-weight:600;color:#B91C1C;margin-bottom:0.25rem;">Spam</div>
+                                            <div style="color:#7F1D1D;line-height:1.35;">{html.escape(spam_excerpt)}</div>
+                                        </div>
+                                        <div style="flex:1;background:#DBEAFE;border-radius:8px;padding:0.5rem;font-size:0.8rem;">
+                                            <div style="font-weight:600;color:#1D4ED8;margin-bottom:0.25rem;">Safe</div>
+                                            <div style="color:#1E3A8A;line-height:1.35;">{html.escape(safe_excerpt)}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                """,
+                                unsafe_allow_html=True,
+                            )
 
             manual_df = ss.get("dataset_manual_queue")
             if manual_df is None or manual_df.empty:
                 manual_df = pd.DataFrame(ss["dataset_preview"][: min(len(ss["dataset_preview"]), 200)])
                 if not manual_df.empty:
                     manual_df.insert(0, "include", True)
-            edited_df = st.data_editor(
-                manual_df,
-                width="stretch",
-                hide_index=True,
-                key="dataset_manual_editor",
-                column_config={
-                    "include": st.column_config.CheckboxColumn("Include?", help="Uncheck to drop before committing."),
-                    "label": st.column_config.SelectboxColumn("Label", options=sorted(VALID_LABELS)),
-                },
-            )
+            with st.expander("Manually curate first 200 rows (optional)"):
+                edited_df = st.data_editor(
+                    manual_df,
+                    width="stretch",
+                    hide_index=True,
+                    key="dataset_manual_editor",
+                    column_config={
+                        "include": st.column_config.CheckboxColumn("Include?", help="Uncheck to drop before committing."),
+                        "label": st.column_config.SelectboxColumn("Label", options=sorted(VALID_LABELS)),
+                    },
+                )
             ss["dataset_manual_queue"] = edited_df
             st.caption("Manual queue covers up to 200 rows per apply — re-run the builder to generate more variations.")
 
