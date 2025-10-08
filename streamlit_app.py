@@ -100,6 +100,96 @@ from demistifai.modeling import (
 from sklearn.metrics import accuracy_score, confusion_matrix, precision_recall_fscore_support
 from sklearn.model_selection import train_test_split
 
+
+# ==== PII lint (detailed) =====================================================
+_RE_EMAIL = re.compile(r"\b[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[A-Za-z]{2,}\b")
+_RE_PHONE = re.compile(r"\b(?:\+?\d{1,3}[\s-]?)?(?:\(?\d{2,4}\)?[\s-]?)?\d{3,4}[\s-]?\d{3,4}\b")
+_RE_IBAN = re.compile(r"\b[A-Z]{2}\d{2}[A-Z0-9]{11,30}\b")
+_RE_CARD16 = re.compile(r"\b(?:\d[ -]*?){13,19}\b")
+_RE_OTP6 = re.compile(r"\b(?:OTP|code|token)\D{0,3}(\d{6})\b", re.IGNORECASE)
+_RE_SUS_URL = re.compile(r"\bhttps?://[^\s)>\]]+\b", re.IGNORECASE)
+
+
+def _luhn_ok(digits: str) -> bool:
+    ds = [int(x) for x in re.sub(r"\D", "", digits)]
+    if len(ds) < 13 or len(ds) > 19:
+        return False
+    total, alt = 0, False
+    for value in reversed(ds):
+        doubled = value * 2
+        total += (doubled - 9) if alt and doubled > 9 else (doubled if alt else value)
+        alt = not alt
+    return total % 10 == 0
+
+
+def lint_text_spans(text: str) -> List[Dict[str, Any]]:
+    spans: List[Dict[str, Any]] = []
+    for match in _RE_EMAIL.finditer(text):
+        spans.append({"start": match.start(), "end": match.end(), "type": "email"})
+    for match in _RE_IBAN.finditer(text):
+        spans.append({"start": match.start(), "end": match.end(), "type": "iban"})
+    for match in _RE_CARD16.finditer(text):
+        start, end = match.start(), match.end()
+        fragment = text[start:end]
+        if _luhn_ok(fragment):
+            spans.append({"start": start, "end": end, "type": "card16"})
+    for match in _RE_PHONE.finditer(text):
+        spans.append({"start": match.start(), "end": match.end(), "type": "phone"})
+    for match in _RE_OTP6.finditer(text):
+        spans.append({"start": match.start(1), "end": match.end(1), "type": "otp6"})
+    for match in _RE_SUS_URL.finditer(text):
+        url = match.group(0)
+        if any(keyword in url.lower() for keyword in ["reset", "login", "verify", "auth"]):
+            spans.append({"start": match.start(), "end": match.end(), "type": "url"})
+
+    spans.sort(key=lambda span: (span["start"], -(span["end"] - span["start"])))
+    merged: List[Dict[str, Any]] = []
+    for span in spans:
+        if not merged or span["start"] >= merged[-1]["end"]:
+            merged.append(span)
+        else:
+            if (span["end"] - span["start"]) > (merged[-1]["end"] - merged[-1]["start"]):
+                merged[-1] = span
+    return merged
+
+
+def lint_dataset_detailed(rows: List[Dict[str, str]]) -> Dict[int, Dict[str, List[Dict[str, Any]]]]:
+    detailed: Dict[int, Dict[str, List[Dict[str, Any]]]] = {}
+    for index, row in enumerate(rows):
+        title_text = str(row.get("title", "") or "")
+        body_text = str(row.get("body", "") or "")
+        title_spans = lint_text_spans(title_text)
+        body_spans = lint_text_spans(body_text)
+        if title_spans or body_spans:
+            detailed[index] = {"title": title_spans, "body": body_spans}
+    return detailed
+
+
+TOKEN_POLICY = {
+    "email": "{{EMAIL}}",
+    "phone": "{{PHONE}}",
+    "iban": "{{IBAN}}",
+    "card16": "{{CARD_16}}",
+    "otp6": "{{OTP_6}}",
+    "url": "{{URL_SUSPICIOUS}}",
+}
+
+
+def apply_pii_replacements(text: str, spans: List[Dict[str, Any]]) -> str:
+    if not spans:
+        return text
+    ordered = sorted(spans, key=lambda span: span["start"])
+    pieces: List[str] = []
+    last = 0
+    for span in ordered:
+        start, end = span["start"], span["end"]
+        token = TOKEN_POLICY.get(span.get("type", "pii"), "{{PII}}")
+        pieces.append(text[last:start])
+        pieces.append(token)
+        last = end
+    pieces.append(text[last:])
+    return "".join(pieces)
+
 st.set_page_config(page_title="demistifAI", page_icon="📧", layout="wide")
 
 st.markdown(APP_THEME_CSS, unsafe_allow_html=True)
@@ -146,6 +236,74 @@ def eu_ai_quote_box(text: str, label: str = "EU AI Act") -> str:
 
 def render_eu_ai_quote(text: str, label: str = "From the EU AI Act, Article 3") -> None:
     st.markdown(eu_ai_quote_box(text, label), unsafe_allow_html=True)
+
+
+# ==== PII Cleanup UI ===========================================================
+def _highlight_spans_html(text: str, spans: List[Dict[str, Any]]) -> str:
+    colors = {
+        "email": "#ffef9f",
+        "phone": "#ffd6a5",
+        "iban": "#bde0fe",
+        "card16": "#ffc9de",
+        "otp6": "#caffbf",
+        "url": "#d0bdf4",
+    }
+
+    def _fmt(segment: str) -> str:
+        return html.escape(segment).replace("\n", "<br>")
+
+    pieces: List[str] = []
+    last = 0
+    for span in sorted(spans, key=lambda item: item["start"]):
+        start, end = span["start"], span["end"]
+        span_type = span.get("type", "pii")
+        color = colors.get(span_type, "#e0e0e0")
+        pieces.append(_fmt(text[last:start]))
+        fragment = _fmt(text[start:end])
+        pieces.append(
+            (
+                f'<mark style="background:{color}; padding:0 3px; border-radius:3px;" '
+                f'title="{html.escape(span_type)}">{fragment}</mark>'
+            )
+        )
+        last = end
+    pieces.append(_fmt(text[last:]))
+    return "".join(pieces)
+
+
+def render_pii_cleanup_banner(lint_counts: Dict[str, int]) -> bool:
+    total_hits = sum(int(value or 0) for value in lint_counts.values())
+    if total_hits <= 0:
+        return False
+    column_left, column_right = st.columns([3, 1])
+    with column_left:
+        st.markdown(
+            f"""
+            <div class="callout callout--warn">
+              <h4>🔎 PII found in preview</h4>
+              <p>We spotted sensitive patterns (like IBANs or card numbers). Clean them to protect privacy and avoid leakage.</p>
+              <p><strong>Summary:</strong> IBAN: {lint_counts.get("iban", 0)} • Card: {lint_counts.get("credit_card", 0)} • Emails: {lint_counts.get("email", 0)} • Phones: {lint_counts.get("phone", 0)}</p>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+    with column_right:
+        start = st.button("🧹 Start cleanup", key="pii_btn_start", type="primary", use_container_width=True)
+    return start
+
+
+def _ensure_pii_state() -> None:
+    state = st.session_state
+    state.setdefault("pii_mode", "guided")
+    state.setdefault("pii_queue_idx", 0)
+    state.setdefault("pii_score", 0)
+    state.setdefault("pii_streak", 0)
+    state.setdefault("pii_total_flagged", 0)
+    state.setdefault("pii_cleaned_count", 0)
+    state.setdefault("pii_queue", [])
+    state.setdefault("pii_hits_map", {})
+    state.setdefault("pii_edits", {})
+    state.setdefault("pii_open", False)
 
 
 VALID_LABELS = {"spam", "safe"}
@@ -1484,6 +1642,191 @@ def render_data_stage():
                 _generate_preview_from_config(config)
 
     if ss.get("dataset_preview"):
+        # ===== PII Cleanup (mini-game) ================================================
+        _ensure_pii_state()
+        preview_rows = ss["dataset_preview"]
+        detailed_hits = lint_dataset_detailed(preview_rows)
+        counts = {"iban": 0, "credit_card": 0, "email": 0, "phone": 0}
+        for _, columns in detailed_hits.items():
+            for spans in columns.values():
+                for span in spans:
+                    span_type = span.get("type")
+                    if span_type == "iban":
+                        counts["iban"] += 1
+                    elif span_type == "card16":
+                        counts["credit_card"] += 1
+                    elif span_type == "email":
+                        counts["email"] += 1
+                    elif span_type == "phone":
+                        counts["phone"] += 1
+        ss["pii_hits_map"] = detailed_hits
+        flagged_ids = sorted(detailed_hits.keys())
+        ss["pii_queue"] = flagged_ids
+        ss["pii_total_flagged"] = len(flagged_ids)
+
+        banner_clicked = render_pii_cleanup_banner(counts)
+        if banner_clicked:
+            ss["pii_open"] = True
+
+        if ss.get("pii_open"):
+            with section_surface():
+                st.markdown("### 🔐 PII Cleanup")
+                metric_columns = st.columns([1, 1, 1, 1])
+                with metric_columns[0]:
+                    challenge_default = ss.get("pii_mode") == "challenge"
+                    challenge_on = st.toggle(
+                        "Challenge mode",
+                        key="pii_challenge_toggle",
+                        value=challenge_default,
+                        help="No highlights at first; find PII yourself for extra points.",
+                    )
+                    ss["pii_mode"] = "challenge" if challenge_on else "guided"
+                with metric_columns[1]:
+                    st.metric("Score", ss.get("pii_score", 0))
+                with metric_columns[2]:
+                    st.metric("Streak", ss.get("pii_streak", 0))
+                with metric_columns[3]:
+                    st.metric("Cleaned", ss.get("pii_cleaned_count", 0))
+
+                if not flagged_ids:
+                    st.success("No PII left to clean in the preview. 🎉")
+                else:
+                    idx = int(ss.get("pii_queue_idx", 0))
+                    if idx >= len(flagged_ids):
+                        idx = 0
+                    ss["pii_queue_idx"] = idx
+                    row_id = flagged_ids[idx]
+                    row_data = dict(preview_rows[row_id])
+
+                    col_queue, col_editor, col_tokens = st.columns([1.2, 2.4, 1.2], gap="large")
+
+                    with col_queue:
+                        st.caption("Queue")
+                        for display_index, rid in enumerate(flagged_ids[:20]):
+                            label = preview_rows[rid].get("label", "")
+                            indicator = "▶︎ " if display_index == idx else ""
+                            preview_title = preview_rows[rid].get("title", "")[:48]
+                            st.write(f"{indicator}{display_index + 1}. {preview_title} — *{label}*")
+                        st.caption(f"{len(flagged_ids)} flagged in total.")
+
+                    with col_editor:
+                        st.caption("Edit & highlight")
+                        title_spans = ss["pii_hits_map"].get(row_id, {}).get("title", [])
+                        body_spans = ss["pii_hits_map"].get(row_id, {}).get("body", [])
+                        edited_values = ss.get("pii_edits", {}).get(row_id, {})
+                        title_default = edited_values.get("title", row_data.get("title", ""))
+                        body_default = edited_values.get("body", row_data.get("body", ""))
+
+                        title_key = f"pii_title_{row_id}"
+                        body_key = f"pii_body_{row_id}"
+                        if title_key not in st.session_state:
+                            st.session_state[title_key] = title_default
+                        if body_key not in st.session_state:
+                            st.session_state[body_key] = body_default
+
+                        if ss.get("pii_mode") == "guided":
+                            st.markdown("**Title (highlighted)**", help="Highlights show detected PII.")
+                            st.markdown(_highlight_spans_html(st.session_state[title_key], title_spans), unsafe_allow_html=True)
+                            st.markdown("**Body (highlighted)**")
+                            st.markdown(_highlight_spans_html(st.session_state[body_key], body_spans), unsafe_allow_html=True)
+                        else:
+                            st.caption("No highlights (challenge mode). Try to spot the PII.")
+
+                        title_value = st.text_input("✏️ Title (editable)", key=title_key)
+                        body_value = st.text_area("✏️ Body (editable)", key=body_key, height=180)
+
+                    with col_tokens:
+                        st.caption("Replacements")
+                        st.write("Click to insert tokens at cursor or paste them:")
+                        token_columns = st.columns(2)
+                        with token_columns[0]:
+                            if st.button("{{EMAIL}}", key=f"pii_token_email_{row_id}"):
+                                st.session_state[body_key] = f"{st.session_state.get(body_key, '')} {{EMAIL}}"
+                            if st.button("{{IBAN}}", key=f"pii_token_iban_{row_id}"):
+                                st.session_state[body_key] = f"{st.session_state.get(body_key, '')} {{IBAN}}"
+                            if st.button("{{CARD_16}}", key=f"pii_token_card_{row_id}"):
+                                st.session_state[body_key] = f"{st.session_state.get(body_key, '')} {{CARD_16}}"
+                        with token_columns[1]:
+                            if st.button("{{PHONE}}", key=f"pii_token_phone_{row_id}"):
+                                st.session_state[body_key] = f"{st.session_state.get(body_key, '')} {{PHONE}}"
+                            if st.button("{{OTP_6}}", key=f"pii_token_otp_{row_id}"):
+                                st.session_state[body_key] = f"{st.session_state.get(body_key, '')} {{OTP_6}}"
+                            if st.button("{{URL_SUSPICIOUS}}", key=f"pii_token_url_{row_id}"):
+                                st.session_state[body_key] = f"{st.session_state.get(body_key, '')} {{URL_SUSPICIOUS}}"
+
+                        st.divider()
+                        action_columns = st.columns([1.2, 1, 1.2])
+                        apply_and_next = action_columns[0].button("✅ Apply & Next", key="pii_apply_next", type="primary")
+                        skip_row = action_columns[1].button("Skip", key="pii_skip")
+                        finish_cleanup = action_columns[2].button("Finish cleanup", key="pii_finish")
+
+                        if apply_and_next:
+                            ss["pii_edits"].setdefault(row_id, {})
+                            ss["pii_edits"][row_id]["title"] = title_value
+                            ss["pii_edits"][row_id]["body"] = body_value
+                            relinted_title = lint_text_spans(title_value)
+                            relinted_body = lint_text_spans(body_value)
+                            preview_rows[row_id]["title"] = title_value
+                            preview_rows[row_id]["body"] = body_value
+                            ss["dataset_preview_lint"] = lint_dataset(preview_rows)
+                            if not relinted_title and not relinted_body:
+                                ss["pii_cleaned_count"] = ss.get("pii_cleaned_count", 0) + 1
+                                ss["pii_streak"] = ss.get("pii_streak", 0) + 1
+                                points = 10 + min(ss["pii_streak"] * 2, 10)
+                                if ss.get("pii_mode") == "challenge":
+                                    points += 3
+                                ss["pii_score"] = ss.get("pii_score", 0) + points
+                                st.toast(f"Clean! +{points} points (streak {ss['pii_streak']})", icon="🎯")
+                                ss["pii_hits_map"].pop(row_id, None)
+                                ss["pii_queue"] = [rid for rid in flagged_ids if rid != row_id]
+                                flagged_ids = ss["pii_queue"]
+                                ss["pii_queue_idx"] = min(idx, max(0, len(flagged_ids) - 1))
+                                ss["pii_total_flagged"] = len(flagged_ids)
+                            else:
+                                ss["pii_hits_map"][row_id] = {"title": relinted_title, "body": relinted_body}
+                                ss["pii_streak"] = 0 if ss.get("pii_mode") == "guided" else ss.get("pii_streak", 0)
+                                if ss.get("pii_mode") == "guided":
+                                    ss["pii_score"] = max(0, ss.get("pii_score", 0) - 2)
+                                    st.toast("Still detecting PII — try replacing with tokens.", icon="⚠️")
+                                else:
+                                    st.toast("Looks like some PII remains. Replace with tokens like {{EMAIL}}.", icon="ℹ️")
+                            st.experimental_rerun()
+
+                        if skip_row:
+                            ss["pii_streak"] = 0
+                            if flagged_ids:
+                                ss["pii_queue_idx"] = (idx + 1) % len(flagged_ids)
+                            st.experimental_rerun()
+
+                        if finish_cleanup:
+                            updated_detailed = lint_dataset_detailed(preview_rows)
+                            new_counts = {"iban": 0, "credit_card": 0, "email": 0, "phone": 0}
+                            for _, columns in updated_detailed.items():
+                                for spans in columns.values():
+                                    for span in spans:
+                                        span_type = span.get("type")
+                                        if span_type == "iban":
+                                            new_counts["iban"] += 1
+                                        elif span_type == "card16":
+                                            new_counts["credit_card"] += 1
+                                        elif span_type == "email":
+                                            new_counts["email"] += 1
+                                        elif span_type == "phone":
+                                            new_counts["phone"] += 1
+                            ss["pii_hits_map"] = updated_detailed
+                            ss["pii_queue"] = sorted(updated_detailed.keys())
+                            ss["pii_total_flagged"] = len(ss["pii_queue"])
+                            ss["dataset_preview_lint"] = lint_dataset(preview_rows)
+                            st.success(
+                                "Cleanup finished. Remaining hits — IBAN: {iban}, Card: {card}, Emails: {email}, Phones: {phone}.".format(
+                                    iban=new_counts["iban"],
+                                    card=new_counts["credit_card"],
+                                    email=new_counts["email"],
+                                    phone=new_counts["phone"],
+                                )
+                            )
+                            ss["pii_open"] = False
+
         with section_surface():
             st.markdown("### 2 · Review & approve")
             preview_summary = ss.get("dataset_preview_summary") or compute_dataset_summary(ss["dataset_preview"])
