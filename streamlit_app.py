@@ -3210,6 +3210,10 @@ def render_overview_stage():
                     <h5>📥 Inbox interface</h5>
                     <p>A simulated inbox feeds emails into the system. Preview items, process a batch or review one by one, and optionally enable <strong>adaptiveness</strong> so your confirmations/corrections help the model improve.</p>
                 </div>
+                <div class="callout callout--info">
+                    <h5>🎯 Your mission</h5>
+                    <p>Keep unwanted email out while letting the important messages through.</p>
+                </div>
             </div>
             """
             st.markdown(components_html, unsafe_allow_html=True)
@@ -3218,20 +3222,6 @@ def render_overview_stage():
             st.markdown(
                 """
                 <div class="mission-preview-stack">
-                    <div class="mission-card">
-                        <div class="mission-header">
-                            <span class="mission-header-icon">🎯</span>
-                            <div>
-                                <h4>Your mission</h4>
-                                <p>Keep unwanted email out while letting the important messages through.</p>
-                            </div>
-                        </div>
-                        <ul class="mission-points">
-                            <li>Label examples so the model understands what <strong>spam</strong> and <strong>safe</strong> mean to you.</li>
-                            <li>Dial in the decision threshold to balance caution with convenience.</li>
-                            <li>Choose how much autonomy the system should have before you press <em>Start your machine</em>.</li>
-                        </ul>
-                    </div>
                     <div class="inbox-preview-card">
                         <div class="preview-header">
                             <span class="preview-header-icon">📥</span>
