@@ -14,6 +14,7 @@ from typing import Any, Dict, List, Optional, Tuple
 from urllib.parse import urlencode
 from uuid import uuid4
 
+import altair as alt
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -347,6 +348,57 @@ def _export_batch_df(rows: Optional[List[Dict[str, Any]]]) -> pd.DataFrame:
     return df_rows[base_cols]
 
 
+def _set_advanced_knob_state(config: Dict[str, Any] | DatasetConfig, *, force: bool = False) -> None:
+    """Ensure Nerd Mode advanced knob widgets reflect the active configuration."""
+
+    if not isinstance(config, dict):
+        config = DEFAULT_DATASET_CONFIG
+
+    try:
+        links_level = int(str(config.get("susp_link_level", "1")))
+    except (TypeError, ValueError):
+        links_level = 1
+    tld_level = str(config.get("susp_tld_level", "med"))
+    caps_level = str(config.get("caps_intensity", "med"))
+    money_level = str(config.get("money_urgency", "low"))
+    current_mix = config.get("attachments_mix", DEFAULT_ATTACHMENT_MIX)
+    attachment_choice = next(
+        (name for name, mix in ATTACHMENT_MIX_PRESETS.items() if mix == current_mix),
+        "Balanced",
+    )
+    try:
+        noise_pct = float(config.get("label_noise_pct", 0.0))
+    except (TypeError, ValueError):
+        noise_pct = 0.0
+    try:
+        seed_value = int(config.get("seed", 42))
+    except (TypeError, ValueError):
+        seed_value = 42
+    poison_demo = bool(config.get("poison_demo", False))
+
+    adv_state = {
+        "adv_links_level": links_level,
+        "adv_tld_level": tld_level,
+        "adv_caps_level": caps_level,
+        "adv_money_level": money_level,
+        "adv_attachment_choice": attachment_choice,
+        "adv_label_noise_pct": noise_pct,
+        "adv_seed": seed_value,
+        "adv_poison_demo": poison_demo,
+    }
+
+    for key, value in adv_state.items():
+        if force or key not in st.session_state:
+            st.session_state[key] = value
+
+
+@st.cache_data(show_spinner=False)
+def _compute_cached_embeddings(dataset_hash: str, texts: tuple[str, ...]) -> np.ndarray:
+    if not texts:
+        return np.empty((0, 0), dtype=np.float32)
+    return encode_texts(list(texts))
+
+
 ss = st.session_state
 requested_stage_values = st.query_params.get_all("stage")
 requested_stage = requested_stage_values[0] if requested_stage_values else None
@@ -404,6 +456,7 @@ ss.setdefault("use_adaptiveness", bool(ss.get("adaptive", True)))
 ss.setdefault("use_audit_log", [])
 ss.setdefault("nerd_mode_use", False)
 ss.setdefault("dataset_config", DEFAULT_DATASET_CONFIG.copy())
+_set_advanced_knob_state(ss["dataset_config"], force=False)
 if "dataset_summary" not in ss:
     ss["dataset_summary"] = compute_dataset_summary(ss["labeled"])
 ss.setdefault("dataset_last_built_at", datetime.now().isoformat(timespec="seconds"))
@@ -1061,6 +1114,36 @@ def render_data_stage():
     if not delta_text:
         delta_text = explain_config_change(ss.get("dataset_config", DEFAULT_DATASET_CONFIG))
 
+    def _generate_preview_from_config(config: DatasetConfig) -> None:
+        dataset_rows = build_dataset_from_config(config)
+        preview_summary = compute_dataset_summary(dataset_rows)
+        lint_counts = lint_dataset(dataset_rows)
+        ss["dataset_preview"] = dataset_rows
+        ss["dataset_preview_config"] = config
+        ss["dataset_preview_summary"] = preview_summary
+        ss["dataset_preview_lint"] = lint_counts
+        ss["dataset_manual_queue"] = pd.DataFrame(dataset_rows[: min(len(dataset_rows), 200)])
+        if ss["dataset_manual_queue"] is not None and not ss["dataset_manual_queue"].empty:
+            ss["dataset_manual_queue"].insert(0, "include", True)
+        ss["dataset_compare_delta"] = dataset_summary_delta(current_summary, preview_summary)
+        ss["last_dataset_delta_story"] = dataset_delta_story(ss["dataset_compare_delta"])
+        st.success("Preview ready — scroll to **Review & approve** to curate rows before committing.")
+        explanation = explain_config_change(config, ss.get("dataset_config", DEFAULT_DATASET_CONFIG))
+        if explanation:
+            st.caption(explanation)
+        if lint_counts and any(lint_counts.values()):
+            st.warning(
+                "PII lint flags — sensitive-looking patterns detected (credit cards: {} | IBAN: {}).".format(
+                    lint_counts.get("credit_card", 0), lint_counts.get("iban", 0)
+                )
+            )
+        if len(dataset_rows) > 200:
+            st.caption(
+                "Manual queue shows the first 200 items per guardrail. Full dataset size: {}.".format(
+                    len(dataset_rows)
+                )
+            )
+
     with section_surface():
         st.markdown("### 1 · Prepare data → Dataset builder")
         col_m1, col_m2, col_m3, col_m4 = st.columns(4, gap="large")
@@ -1099,6 +1182,7 @@ def render_data_stage():
                 ss["dataset_preview_lint"] = None
                 ss["dataset_manual_queue"] = None
                 ss["dataset_controls_open"] = False
+                _set_advanced_knob_state(ss["dataset_config"], force=True)
                 st.success(
                     f"Dataset reset to starter baseline ({len(STARTER_LABELED)} rows)."
                 )
@@ -1162,22 +1246,7 @@ def render_data_stage():
                     )
 
                 cfg = ss.get("dataset_config", DEFAULT_DATASET_CONFIG)
-                nerd_enabled = bool(ss.get("nerd_mode", False))
-
-                # Defaults for advanced controls so they persist even when hidden in Normal Mode
-                links_level_value = int(str(cfg.get("susp_link_level", "1")))
-                tld_level_value = cfg.get("susp_tld_level", "med")
-                caps_level_value = cfg.get("caps_intensity", "med")
-                money_level_value = cfg.get("money_urgency", "low")
-                current_mix = cfg.get("attachments_mix", DEFAULT_ATTACHMENT_MIX)
-                attachment_keys = list(ATTACHMENT_MIX_PRESETS.keys())
-                attachment_choice = next(
-                    (name for name, mix in ATTACHMENT_MIX_PRESETS.items() if mix == current_mix),
-                    "Balanced",
-                )
-                noise_pct_value = float(cfg.get("label_noise_pct", 0.0))
-                seed_value = int(cfg.get("seed", 42))
-                poison_demo_value = bool(cfg.get("poison_demo", False))
+                _set_advanced_knob_state(cfg)
 
                 spam_ratio_default = float(cfg.get("spam_ratio", 0.5))
                 spam_share_default = int(round(spam_ratio_default * 100))
@@ -1209,61 +1278,6 @@ def render_data_stage():
                         value=int(cfg.get("edge_cases", 0)),
                         help="Inject similar-looking spam/safe pairs to stress the model.",
                     )
-
-                    if nerd_enabled:
-                        st.markdown("##### Nerd Mode controls")
-                        adv_col_a, adv_col_b = st.columns(2, gap="large")
-                        with adv_col_a:
-                            links_level_value = st.slider(
-                                "Suspicious links per spam email",
-                                min_value=0,
-                                max_value=2,
-                                value=links_level_value,
-                                help="Controls how many sketchy URLs appear in spam examples (0–2).",
-                            )
-                            tld_level_value = st.select_slider(
-                                "Suspicious TLD frequency",
-                                options=["low", "med", "high"],
-                                value=tld_level_value,
-                            )
-                            caps_level_value = st.select_slider(
-                                "ALL-CAPS / urgency intensity",
-                                options=["low", "med", "high"],
-                                value=caps_level_value,
-                            )
-                        with adv_col_b:
-                            money_level_value = st.select_slider(
-                                "Money symbols & urgency",
-                                options=["off", "low", "high"],
-                                value=money_level_value,
-                            )
-                            attachment_choice = st.selectbox(
-                                "Attachment lure mix",
-                                options=attachment_keys,
-                                index=attachment_keys.index(attachment_choice)
-                                if attachment_choice in attachment_keys
-                                else 1,
-                                help="Choose how often risky attachments (HTML/ZIP/XLSM/EXE) appear vs. safer PDFs.",
-                            )
-                            noise_pct_value = st.slider(
-                                "Label noise (%)",
-                                min_value=0.0,
-                                max_value=5.0,
-                                value=noise_pct_value,
-                                step=1.0,
-                                help="Flip a small share of labels to demonstrate noise impact (25% suggested).",
-                            )
-                            seed_value = st.number_input(
-                                "Random seed",
-                                min_value=0,
-                                value=seed_value,
-                                help="Keep this fixed for reproducibility.",
-                            )
-                            poison_demo_value = st.toggle(
-                                "Data poisoning demo (synthetic)",
-                                value=poison_demo_value,
-                                help="Adds a tiny malicious distribution shift labeled as safe to show metric degradation.",
-                            )
 
                     btn_primary, btn_secondary = st.columns([1, 1])
                     with btn_primary:
@@ -1398,6 +1412,7 @@ def render_data_stage():
                 ss["dataset_preview_lint"] = None
                 ss["dataset_manual_queue"] = None
                 ss["dataset_controls_open"] = False
+                _set_advanced_knob_state(ss["dataset_config"], force=True)
                 st.success(
                     f"Dataset reset to starter baseline ({len(STARTER_LABELED)} rows)."
                 )
@@ -1405,10 +1420,36 @@ def render_data_stage():
             spam_ratio = float(spam_share_pct) / 100.0
 
             if preview_clicked:
-                if nerd_enabled:
-                    attachment_mix = ATTACHMENT_MIX_PRESETS.get(attachment_choice, DEFAULT_ATTACHMENT_MIX).copy()
-                else:
-                    attachment_mix = current_mix.copy() if isinstance(current_mix, dict) else DEFAULT_ATTACHMENT_MIX.copy()
+                attachment_choice = st.session_state.get(
+                    "adv_attachment_choice",
+                    next(
+                        (name for name, mix in ATTACHMENT_MIX_PRESETS.items() if mix == cfg.get("attachments_mix", DEFAULT_ATTACHMENT_MIX)),
+                        "Balanced",
+                    ),
+                )
+                attachment_mix = ATTACHMENT_MIX_PRESETS.get(attachment_choice, DEFAULT_ATTACHMENT_MIX).copy()
+                links_level_value = int(
+                    st.session_state.get(
+                        "adv_links_level",
+                        int(str(cfg.get("susp_link_level", "1"))),
+                    )
+                )
+                tld_level_value = str(
+                    st.session_state.get("adv_tld_level", cfg.get("susp_tld_level", "med"))
+                )
+                caps_level_value = str(
+                    st.session_state.get("adv_caps_level", cfg.get("caps_intensity", "med"))
+                )
+                money_level_value = str(
+                    st.session_state.get("adv_money_level", cfg.get("money_urgency", "low"))
+                )
+                noise_pct_value = float(
+                    st.session_state.get("adv_label_noise_pct", float(cfg.get("label_noise_pct", 0.0)))
+                )
+                seed_value = int(st.session_state.get("adv_seed", int(cfg.get("seed", 42))))
+                poison_demo_value = bool(
+                    st.session_state.get("adv_poison_demo", bool(cfg.get("poison_demo", False)))
+                )
                 config: DatasetConfig = {
                     "seed": int(seed_value),
                     "n_total": int(dataset_size),
@@ -1422,29 +1463,7 @@ def render_data_stage():
                     "label_noise_pct": float(noise_pct_value),
                     "poison_demo": bool(poison_demo_value),
                 }
-                dataset_rows = build_dataset_from_config(config)
-                preview_summary = compute_dataset_summary(dataset_rows)
-                lint_counts = lint_dataset(dataset_rows)
-                ss["dataset_preview"] = dataset_rows
-                ss["dataset_preview_config"] = config
-                ss["dataset_preview_summary"] = preview_summary
-                ss["dataset_preview_lint"] = lint_counts
-                ss["dataset_manual_queue"] = pd.DataFrame(dataset_rows[: min(len(dataset_rows), 200)])
-                if ss["dataset_manual_queue"] is not None and not ss["dataset_manual_queue"].empty:
-                    ss["dataset_manual_queue"].insert(0, "include", True)
-                ss["dataset_compare_delta"] = dataset_summary_delta(current_summary, preview_summary)
-                ss["last_dataset_delta_story"] = dataset_delta_story(ss["dataset_compare_delta"])
-                st.success("Preview ready — scroll to **Review & approve** to curate rows before committing.")
-                explanation = explain_config_change(config, ss.get("dataset_config", DEFAULT_DATASET_CONFIG))
-                if explanation:
-                    st.caption(explanation)
-                if lint_counts and any(lint_counts.values()):
-                    st.warning(
-                        "PII lint flags — sensitive-looking patterns detected (credit cards: {} | IBAN: {})."
-                        .format(lint_counts.get("credit_card", 0), lint_counts.get("iban", 0))
-                    )
-                if len(dataset_rows) > 200:
-                    st.caption("Manual queue shows the first 200 items per guardrail. Full dataset size: {}.".format(len(dataset_rows)))
+                _generate_preview_from_config(config)
 
     if ss.get("dataset_preview"):
         with section_surface():
@@ -1640,6 +1659,7 @@ def render_data_stage():
                         ss["previous_dataset_summary"] = previous_summary
                         ss["dataset_summary"] = new_summary
                         ss["dataset_config"] = config
+                        _set_advanced_knob_state(config, force=True)
                         ss["dataset_compare_delta"] = delta
                         ss["last_dataset_delta_story"] = dataset_delta_story(delta)
                         ss["labeled"] = final_rows
@@ -1862,6 +1882,7 @@ def render_data_stage():
                         lint_counts = lint_dataset(dataset_rows) or {}
                         ss["labeled"] = dataset_rows
                         ss["dataset_config"] = config
+                        _set_advanced_knob_state(config, force=True)
                         ss["dataset_summary"] = summary
                         ss["previous_dataset_summary"] = None
                         ss["dataset_compare_delta"] = None
@@ -1889,12 +1910,247 @@ def render_data_stage():
     )
 
     if nerd_data:
+        adv_config = ss.get("dataset_config", DEFAULT_DATASET_CONFIG)
+        _set_advanced_knob_state(adv_config)
+
         with section_surface():
-            st.markdown("### 4 · Nerd Mode extras")
+            st.markdown("### 4 · Nerd Mode upgrades")
+            st.markdown("#### Advanced dataset knobs")
+            st.caption("Fine-tune feature prevalence, randomness, and demos before previewing or committing.")
+            attachment_keys = list(ATTACHMENT_MIX_PRESETS.keys())
+            adv_col_a, adv_col_b = st.columns(2, gap="large")
+            with adv_col_a:
+                st.slider(
+                    "Suspicious links per spam email",
+                    min_value=0,
+                    max_value=2,
+                    value=int(st.session_state.get("adv_links_level", 1)),
+                    help="Controls how many sketchy URLs appear in spam examples (0–2).",
+                    key="adv_links_level",
+                )
+                st.select_slider(
+                    "Suspicious TLD frequency",
+                    options=["low", "med", "high"],
+                    value=str(st.session_state.get("adv_tld_level", adv_config.get("susp_tld_level", "med"))),
+                    key="adv_tld_level",
+                )
+                st.select_slider(
+                    "ALL-CAPS / urgency intensity",
+                    options=["low", "med", "high"],
+                    value=str(st.session_state.get("adv_caps_level", adv_config.get("caps_intensity", "med"))),
+                    key="adv_caps_level",
+                )
+            with adv_col_b:
+                st.select_slider(
+                    "Money symbols & urgency",
+                    options=["off", "low", "high"],
+                    value=str(st.session_state.get("adv_money_level", adv_config.get("money_urgency", "low"))),
+                    key="adv_money_level",
+                )
+                st.selectbox(
+                    "Attachment lure mix",
+                    options=attachment_keys,
+                    index=attachment_keys.index(st.session_state.get("adv_attachment_choice", "Balanced"))
+                    if st.session_state.get("adv_attachment_choice", "Balanced") in attachment_keys
+                    else 1,
+                    help="Choose how often risky attachments (HTML/ZIP/XLSM/EXE) appear vs. safer PDFs.",
+                    key="adv_attachment_choice",
+                )
+                st.slider(
+                    "Label noise (%)",
+                    min_value=0.0,
+                    max_value=5.0,
+                    step=1.0,
+                    value=float(st.session_state.get("adv_label_noise_pct", adv_config.get("label_noise_pct", 0.0))),
+                    key="adv_label_noise_pct",
+                )
+                st.number_input(
+                    "Random seed",
+                    min_value=0,
+                    value=int(st.session_state.get("adv_seed", adv_config.get("seed", 42))),
+                    key="adv_seed",
+                    help="Keep this fixed for reproducibility.",
+                )
+                st.toggle(
+                    "Data poisoning demo (synthetic)",
+                    value=bool(st.session_state.get("adv_poison_demo", adv_config.get("poison_demo", False))),
+                    key="adv_poison_demo",
+                    help="Adds a tiny malicious distribution shift labeled as safe to show metric degradation.",
+                )
+
+            preview_base = ss.get("dataset_preview_config")
+            if not isinstance(preview_base, dict):
+                preview_base = dict(adv_config)
+            else:
+                preview_base = dict(preview_base)
+
+            if st.button("Preview dataset", key="nerd_preview_dataset", type="primary"):
+                attachment_choice = st.session_state.get("adv_attachment_choice", "Balanced")
+                attachment_mix = ATTACHMENT_MIX_PRESETS.get(attachment_choice, DEFAULT_ATTACHMENT_MIX).copy()
+                config = dict(preview_base)
+                config.update(
+                    {
+                        "susp_link_level": str(int(st.session_state.get("adv_links_level", 1))),
+                        "susp_tld_level": str(st.session_state.get("adv_tld_level", preview_base.get("susp_tld_level", "med"))),
+                        "caps_intensity": str(st.session_state.get("adv_caps_level", preview_base.get("caps_intensity", "med"))),
+                        "money_urgency": str(st.session_state.get("adv_money_level", preview_base.get("money_urgency", "low"))),
+                        "attachments_mix": attachment_mix,
+                        "label_noise_pct": float(st.session_state.get("adv_label_noise_pct", preview_base.get("label_noise_pct", 0.0))),
+                        "seed": int(st.session_state.get("adv_seed", preview_base.get("seed", 42))),
+                        "poison_demo": bool(st.session_state.get("adv_poison_demo", preview_base.get("poison_demo", False))),
+                    }
+                )
+                _generate_preview_from_config(config)
+
+        with section_surface():
+            st.markdown("### Nerd Mode diagnostics")
             df_lab = pd.DataFrame(ss["labeled"])
             if df_lab.empty:
                 st.info("Label some emails or import data to unlock diagnostics.")
             else:
+                diagnostics_df = df_lab.head(500).copy()
+                st.caption(f"Diagnostics sample: {len(diagnostics_df)} emails (cap 500).")
+
+                st.markdown("#### Feature distributions by class")
+                feature_records: list[dict[str, Any]] = []
+                for _, row in diagnostics_df.iterrows():
+                    label = row.get("label")
+                    if label not in VALID_LABELS:
+                        continue
+                    title = row.get("title", "") or ""
+                    body = row.get("body", "") or ""
+                    feature_records.append(
+                        {
+                            "label": label,
+                            "suspicious_links": float(_count_suspicious_links(body)),
+                            "caps_ratio": float(_caps_ratio(f"{title} {body}")),
+                            "money_mentions": float(_count_money_mentions(body)),
+                        }
+                    )
+                feature_df = pd.DataFrame(feature_records)
+                if feature_df.empty or feature_df["label"].nunique() < 2 or feature_df.groupby("label").size().min() < 3:
+                    st.caption("Need at least 3 emails per class to chart numeric feature distributions.")
+                else:
+                    feature_specs = [
+                        ("suspicious_links", "Suspicious links per email"),
+                        ("caps_ratio", "ALL-CAPS ratio"),
+                        ("money_mentions", "Money & urgency mentions"),
+                    ]
+                    for feature_key, feature_label in feature_specs:
+                        sub_df = feature_df.loc[:, ["label", feature_key]].rename(columns={feature_key: "value"})
+                        sub_df["value"] = pd.to_numeric(sub_df["value"], errors="coerce")
+                        base_chart = (
+                            alt.Chart(sub_df.dropna())
+                            .mark_bar(opacity=0.75)
+                            .encode(
+                                alt.X("value:Q", bin=alt.Bin(maxbins=10), title=feature_label),
+                                alt.Y("count()", title="Count"),
+                                alt.Color(
+                                    "label:N",
+                                    scale=alt.Scale(domain=["spam", "safe"], range=["#ef4444", "#1d4ed8"]),
+                                    legend=None,
+                                ),
+                            )
+                        )
+                        chart = (
+                            base_chart
+                            .facet(column=alt.Column("label:N", title=None))
+                            .resolve_scale(y="independent")
+                            .properties(height=220)
+                        )
+                        st.altair_chart(chart, use_container_width=True)
+
+                st.markdown("#### Near-duplicate check")
+                embed_sample = diagnostics_df.head(min(len(diagnostics_df), 200)).copy()
+                if embed_sample.empty or embed_sample["label"].nunique() < 2:
+                    st.caption("Need both classes present to run the near-duplicate check.")
+                    embeddings = np.empty((0, 0), dtype=np.float32)
+                    embed_error = None
+                else:
+                    embed_sample = embed_sample.sample(frac=1.0, random_state=42).reset_index(drop=True)
+                    sample_records = embed_sample.to_dict(orient="records")
+                    sample_hash = compute_dataset_hash(sample_records)
+                    texts = tuple(
+                        combine_text(rec.get("title", ""), rec.get("body", ""))
+                        for rec in sample_records
+                    )
+                    embed_error = None
+                    try:
+                        embeddings = _compute_cached_embeddings(sample_hash, texts)
+                    except Exception as exc:  # pragma: no cover - defensive for encoder availability
+                        embeddings = np.empty((0, 0), dtype=np.float32)
+                        embed_error = str(exc)
+
+                if embed_error:
+                    st.warning(f"Embedding diagnostics unavailable: {embed_error}")
+                elif embeddings.size < 4:
+                    st.caption("Not enough samples for similarity analysis (need at least two per class).")
+                else:
+                    st.caption(f"Near-duplicate scan on {embeddings.shape[0]} emails (cap 200).")
+                    sims = embeddings @ embeddings.T
+                    np.fill_diagonal(sims, -1.0)
+                    labels = embed_sample["label"].tolist()
+                    top_pairs: list[tuple[float, int, int]] = []
+                    n_rows = sims.shape[0]
+                    for i in range(n_rows):
+                        for j in range(i + 1, n_rows):
+                            if labels[i] == labels[j]:
+                                continue
+                            sim_val = float(sims[i, j])
+                            if sim_val > 0.9:
+                                top_pairs.append((sim_val, i, j))
+                    top_pairs.sort(key=lambda tup: tup[0], reverse=True)
+                    top_pairs = top_pairs[:5]
+                    if not top_pairs:
+                        st.caption("No high-similarity cross-label pairs detected in the sampled set.")
+                    else:
+                        for sim_val, idx_a, idx_b in top_pairs:
+                            row_a = embed_sample.iloc[idx_a]
+                            row_b = embed_sample.iloc[idx_b]
+                            st.markdown(
+                                f"**Similarity {sim_val:.2f}** — {row_a.get('label', '').title()} vs {row_b.get('label', '').title()}"
+                            )
+                            pair_cols = st.columns(2)
+                            for col, row in zip(pair_cols, [row_a, row_b]):
+                                with col:
+                                    st.caption(row.get("label", "").title() or "Unknown")
+                                    st.write(f"**{row.get('title', '(untitled)')}**")
+                                    body_text = (row.get("body", "") or "").replace("\n", " ")
+                                    excerpt = body_text[:160] + ("…" if len(body_text) > 160 else "")
+                                    st.write(excerpt)
+
+                st.markdown("#### Class prototypes")
+                if embed_error:
+                    st.caption("Embeddings unavailable — prototypes skipped.")
+                elif embeddings.size == 0:
+                    st.caption("Need labeled examples to compute prototypes.")
+                else:
+                    proto_cols = st.columns(2)
+                    for col, label in zip(proto_cols, ["spam", "safe"]):
+                        with col:
+                            mask = embed_sample["label"] == label
+                            idxs = np.where(mask.to_numpy())[0]
+                            if idxs.size == 0:
+                                st.caption(f"No {label} examples in the sample.")
+                                continue
+                            centroid = embeddings[idxs].mean(axis=0)
+                            norm = float(np.linalg.norm(centroid))
+                            if norm == 0.0:
+                                st.caption("Centroid not informative for this class.")
+                                continue
+                            centroid /= norm
+                            sims_label = embeddings[idxs] @ centroid
+                            top_local = idxs[np.argsort(-sims_label)[:3]]
+                            st.markdown(f"**{label.title()} archetype**")
+                            for rank, idx_point in enumerate(top_local, start=1):
+                                row = embed_sample.iloc[idx_point]
+                                body_text = (row.get("body", "") or "").replace("\n", " ")
+                                excerpt = body_text[:140] + ("…" if len(body_text) > 140 else "")
+                                st.caption(f"{rank}. {row.get('title', '(untitled)')}")
+                                st.write(excerpt)
+
+                st.divider()
+                st.markdown("#### Quick lexical snapshot")
                 tokens_spam = Counter()
                 tokens_safe = Counter()
                 for _, row in df_lab.iterrows():
@@ -1909,21 +2165,10 @@ def render_data_stage():
                 col_tok1, col_tok2 = st.columns(2)
                 with col_tok1:
                     st.markdown("**Class token cloud — Spam**")
-                    st.write(", ".join(f"{w} ({c})" for w, c in top_spam))
+                    st.write(", ".join(f"{w} ({c})" for w, c in top_spam) or "—")
                 with col_tok2:
                     st.markdown("**Class token cloud — Safe**")
-                    st.write(", ".join(f"{w} ({c})" for w, c in top_safe))
-
-                spam_link_counts = [
-                    _count_suspicious_links(row.get("body", ""))
-                    for _, row in df_lab.iterrows()
-                    if row.get("label") == "spam"
-                ]
-                link_series = pd.Series(spam_link_counts, name="Suspicious links")
-                if not link_series.empty:
-                    st.bar_chart(link_series.value_counts().sort_index(), height=200)
-                else:
-                    st.caption("No spam samples yet to chart suspicious link frequency.")
+                    st.write(", ".join(f"{w} ({c})" for w, c in top_safe) or "—")
 
                 title_groups: Dict[str, set] = {}
                 leakage_titles = []
@@ -1959,17 +2204,47 @@ def render_data_stage():
                         if len(df_up) > 2000:
                             st.error("Too many rows (max 2,000). Trim the file and retry.")
                         else:
+                            initial_rows = len(df_up)
                             df_up["label"] = df_up["label"].apply(_normalize_label)
-                            df_up = df_up[df_up["label"].isin(VALID_LABELS)]
+                            invalid_mask = ~df_up["label"].isin(VALID_LABELS)
+                            dropped_invalid = int(invalid_mask.sum())
+                            df_up = df_up[~invalid_mask]
                             for col in ["title", "body"]:
                                 df_up[col] = df_up[col].fillna("").astype(str).str.strip()
-                            df_up = df_up[(df_up["title"].str.len() <= 200) & (df_up["body"].str.len() <= 2000)]
-                            df_up = df_up[(df_up["title"] != "") | (df_up["body"] != "")]
+                            length_mask = (df_up["title"].str.len() <= 200) & (df_up["body"].str.len() <= 2000)
+                            dropped_length = int(len(df_up) - length_mask.sum())
+                            df_up = df_up[length_mask]
+                            nonempty_mask = (df_up["title"] != "") | (df_up["body"] != "")
+                            dropped_empty = int(len(df_up) - nonempty_mask.sum())
+                            df_up = df_up[nonempty_mask]
                             df_existing = pd.DataFrame(ss["labeled"])
+                            dropped_dupes = 0
                             if not df_existing.empty:
+                                len_before_duplicates = len(df_up)
                                 merged = df_up.merge(df_existing, on=["title", "body", "label"], how="left", indicator=True)
                                 df_up = merged[merged["_merge"] == "left_only"].loc[:, ["title", "body", "label"]]
+                                dropped_dupes = int(max(0, len_before_duplicates - len(df_up)))
+                            total_dropped = max(0, initial_rows - len(df_up))
+                            drop_reasons: list[str] = []
+                            if dropped_invalid:
+                                drop_reasons.append(
+                                    f"{dropped_invalid} invalid label{'s' if dropped_invalid != 1 else ''}"
+                                )
+                            if dropped_length:
+                                drop_reasons.append(
+                                    f"{dropped_length} over length limit"
+                                )
+                            if dropped_empty:
+                                drop_reasons.append(
+                                    f"{dropped_empty} blank title/body"
+                                )
+                            if dropped_dupes:
+                                drop_reasons.append(
+                                    f"{dropped_dupes} duplicates vs session"
+                                )
+                            reason_text = "; ".join(drop_reasons) if drop_reasons else "—"
                             lint_counts = lint_dataset(df_up.to_dict(orient="records"))
+                            st.caption(f"Rows dropped: {total_dropped} (reason: {reason_text})")
                             st.dataframe(df_up.head(20), hide_index=True, width="stretch")
                             st.caption(f"Rows passing validation: {len(df_up)} | Lint -> credit cards: {lint_counts['credit_card']}, IBAN: {lint_counts['iban']}")
                             if len(df_up) > 0 and st.button("Import into labeled dataset", key="btn_import_csv"):
