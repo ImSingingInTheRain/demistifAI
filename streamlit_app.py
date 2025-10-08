@@ -1308,20 +1308,33 @@ def section_surface(class_name: str = ""):
         f"""
 <script>
 (function() {{
+  let attempts = 0;
+  const MAX_ATTEMPTS = 40;
   const attach = () => {{
     const rootDoc = window.parent?.document;
     if (!rootDoc) {{
+      if (attempts++ < MAX_ATTEMPTS) {{
+        setTimeout(attach, 50);
+      }}
       return;
     }}
     const marker = rootDoc.getElementById('{marker_id}');
     if (!marker) {{
+      if (attempts++ < MAX_ATTEMPTS) {{
+        setTimeout(attach, 50);
+      }}
       return;
     }}
     const elementContainer = marker.closest('[data-testid="stElementContainer"]');
     const wrapper = elementContainer?.parentElement?.nextElementSibling;
     const block = wrapper?.querySelector('[data-testid="stVerticalBlock"]') ?? marker.closest('[data-testid="stVerticalBlock"]');
     if (!block) {{
-      setTimeout(attach, 50);
+      if (attempts++ < MAX_ATTEMPTS) {{
+        setTimeout(attach, 50);
+        return;
+      }}
+      marker.classList.remove('section-surface');
+      marker.style.display = 'block';
       return;
     }}
     block.classList.add('section-surface-block');
