@@ -56,7 +56,9 @@ from demistifai.dataset import (
     dataset_summary_delta,
     explain_config_change,
     generate_labeled_dataset,
+    lint_dataset_detailed,
     lint_dataset,
+    lint_text_spans,
     _caps_ratio,
     _count_money_mentions,
     _count_suspicious_links,
@@ -101,70 +103,6 @@ from sklearn.metrics import accuracy_score, confusion_matrix, precision_recall_f
 from sklearn.model_selection import train_test_split
 
 
-# ==== PII lint (detailed) =====================================================
-_RE_EMAIL = re.compile(r"\b[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[A-Za-z]{2,}\b")
-_RE_PHONE = re.compile(r"\b(?:\+?\d{1,3}[\s-]?)?(?:\(?\d{2,4}\)?[\s-]?)?\d{3,4}[\s-]?\d{3,4}\b")
-_RE_IBAN = re.compile(r"\b[A-Z]{2}\d{2}[A-Z0-9]{11,30}\b")
-_RE_CARD16 = re.compile(r"\b(?:\d[ -]*?){13,19}\b")
-_RE_OTP6 = re.compile(r"\b(?:OTP|code|token)\D{0,3}(\d{6})\b", re.IGNORECASE)
-_RE_SUS_URL = re.compile(r"\bhttps?://[^\s)>\]]+\b", re.IGNORECASE)
-
-
-def _luhn_ok(digits: str) -> bool:
-    ds = [int(x) for x in re.sub(r"\D", "", digits)]
-    if len(ds) < 13 or len(ds) > 19:
-        return False
-    total, alt = 0, False
-    for value in reversed(ds):
-        doubled = value * 2
-        total += (doubled - 9) if alt and doubled > 9 else (doubled if alt else value)
-        alt = not alt
-    return total % 10 == 0
-
-
-def lint_text_spans(text: str) -> List[Dict[str, Any]]:
-    spans: List[Dict[str, Any]] = []
-    for match in _RE_EMAIL.finditer(text):
-        spans.append({"start": match.start(), "end": match.end(), "type": "email"})
-    for match in _RE_IBAN.finditer(text):
-        spans.append({"start": match.start(), "end": match.end(), "type": "iban"})
-    for match in _RE_CARD16.finditer(text):
-        start, end = match.start(), match.end()
-        fragment = text[start:end]
-        if _luhn_ok(fragment):
-            spans.append({"start": start, "end": end, "type": "card16"})
-    for match in _RE_PHONE.finditer(text):
-        spans.append({"start": match.start(), "end": match.end(), "type": "phone"})
-    for match in _RE_OTP6.finditer(text):
-        spans.append({"start": match.start(1), "end": match.end(1), "type": "otp6"})
-    for match in _RE_SUS_URL.finditer(text):
-        url = match.group(0)
-        if any(keyword in url.lower() for keyword in ["reset", "login", "verify", "auth"]):
-            spans.append({"start": match.start(), "end": match.end(), "type": "url"})
-
-    spans.sort(key=lambda span: (span["start"], -(span["end"] - span["start"])))
-    merged: List[Dict[str, Any]] = []
-    for span in spans:
-        if not merged or span["start"] >= merged[-1]["end"]:
-            merged.append(span)
-        else:
-            if (span["end"] - span["start"]) > (merged[-1]["end"] - merged[-1]["start"]):
-                merged[-1] = span
-    return merged
-
-
-def lint_dataset_detailed(rows: List[Dict[str, str]]) -> Dict[int, Dict[str, List[Dict[str, Any]]]]:
-    detailed: Dict[int, Dict[str, List[Dict[str, Any]]]] = {}
-    for index, row in enumerate(rows):
-        title_text = str(row.get("title", "") or "")
-        body_text = str(row.get("body", "") or "")
-        title_spans = lint_text_spans(title_text)
-        body_spans = lint_text_spans(body_text)
-        if title_spans or body_spans:
-            detailed[index] = {"title": title_spans, "body": body_spans}
-    return detailed
-
-
 TOKEN_POLICY = {
     "email": "{{EMAIL}}",
     "phone": "{{PHONE}}",
@@ -173,6 +111,42 @@ TOKEN_POLICY = {
     "otp6": "{{OTP_6}}",
     "url": "{{URL_SUSPICIOUS}}",
 }
+
+
+PII_DISPLAY_LABELS = [
+    ("iban", "IBAN"),
+    ("credit_card", "Card"),
+    ("email", "Emails"),
+    ("phone", "Phones"),
+    ("otp6", "OTPs"),
+    ("url", "Suspicious URLs"),
+]
+
+
+def summarize_pii_counts(
+    detailed_hits: Dict[int, Dict[str, List[Dict[str, Any]]]]
+) -> Dict[str, int]:
+    counts: Counter[str] = Counter()
+    for columns in detailed_hits.values():
+        for spans in columns.values():
+            for span in spans:
+                span_type = span.get("type")
+                if span_type:
+                    counts[span_type] += 1
+    return {
+        "iban": counts.get("iban", 0),
+        "credit_card": counts.get("card16", 0),
+        "email": counts.get("email", 0),
+        "phone": counts.get("phone", 0),
+        "otp6": counts.get("otp6", 0),
+        "url": counts.get("url", 0),
+    }
+
+
+def format_pii_summary(counts: Dict[str, int]) -> str:
+    return " • ".join(
+        f"{label}: {int(counts.get(key, 0) or 0)}" for key, label in PII_DISPLAY_LABELS
+    )
 
 
 def apply_pii_replacements(text: str, spans: List[Dict[str, Any]]) -> str:
@@ -282,7 +256,7 @@ def render_pii_cleanup_banner(lint_counts: Dict[str, int]) -> bool:
             <div class="callout callout--warn">
               <h4>🔎 PII found in preview</h4>
               <p>We spotted sensitive patterns (like IBANs or card numbers). Clean them to protect privacy and avoid leakage.</p>
-              <p><strong>Summary:</strong> IBAN: {lint_counts.get("iban", 0)} • Card: {lint_counts.get("credit_card", 0)} • Emails: {lint_counts.get("email", 0)} • Phones: {lint_counts.get("phone", 0)}</p>
+              <p><strong>Summary:</strong> {format_pii_summary(lint_counts)}</p>
             </div>
             """,
             unsafe_allow_html=True,
@@ -1307,8 +1281,8 @@ def render_data_stage():
             st.caption(explanation)
         if lint_counts and any(lint_counts.values()):
             st.warning(
-                "PII lint flags — sensitive-looking patterns detected (credit cards: {} | IBAN: {}).".format(
-                    lint_counts.get("credit_card", 0), lint_counts.get("iban", 0)
+                "PII lint flags — sensitive-looking patterns detected ({}).".format(
+                    format_pii_summary(lint_counts)
                 )
             )
         if len(dataset_rows) > 200:
@@ -1646,19 +1620,7 @@ def render_data_stage():
         _ensure_pii_state()
         preview_rows = ss["dataset_preview"]
         detailed_hits = lint_dataset_detailed(preview_rows)
-        counts = {"iban": 0, "credit_card": 0, "email": 0, "phone": 0}
-        for _, columns in detailed_hits.items():
-            for spans in columns.values():
-                for span in spans:
-                    span_type = span.get("type")
-                    if span_type == "iban":
-                        counts["iban"] += 1
-                    elif span_type == "card16":
-                        counts["credit_card"] += 1
-                    elif span_type == "email":
-                        counts["email"] += 1
-                    elif span_type == "phone":
-                        counts["phone"] += 1
+        counts = summarize_pii_counts(detailed_hits)
         ss["pii_hits_map"] = detailed_hits
         flagged_ids = sorted(detailed_hits.keys())
         ss["pii_queue"] = flagged_ids
@@ -1800,29 +1762,14 @@ def render_data_stage():
 
                         if finish_cleanup:
                             updated_detailed = lint_dataset_detailed(preview_rows)
-                            new_counts = {"iban": 0, "credit_card": 0, "email": 0, "phone": 0}
-                            for _, columns in updated_detailed.items():
-                                for spans in columns.values():
-                                    for span in spans:
-                                        span_type = span.get("type")
-                                        if span_type == "iban":
-                                            new_counts["iban"] += 1
-                                        elif span_type == "card16":
-                                            new_counts["credit_card"] += 1
-                                        elif span_type == "email":
-                                            new_counts["email"] += 1
-                                        elif span_type == "phone":
-                                            new_counts["phone"] += 1
+                            new_counts = summarize_pii_counts(updated_detailed)
                             ss["pii_hits_map"] = updated_detailed
                             ss["pii_queue"] = sorted(updated_detailed.keys())
                             ss["pii_total_flagged"] = len(ss["pii_queue"])
                             ss["dataset_preview_lint"] = lint_dataset(preview_rows)
                             st.success(
-                                "Cleanup finished. Remaining hits — IBAN: {iban}, Card: {card}, Emails: {email}, Phones: {phone}.".format(
-                                    iban=new_counts["iban"],
-                                    card=new_counts["credit_card"],
-                                    email=new_counts["email"],
-                                    phone=new_counts["phone"],
+                                "Cleanup finished. Remaining hits — {summary}.".format(
+                                    summary=format_pii_summary(new_counts)
                                 )
                             )
                             ss["pii_open"] = False
@@ -1830,7 +1777,14 @@ def render_data_stage():
         with section_surface():
             st.markdown("### 2 · Review & approve")
             preview_summary = ss.get("dataset_preview_summary") or compute_dataset_summary(ss["dataset_preview"])
-            lint_counts = ss.get("dataset_preview_lint") or {"credit_card": 0, "iban": 0}
+            lint_counts = ss.get("dataset_preview_lint") or {
+                "credit_card": 0,
+                "iban": 0,
+                "email": 0,
+                "phone": 0,
+                "otp6": 0,
+                "url": 0,
+            }
 
             kpi_col, sample_col, edge_col = st.columns([1.1, 1.2, 1.1], gap="large")
 
@@ -1861,6 +1815,10 @@ def render_data_stage():
                 chips = [
                     ("💳", "Credit card", lint_counts.get("credit_card", 0)),
                     ("🏦", "IBAN", lint_counts.get("iban", 0)),
+                    ("📧", "Emails", lint_counts.get("email", 0)),
+                    ("☎️", "Phones", lint_counts.get("phone", 0)),
+                    ("🔐", "OTPs", lint_counts.get("otp6", 0)),
+                    ("🌐", "Suspicious URLs", lint_counts.get("url", 0)),
                 ]
                 chip_parts: list[str] = []
                 for icon, label, count in chips:
@@ -2081,8 +2039,9 @@ def render_data_stage():
                         st.success(f"{summary_line}\n{hint_line}")
                         if any(lint_counts.values()):
                             st.warning(
-                                "Lint warnings persist after commit (credit cards: {} | IBAN: {})."
-                                .format(lint_counts.get("credit_card", 0), lint_counts.get("iban", 0))
+                                "Lint warnings persist after commit ({}).".format(
+                                    format_pii_summary(lint_counts)
+                                )
                             )
 
             if discard_col.button("Discard preview", type="secondary"):
@@ -2278,8 +2237,8 @@ def render_data_stage():
                         )
                         if any(lint_counts.values()):
                             st.warning(
-                                "Lint warnings present in restored snapshot (credit cards: {} | IBAN: {}).".format(
-                                    lint_counts.get("credit_card", 0), lint_counts.get("iban", 0)
+                                "Lint warnings present in restored snapshot ({}).".format(
+                                    format_pii_summary(lint_counts)
                                 )
                             )
         else:
@@ -2636,11 +2595,19 @@ def render_data_stage():
                             lint_counts = lint_dataset(df_up.to_dict(orient="records"))
                             st.caption(f"Rows dropped: {total_dropped} (reason: {reason_text})")
                             st.dataframe(df_up.head(20), hide_index=True, width="stretch")
-                            st.caption(f"Rows passing validation: {len(df_up)} | Lint -> credit cards: {lint_counts['credit_card']}, IBAN: {lint_counts['iban']}")
-                            if len(df_up) > 0 and st.button("Import into labeled dataset", key="btn_import_csv"):
+                            st.caption(
+                                "Rows passing validation: {} | Lint -> {}".format(
+                                    len(df_up), format_pii_summary(lint_counts)
+                                )
+                            )
+                            if len(df_up) > 0 and st.button(
+                                "Import into labeled dataset", key="btn_import_csv"
+                            ):
                                 ss["labeled"].extend(df_up.to_dict(orient="records"))
                                 ss["dataset_summary"] = compute_dataset_summary(ss["labeled"])
-                                st.success(f"Imported {len(df_up)} rows into labeled dataset. Revisit builder to rebalance if needed.")
+                                st.success(
+                                    f"Imported {len(df_up)} rows into labeled dataset. Revisit builder to rebalance if needed."
+                                )
                 except Exception as e:
                     st.error(f"Failed to read CSV: {e}")
 

@@ -39,6 +39,8 @@ __all__ = [
     "SUSPICIOUS_TLD_SUFFIXES",
     "EDGE_CASE_TEMPLATES",
     "PII_PATTERNS",
+    "lint_text_spans",
+    "lint_dataset_detailed",
     "lint_dataset",
     "compute_dataset_summary",
     "compute_dataset_hash",
@@ -356,10 +358,77 @@ EDGE_CASE_TEMPLATES = [
     },
 ]
 
+_RE_EMAIL = re.compile(r"\b[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[A-Za-z]{2,}\b")
+_RE_PHONE = re.compile(r"\b(?:\+?\d{1,3}[\s-]?)?(?:\(?\d{2,4}\)?[\s-]?)?\d{3,4}[\s-]?\d{3,4}\b")
+_RE_IBAN = re.compile(r"\b[A-Z]{2}\d{2}[A-Z0-9]{11,30}\b")
+_RE_CARD16 = re.compile(r"\b(?:\d[ -]*?){13,19}\b")
+_RE_OTP6 = re.compile(r"\b(?:OTP|code|token)\D{0,3}(\d{6})\b", re.IGNORECASE)
+_RE_SUS_URL = re.compile(r"\bhttps?://[^\s)>\]]+\b", re.IGNORECASE)
+
+
 PII_PATTERNS = {
-    "credit_card": re.compile(r"\b(?:\d[ -]?){13,16}\b"),
-    "iban": re.compile(r"\b[A-Z]{2}[0-9A-Z]{13,32}\b", re.IGNORECASE),
+    "credit_card": _RE_CARD16,
+    "iban": _RE_IBAN,
+    "email": _RE_EMAIL,
+    "phone": _RE_PHONE,
+    "otp6": _RE_OTP6,
+    "url": _RE_SUS_URL,
 }
+
+
+def _luhn_ok(digits: str) -> bool:
+    ds = [int(x) for x in re.sub(r"\D", "", digits)]
+    if len(ds) < 13 or len(ds) > 19:
+        return False
+    total, alt = 0, False
+    for value in reversed(ds):
+        doubled = value * 2
+        total += (doubled - 9) if alt and doubled > 9 else (doubled if alt else value)
+        alt = not alt
+    return total % 10 == 0
+
+
+def lint_text_spans(text: str) -> List[Dict[str, Any]]:
+    spans: List[Dict[str, Any]] = []
+    for match in _RE_EMAIL.finditer(text):
+        spans.append({"start": match.start(), "end": match.end(), "type": "email"})
+    for match in _RE_IBAN.finditer(text):
+        spans.append({"start": match.start(), "end": match.end(), "type": "iban"})
+    for match in _RE_CARD16.finditer(text):
+        start, end = match.start(), match.end()
+        fragment = text[start:end]
+        if _luhn_ok(fragment):
+            spans.append({"start": start, "end": end, "type": "card16"})
+    for match in _RE_PHONE.finditer(text):
+        spans.append({"start": match.start(), "end": match.end(), "type": "phone"})
+    for match in _RE_OTP6.finditer(text):
+        spans.append({"start": match.start(1), "end": match.end(1), "type": "otp6"})
+    for match in _RE_SUS_URL.finditer(text):
+        url = match.group(0)
+        if any(keyword in url.lower() for keyword in ["reset", "login", "verify", "auth"]):
+            spans.append({"start": match.start(), "end": match.end(), "type": "url"})
+
+    spans.sort(key=lambda span: (span["start"], -(span["end"] - span["start"])))
+    merged: List[Dict[str, Any]] = []
+    for span in spans:
+        if not merged or span["start"] >= merged[-1]["end"]:
+            merged.append(span)
+        else:
+            if (span["end"] - span["start"]) > (merged[-1]["end"] - merged[-1]["start"]):
+                merged[-1] = span
+    return merged
+
+
+def lint_dataset_detailed(rows: List[Dict[str, str]]) -> Dict[int, Dict[str, List[Dict[str, Any]]]]:
+    detailed: Dict[int, Dict[str, List[Dict[str, Any]]]] = {}
+    for index, row in enumerate(rows):
+        title_text = str(row.get("title", "") or "")
+        body_text = str(row.get("body", "") or "")
+        title_spans = lint_text_spans(title_text)
+        body_spans = lint_text_spans(body_text)
+        if title_spans or body_spans:
+            detailed[index] = {"title": title_spans, "body": body_spans}
+    return detailed
 
 
 def _normalized_mix(mix: Dict[str, float]) -> Dict[str, float]:
@@ -575,12 +644,16 @@ def _has_suspicious_tld(text: str) -> bool:
 
 
 def lint_dataset(rows: List[Dict[str, str]]) -> Dict[str, int]:
-    counts = {"credit_card": 0, "iban": 0}
+    counts = {"credit_card": 0, "iban": 0, "email": 0, "phone": 0, "otp6": 0, "url": 0}
     for row in rows:
-        text = f"{row.get('title', '')} {row.get('body', '')}"
-        for key, pattern in PII_PATTERNS.items():
-            if pattern.search(text):
-                counts[key] += 1
+        combined = f"{row.get('title', '')}\n{row.get('body', '')}"
+        spans = lint_text_spans(combined)
+        for span in spans:
+            span_type = span.get("type")
+            if span_type == "card16":
+                counts["credit_card"] += 1
+            elif span_type in {"iban", "email", "phone", "otp6", "url"}:
+                counts[span_type] += 1
     return counts
 
 
