@@ -1142,26 +1142,19 @@ LIFECYCLE_CYCLE_CSS = """
     width: 100%;
     max-width: 420px;
     aspect-ratio: 1 / 1;
-    --ring-size: min(100%, 420px);
-    --node-orbit: calc(0.35 * var(--ring-size));
-    --arrow-orbit: calc(0.35 * var(--ring-size));
 }
 
 .lifecycle-cycle .cycle-ring::before {
     content: "";
     position: absolute;
-    inset: calc(0.12 * var(--ring-size));
+    inset: 12%;
     border-radius: 50%;
     border: 2px dashed rgba(37, 99, 235, 0.25);
     background: radial-gradient(circle at center, rgba(59, 130, 246, 0.08) 0%, transparent 55%);
 }
 
 .lifecycle-cycle .cycle-node {
-    --angle: 0deg;
-    --orbit: var(--node-orbit);
     position: absolute;
-    top: 50%;
-    left: 50%;
     width: 126px;
     height: 126px;
     border-radius: 50%;
@@ -1177,7 +1170,7 @@ LIFECYCLE_CYCLE_CSS = """
     color: #1d4ed8;
     font-weight: 600;
     box-shadow: 0 18px 38px rgba(37, 99, 235, 0.18);
-    transform: translate(-50%, -50%) rotate(var(--angle)) translateY(calc(-1 * var(--orbit))) rotate(calc(-1 * var(--angle)));
+    transform: translate(-50%, -50%);
 }
 
 .lifecycle-cycle .cycle-node .cycle-icon {
@@ -1190,27 +1183,27 @@ LIFECYCLE_CYCLE_CSS = """
 }
 
 .lifecycle-cycle .cycle-node--prepare {
-    --angle: 0deg;
+    top: 8%;
+    left: 50%;
 }
 
 .lifecycle-cycle .cycle-node--train {
-    --angle: 90deg;
+    top: 32%;
+    left: 92%;
 }
 
 .lifecycle-cycle .cycle-node--evaluate {
-    --angle: 180deg;
+    top: 78%;
+    left: 78%;
 }
 
 .lifecycle-cycle .cycle-node--use {
-    --angle: 270deg;
+    top: 90%;
+    left: 22%;
 }
 
 .lifecycle-cycle .cycle-arrow {
-    --angle: 45deg;
-    --orbit: var(--arrow-orbit);
     position: absolute;
-    top: 50%;
-    left: 50%;
     width: 86px;
     height: 86px;
     display: flex;
@@ -1219,7 +1212,6 @@ LIFECYCLE_CYCLE_CSS = """
     border-radius: 50%;
     color: rgba(30, 64, 175, 0.55);
     font-size: 1.55rem;
-    transform: translate(-50%, -50%) rotate(var(--angle)) translateY(calc(-1 * var(--orbit))) rotate(calc(-1 * var(--angle) + 90deg));
 }
 
 .lifecycle-cycle .cycle-arrow::after {
@@ -1235,19 +1227,43 @@ LIFECYCLE_CYCLE_CSS = """
 }
 
 .lifecycle-cycle .cycle-arrow--prepare-train {
-    --angle: 45deg;
+    top: 18%;
+    left: 78%;
+    transform: translate(-50%, -50%) rotate(32deg);
 }
 
 .lifecycle-cycle .cycle-arrow--train-evaluate {
-    --angle: 135deg;
+    top: 60%;
+    left: 92%;
+    transform: translate(-50%, -50%) rotate(118deg);
 }
 
 .lifecycle-cycle .cycle-arrow--evaluate-use {
-    --angle: 225deg;
+    top: 88%;
+    left: 50%;
+    transform: translate(-50%, -50%) rotate(210deg);
 }
 
 .lifecycle-cycle .cycle-arrow--use-prepare {
-    --angle: 315deg;
+    top: 52%;
+    left: 12%;
+    transform: translate(-50%, -50%) rotate(302deg);
+}
+
+.lifecycle-cycle .cycle-arrow--prepare-train span {
+    transform: rotate(-32deg);
+}
+
+.lifecycle-cycle .cycle-arrow--train-evaluate span {
+    transform: rotate(-118deg);
+}
+
+.lifecycle-cycle .cycle-arrow--evaluate-use span {
+    transform: rotate(-210deg);
+}
+
+.lifecycle-cycle .cycle-arrow--use-prepare span {
+    transform: rotate(-302deg);
 }
 
 .lifecycle-cycle .cycle-loop {
@@ -1274,9 +1290,6 @@ LIFECYCLE_CYCLE_CSS = """
 
     .lifecycle-cycle .cycle-ring {
         max-width: 320px;
-        --ring-size: min(100%, 320px);
-        --node-orbit: calc(0.34 * var(--ring-size));
-        --arrow-orbit: calc(0.34 * var(--ring-size));
     }
 
     .lifecycle-cycle .cycle-node {
@@ -1286,18 +1299,6 @@ LIFECYCLE_CYCLE_CSS = """
 
     .lifecycle-cycle .cycle-node .cycle-icon {
         font-size: 1.35rem;
-    }
-
-    .lifecycle-cycle .cycle-arrow {
-        width: 72px;
-        height: 72px;
-        font-size: 1.35rem;
-    }
-
-    .lifecycle-cycle .cycle-loop {
-        width: 72px;
-        height: 72px;
-        font-size: 1.15rem;
     }
 }
 </style>
