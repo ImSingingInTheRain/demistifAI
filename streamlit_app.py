@@ -1055,101 +1055,154 @@ def render_data_stage():
                 st.button("Close controls", key="close_dataset_builder", on_click=_clear_preview_state_inline)
 
             cfg = ss.get("dataset_config", DEFAULT_DATASET_CONFIG)
+            nerd_enabled = bool(ss.get("nerd_mode", False))
+
+            # Defaults for advanced controls so they persist even when hidden in Normal Mode
+            links_level_value = int(str(cfg.get("susp_link_level", "1")))
+            tld_level_value = cfg.get("susp_tld_level", "med")
+            caps_level_value = cfg.get("caps_intensity", "med")
+            money_level_value = cfg.get("money_urgency", "low")
+            current_mix = cfg.get("attachments_mix", DEFAULT_ATTACHMENT_MIX)
+            attachment_keys = list(ATTACHMENT_MIX_PRESETS.keys())
+            attachment_choice = next(
+                (name for name, mix in ATTACHMENT_MIX_PRESETS.items() if mix == current_mix),
+                "Balanced",
+            )
+            noise_pct_value = float(cfg.get("label_noise_pct", 0.0))
+            seed_value = int(cfg.get("seed", 42))
+            poison_demo_value = bool(cfg.get("poison_demo", False))
+
+            spam_ratio_default = float(cfg.get("spam_ratio", 0.5))
+            spam_share_default = int(round(spam_ratio_default * 100))
+            spam_share_default = min(max(spam_share_default, 20), 80)
+            if spam_share_default % 5 != 0:
+                spam_share_default = int(5 * round(spam_share_default / 5))
+
             with st.form("dataset_builder_form"):
-                col_a, col_b = st.columns(2, gap="large")
-                with col_a:
-                    n_total_choice = st.radio(
-                        "Training volume (N emails)",
-                        options=[100, 300, 500],
-                        index=[100, 300, 500].index(int(cfg.get("n_total", 500))) if int(cfg.get("n_total", 500)) in [100, 300, 500] else 2,
-                        help="Preset sizes illustrate how data volume influences learning (guarded ≤500).",
-                    )
-                    spam_ratio = st.slider(
-                        "Class balance (spam share)",
-                        min_value=0.20,
-                        max_value=0.80,
-                        value=float(cfg.get("spam_ratio", 0.5)),
-                        step=0.05,
-                        help="Adjust prevalence to explore bias/recall trade-offs.",
-                    )
-                    links_level = st.slider(
-                        "Suspicious links per spam email",
-                        min_value=0,
-                        max_value=2,
-                        value=int(str(cfg.get("susp_link_level", "1"))),
-                        help="Controls how many sketchy URLs appear in spam examples (0–2).",
-                    )
-                    edge_cases = st.slider(
-                        "Edge-case near-duplicate pairs",
-                        min_value=0,
-                        max_value=len(EDGE_CASE_TEMPLATES),
-                        value=int(cfg.get("edge_cases", 0)),
-                        help="Inject similar-looking spam/safe pairs to stress the model.",
-                    )
-                    noise_pct = st.slider(
-                        "Label noise (%)",
-                        min_value=0.0,
-                        max_value=5.0,
-                        value=float(cfg.get("label_noise_pct", 0.0)),
-                        step=1.0,
-                        help="Flip a small share of labels to demonstrate noise impact (2–5% suggested).",
-                    )
-                with col_b:
-                    tld_level = st.select_slider(
-                        "Suspicious TLD frequency",
-                        options=["low", "med", "high"],
-                        value=cfg.get("susp_tld_level", "med"),
-                    )
-                    caps_level = st.select_slider(
-                        "ALL-CAPS / urgency intensity",
-                        options=["low", "med", "high"],
-                        value=cfg.get("caps_intensity", "med"),
-                    )
-                    money_level = st.select_slider(
-                        "Money symbols & urgency",
-                        options=["off", "low", "high"],
-                        value=cfg.get("money_urgency", "low"),
-                    )
-                    attachment_keys = list(ATTACHMENT_MIX_PRESETS.keys())
-                    current_mix = cfg.get("attachments_mix", DEFAULT_ATTACHMENT_MIX)
-                    current_choice = next(
-                        (name for name, mix in ATTACHMENT_MIX_PRESETS.items() if mix == current_mix),
-                        "Balanced",
-                    )
-                    attachment_choice = st.selectbox(
-                        "Attachment lure mix",
-                        options=attachment_keys,
-                        index=attachment_keys.index(current_choice) if current_choice in attachment_keys else 1,
-                        help="Choose how often risky attachments (HTML/ZIP/XLSM/EXE) appear vs. safer PDFs.",
-                    )
-                    seed_value = st.number_input(
-                        "Random seed",
-                        min_value=0,
-                        value=int(cfg.get("seed", 42)),
-                        help="Keep this fixed for reproducibility.",
-                    )
-                    poison_demo = st.toggle(
-                        "Data poisoning demo (synthetic)",
-                        value=bool(cfg.get("poison_demo", False)),
-                        help="Adds a tiny malicious distribution shift labeled as safe to show metric degradation.",
-                    )
+                dataset_size = st.radio(
+                    "Dataset size",
+                    options=[100, 300, 500],
+                    index=[100, 300, 500].index(int(cfg.get("n_total", 500)))
+                    if int(cfg.get("n_total", 500)) in [100, 300, 500]
+                    else 2,
+                    help="Preset sizes illustrate how data volume influences learning (guarded ≤500).",
+                )
+                spam_share_pct = st.slider(
+                    "Spam share",
+                    min_value=20,
+                    max_value=80,
+                    value=spam_share_default,
+                    step=5,
+                    help="Adjust prevalence to explore bias/recall trade-offs.",
+                )
+                edge_cases = st.slider(
+                    "Edge cases",
+                    min_value=0,
+                    max_value=len(EDGE_CASE_TEMPLATES),
+                    value=int(cfg.get("edge_cases", 0)),
+                    help="Inject similar-looking spam/safe pairs to stress the model.",
+                )
 
-                submitted = st.form_submit_button("Apply tweaks and preview", type="primary")
+                if nerd_enabled:
+                    st.markdown("##### Nerd Mode controls")
+                    adv_col_a, adv_col_b = st.columns(2, gap="large")
+                    with adv_col_a:
+                        links_level_value = st.slider(
+                            "Suspicious links per spam email",
+                            min_value=0,
+                            max_value=2,
+                            value=links_level_value,
+                            help="Controls how many sketchy URLs appear in spam examples (0–2).",
+                        )
+                        tld_level_value = st.select_slider(
+                            "Suspicious TLD frequency",
+                            options=["low", "med", "high"],
+                            value=tld_level_value,
+                        )
+                        caps_level_value = st.select_slider(
+                            "ALL-CAPS / urgency intensity",
+                            options=["low", "med", "high"],
+                            value=caps_level_value,
+                        )
+                    with adv_col_b:
+                        money_level_value = st.select_slider(
+                            "Money symbols & urgency",
+                            options=["off", "low", "high"],
+                            value=money_level_value,
+                        )
+                        attachment_choice = st.selectbox(
+                            "Attachment lure mix",
+                            options=attachment_keys,
+                            index=attachment_keys.index(attachment_choice)
+                            if attachment_choice in attachment_keys
+                            else 1,
+                            help="Choose how often risky attachments (HTML/ZIP/XLSM/EXE) appear vs. safer PDFs.",
+                        )
+                        noise_pct_value = st.slider(
+                            "Label noise (%)",
+                            min_value=0.0,
+                            max_value=5.0,
+                            value=noise_pct_value,
+                            step=1.0,
+                            help="Flip a small share of labels to demonstrate noise impact (2–5% suggested).",
+                        )
+                        seed_value = st.number_input(
+                            "Random seed",
+                            min_value=0,
+                            value=seed_value,
+                            help="Keep this fixed for reproducibility.",
+                        )
+                        poison_demo_value = st.toggle(
+                            "Data poisoning demo (synthetic)",
+                            value=poison_demo_value,
+                            help="Adds a tiny malicious distribution shift labeled as safe to show metric degradation.",
+                        )
 
-            if submitted:
-                attachment_mix = ATTACHMENT_MIX_PRESETS.get(attachment_choice, DEFAULT_ATTACHMENT_MIX).copy()
+                btn_primary, btn_secondary = st.columns([1, 1])
+                with btn_primary:
+                    preview_clicked = st.form_submit_button("Preview dataset", type="primary")
+                with btn_secondary:
+                    reset_clicked = st.form_submit_button("Reset to baseline", type="secondary")
+
+            if reset_clicked:
+                ss["labeled"] = starter_dataset_copy()
+                ss["dataset_config"] = DEFAULT_DATASET_CONFIG.copy()
+                baseline_summary = compute_dataset_summary(ss["labeled"])
+                ss["dataset_summary"] = baseline_summary
+                ss["previous_dataset_summary"] = None
+                ss["dataset_compare_delta"] = None
+                ss["last_dataset_delta_story"] = None
+                ss["active_dataset_snapshot"] = None
+                ss["dataset_snapshot_name"] = ""
+                ss["dataset_preview"] = None
+                ss["dataset_preview_config"] = None
+                ss["dataset_preview_summary"] = None
+                ss["dataset_preview_lint"] = None
+                ss["dataset_manual_queue"] = None
+                ss["dataset_controls_open"] = False
+                st.success(
+                    f"Dataset reset to starter baseline ({len(STARTER_LABELED)} rows)."
+                )
+
+            spam_ratio = float(spam_share_pct) / 100.0
+
+            if preview_clicked:
+                if nerd_enabled:
+                    attachment_mix = ATTACHMENT_MIX_PRESETS.get(attachment_choice, DEFAULT_ATTACHMENT_MIX).copy()
+                else:
+                    attachment_mix = current_mix.copy() if isinstance(current_mix, dict) else DEFAULT_ATTACHMENT_MIX.copy()
                 config: DatasetConfig = {
                     "seed": int(seed_value),
-                    "n_total": int(n_total_choice),
+                    "n_total": int(dataset_size),
                     "spam_ratio": float(spam_ratio),
-                    "susp_link_level": str(int(links_level)),
-                    "susp_tld_level": tld_level,
-                    "caps_intensity": caps_level,
-                    "money_urgency": money_level,
+                    "susp_link_level": str(int(links_level_value)),
+                    "susp_tld_level": tld_level_value,
+                    "caps_intensity": caps_level_value,
+                    "money_urgency": money_level_value,
                     "attachments_mix": attachment_mix,
                     "edge_cases": int(edge_cases),
-                    "label_noise_pct": float(noise_pct),
-                    "poison_demo": bool(poison_demo),
+                    "label_noise_pct": float(noise_pct_value),
+                    "poison_demo": bool(poison_demo_value),
                 }
                 dataset_rows = build_dataset_from_config(config)
                 preview_summary = compute_dataset_summary(dataset_rows)
