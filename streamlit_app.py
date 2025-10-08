@@ -80,6 +80,7 @@ from demistifai.modeling import (
     df_confusion,
     encode_texts,
     extract_urls,
+    _counts,
     features_matrix,
     get_domain_tld,
     get_encoder,
