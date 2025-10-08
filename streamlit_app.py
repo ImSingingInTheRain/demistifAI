@@ -501,6 +501,25 @@ def render_intro_stage():
     if intro_index is not None and intro_index < len(STAGES) - 1:
         next_stage_key = STAGES[intro_index + 1].key
 
+    hero_info_html = """
+        <div class="hero-info-grid">
+            <div class="hero-info-card">
+                <h3>What you’ll do</h3>
+                <p>
+                    Build an email spam detector that identifies patterns in messages. You’ll set how strict the filter is
+                    (threshold), choose the autonomy level, and optionally enable adaptiveness to learn from your feedback.
+                </p>
+            </div>
+            <div class="hero-info-card">
+                <h3>Why demistifAI</h3>
+                <p>
+                    AI systems are often seen as black boxes, and the EU AI Act can feel too abstract. This experience demystifies
+                    both—showing how everyday AI works in practice.
+                </p>
+            </div>
+        </div>
+    """
+
     with section_surface("section-surface--hero"):
         hero_left, hero_right = st.columns([3, 2], gap="large")
         with hero_left:
@@ -516,44 +535,24 @@ def render_intro_stage():
                 "- how models learn from data to achieve an explicit objective,\n"
                 "- how autonomy levels affect you as a user, and how optional adaptiveness feeds your feedback back into training."
             )
+            st.markdown(hero_info_html, unsafe_allow_html=True)
+
+        with hero_right:
             render_eu_ai_quote(
                 "“AI system means a machine-based system that is designed to operate with varying levels of autonomy and that may exhibit "
                 "adaptiveness after deployment, and that, for explicit or implicit objectives, infers, from the input it "
                 "receives, how to generate outputs such as predictions, content, recommendations, or decisions that can "
                 "influence physical or virtual environments.”"
-            )      
-            
-        with hero_right:
-            
-        hero_info_html = """
-            <div class="hero-info-grid">
-            
-                <div class="hero-info-card">
-                    <h3>What you’ll do</h3>
-                    <p>
-                        Build an email spam detector that identifies patterns in messages. You’ll set how strict the filter is
-                        (threshold), choose the autonomy level, and optionally enable adaptiveness to learn from your feedback.
-                    </p>
-                </div>
-                <div class="hero-info-card">
-                    <h3>Why demistifAI</h3>
-                    <p>
-                        AI systems are often seen as black boxes, and the EU AI Act can feel too abstract. This experience demystifies
-                        both—showing how everyday AI works in practice.
-                    </p>
-                </div>
-            </div>
-            """
-            st.markdown(hero_info_html, unsafe_allow_html=True)
+            )
 
             if next_stage_key:
-                 st.button(
+                st.button(
                     "🚀 Start your machine",
                     key="flow_start_machine_hero",
                     type="primary",
                     on_click=set_active_stage,
                     args=(next_stage_key,),
-                    use_container_width=True
+                    use_container_width=True,
                 )
 
                
