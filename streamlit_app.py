@@ -96,7 +96,7 @@ from demistifai.modeling import (
     verdict_label,
 )
 
-from sklearn.metrics import accuracy_score, confusion_matrix
+from sklearn.metrics import accuracy_score, confusion_matrix, precision_recall_fscore_support
 from sklearn.model_selection import train_test_split
 
 st.set_page_config(page_title="demistifAI", page_icon="📧", layout="wide")
