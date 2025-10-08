@@ -3,6 +3,8 @@ from __future__ import annotations
 import base64
 import html
 import json
+import random
+import string
 from dataclasses import dataclass
 from datetime import datetime
 from contextlib import contextmanager
@@ -1706,523 +1708,274 @@ STAGES: List[StageMeta] = [
 STAGE_INDEX = {stage.key: idx for idx, stage in enumerate(STAGES)}
 STAGE_BY_KEY = {stage.key: stage for stage in STAGES}
 
-STARTER_LABELED: List[Dict] = [
-    # ----------------------- SPAM (100) -----------------------
-    {"title": "URGENT: Verify your payroll information today", "body": "Your salary deposit is on hold. Confirm your bank details via this external link to avoid delay.", "label": "spam"},
-    {"title": "WIN a FREE iPhone — final round eligibility", "body": "Congratulations! Complete the short survey to claim your iPhone. Offer expires in 2 hours.", "label": "spam"},
-    {"title": "Password will expire — action required", "body": "Reset your password here: http://accounts-security.example-reset.com. Failure to act may lock your account.", "label": "spam"},
-    {"title": "Delivery notice: package waiting for customs clearance", "body": "Pay a small fee to release your parcel. Use our quick checkout link to avoid return.", "label": "spam"},
-    {"title": "Your account was suspended", "body": "Unusual login detected. Open the attached HTML and confirm your credentials to restore access.", "label": "spam"},
-    {"title": "Invoice discrepancy for March", "body": "We overcharged your account. Provide your card number for an immediate refund.", "label": "spam"},
-    {"title": "Corporate survey: guaranteed €100 voucher", "body": "Finish this 1-minute survey and receive a voucher instantly. No employee ID needed.", "label": "spam"},
-    {"title": "Security alert from IT desk", "body": "We’ve updated our security policy. Download the attached ZIP to review the changes.", "label": "spam"},
-    {"title": "Limited-time premium subscription at 90% off", "body": "Upgrade now to unlock executive insights. Click the promotional link and pay today.", "label": "spam"},
-    {"title": "Payment overdue: settle immediately", "body": "Your service will be interrupted. Wire funds to the account in the attachment to avoid penalties.", "label": "spam"},
-    {"title": "HR update: bonus eligibility check", "body": "Confirm your identity by entering your national ID on our verification page to receive your bonus.", "label": "spam"},
-    {"title": "Conference invite: free registration + gift", "body": "Register via the link to receive a €50 gift card. Limited seats; confirm with your credit card.", "label": "spam"},
-    {"title": "DocuSign: You received a secure document", "body": "Open this third-party portal to review and log in with your email password for access.", "label": "spam"},
-    {"title": "Crypto opportunity: double your balance", "body": "Transfer funds to our wallet and we’ll return 2× within 24 hours. Trusted by leaders.", "label": "spam"},
-    {"title": "Password reset required immediately", "body": "We noticed unusual activity. Reset at http://security-reset.example-login.net to avoid permanent lock.", "label": "spam"},
-    {"title": "Delivery fee required for redelivery", "body": "Your parcel is pending. Pay a €2.99 fee to schedule a new delivery slot.", "label": "spam"},
-    {"title": "Payroll correction: refund available", "body": "Send your IBAN and CVV to process your refund now.", "label": "spam"},
-    {"title": "COVID relief grant for employees", "body": "Claim your €500 benefit by verifying your bank details today.", "label": "spam"},
-    {"title": "Urgent compliance training overdue", "body": "Access the training via our partner portal. Use your email password to sign in.", "label": "spam"},
-    {"title": "Security notice: leaked credentials", "body": "Your email was found in a breach. Download the spreadsheet and confirm your password inside.", "label": "spam"},
-    {"title": "Special discount on executive coaching", "body": "90% off today only. Pay via the link to secure your slot.", "label": "spam"},
-    {"title": "Invoice correction required", "body": "We can refund you now if you send your card number and CVV for verification.", "label": "spam"},
-    {"title": "IT ticket auto-closure warning", "body": "To keep your ticket open, log into the external support site and confirm your identity.", "label": "spam"},
-    {"title": "One-time password: verify to unlock account", "body": "Enter the OTP on our portal along with your email password to restore access.", "label": "spam"},
-    {"title": "Conference pass sponsored — confirm card", "body": "You’ve been awarded a free pass. Confirm your credit card to activate sponsorship.", "label": "spam"},
-    {"title": "VPN certificate expired", "body": "Download the new certificate from our public link and install today.", "label": "spam"},
-    {"title": "Tax rebate waiting", "body": "We owe you €248. Submit your bank details on our secure (external) claim page.", "label": "spam"},
-    {"title": "CEO request: urgent payment", "body": "Transfer €4,900 immediately to the vendor in the attached invoice. Do not call.", "label": "spam"},
-    {"title": "Doc review access restricted", "body": "Log in with Office365 password here to unlock the secure document.", "label": "spam"},
-    {"title": "Account verification — final warning", "body": "Your mailbox will be closed. Verify now at http://mailbox-verify.example.org.", "label": "spam"},
-    {"title": "Prize draw: employee appreciation", "body": "All staff eligible. Enter with your bank card details to receive your prize.", "label": "spam"},
-    {"title": "Password reset confirmation (external)", "body": "Confirm reset by clicking this link and entering your credentials to finalize.", "label": "spam"},
-    {"title": "Secure file delivered", "body": "Open the HTML attachment, enable macros, and sign in to download the file.", "label": "spam"},
-    {"title": "Upgrade your mailbox storage", "body": "Pay €1 via micro-transaction to extend your mailbox by 50GB.", "label": "spam"},
-    {"title": "Two-factor disabled", "body": "We turned off MFA on your account. Click the link to re-enable (login required).", "label": "spam"},
-    {"title": "SaaS subscription renewal failed", "body": "Provide your card details to avoid losing access to premium features.", "label": "spam"},
-    {"title": "Payroll bonus — confirm identity", "body": "Submit your personal ID and mobile TAN on the page to receive your bonus.", "label": "spam"},
-    {"title": "Password policy update", "body": "Download the attached PDF from an unknown sender to review mandatory changes.", "label": "spam"},
-    {"title": "Company survey — guaranteed gift card", "body": "Complete the survey; a €50 card will be emailed to you instantly after verification.", "label": "spam"},
-    {"title": "License key expired", "body": "Activate your software by installing the attached executable and signing in.", "label": "spam"},
-    {"title": "Unpaid toll invoice", "body": "Settle your unpaid toll by providing card details at the link below.", "label": "spam"},
-    {"title": "Security incident report needed", "body": "Fill in this external Google Form with your employee credentials.", "label": "spam"},
-    {"title": "Bank verification needed", "body": "We detected a failed withdrawal. Confirm your bank access to continue.", "label": "spam"},
-    {"title": "Password rotation overdue", "body": "Rotate your password here: http://corp-passwords-reset.me to keep access.", "label": "spam"},
-    {"title": "Delivery confirmation required", "body": "Click to pay a small customs fee and confirm your address to receive your parcel.", "label": "spam"},
-    {"title": "Executive webinar: instant access", "body": "Reserve now; pay via partner portal and log in with your email credentials.", "label": "spam"},
-    {"title": "Mail storage full", "body": "To avoid message loss, sign into the storage recovery portal with your password.", "label": "spam"},
-    {"title": "Prize payout — action needed", "body": "We are ready to wire your winnings. Send IBAN and CVV to complete transfer.", "label": "spam"},
-    {"title": "Compliance escalation", "body": "You are out of compliance. Download the attached document and log in to resolve.", "label": "spam"},
-    {"title": "Tax invoice attached — payment portal", "body": "Open the link to pay immediately; failure to do so results in penalties.", "label": "spam"},
 
-    # ----------------------- SAFE (100) -----------------------
-    {"title": "Password reset confirmation for corporate portal", "body": "You requested a password change via the internal IT portal. If this wasn’t you, contact IT on Teams.", "label": "safe"},
-    {"title": "DHL tracking: package out for delivery", "body": "Your parcel is scheduled today. Track via the official DHL site with your tracking ID (no payment required).", "label": "safe"},
-    {"title": "March invoice attached — Accounts Payable", "body": "Hi, please find the March invoice attached in PDF. PO referenced below; no payment info requested.", "label": "safe"},
-    {"title": "Minutes from the compliance workshop", "body": "Attached are the minutes and action items agreed during today’s workshop. Feedback welcome by Friday.", "label": "safe"},
-    {"title": "Security advisory — internal policy update", "body": "Please review the new password guidelines on the intranet. No external links or attachments.", "label": "safe"},
-    {"title": "Reminder: Q4 budget review on Tuesday", "body": "Please upload your cost worksheets to the internal SharePoint before 16:00 CEST.", "label": "safe"},
-    {"title": "Travel itinerary update", "body": "Your train platform changed. Updated PDF itinerary is attached; no action required.", "label": "safe"},
-    {"title": "Team meeting moved to 14:00", "body": "Join via the regular Teams link. Agenda: quarterly KPIs, risk register, and roadmap.", "label": "safe"},
-    {"title": "Draft for review — policy document", "body": "Could you review the attached draft and add comments in Word track changes by EOD Thursday?", "label": "safe"},
-    {"title": "Onboarding checklist for new starters", "body": "HR checklist attached; forms to be submitted via Workday. Reach out if anything is unclear.", "label": "safe"},
-    {"title": "Canteen menu and wellness events", "body": "This week’s healthy menu and yoga session schedule are included. No RSVP needed.", "label": "safe"},
-    {"title": "Customer feedback summary — Q3", "body": "Please see the attached slide deck with survey trends and next steps for CX improvements.", "label": "safe"},
-    {"title": "Security alert — new device sign-in (confirmed)", "body": "You signed in from a new laptop. If recognized, no action needed. Audit log available on the intranet.", "label": "safe"},
-    {"title": "Coffee catch-up?", "body": "Are you free on Thursday afternoon for a quick chat about the training roadmap?", "label": "safe"},
-    {"title": "Password rotation reminder", "body": "This is an automated reminder to rotate your password on the internal portal this month.", "label": "safe"},
-    {"title": "Delivery rescheduled by courier", "body": "Your parcel will arrive tomorrow morning. No fees due; track on the official courier portal.", "label": "safe"},
-    {"title": "Payroll update posted", "body": "Payslips are available on the HR portal. Do not email personal details; use the secure site.", "label": "safe"},
-    {"title": "COVID-19 office guidance", "body": "Updated office access rules are published on the intranet. Masks optional in open areas.", "label": "safe"},
-    {"title": "Compliance training enrolled", "body": "You have been enrolled in the mandatory training via the LMS. Deadline next Friday.", "label": "safe"},
-    {"title": "Security bulletin — phishing simulation next week", "body": "IT will run a phishing simulation. Do not click unknown links; report suspicious emails via the button.", "label": "safe"},
-    {"title": "Corporate survey — help improve the office", "body": "Share your thoughts in a 3-minute internal survey on the intranet (no incentives offered).", "label": "safe"},
-    {"title": "Quarterly planning session", "body": "Please add your slides to the shared folder before the meeting. No external links.", "label": "safe"},
-    {"title": "Policy update: remote work guidelines", "body": "The updated policy is available on the intranet. Please acknowledge by Friday.", "label": "safe"},
-    {"title": "Security alert — new device sign-in", "body": "Was this you? If recognized, ignore. Otherwise, reset password from the internal portal.", "label": "safe"},
-    {"title": "AP reminder — PO mismatch on ticket #4923", "body": "Please correct the PO reference in the invoice metadata on SharePoint; no payment info needed.", "label": "safe"},
-    {"title": "Diversity & inclusion town hall", "body": "Join the all-hands event next Wednesday. Questions welcome; recording will be posted.", "label": "safe"},
-    {"title": "Mentorship program enrollment", "body": "Sign up via the HR portal. Matching will occur next month; no external forms.", "label": "safe"},
-    {"title": "Travel approval granted", "body": "Your travel request has been approved. Book via the internal tool; corporate rates apply.", "label": "safe"},
-    {"title": "Laptop replacement schedule", "body": "IT will swap your device on Friday. Back up local files; data will sync via OneDrive.", "label": "safe"},
-    {"title": "Facilities maintenance notice", "body": "Air-conditioning maintenance on Level 3, 18:00–20:00. Access may be restricted.", "label": "safe"},
-    {"title": "Team offsite: dietary requirements", "body": "Please submit your preferences by Wednesday; vegetarian and vegan options available.", "label": "safe"},
-    {"title": "All-hands recording posted", "body": "The recording and slides are available on the intranet page for two weeks.", "label": "safe"},
-    {"title": "Workday: benefits enrollment opens", "body": "Benefits enrollment opens Monday. Make selections in Workday by the end of the month.", "label": "safe"},
-    {"title": "Internal tool outage resolved", "body": "The analytics portal is back online. Root cause will be shared in the incident report.", "label": "safe"},
-    {"title": "Data retention policy reminder", "body": "Please review retention timelines for emails and documents; details on the intranet.", "label": "safe"},
-    {"title": "Office seating changes", "body": "New seating plan attached. Moves will be coordinated by Facilities this Friday.", "label": "safe"},
-    {"title": "Procurement: preferred vendor update", "body": "The preferred vendor list has been updated; use the new catalog for orders.", "label": "safe"},
-    {"title": "Legal: NDA template refresh", "body": "Use the updated NDA template in the contract repository; legacy forms are deprecated.", "label": "safe"},
-    {"title": "Finance: quarter-close checklist", "body": "Please complete the close checklist tasks assigned in the controller workspace.", "label": "safe"},
-    {"title": "Customer escalation summary", "body": "Summary of escalations this week with resolution steps and owners.", "label": "safe"},
-    {"title": "Recruiting: interview schedule", "body": "Interview loops for next week are in Greenhouse; confirm your slots.", "label": "safe"},
-    {"title": "Design review notes", "body": "Notes and mockups attached; decisions captured in the product doc.", "label": "safe"},
-    {"title": "Product roadmap update", "body": "Q4 roadmap is posted; feedback window open until Friday at noon.", "label": "safe"},
-    {"title": "SRE on-call rota", "body": "Updated rota attached; handover checklist linked in the runbook.", "label": "safe"},
-    {"title": "Data privacy day events", "body": "Join sessions on DPIAs and data minimization; registration on the intranet.", "label": "safe"},
-    {"title": "IT: software patch window", "body": "Patching on Saturday 22:00–23:30 CEST. Expect brief reboots; no action required.", "label": "safe"},
-    {"title": "Engineering brown-bag invitation", "body": "Topic: reproducible builds. Bring questions; recording will be shared.", "label": "safe"},
-    {"title": "HR: holiday calendar", "body": "Updated public holiday calendar attached; sync with your Outlook.", "label": "safe"},
-    {"title": "Office access badge replacement", "body": "If your badge is damaged, submit a ticket; pickups at reception.", "label": "safe"},
-    {"title": "Internal hackathon sign-up", "body": "Register teams by Friday. Rules and judging criteria are on the intranet.", "label": "safe"},
-
-    # --- Additional labeled emails (100 items; +50 spam / +50 safe) ---
-    # ----------------------- SPAM (50) -----------------------
-    {"title": "Immediate payroll unlock required", "body": "Your salary is paused. Re-enter bank credentials at http://payroll-verify.example-pay.me to resume processing.", "label": "spam"},
-    {"title": "Final notice: mailbox quota exceeded", "body": "Restore full access by logging into the recovery portal and confirming your password.", "label": "spam"},
-    {"title": "Undeliverable parcel fee", "body": "A €3.50 fee is required to redeliver your package. Pay now to avoid return to sender.", "label": "spam"},
-    {"title": "Remote work compliance penalty", "body": "You are out of compliance. Download the attached DOC and sign in to acknowledge.", "label": "spam"},
-    {"title": "VPN disabled — confirm identity", "body": "We turned off your VPN due to risk. Re-enable by entering your credentials on our verification page.", "label": "spam"},
-    {"title": "Payroll bonus pending card check", "body": "Provide card number and CVV to release your bonus today.", "label": "spam"},
-    {"title": "Tax refund available — act now", "body": "We owe you €312. Submit IBAN and date of birth to receive payment.", "label": "spam"},
-    {"title": "SaaS access blocked", "body": "Your subscription failed. Update billing on our partner site to restore premium features.", "label": "spam"},
-    {"title": "Security update: attachment required", "body": "Open the attached HTML and follow instructions to secure your account.", "label": "spam"},
-    {"title": "Document signature required externally", "body": "Sign via this third-party link using your email login to access the contract.", "label": "spam"},
-    {"title": "Exclusive company lottery", "body": "Everyone wins! Enter now with your card details to receive your reward.", "label": "spam"},
-    {"title": "Late payment warning", "body": "Avoid service interruption by wiring funds to the account listed in the attached invoice.", "label": "spam"},
-    {"title": "Action required: MFA reset", "body": "Multi-factor is disabled. Click the link and authenticate with your mailbox password.", "label": "spam"},
-    {"title": "Storage expansion available", "body": "Pay €1 to upgrade your mailbox by 100GB instantly via our quick checkout.", "label": "spam"},
-    {"title": "Anti-virus license expired", "body": "Install the attached EXE to protect your workstation and avoid data loss.", "label": "spam"},
-    {"title": "HR survey with €75 voucher", "body": "Complete our survey and get a guaranteed voucher. No employee ID required.", "label": "spam"},
-    {"title": "Conference award winner", "body": "You won a free pass. Confirm with credit card to validate identity.", "label": "spam"},
-    {"title": "DocuLink secure file", "body": "Access the secure file by entering your email password at the portal.", "label": "spam"},
-    {"title": "Urgent ticket verification", "body": "Your IT ticket will be closed. Keep it open by re-authenticating on the external site.", "label": "spam"},
-    {"title": "Expense refund irregularity", "body": "We can expedite if you email your card details for validation.", "label": "spam"},
-    {"title": "Employee appreciation prize", "body": "Claim your €250 reward by verifying your bank login.", "label": "spam"},
-    {"title": "Benefit enrollment failure", "body": "Reactivate benefits by logging in through our partner provider with your email credentials.", "label": "spam"},
-    {"title": "Overtime compensation release", "body": "Upload a photo of your card to receive your overtime compensation instantly.", "label": "spam"},
-    {"title": "Executive mentorship shortlist", "body": "Secure your spot by paying a refundable deposit via the link.", "label": "spam"},
-    {"title": "Parking fine unpaid", "body": "Avoid increased fees. Pay online with card details through the attached portal.", "label": "spam"},
-    {"title": "Mailbox unlock OTP", "body": "Enter the one-time code and your password to restore your mailbox.", "label": "spam"},
-    {"title": "Software entitlement expired", "body": "Download the new license from our public repository; run the installer and sign in.", "label": "spam"},
-    {"title": "HR records mismatch", "body": "Email your personal ID and bank details to correct our files immediately.", "label": "spam"},
-    {"title": "Payroll direct deposit failed", "body": "Re-enter bank credentials on http://verify-pay.example-banking.net to receive funds.", "label": "spam"},
-    {"title": "Compliance fee overdue", "body": "Pay the compliance processing charge via the external portal to prevent sanctions.", "label": "spam"},
-    {"title": "Security incident follow-up", "body": "We detected a breach. Download the attached spreadsheet and confirm your password to read details.", "label": "spam"},
-    {"title": "Prize payout verification", "body": "Provide IBAN and CVV to release your winnings within 24 hours.", "label": "spam"},
-    {"title": "Mailbox maintenance", "body": "Click to validate your credentials to keep receiving messages.", "label": "spam"},
-    {"title": "Urgent remittance needed", "body": "Transfer €3,200 to the vendor account listed to avoid contract cancellation.", "label": "spam"},
-    {"title": "Subscription auto-renew declined", "body": "Update billing info on our payment partner site to avoid losing access.", "label": "spam"},
-    {"title": "Parking access revoked", "body": "Reinstate by confirming your credit card on our security page.", "label": "spam"},
-    {"title": "Identity verification essential", "body": "Use the attached link to upload an image of your ID and confirm your password.", "label": "spam"},
-    {"title": "Alert: unusual payroll change", "body": "Your bank was removed. Log in at the portal with your email credentials to add it back.", "label": "spam"},
-    {"title": "Credit balance reward", "body": "We have a credit ready. Verify by entering banking login at our claim site.", "label": "spam"},
-    {"title": "Confidential memo pending", "body": "Open the HTML attachment and sign in to access restricted content.", "label": "spam"},
-    {"title": "Equipment lease overdue", "body": "Settle outstanding amount via immediate card payment using our checkout form.", "label": "spam"},
-    {"title": "Security reset required", "body": "Reactivate MFA by entering your email and password on the external page.", "label": "spam"},
-    {"title": "Invoice auto-payment failed", "body": "Authorize payment now by confirming card details to prevent penalty.", "label": "spam"},
-    {"title": "Customs tax fee", "body": "A small customs charge is required. Pay with card to release the parcel.", "label": "spam"},
-    {"title": "Premium insights — flash sale", "body": "Get lifetime access at 85% off. Pay through our trusted partner.", "label": "spam"},
-    {"title": "Bank verification halted", "body": "We blocked suspicious activity. Confirm access by logging into our security page.", "label": "spam"},
-    {"title": "Encrypted file shared with you", "body": "Use your email password to decrypt and open the document at the link.", "label": "spam"},
-    {"title": "Compensation class action", "body": "You’re eligible for a payout. Submit card details to receive funds instantly.", "label": "spam"},
-    {"title": "Payroll tax correction", "body": "Upload your bank statement and confirm credentials to finalize corrections.", "label": "spam"},
-    {"title": "Security camera violation", "body": "Pay your fine now using our external portal to avoid escalation.", "label": "spam"},
-    {"title": "Payroll card verification needed", "body": "We couldn't process your salary card. Submit the 3D Secure code through our payment portal within 30 minutes.", "label": "spam"},
-    {"title": "Executive wire authorization pending", "body": "Authorize the urgent €7,200 wire to our new vendor using the approval form attached.", "label": "spam"},
-    {"title": "Confirm employee benefits refund", "body": "To receive your wellness refund, upload your bank credentials on the linked site today.", "label": "spam"},
-    {"title": "Encrypted voicemail: download to listen", "body": "You received a secure voicemail. Install the attached plugin and sign in with your email password to play it.", "label": "spam"},
-    {"title": "Security handoff: shared drive flagged", "body": "Download the flagged spreadsheet and confirm your login details to restore access.", "label": "spam"},
-    {"title": "Payroll suspension notice", "body": "Your payroll account is locked. Verify your identity by entering your SSN and password at hr-verify.co.", "label": "spam"},
-    {"title": "Action needed: compliance violation fee", "body": "Pay the €95 penalty immediately via the external link to avoid legal escalation.", "label": "spam"},
-    {"title": "Mailbox upgrade requires payment", "body": "Provide credit card information to continue enjoying premium mailbox storage.", "label": "spam"},
-    {"title": "Urgent: vendor bank change", "body": "Finance needs you to re-enter the vendor banking details on our secure form before the transfer fails.", "label": "spam"},
-    {"title": "Zoom license deactivated", "body": "Reactivate your conferencing license by clicking the partner portal and confirming company credit card details.", "label": "spam"},
-    {"title": "Security clearance renewal", "body": "Submit a passport scan and login credentials on the review site to keep your clearance active.", "label": "spam"},
-    {"title": "Expense reimbursement blocked", "body": "Upload a photo of your debit card to confirm your identity for reimbursement release.", "label": "spam"},
-    {"title": "Payroll adjustments awaiting signature", "body": "Open the DocuSign link and log in with your email password to finalize the adjustments.", "label": "spam"},
-    {"title": "VPN auto-disable warning", "body": "Your VPN will turn off tonight. Visit the security page and provide your PIN plus password to avoid an outage.", "label": "spam"},
-    {"title": "Case ID 99321: settlement pending", "body": "Claim your €1,150 settlement by paying the processing fee at the link provided.", "label": "spam"},
-    {"title": "Apple Pay card removal", "body": "We removed your card. Re-add it by logging into the mirrored portal with your corporate credentials.", "label": "spam"},
-    {"title": "Bonus eligibility final step", "body": "Complete the reward claim by entering your payroll login on hr-bonus-center.com.", "label": "spam"},
-    {"title": "MFA reset confirmation", "body": "Ignore other notices. Use this link to disable MFA and verify with your password now.", "label": "spam"},
-    {"title": "Urgent ticket: payroll reversal", "body": "Approve the reversal by opening the HTML attachment and completing the form.", "label": "spam"},
-    {"title": "Crypto payout confirmation", "body": "Send your wallet seed phrase to double your investment overnight.", "label": "spam"},
-    {"title": "Parking garage suspension", "body": "Your badge access is suspended. Pay the reinstatement fee via the quickpay form with card details.", "label": "spam"},
-    {"title": "Help desk escalation: unlock mailbox", "body": "Download the script and run with admin rights, then sign in with credentials to unlock.", "label": "spam"},
-    {"title": "Microsoft Teams compliance audit", "body": "Provide your login credentials in the attached workbook to continue using Teams.", "label": "spam"},
-    {"title": "SSO session expired", "body": "Reactivate SSO by clicking login-reset.io and confirming your password plus SMS code.", "label": "spam"},
-    {"title": "E-signature failure", "body": "The document failed to sign. Authenticate at doc-fix.me with your company login to resend.", "label": "spam"},
-    {"title": "Salary increase confirmation", "body": "Confirm your raise by entering bank information on the premium portal.", "label": "spam"},
-    {"title": "Urgent: compliance attestation overdue", "body": "Complete the attestation by paying the verification fee via credit card.", "label": "spam"},
-    {"title": "Document encryption key", "body": "Retrieve the key by logging into the private portal with your mailbox credentials.", "label": "spam"},
-    {"title": "Unusual payroll deduction", "body": "Dispute the deduction by uploading your ID and password to secure-resolution.app.", "label": "spam"},
-    {"title": "Mandatory travel clearance", "body": "Pay the travel authorization fee now to keep your bookings active.", "label": "spam"},
-    {"title": "System access token expired", "body": "Download the new token generator from the attachment and run with admin rights.", "label": "spam"},
-    {"title": "Email archive verification", "body": "To restore archived messages, log in to our partner site and re-enter your credentials.", "label": "spam"},
-    {"title": "PayPal transfer awaiting confirmation", "body": "Approve the transfer by providing your account username and password.", "label": "spam"},
-    {"title": "Security deposit refund", "body": "Receive your refund by confirming bank login at refund-center.link.", "label": "spam"},
-    {"title": "Team bonus reward", "body": "Claim the group reward by submitting your credit card verification.", "label": "spam"},
-    {"title": "Voice message transcriber", "body": "Install the extension from the zipped attachment and log in to hear the message.", "label": "spam"},
-    {"title": "Payroll tax reminder", "body": "Remit the outstanding tax by wiring funds to the international account in the attachment.", "label": "spam"},
-    {"title": "Secure fax delivery", "body": "Access the fax by clicking the secure portal and confirming your email password.", "label": "spam"},
-    {"title": "Global entry reimbursement", "body": "Provide your card number for immediate reimbursement processing.", "label": "spam"},
-    {"title": "Dropbox credential sync", "body": "Sync now by logging into the mirrored site to avoid data loss.", "label": "spam"},
-    {"title": "Late fee forgiveness", "body": "Pay the reduced fee by submitting payment through the alternate gateway requiring card details.", "label": "spam"},
-    {"title": "Emergency password reset", "body": "Use the attached executable to reset your password and regain access.", "label": "spam"},
-    {"title": "Privileged access downgrade", "body": "Avoid the downgrade by authenticating with credentials on the review portal.", "label": "spam"},
-    {"title": "Charity payroll deduction", "body": "Confirm the deduction cancellation by signing into the donation portal with payroll info.", "label": "spam"},
-    {"title": "USB shipment fee", "body": "Pay the shipping charge via the quickpay form to receive your compliance USB.", "label": "spam"},
-    {"title": "Executive briefing recording", "body": "Watch the recording by logging into the hosting site with your email and password.", "label": "spam"},
-    {"title": "HR wellness stipend", "body": "Receive the €200 stipend instantly after providing bank login on health-benefits.io.", "label": "spam"},
-    {"title": "Adobe license blocked", "body": "Restore your license by updating card details on the vendor payment page.", "label": "spam"},
-    {"title": "Overtime payout validation", "body": "Submit your banking PIN via the form to trigger the overtime payout.", "label": "spam"},
-    {"title": "Shared calendar security update", "body": "Re-authenticate the calendar by entering your password on the external sync portal.", "label": "spam"},
-
-    # ----------------------- SAFE (50) -----------------------
-    {"title": "Payroll change confirmation", "body": "You updated your bank details in Workday. If this wasn’t you, contact HR via Teams.", "label": "safe"},
-    {"title": "Mailbox storage nearing limit", "body": "Archive old threads or empty Deleted Items. No action on external sites.", "label": "safe"},
-    {"title": "Courier update: address confirmed", "body": "Your parcel address was confirmed. Track via the official courier page in your account.", "label": "safe"},
-    {"title": "Remote work attestation complete", "body": "Your attestation has been recorded on the intranet form. No further steps required.", "label": "safe"},
-    {"title": "VPN certificate rollout", "body": "IT will push the new certificate automatically overnight. No user action needed.", "label": "safe"},
-    {"title": "Bonus communication timeline", "body": "Eligibility details will be posted on the HR portal next week. No personal data requested.", "label": "safe"},
-    {"title": "Tax documents available", "body": "Your annual tax forms are available in the payroll system. Download after MFA.", "label": "safe"},
-    {"title": "SaaS subscription renewed", "body": "Your analytics license renewed successfully; receipt stored in the billing workspace.", "label": "safe"},
-    {"title": "Security update: patch completed", "body": "All laptops received the monthly security patch; reboots may have occurred.", "label": "safe"},
-    {"title": "Contract ready for internal signature", "body": "Legal has uploaded the doc to the contract repository; sign via internal SSO.", "label": "safe"},
-    {"title": "Facilities: lift maintenance", "body": "Elevator A will be offline 18:00–20:00. Stairs and Elevator B remain available.", "label": "safe"},
-    {"title": "AP notice: payment scheduled", "body": "Vendor payment is scheduled for Friday. No further action required from you.", "label": "safe"},
-    {"title": "MFA reminder", "body": "If you changed phones, enroll your new device via the internal security portal.", "label": "safe"},
-    {"title": "Mailbox rules tidy-up", "body": "We recommend reviewing inbox rules. Use Outlook settings; no external links.", "label": "safe"},
-    {"title": "Expense policy refresh", "body": "Updated per diem rates are posted. Claims over limit require manager approval.", "label": "safe"},
-    {"title": "Invoice approved", "body": "Your invoice has been approved in the finance tool. It will post in the next run.", "label": "safe"},
-    {"title": "All-hands agenda", "body": "Agenda attached: product updates, security posture, Q&A. Join via Teams.", "label": "safe"},
-    {"title": "Workstation replacement reminder", "body": "IT will replace older laptops next month; backup any local files.", "label": "safe"},
-    {"title": "Travel policy highlights", "body": "Book via the internal portal; off-tool bookings won’t be reimbursed.", "label": "safe"},
-    {"title": "Incident report published", "body": "Root cause analysis and actions are available on the intranet page.", "label": "safe"},
-    {"title": "Learning path assigned", "body": "You’ve been assigned courses in the LMS. Complete by the end of the quarter.", "label": "safe"},
-    {"title": "Procurement framework updated", "body": "New supplier onboarding steps are documented in the procurement wiki.", "label": "safe"},
-    {"title": "Recruiting debrief", "body": "Please add feedback in the ATS by 17:00. Panel summary will follow.", "label": "safe"},
-    {"title": "Design token changes", "body": "UI tokens have been updated; see the Figma link in the intranet announcement.", "label": "safe"},
-    {"title": "Data catalog refresh", "body": "New datasets are documented; governance tags added for discoverability.", "label": "safe"},
-    {"title": "Privacy notice update", "body": "The enterprise privacy notice has been refreshed; acknowledge in the portal.", "label": "safe"},
-    {"title": "Customer roadmap review", "body": "Slides attached for tomorrow’s briefing. Feedback thread open on Teams.", "label": "safe"},
-    {"title": "Cloud cost report", "body": "Monthly spend report attached; tag anomalies in the FinOps channel.", "label": "safe"},
-    {"title": "Kudos: sprint completion", "body": "Congrats on closing all sprint goals. Retro notes posted in the board.", "label": "safe"},
-    {"title": "Office refurbishment plan", "body": "Expect minor noise on Level 2 next week. Quiet rooms remain open.", "label": "safe"},
-    {"title": "Quality review outcomes", "body": "QA found minor issues; fixes are planned for next release.", "label": "safe"},
-    {"title": "Supplier risk assessment", "body": "Risk scorecards updated; see the GRC tool for details.", "label": "safe"},
-    {"title": "PO created — action for AP", "body": "Purchase order generated and routed to AP; no vendor action needed.", "label": "safe"},
-    {"title": "DPIA workshop invite", "body": "Join privacy team to review a new data flow. Materials on the intranet.", "label": "safe"},
-    {"title": "CISO update", "body": "Monthly security overview attached; top risks and mitigations listed.", "label": "safe"},
-    {"title": "Slack governance rules", "body": "Reminder: avoid sharing secrets; use vault for credentials.", "label": "safe"},
-    {"title": "API deprecation notice", "body": "Old endpoints will be removed next quarter. Migrate to v2 per the guide.", "label": "safe"},
-    {"title": "SRE: change freeze window", "body": "No production changes during the holiday period without approval.", "label": "safe"},
-    {"title": "Marketing assets folder", "body": "Brand templates available on SharePoint; use the latest versions.", "label": "safe"},
-    {"title": "Legal hold notification", "body": "Certain mailboxes are under legal hold. Normal work can continue.", "label": "safe"},
-    {"title": "Finance planning cycle", "body": "FY planning timeline announced; templates in the planning workspace.", "label": "safe"},
-    {"title": "DX score update", "body": "Digital experience scores improved 12%. Full report attached.", "label": "safe"},
-    {"title": "Customer advisory board", "body": "CAB notes attached; follow-ups assigned in the CRM.", "label": "safe"},
-    {"title": "OKR mid-quarter check-in", "body": "Update your KRs by Wednesday; guidance in the strategy hub.", "label": "safe"},
-    {"title": "Release notes 3.7.0", "body": "Bug fixes and performance improvements. Full changelog on the wiki.", "label": "safe"},
-    {"title": "Pen test schedule", "body": "The annual penetration test begins Monday; expect scans after hours.", "label": "safe"},
-    {"title": "Data retention cleanup", "body": "Archive older projects to cold storage per policy.", "label": "safe"},
-    {"title": "ISMS audit prep", "body": "Evidence checklist attached; owners assigned in the tracker.", "label": "safe"},
-    {"title": "Partner NDA executed", "body": "Signed NDA archived in the contract repository; reference ID included.", "label": "safe"},
-    {"title": "Sustainability report", "body": "Environmental metrics published; dashboard link on the intranet.", "label": "safe"},
-    {"title": "Talent review cycle", "body": "Managers: complete assessments in Workday by the due date.", "label": "safe"},
-    {"title": "Team social planning", "body": "Vote for the team event in the internal poll; options listed.", "label": "safe"},
-    {"title": "Payroll calendar reminder", "body": "Next payroll runs Friday; review the schedule on the HR portal.", "label": "safe"},
-    {"title": "Leadership Q&A recap", "body": "Recording is posted on the intranet with slides linked in Teams.", "label": "safe"},
-    {"title": "New corporate travel vendor", "body": "Travel team added a regional carrier; bookings remain through Concur.", "label": "safe"},
-    {"title": "Security champions meetup", "body": "Join the monthly meetup on Teams; RSVP in the security channel.", "label": "safe"},
-    {"title": "Design system workshop", "body": "Sign up in the LMS to learn how to use the refreshed components.", "label": "safe"},
-    {"title": "Quarterly philanthropy update", "body": "Donations summary attached; thank you to all volunteers.", "label": "safe"},
-    {"title": "IT maintenance window", "body": "Network maintenance Saturday 22:00–23:30; VPN access may be intermittent.", "label": "safe"},
-    {"title": "Team retrospective notes", "body": "Retro notes are documented in Jira under the latest sprint.", "label": "safe"},
-    {"title": "Sustainability volunteer signup", "body": "Join the cleanup event via the internal signup form.", "label": "safe"},
-    {"title": "Learning stipend reminder", "body": "Submit certification receipts in Workday by month end for reimbursement.", "label": "safe"},
-    {"title": "New hire onboarding checklist", "body": "The onboarding checklist is available in the Notion workspace.", "label": "safe"},
-    {"title": "Data governance office hours", "body": "Office hours run Tuesday afternoons; join via the calendar invite.", "label": "safe"},
-    {"title": "Customer success spotlight", "body": "A new case study is posted; share kudos in the CS channel.", "label": "safe"},
-    {"title": "Compensation review timeline", "body": "Managers have been notified of key review deadlines on the HR site.", "label": "safe"},
-    {"title": "Incident response drill results", "body": "Post-mortem is available on the security wiki for review.", "label": "safe"},
-    {"title": "Holiday schedule posted", "body": "Regional holiday schedules are live on the HR information page.", "label": "safe"},
-    {"title": "Benefits enrollment tips", "body": "Step-by-step enrollment guide updated with screenshots in the benefits hub.", "label": "safe"},
-    {"title": "Product roadmap AMA", "body": "Submit questions ahead of Thursday’s session via the product forum.", "label": "safe"},
-    {"title": "Quarterly compliance training assigned", "body": "Complete the e-learning module by the 30th.", "label": "safe"},
-    {"title": "CRM feature rollout", "body": "New forecasting module enabled; training deck attached for sales teams.", "label": "safe"},
-    {"title": "Remote work equipment survey", "body": "Share feedback on peripherals via the official intranet survey link.", "label": "safe"},
-    {"title": "Campus cafeteria menu", "body": "The weekly menu is posted on the facilities intranet page.", "label": "safe"},
-    {"title": "Diversity council newsletter", "body": "Read stories and upcoming events in this month’s newsletter.", "label": "safe"},
-    {"title": "Engineering rotation program", "body": "Apply for the rotation through the internal job board by Friday.", "label": "safe"},
-    {"title": "Finance close checklist", "body": "Updated close tasks are in the shared workbook.", "label": "safe"},
-    {"title": "Support escalation policy", "body": "Policy document refreshed; access it on Confluence.", "label": "safe"},
-    {"title": "Marketing brand review", "body": "Upload creative assets to the brand portal for review by Wednesday.", "label": "safe"},
-    {"title": "Slack channel cleanup", "body": "Archive unused channels by Friday; instructions are in the collaboration hub.", "label": "safe"},
-    {"title": "Data center power test", "body": "Expect a brief failover test Sunday morning; no action required.", "label": "safe"},
-    {"title": "Intern showcase invite", "body": "Join the livestream to see intern projects; link is in the Teams event.", "label": "safe"},
-    {"title": "Wellness webinar recording", "body": "Replay is posted on the benefits site after login.", "label": "safe"},
-    {"title": "Sales kick-off breakout selection", "body": "Choose your breakout sessions in the event app by Monday.", "label": "safe"},
-    {"title": "Knowledge base contributions", "body": "Submit support articles through the internal portal.", "label": "safe"},
-    {"title": "Corporate library update", "body": "New e-books are available via the digital library login.", "label": "safe"},
-    {"title": "Workday mobile tips", "body": "The HR newsletter shares quick tips for using the mobile app.", "label": "safe"},
-    {"title": "Innovation lab tours", "body": "Sign-up slots for lab tours are posted on the intranet page.", "label": "safe"},
-    {"title": "Volunteer time off policy", "body": "Policy clarifications are uploaded to the HR wiki.", "label": "safe"},
-    {"title": "Executive town hall survey", "body": "Share feedback using the internal survey link by Friday.", "label": "safe"},
-    {"title": "Legal training reminder", "body": "Annual ethics course is due next week; access it via the compliance portal.", "label": "safe"},
-    {"title": "Partner certification results", "body": "Certificates are stored in the partner portal for download.", "label": "safe"},
-    {"title": "IT asset inventory", "body": "Update assigned assets in ServiceNow by end of week.", "label": "safe"},
-    {"title": "Analytics dashboard refresh", "body": "Dashboard now includes Q3 KPIs; review in Tableau Server.", "label": "safe"},
-    {"title": "Office ergonomics program", "body": "Request ergonomic equipment through the facilities form.", "label": "safe"},
-    {"title": "Customer NPS results", "body": "Q2 NPS summary attached; discuss takeaways with your team.", "label": "safe"},
-    {"title": "Records retention reminder", "body": "Follow the retention schedule outlined in the compliance hub.", "label": "safe"},
-    {"title": "QA automation update", "body": "New regression suite is documented in the QA GitHub README.", "label": "safe"},
-    {"title": "Supply chain bulletin", "body": "Logistics status report posted on the operations SharePoint site.", "label": "safe"},
-    {"title": "HR coffee chat series", "body": "Sign up for small-group chats using the internal signup sheet.", "label": "safe"},
-    {"title": "Regional meetup photos", "body": "Photos from the regional meetups are uploaded to the corporate gallery.", "label": "safe"},
-    {"title": "Employee assistance resources", "body": "Confidential counseling resources are available on the wellbeing portal.", "label": "safe"},
-
-    # --- Extended dataset (200 items; +100 spam / +100 safe) ---
-    # ----------------------- SPAM (100) -----------------------
-    {"title": "PAYROLL-LOCK: code 0007 pending", "body": "System flagged zero salary deposits. Reactivate in 4 minutes via http://payroll-zero7.fix and enter reset code 0007 with your password.", "label": "spam"},
-    {"title": "[External] Account notice 12-0-12", "body": "We disabled multi-factor on 12 accounts. Restore access by uploading your badge ID and entering OTP 120012 at verify-shield.net.", "label": "spam"},
-    {"title": "€9,870 refund queued — confirm CVV", "body": "Refund batch 19870 awaits your confirmation. Email your card number and CVV 987 to treasury-fastpay.com to release funds tonight.", "label": "spam"},
-    {"title": "ACH reversal form 44B attached", "body": "Download ACH44B.xlsm and enable macros. Provide bank routing 044198765 and password to cancel the debit.", "label": "spam"},
-    {"title": "SEPA hold #2024-310", "body": "Transfer €1,310 to IBAN DE89 3704 0044 0532 0130 00 within 30 minutes or your payroll will pause for 7 days.", "label": "spam"},
-    {"title": "DocuVault share: file_78192.zip", "body": "Open file_78192.zip, run unlock.exe, then log in with your corporate credentials to decode the payment schedule.", "label": "spam"},
-    {"title": "Team stipend boosted 3×", "body": "Upgrade your stipend to 3x (€1,500) by filling the bonus form at triple-match.io and entering your SSN plus bank PIN.", "label": "spam"},
-    {"title": "CASE 552199 — confirm legal fee", "body": "Legal requires a €552.199 settlement fee. Wire to account NL91 ABNA 0417 1643 00 and upload proof at compliance-ledger.eu.", "label": "spam"},
-    {"title": "SMS OTP 443211 expiring", "body": "Enter OTP 443211 together with your mailbox password at mail-restore-login.com to unlock archived messages.", "label": "spam"},
-    {"title": "MacBook shipment duty €64.50", "body": "Pay €64.50 duty by submitting card ending 6450 through http://customs-fastpay.global within 10 minutes.", "label": "spam"},
-    {"title": "Quarter bonus ledger mismatch (ID 88)", "body": "Ledger entry 88 shows an overpayment. Download mismatch88.pdf and enter your payroll login to reconcile.", "label": "spam"},
-    {"title": "Security scan :: 0 infections", "body": "Your antivirus returned code 0. Reinstall using secure-cleaner0.pkg and authenticate with your admin password to keep coverage.", "label": "spam"},
-    {"title": "!! URGENT 24h payout block !!", "body": "€4,240 vendor payout blocked. Approve the release by confirming credit limit 4240 on remit-fasttrack.biz/login.", "label": "spam"},
-    {"title": "Payroll delta -€218.42", "body": "We deducted €218.42 incorrectly. Submit routing 218420001 and MFA code 21842 to payroll-correction.center now.", "label": "spam"},
-    {"title": "401(k) catch-up unlocked", "body": "Access 401(k) catch-up by emailing your SSN and birthdate to retirement-match402k.com before 23:59.", "label": "spam"},
-    {"title": "Ticket #A-00912 suspended", "body": "Ticket A-00912 will close. Keep it open by signing into servicedesk-alerts.info with employee ID 00912 and password.", "label": "spam"},
-    {"title": "VPN client version 6.7.3 missing", "body": "Install vpn-6.7.3.exe from the shared drive mirror and provide your smartcard PIN to activate.", "label": "spam"},
-    {"title": "Payroll spreadsheet Q3.xls needs review", "body": "Enable editing in Q3_payroll.xls and provide your Office365 login to decrypt the totals.", "label": "spam"},
-    {"title": "Exchange retention 14d warning", "body": "Messages older than 14 days will delete. Override the policy by logging into retention14.override-mail.cloud.", "label": "spam"},
-    {"title": "Director request: wire 0.58 BTC", "body": "CEO approved 0.58 BTC transfer. Send seed phrase of wallet REF58A to finalize before 17:00 UTC.", "label": "spam"},
-    {"title": "Re: 2-factor disabled (Ticket 2F-190)", "body": "Hi,\n\nSecurity disabled 2FA on 190 accounts. Re-enable yours by entering badge #190 and password at twofactor-fix.net.\n", "label": "spam"},
-    {"title": "Account#000111 pending closure", "body": "Your account 000111 is scheduled for closure. Upload ID + bank card image (png) via https://close-stop000111.io.", "label": "spam"},
-    {"title": "FY24_Bonus_Calculator.xlsm shared", "body": "Macro requires your payroll PIN (4 digits). Enter PIN and SSN to activate the FY24 bonus calculator.", "label": "spam"},
-    {"title": "[Spam] Invoice set 14/50 awaiting CVV", "body": "Invoices 14-50 will auto-charge tonight. Provide CVV for card ****1450 to confirm payment plan.", "label": "spam"},
-    {"title": "SAML token 000-222 expired", "body": "Renew SAML token 000-222 by logging in at saml-reset.cloud-auth.app with your full password.", "label": "spam"},
-    {"title": "Loan overpayment €7,992", "body": "Finance owes you €7,992. Submit bank login on refund-7992.eu and note reference FR7992 for tracking.", "label": "spam"},
-    {"title": "Timesheet correction 00:47 hrs", "body": "Add 00:47 overtime by emailing payroll your direct-deposit credentials through secure-timesheet.email.", "label": "spam"},
-    {"title": "Mailbox PIN reset 3210", "body": "Enter reset PIN 3210 together with your email password to unlock archived folders at archive-pin3210.com.", "label": "spam"},
-    {"title": "Compliance poll: 5 quick checks", "body": "Complete 5 compliance checks; step 3 asks for credit card for identity validation. Submit within 9 minutes.", "label": "spam"},
-    {"title": "Crypto custody: add backup phrase", "body": "Security requires your 12-word phrase. Upload phrase + wallet balance screenshot (min 12.5 ETH) to custody-safe.link.", "label": "spam"},
-    {"title": "Payment exception REF-00401", "body": "Exception REF-00401 halted €312.48. Use card ending 7001 at http://secure-pay-confirm.io and enter approval code 0001 within 15 minutes.", "label": "spam"},
-    {"title": "Payment exception REF-00402", "body": "Exception REF-00402 halted €902.10. Use card ending 7002 at https://finance-review-alert.com and enter approval code 0002 within 15 minutes.", "label": "spam"},
-    {"title": "Payment exception REF-00403", "body": "Exception REF-00403 halted €1,850.75. Use card ending 7003 at http://reset-access-fast.net and enter approval code 0003 within 15 minutes.", "label": "spam"},
-    {"title": "Payment exception REF-00404", "body": "Exception REF-00404 halted €44.09. Use card ending 7004 at https://bonus-validation.cloud and enter approval code 0004 within 15 minutes.", "label": "spam"},
-    {"title": "Payment exception REF-00405", "body": "Exception REF-00405 halted €1,299.99. Use card ending 7005 at http://update-records-portal.app and enter approval code 0005 within 15 minutes.", "label": "spam"},
-    {"title": "Payment exception REF-00406", "body": "Exception REF-00406 halted €5,842.33. Use card ending 7006 at http://secure-pay-confirm.io and enter approval code 0006 within 15 minutes.", "label": "spam"},
-    {"title": "Payment exception REF-00407", "body": "Exception REF-00407 halted €67.45. Use card ending 7007 at https://finance-review-alert.com and enter approval code 0007 within 15 minutes.", "label": "spam"},
-    {"title": "Payment exception REF-00408", "body": "Exception REF-00408 halted €999.00. Use card ending 7008 at http://reset-access-fast.net and enter approval code 0008 within 15 minutes.", "label": "spam"},
-    {"title": "Payment exception REF-00409", "body": "Exception REF-00409 halted €450.26. Use card ending 7009 at https://bonus-validation.cloud and enter approval code 0009 within 15 minutes.", "label": "spam"},
-    {"title": "Payment exception REF-00410", "body": "Exception REF-00410 halted €210.14. Use card ending 7010 at http://update-records-portal.app and enter approval code 0010 within 15 minutes.", "label": "spam"},
-    {"title": "Payment exception REF-00411", "body": "Exception REF-00411 halted €7,420.88. Use card ending 7011 at http://secure-pay-confirm.io and enter approval code 0011 within 15 minutes.", "label": "spam"},
-    {"title": "Payment exception REF-00412", "body": "Exception REF-00412 halted €18.00. Use card ending 7012 at https://finance-review-alert.com and enter approval code 0012 within 15 minutes.", "label": "spam"},
-    {"title": "Payment exception REF-00413", "body": "Exception REF-00413 halted €5,200.00. Use card ending 7013 at http://reset-access-fast.net and enter approval code 0013 within 15 minutes.", "label": "spam"},
-    {"title": "Payment exception REF-00414", "body": "Exception REF-00414 halted €318.77. Use card ending 7014 at https://bonus-validation.cloud and enter approval code 0014 within 15 minutes.", "label": "spam"},
-    {"title": "Payment exception REF-00415", "body": "Exception REF-00415 halted €89.63. Use card ending 7015 at http://update-records-portal.app and enter approval code 0015 within 15 minutes.", "label": "spam"},
-    {"title": "Payment exception REF-00416", "body": "Exception REF-00416 halted €14,000.50. Use card ending 7016 at http://secure-pay-confirm.io and enter approval code 0016 within 15 minutes.", "label": "spam"},
-    {"title": "Payment exception REF-00417", "body": "Exception REF-00417 halted €73.33. Use card ending 7017 at https://finance-review-alert.com and enter approval code 0017 within 15 minutes.", "label": "spam"},
-    {"title": "Payment exception REF-00418", "body": "Exception REF-00418 halted €268.90. Use card ending 7018 at http://reset-access-fast.net and enter approval code 0018 within 15 minutes.", "label": "spam"},
-    {"title": "Payment exception REF-00419", "body": "Exception REF-00419 halted €975.25. Use card ending 7019 at https://bonus-validation.cloud and enter approval code 0019 within 15 minutes.", "label": "spam"},
-    {"title": "Payment exception REF-00420", "body": "Exception REF-00420 halted €121.09. Use card ending 7020 at http://update-records-portal.app and enter approval code 0020 within 15 minutes.", "label": "spam"},
-    {"title": "Payment exception REF-00421", "body": "Exception REF-00421 halted €4,500.40. Use card ending 7021 at http://secure-pay-confirm.io and enter approval code 0021 within 15 minutes.", "label": "spam"},
-    {"title": "Payment exception REF-00422", "body": "Exception REF-00422 halted €66.00. Use card ending 7022 at https://finance-review-alert.com and enter approval code 0022 within 15 minutes.", "label": "spam"},
-    {"title": "Payment exception REF-00423", "body": "Exception REF-00423 halted €2,875.10. Use card ending 7023 at http://reset-access-fast.net and enter approval code 0023 within 15 minutes.", "label": "spam"},
-    {"title": "Payment exception REF-00424", "body": "Exception REF-00424 halted €333.33. Use card ending 7024 at https://bonus-validation.cloud and enter approval code 0024 within 15 minutes.", "label": "spam"},
-    {"title": "Payment exception REF-00425", "body": "Exception REF-00425 halted €815.92. Use card ending 7025 at http://update-records-portal.app and enter approval code 0025 within 15 minutes.", "label": "spam"},
-    {"title": "Payment exception REF-00426", "body": "Exception REF-00426 halted €120.07. Use card ending 7026 at http://secure-pay-confirm.io and enter approval code 0026 within 15 minutes.", "label": "spam"},
-    {"title": "Payment exception REF-00427", "body": "Exception REF-00427 halted €510.15. Use card ending 7027 at https://finance-review-alert.com and enter approval code 0027 within 15 minutes.", "label": "spam"},
-    {"title": "Payment exception REF-00428", "body": "Exception REF-00428 halted €74.44. Use card ending 7028 at http://reset-access-fast.net and enter approval code 0028 within 15 minutes.", "label": "spam"},
-    {"title": "Payment exception REF-00429", "body": "Exception REF-00429 halted €680.88. Use card ending 7029 at https://bonus-validation.cloud and enter approval code 0029 within 15 minutes.", "label": "spam"},
-    {"title": "Payment exception REF-00430", "body": "Exception REF-00430 halted €94.01. Use card ending 7030 at http://update-records-portal.app and enter approval code 0030 within 15 minutes.", "label": "spam"},
-    {"title": "Payment exception REF-00431", "body": "Exception REF-00431 halted €455.50. Use card ending 7031 at http://secure-pay-confirm.io and enter approval code 0031 within 15 minutes.", "label": "spam"},
-    {"title": "Payment exception REF-00432", "body": "Exception REF-00432 halted €2,400.00. Use card ending 7032 at https://finance-review-alert.com and enter approval code 0032 within 15 minutes.", "label": "spam"},
-    {"title": "Payment exception REF-00433", "body": "Exception REF-00433 halted €810.00. Use card ending 7033 at http://reset-access-fast.net and enter approval code 0033 within 15 minutes.", "label": "spam"},
-    {"title": "Payment exception REF-00434", "body": "Exception REF-00434 halted €150.11. Use card ending 7034 at https://bonus-validation.cloud and enter approval code 0034 within 15 minutes.", "label": "spam"},
-    {"title": "Payment exception REF-00435", "body": "Exception REF-00435 halted €9,999.01. Use card ending 7035 at http://update-records-portal.app and enter approval code 0035 within 15 minutes.", "label": "spam"},
-    {"title": "Payment exception REF-00436", "body": "Exception REF-00436 halted €725.25. Use card ending 7036 at http://secure-pay-confirm.io and enter approval code 0036 within 15 minutes.", "label": "spam"},
-    {"title": "Payment exception REF-00437", "body": "Exception REF-00437 halted €430.18. Use card ending 7037 at https://finance-review-alert.com and enter approval code 0037 within 15 minutes.", "label": "spam"},
-    {"title": "Payment exception REF-00438", "body": "Exception REF-00438 halted €50.00. Use card ending 7038 at http://reset-access-fast.net and enter approval code 0038 within 15 minutes.", "label": "spam"},
-    {"title": "Payment exception REF-00439", "body": "Exception REF-00439 halted €67.89. Use card ending 7039 at https://bonus-validation.cloud and enter approval code 0039 within 15 minutes.", "label": "spam"},
-    {"title": "Payment exception REF-00440", "body": "Exception REF-00440 halted €2,450.00. Use card ending 7040 at http://update-records-portal.app and enter approval code 0040 within 15 minutes.", "label": "spam"},
-    {"title": "Payment exception REF-00441", "body": "Exception REF-00441 halted €880.80. Use card ending 7041 at http://secure-pay-confirm.io and enter approval code 0041 within 15 minutes.", "label": "spam"},
-    {"title": "Payment exception REF-00442", "body": "Exception REF-00442 halted €612.40. Use card ending 7042 at https://finance-review-alert.com and enter approval code 0042 within 15 minutes.", "label": "spam"},
-    {"title": "Payment exception REF-00443", "body": "Exception REF-00443 halted €135.75. Use card ending 7043 at http://reset-access-fast.net and enter approval code 0043 within 15 minutes.", "label": "spam"},
-    {"title": "Payment exception REF-00444", "body": "Exception REF-00444 halted €715.99. Use card ending 7044 at https://bonus-validation.cloud and enter approval code 0044 within 15 minutes.", "label": "spam"},
-    {"title": "Payment exception REF-00445", "body": "Exception REF-00445 halted €4,200.42. Use card ending 7045 at http://update-records-portal.app and enter approval code 0045 within 15 minutes.", "label": "spam"},
-    {"title": "Payment exception REF-00446", "body": "Exception REF-00446 halted €305.05. Use card ending 7046 at http://secure-pay-confirm.io and enter approval code 0046 within 15 minutes.", "label": "spam"},
-    {"title": "Payment exception REF-00447", "body": "Exception REF-00447 halted €53.21. Use card ending 7047 at https://finance-review-alert.com and enter approval code 0047 within 15 minutes.", "label": "spam"},
-    {"title": "Payment exception REF-00448", "body": "Exception REF-00448 halted €111.11. Use card ending 7048 at http://reset-access-fast.net and enter approval code 0048 within 15 minutes.", "label": "spam"},
-    {"title": "Payment exception REF-00449", "body": "Exception REF-00449 halted €884.30. Use card ending 7049 at https://bonus-validation.cloud and enter approval code 0049 within 15 minutes.", "label": "spam"},
-    {"title": "Payment exception REF-00450", "body": "Exception REF-00450 halted €1,024.64. Use card ending 7050 at http://update-records-portal.app and enter approval code 0050 within 15 minutes.", "label": "spam"},
-    {"title": "Payment exception REF-00451", "body": "Exception REF-00451 halted €330.60. Use card ending 7051 at http://secure-pay-confirm.io and enter approval code 0051 within 15 minutes.", "label": "spam"},
-    {"title": "Payment exception REF-00452", "body": "Exception REF-00452 halted €578.45. Use card ending 7052 at https://finance-review-alert.com and enter approval code 0052 within 15 minutes.", "label": "spam"},
-    {"title": "Payment exception REF-00453", "body": "Exception REF-00453 halted €413.90. Use card ending 7053 at http://reset-access-fast.net and enter approval code 0053 within 15 minutes.", "label": "spam"},
-    {"title": "Payment exception REF-00454", "body": "Exception REF-00454 halted €208.08. Use card ending 7054 at https://bonus-validation.cloud and enter approval code 0054 within 15 minutes.", "label": "spam"},
-    {"title": "Payment exception REF-00455", "body": "Exception REF-00455 halted €951.00. Use card ending 7055 at http://update-records-portal.app and enter approval code 0055 within 15 minutes.", "label": "spam"},
-    {"title": "Payment exception REF-00456", "body": "Exception REF-00456 halted €190.05. Use card ending 7056 at http://secure-pay-confirm.io and enter approval code 0056 within 15 minutes.", "label": "spam"},
-    {"title": "Payment exception REF-00457", "body": "Exception REF-00457 halted €650.64. Use card ending 7057 at https://finance-review-alert.com and enter approval code 0057 within 15 minutes.", "label": "spam"},
-    {"title": "Payment exception REF-00458", "body": "Exception REF-00458 halted €44.44. Use card ending 7058 at http://reset-access-fast.net and enter approval code 0058 within 15 minutes.", "label": "spam"},
-    {"title": "Payment exception REF-00459", "body": "Exception REF-00459 halted €590.20. Use card ending 7059 at https://bonus-validation.cloud and enter approval code 0059 within 15 minutes.", "label": "spam"},
-    {"title": "Payment exception REF-00460", "body": "Exception REF-00460 halted €720.72. Use card ending 7060 at http://update-records-portal.app and enter approval code 0060 within 15 minutes.", "label": "spam"},
-    {"title": "Payment exception REF-00461", "body": "Exception REF-00461 halted €235.09. Use card ending 7061 at http://secure-pay-confirm.io and enter approval code 0061 within 15 minutes.", "label": "spam"},
-    {"title": "Payment exception REF-00462", "body": "Exception REF-00462 halted €4,100.10. Use card ending 7062 at https://finance-review-alert.com and enter approval code 0062 within 15 minutes.", "label": "spam"},
-    {"title": "Payment exception REF-00463", "body": "Exception REF-00463 halted €700.70. Use card ending 7063 at http://reset-access-fast.net and enter approval code 0063 within 15 minutes.", "label": "spam"},
-    {"title": "Payment exception REF-00464", "body": "Exception REF-00464 halted €345.65. Use card ending 7064 at https://bonus-validation.cloud and enter approval code 0064 within 15 minutes.", "label": "spam"},
-    {"title": "Payment exception REF-00465", "body": "Exception REF-00465 halted €1,280.08. Use card ending 7065 at http://update-records-portal.app and enter approval code 0065 within 15 minutes.", "label": "spam"},
-    {"title": "Payment exception REF-00466", "body": "Exception REF-00466 halted €540.54. Use card ending 7066 at http://secure-pay-confirm.io and enter approval code 0066 within 15 minutes.", "label": "spam"},
-    {"title": "Payment exception REF-00467", "body": "Exception REF-00467 halted €615.15. Use card ending 7067 at https://finance-review-alert.com and enter approval code 0067 within 15 minutes.", "label": "spam"},
-    {"title": "Payment exception REF-00468", "body": "Exception REF-00468 halted €180.81. Use card ending 7068 at http://reset-access-fast.net and enter approval code 0068 within 15 minutes.", "label": "spam"},
-    {"title": "Payment exception REF-00469", "body": "Exception REF-00469 halted €930.39. Use card ending 7069 at https://bonus-validation.cloud and enter approval code 0069 within 15 minutes.", "label": "spam"},
-    {"title": "Payment exception REF-00470", "body": "Exception REF-00470 halted €250.52. Use card ending 7070 at http://update-records-portal.app and enter approval code 0070 within 15 minutes.", "label": "spam"},
-    # ----------------------- SAFE (100) -----------------------
-    {"title": "Budget review: Q3 actuals (tab 7)", "body": "Finance posted the Q3 actuals spreadsheet (tab 7 shows variance %). Access via the internal Tableau link by 17:00.", "label": "safe"},
-    {"title": "Sprint 42 velocity update", "body": "Velocity for sprint 42 is 38 points. See Jira report RPT-0042 for burndown details.", "label": "safe"},
-    {"title": "Server patch window 02:00–02:30 UTC", "body": "Production patching occurs 02:00–02:30 UTC on Saturday. No user action required; status updates on #ops-alerts.", "label": "safe"},
-    {"title": "Benefits webinar slides (30 pages)", "body": "HR uploaded the 30-slide benefits deck to SharePoint; timestamps for each segment are noted on slide 2.", "label": "safe"},
-    {"title": "Expense policy revision v3.1", "body": "Policy v3.1 clarifies €75 meal limits and 14-day submission deadlines. Read on the compliance wiki.", "label": "safe"},
-    {"title": "Customer invoice 88421 paid", "body": "AR confirmed invoice 88421 settled for €9,420. Receipt PDF lives in NetSuite folder 2024/Q3.", "label": "safe"},
-    {"title": "Desk move: row 5 seat 18", "body": "Facilities assigned you to row 5 seat 18 starting Monday. Badge reprogramming completes by 08:30.", "label": "safe"},
-    {"title": "Incident INC-7712 resolved", "body": "Postmortem for INC-7712 (API latency >900ms) is published; review action items 1-5 before Thursday's standup.", "label": "safe"},
-    {"title": "Travel approval ID 4420", "body": "Trip ID 4420 approved. Book flights through Egencia; per diem €92/day applies for 4 nights.", "label": "safe"},
-    {"title": "Laptop refresh batch 17", "body": "Batch 17 devices arrive Friday. Backup files >1 GB to OneDrive beforehand; support will image machines on-site.", "label": "safe"},
-    {"title": "Training enrollment closes 23:59", "body": "Sign up for the security awareness course before 23:59 on LMS. Module lasts 18 minutes and includes 10-question quiz.", "label": "safe"},
-    {"title": "FY25 OKR draft due 05/15", "body": "Submit draft OKRs by 15 May. Use template version 1.5; metrics should include baseline and target values.", "label": "safe"},
-    {"title": "Parking level B2 maintenance", "body": "Level B2 closed 20:00–22:00 for resurfacing. Park on B1 or C1; towing begins after 19:55.", "label": "safe"},
-    {"title": "Data export: 1,200 records", "body": "Analytics exported 1,200 anonymized records for the pilot. File is in the secure S3 bucket with 14-day retention.", "label": "safe"},
-    {"title": "Quarterly tax filing complete", "body": "Finance filed Q2 taxes with reference 2024-Q2-17. Confirmation stored under Teams/Finance/Tax.", "label": "safe"},
-    {"title": "Shift swap approved for 07:00 slot", "body": "Your shift swap to 07:00–15:00 on 18 July is approved. Update PagerDuty schedule entry SWAP-0718.", "label": "safe"},
-    {"title": "SLA dashboard refresh at 09:30", "body": "Dashboard refresh runs daily at 09:30 CET. Expect metrics for tickets >48h to highlight in red.", "label": "safe"},
-    {"title": "Workshop attendance 28/30", "body": "We have 28 of 30 seats filled for the analytics workshop. RSVP via LNK-2830 if you're attending.", "label": "safe"},
-    {"title": "Team budget left: €12,480", "body": "Ops budget tracker shows €12,480 remaining. Update forecast column C by Friday 18:00.", "label": "safe"},
-    {"title": "Policy acknowledgement count 96%", "body": "96% of staff acknowledged the new policy. Last 14 employees will receive automatic reminders.", "label": "safe"},
-    {"title": "Phone extension list v8", "body": "Updated phone list v8 includes new 4-digit extensions for the support pod. Save a copy to Teams > Directory.", "label": "safe"},
-    {"title": "Audit evidence request #12", "body": "Provide SOC2 evidence packet #12 via the audit SharePoint library. Keep filenames per the checklist numbering.", "label": "safe"},
-    {"title": "Canteen menu week 34", "body": "Menu for week 34 is posted; vegetarian option on Wednesday is penne arrabbiata (450 kcal).", "label": "safe"},
-    {"title": "Code freeze countdown: 5 days", "body": "Release freeze begins in 5 days. Merge PRs to main by 18:00 Friday to make the train.", "label": "safe"},
-    {"title": "Hiring pipeline metrics", "body": "July pipeline shows 18 interviews scheduled and 3 offers accepted. See dashboard tile 'Recruiting-07'.", "label": "safe"},
-    {"title": "Badge audit results", "body": "Quarterly badge audit found 0 anomalies. Archive report BA-2024-Q2 in the security folder.", "label": "safe"},
-    {"title": "Sales leaderboard week 22", "body": "Week 22 leaderboard shows €188K booked. Top rep closed deal ID 22-4476.", "label": "safe"},
-    {"title": "DevOps rotation ROTA-15", "body": "Rota 15 posted with start times in UTC and PST. Confirm your shift by reacting in #devops-rotations.", "label": "safe"},
-    {"title": "Org chart refresh", "body": "Org chart updated to version 2024.2; 3 new managers appear on page 4.", "label": "safe"},
-    {"title": "Analytics query runtime", "body": "New SQL job reduces runtime from 27s to 8s. View benchmark chart in Looker tile #108.", "label": "safe"},
-    {"title": "Project sync scheduled 2024-07-05 09:00", "body": "The project sync is booked in room Atlas for 09:00 on 2024-07-05. Agenda v1.0 is in the Teams channel.", "label": "safe"},
-    {"title": "Project sync scheduled 2024-07-05 09:00", "body": "The project sync is booked in room Zephyr for 09:00 on 2024-07-05. Agenda v2.0 is in the Teams channel.", "label": "safe"},
-    {"title": "Project sync scheduled 2024-07-05 09:00", "body": "The project sync is booked in room Orion for 09:00 on 2024-07-05. Agenda v3.0 is in the Teams channel.", "label": "safe"},
-    {"title": "Project sync scheduled 2024-07-05 09:00", "body": "The project sync is booked in room Nova for 09:00 on 2024-07-05. Agenda v4.0 is in the Teams channel.", "label": "safe"},
-    {"title": "Project sync scheduled 2024-07-05 09:00", "body": "The project sync is booked in room Aurora for 09:00 on 2024-07-05. Agenda v5.0 is in the Teams channel.", "label": "safe"},
-    {"title": "Project sync scheduled 2024-07-05 09:00", "body": "The project sync is booked in room Lyra for 09:00 on 2024-07-05. Agenda v6.0 is in the Teams channel.", "label": "safe"},
-    {"title": "Project sync scheduled 2024-07-05 09:00", "body": "The project sync is booked in room Helios for 09:00 on 2024-07-05. Agenda v7.0 is in the Teams channel.", "label": "safe"},
-    {"title": "Project sync scheduled 2024-07-05 09:00", "body": "The project sync is booked in room Draco for 09:00 on 2024-07-05. Agenda v8.0 is in the Teams channel.", "label": "safe"},
-    {"title": "Project sync scheduled 2024-07-05 09:00", "body": "The project sync is booked in room Vega for 09:00 on 2024-07-05. Agenda v9.0 is in the Teams channel.", "label": "safe"},
-    {"title": "Project sync scheduled 2024-07-05 09:00", "body": "The project sync is booked in room Cygnus for 09:00 on 2024-07-05. Agenda v10.0 is in the Teams channel.", "label": "safe"},
-    {"title": "Project sync scheduled 2024-07-05 10:30", "body": "The project sync is booked in room Atlas for 10:30 on 2024-07-05. Agenda v11.0 is in the Teams channel.", "label": "safe"},
-    {"title": "Project sync scheduled 2024-07-05 10:30", "body": "The project sync is booked in room Zephyr for 10:30 on 2024-07-05. Agenda v12.0 is in the Teams channel.", "label": "safe"},
-    {"title": "Project sync scheduled 2024-07-05 10:30", "body": "The project sync is booked in room Orion for 10:30 on 2024-07-05. Agenda v13.0 is in the Teams channel.", "label": "safe"},
-    {"title": "Project sync scheduled 2024-07-05 10:30", "body": "The project sync is booked in room Nova for 10:30 on 2024-07-05. Agenda v14.0 is in the Teams channel.", "label": "safe"},
-    {"title": "Project sync scheduled 2024-07-05 10:30", "body": "The project sync is booked in room Aurora for 10:30 on 2024-07-05. Agenda v15.0 is in the Teams channel.", "label": "safe"},
-    {"title": "Project sync scheduled 2024-07-05 10:30", "body": "The project sync is booked in room Lyra for 10:30 on 2024-07-05. Agenda v16.0 is in the Teams channel.", "label": "safe"},
-    {"title": "Project sync scheduled 2024-07-05 10:30", "body": "The project sync is booked in room Helios for 10:30 on 2024-07-05. Agenda v17.0 is in the Teams channel.", "label": "safe"},
-    {"title": "Project sync scheduled 2024-07-05 10:30", "body": "The project sync is booked in room Draco for 10:30 on 2024-07-05. Agenda v18.0 is in the Teams channel.", "label": "safe"},
-    {"title": "Project sync scheduled 2024-07-05 10:30", "body": "The project sync is booked in room Vega for 10:30 on 2024-07-05. Agenda v19.0 is in the Teams channel.", "label": "safe"},
-    {"title": "Project sync scheduled 2024-07-05 10:30", "body": "The project sync is booked in room Cygnus for 10:30 on 2024-07-05. Agenda v20.0 is in the Teams channel.", "label": "safe"},
-
-    {"title": "Project sync scheduled 2024-07-05 14:00", "body": "The project sync is booked in room Atlas for 14:00 on 2024-07-05. Agenda v21.0 is in the Teams channel.", "label": "safe"},
-    {"title": "Project sync scheduled 2024-07-05 14:00", "body": "The project sync is booked in room Zephyr for 14:00 on 2024-07-05. Agenda v22.0 is in the Teams channel.", "label": "safe"},
-    {"title": "Project sync scheduled 2024-07-05 14:00", "body": "The project sync is booked in room Orion for 14:00 on 2024-07-05. Agenda v23.0 is in the Teams channel.", "label": "safe"},
-    {"title": "Project sync scheduled 2024-07-05 14:00", "body": "The project sync is booked in room Nova for 14:00 on 2024-07-05. Agenda v24.0 is in the Teams channel.", "label": "safe"},
-    {"title": "Project sync scheduled 2024-07-05 14:00", "body": "The project sync is booked in room Aurora for 14:00 on 2024-07-05. Agenda v25.0 is in the Teams channel.", "label": "safe"},
-    {"title": "Project sync scheduled 2024-07-05 14:00", "body": "The project sync is booked in room Lyra for 14:00 on 2024-07-05. Agenda v26.0 is in the Teams channel.", "label": "safe"},
-    {"title": "Project sync scheduled 2024-07-05 14:00", "body": "The project sync is booked in room Helios for 14:00 on 2024-07-05. Agenda v27.0 is in the Teams channel.", "label": "safe"},
-    {"title": "Project sync scheduled 2024-07-05 14:00", "body": "The project sync is booked in room Draco for 14:00 on 2024-07-05. Agenda v28.0 is in the Teams channel.", "label": "safe"},
-    {"title": "Project sync scheduled 2024-07-05 14:00", "body": "The project sync is booked in room Vega for 14:00 on 2024-07-05. Agenda v29.0 is in the Teams channel.", "label": "safe"},
-    {"title": "Project sync scheduled 2024-07-05 14:00", "body": "The project sync is booked in room Cygnus for 14:00 on 2024-07-05. Agenda v30.0 is in the Teams channel.", "label": "safe"},
-    {"title": "Project sync scheduled 2024-07-05 16:15", "body": "The project sync is booked in room Atlas for 16:15 on 2024-07-05. Agenda v31.0 is in the Teams channel.", "label": "safe"},
-    {"title": "Project sync scheduled 2024-07-05 16:15", "body": "The project sync is booked in room Zephyr for 16:15 on 2024-07-05. Agenda v32.0 is in the Teams channel.", "label": "safe"},
-    {"title": "Project sync scheduled 2024-07-05 16:15", "body": "The project sync is booked in room Orion for 16:15 on 2024-07-05. Agenda v33.0 is in the Teams channel.", "label": "safe"},
-    {"title": "Project sync scheduled 2024-07-05 16:15", "body": "The project sync is booked in room Nova for 16:15 on 2024-07-05. Agenda v34.0 is in the Teams channel.", "label": "safe"},
-    {"title": "Project sync scheduled 2024-07-05 16:15", "body": "The project sync is booked in room Aurora for 16:15 on 2024-07-05. Agenda v35.0 is in the Teams channel.", "label": "safe"},
-    {"title": "Project sync scheduled 2024-07-05 16:15", "body": "The project sync is booked in room Lyra for 16:15 on 2024-07-05. Agenda v36.0 is in the Teams channel.", "label": "safe"},
-    {"title": "Project sync scheduled 2024-07-05 16:15", "body": "The project sync is booked in room Helios for 16:15 on 2024-07-05. Agenda v37.0 is in the Teams channel.", "label": "safe"},
-    {"title": "Project sync scheduled 2024-07-05 16:15", "body": "The project sync is booked in room Draco for 16:15 on 2024-07-05. Agenda v38.0 is in the Teams channel.", "label": "safe"},
-    {"title": "Project sync scheduled 2024-07-05 16:15", "body": "The project sync is booked in room Vega for 16:15 on 2024-07-05. Agenda v39.0 is in the Teams channel.", "label": "safe"},
-    {"title": "Project sync scheduled 2024-07-05 16:15", "body": "The project sync is booked in room Cygnus for 16:15 on 2024-07-05. Agenda v40.0 is in the Teams channel.", "label": "safe"},
-    {"title": "Project sync scheduled 2024-07-05 11:45", "body": "The project sync is booked in room Atlas for 11:45 on 2024-07-05. Agenda v41.0 is in the Teams channel.", "label": "safe"},
-    {"title": "Project sync scheduled 2024-07-05 11:45", "body": "The project sync is booked in room Zephyr for 11:45 on 2024-07-05. Agenda v42.0 is in the Teams channel.", "label": "safe"},
-    {"title": "Project sync scheduled 2024-07-05 11:45", "body": "The project sync is booked in room Orion for 11:45 on 2024-07-05. Agenda v43.0 is in the Teams channel.", "label": "safe"},
-    {"title": "Project sync scheduled 2024-07-05 11:45", "body": "The project sync is booked in room Nova for 11:45 on 2024-07-05. Agenda v44.0 is in the Teams channel.", "label": "safe"},
-    {"title": "Project sync scheduled 2024-07-05 11:45", "body": "The project sync is booked in room Aurora for 11:45 on 2024-07-05. Agenda v45.0 is in the Teams channel.", "label": "safe"},
-    {"title": "Project sync scheduled 2024-07-05 11:45", "body": "The project sync is booked in room Lyra for 11:45 on 2024-07-05. Agenda v46.0 is in the Teams channel.", "label": "safe"},
-    {"title": "Project sync scheduled 2024-07-05 11:45", "body": "The project sync is booked in room Helios for 11:45 on 2024-07-05. Agenda v47.0 is in the Teams channel.", "label": "safe"},
-    {"title": "Project sync scheduled 2024-07-05 11:45", "body": "The project sync is booked in room Draco for 11:45 on 2024-07-05. Agenda v48.0 is in the Teams channel.", "label": "safe"},
-    {"title": "Project sync scheduled 2024-07-05 11:45", "body": "The project sync is booked in room Vega for 11:45 on 2024-07-05. Agenda v49.0 is in the Teams channel.", "label": "safe"},
-    {"title": "Project sync scheduled 2024-07-05 11:45", "body": "The project sync is booked in room Cygnus for 11:45 on 2024-07-05. Agenda v50.0 is in the Teams channel.", "label": "safe"},
-    {"title": "Project sync scheduled 2024-07-06 09:00", "body": "The project sync is booked in room Atlas for 09:00 on 2024-07-06. Agenda v51.0 is in the Teams channel.", "label": "safe"},
-    {"title": "Project sync scheduled 2024-07-06 09:00", "body": "The project sync is booked in room Zephyr for 09:00 on 2024-07-06. Agenda v52.0 is in the Teams channel.", "label": "safe"},
-    {"title": "Project sync scheduled 2024-07-06 09:00", "body": "The project sync is booked in room Orion for 09:00 on 2024-07-06. Agenda v53.0 is in the Teams channel.", "label": "safe"},
-    {"title": "Project sync scheduled 2024-07-06 09:00", "body": "The project sync is booked in room Nova for 09:00 on 2024-07-06. Agenda v54.0 is in the Teams channel.", "label": "safe"},
-    {"title": "Project sync scheduled 2024-07-06 09:00", "body": "The project sync is booked in room Aurora for 09:00 on 2024-07-06. Agenda v55.0 is in the Teams channel.", "label": "safe"},
-    {"title": "Project sync scheduled 2024-07-06 09:00", "body": "The project sync is booked in room Lyra for 09:00 on 2024-07-06. Agenda v56.0 is in the Teams channel.", "label": "safe"},
-    {"title": "Project sync scheduled 2024-07-06 09:00", "body": "The project sync is booked in room Helios for 09:00 on 2024-07-06. Agenda v57.0 is in the Teams channel.", "label": "safe"},
-    {"title": "Project sync scheduled 2024-07-06 09:00", "body": "The project sync is booked in room Draco for 09:00 on 2024-07-06. Agenda v58.0 is in the Teams channel.", "label": "safe"},
-    {"title": "Project sync scheduled 2024-07-06 09:00", "body": "The project sync is booked in room Vega for 09:00 on 2024-07-06. Agenda v59.0 is in the Teams channel.", "label": "safe"},
-    {"title": "Project sync scheduled 2024-07-06 09:00", "body": "The project sync is booked in room Cygnus for 09:00 on 2024-07-06. Agenda v60.0 is in the Teams channel.", "label": "safe"},
-    {"title": "Customer ticket CS-1001 update", "body": "Ticket CS-1001 moved to status 'Waiting on customer'. Next check-in set for +1 business hours.", "label": "safe"},
-    {"title": "Customer ticket CS-1002 update", "body": "Ticket CS-1002 moved to status 'Waiting on customer'. Next check-in set for +2 business hours.", "label": "safe"},
-    {"title": "Customer ticket CS-1003 update", "body": "Ticket CS-1003 moved to status 'Waiting on customer'. Next check-in set for +3 business hours.", "label": "safe"},
-    {"title": "Customer ticket CS-1004 update", "body": "Ticket CS-1004 moved to status 'Waiting on customer'. Next check-in set for +4 business hours.", "label": "safe"},
-    {"title": "Customer ticket CS-1005 update", "body": "Ticket CS-1005 moved to status 'Waiting on customer'. Next check-in set for +5 business hours.", "label": "safe"},
-    {"title": "Customer ticket CS-1006 update", "body": "Ticket CS-1006 moved to status 'Waiting on customer'. Next check-in set for +6 business hours.", "label": "safe"},
-    {"title": "Customer ticket CS-1007 update", "body": "Ticket CS-1007 moved to status 'Waiting on customer'. Next check-in set for +7 business hours.", "label": "safe"},
-    {"title": "Customer ticket CS-1008 update", "body": "Ticket CS-1008 moved to status 'Waiting on customer'. Next check-in set for +8 business hours.", "label": "safe"},
-    {"title": "Customer ticket CS-1009 update", "body": "Ticket CS-1009 moved to status 'Waiting on customer'. Next check-in set for +9 business hours.", "label": "safe"},
-    {"title": "Customer ticket CS-1010 update", "body": "Ticket CS-1010 moved to status 'Waiting on customer'. Next check-in set for +10 business hours.", "label": "safe"},
+DATASET_SUSPICIOUS_TLDS = [
+    ".ru",
+    ".xyz",
+    ".top",
+    ".biz",
+    ".win",
+    ".loan",
+    ".live",
+    ".icu",
+    ".cn",
+    ".gq",
 ]
+
+DATASET_LEGIT_DOMAINS = [
+    "intranet.corp",
+    "sharepoint.corp",
+    "confluence.corp",
+    "workday.corp",
+    "hr.corp",
+    "vpn.corp",
+    "it.corp",
+]
+
+BRANDS = ["DocuSign", "Office 365", "OneDrive", "Zoom", "Adobe", "Okta", "Teams"]
+
+COURIERS = ["DHL", "UPS", "FedEx", "PostNL", "PostNord"]
+
+URGENCY = ["URGENT", "ACTION REQUIRED", "FINAL NOTICE", "IMMEDIATE", "24H", "TODAY"]
+
+def _rand_amount(rng: random.Random) -> str:
+    euros = rng.choice(
+        [
+            18,
+            44.09,
+            67.45,
+            73.33,
+            89.63,
+            120.07,
+            190.05,
+            250.52,
+            318.77,
+            540.54,
+            725.25,
+            930.39,
+            1299.99,
+            1850.75,
+            2875.10,
+            4140.00,
+            7420.88,
+            9999.01,
+        ]
+    )
+    return f"€{euros}"
+
+
+def _maybe_caps(rng: random.Random, text: str, prob: float = 0.25) -> str:
+    if rng.random() > prob:
+        return text
+    words = text.split()
+    if not words:
+        return text
+    idx = rng.randrange(len(words))
+    words[idx] = words[idx].upper()
+    if rng.random() < 0.15 and len(words) > 2:
+        j = rng.randrange(len(words))
+        if j != idx:
+            words[j] = words[j].upper()
+    return " ".join(words)
+
+
+def _spam_link(rng: random.Random) -> str:
+    name = "".join(rng.choices(string.ascii_lowercase, k=rng.randint(6, 12)))
+    tld = rng.choice(DATASET_SUSPICIOUS_TLDS)
+    path = "".join(rng.choices(string.ascii_lowercase, k=rng.randint(4, 10)))
+    scheme = rng.choice(["http://", "https://"])
+    return f"{scheme}{name}{tld}/{path}"
+
+
+def _safe_link(rng: random.Random) -> str:
+    host = rng.choice(DATASET_LEGIT_DOMAINS)
+    path = rng.choice(["/docs", "/policies", "/training", "/tickets", "/files", "/benefits"])
+    return f"https://{host}{path}"
+
+
+def _maybe_links(rng: random.Random, k: int, suspicious: bool = True) -> str:
+    make = _spam_link if suspicious else _safe_link
+    return " ".join(make(rng) for _ in range(k))
+
+
+def _maybe_attachment(rng: random.Random, kind: str = "spam") -> str:
+    if kind == "spam":
+        return rng.choice(
+            [
+                "Open the attached HTML and sign in.",
+                "Download the attached ZIP and run the installer.",
+                "Enable macros in the attached XLSM to proceed.",
+                "Install the attached EXE to restore access.",
+                "Open the PDF and confirm your credentials.",
+            ]
+        )
+    return rng.choice(
+        [
+            "Please see the attached PDF; no further action required.",
+            "Slides attached for review.",
+            "Agenda attached; join via Teams.",
+            "Invoice PDF attached; PO noted.",
+            "Itinerary PDF attached; MFA required to view.",
+        ]
+    )
+
+
+def _spam_title_body(rng: random.Random) -> tuple[str, str]:
+    archetype = rng.choice(
+        [
+            "payroll_hold",
+            "account_reset",
+            "delivery_fee",
+            "invoice_wire",
+            "prize_lottery",
+            "crypto_double",
+            "bonus_verify",
+            "docu_phish",
+            "refund_now",
+            "mfa_disable",
+            "tax_rebate",
+        ]
+    )
+    amt = _rand_amount(rng)
+    brand = rng.choice(BRANDS)
+    courier = rng.choice(COURIERS)
+    urgency = rng.choice(URGENCY)
+
+    if archetype == "payroll_hold":
+        title = f"{urgency}: Verify your payroll to release deposit"
+        body = (
+            "Your salary is on hold. Confirm bank details at "
+            f"{_spam_link(rng)} within 30 minutes to avoid delay. {_maybe_attachment(rng, 'spam')}"
+        )
+    elif archetype == "account_reset":
+        title = f"Password will expire — {urgency.lower()}"
+        body = (
+            f"Reset your password here: {_spam_link(rng)}. "
+            "Failure to act may lock your account. Enter your email and password to confirm."
+        )
+    elif archetype == "delivery_fee":
+        title = f"{courier} delivery notice: customs fee required"
+        body = f"Your parcel is pending. Pay a small fee ({amt}) to schedule a new delivery slot at {_spam_link(rng)}."
+    elif archetype == "invoice_wire":
+        title = "Payment overdue — settle immediately"
+        body = f"Service interruption imminent. Wire {amt} to the account in the attachment today. {_maybe_attachment(rng, 'spam')}"
+    elif archetype == "prize_lottery":
+        title = "WIN a FREE gift — final eligibility"
+        body = f"Congratulations! Complete the short form at {_spam_link(rng)} to claim your reward. Offer expires in 2 hours."
+    elif archetype == "crypto_double":
+        title = "Crypto opportunity: double your balance"
+        body = f"Transfer funds and we’ll return 2× within 24h. Start at {_spam_link(rng)}. Trusted by executives."
+    elif archetype == "bonus_verify":
+        title = "HR update: bonus identity check"
+        body = f"Confirm your identity using your national ID and card CVV at {_spam_link(rng)} to receive your bonus."
+    elif archetype == "docu_phish":
+        title = f"{brand}: You received a secure document"
+        body = f"Open the external portal at {_spam_link(rng)} and log in with your email password to view the document."
+    elif archetype == "refund_now":
+        title = "Refund available — action needed"
+        body = f"We owe you {amt}. Submit IBAN and CVV at {_spam_link(rng)} to receive payment now."
+    elif archetype == "mfa_disable":
+        title = "Two-factor disabled — reactivate now"
+        body = f"We turned off MFA on your account. Re-enable at {_spam_link(rng)} (login required)."
+    elif archetype == "tax_rebate":
+        title = "Tax rebate waiting — confirm identity"
+        body = f"Claim your rebate by verifying bank access at {_spam_link(rng)}. {_maybe_attachment(rng, 'spam')}"
+    else:
+        title = "Important notice"
+        body = f"Complete the verification at {_spam_link(rng)}."
+
+    title = _maybe_caps(rng, title, prob=0.35)
+    if rng.random() < 0.25:
+        title += " !!"
+    if rng.random() < 0.35:
+        body += " Act NOW."
+    if rng.random() < 0.3:
+        body += f" More info: {_spam_link(rng)}"
+
+    return title, body
+
+
+def _safe_title_body(rng: random.Random) -> tuple[str, str]:
+    archetype = rng.choice(
+        [
+            "meeting",
+            "policy_update",
+            "hr_workday",
+            "it_maintenance",
+            "invoice_legit",
+            "travel",
+            "training",
+            "vendor_ap",
+            "security_advice",
+            "delivery_tracking",
+        ]
+    )
+    brand = rng.choice(BRANDS)
+    courier = rng.choice(COURIERS)
+
+    if archetype == "meeting":
+        title = "Team meeting moved to 14:00"
+        body = "Join via the usual Teams link. Agenda: KPIs, risk register, roadmap. " + _maybe_attachment(rng, "safe")
+    elif archetype == "policy_update":
+        title = "Policy update: remote work guidelines"
+        body = "Please review the updated policy on the intranet. " + _maybe_links(rng, 1, suspicious=False)
+    elif archetype == "hr_workday":
+        title = "Workday: benefits enrollment opens"
+        body = "Make your selections in Workday before month end. No personal info by email."
+    elif archetype == "it_maintenance":
+        title = "IT maintenance window"
+        body = "Patching on Saturday 22:00–23:30 CET. Expect brief reboots; no action required."
+    elif archetype == "invoice_legit":
+        title = "Invoice attached — Accounts Payable"
+        body = "Please find the invoice PDF attached. PO is referenced; no payment info requested. " + _maybe_attachment(rng, "safe")
+    elif archetype == "travel":
+        title = "Travel itinerary update"
+        body = "Platform change noted. PDF itinerary attached; bookings remain via the internal tool."
+    elif archetype == "training":
+        title = "Mandatory training assigned"
+        body = "Complete the e-learning module by next Friday. Materials on the LMS. " + _maybe_links(rng, 1, suspicious=False)
+    elif archetype == "vendor_ap":
+        title = "AP reminder — PO mismatch"
+        body = "Please correct the PO reference in the invoice metadata on SharePoint. " + _maybe_links(rng, 1, suspicious=False)
+    elif archetype == "security_advice":
+        title = f"Security advisory — {brand} tips"
+        body = "Review the guidance on the internal portal. No external logins required. " + _maybe_links(rng, 1, suspicious=False)
+    elif archetype == "delivery_tracking":
+        title = f"{courier} tracking: package out for delivery"
+        body = f"Your parcel is scheduled today. Track via the official {courier} site with your tracking ID (no payment)."
+    else:
+        title = "Update posted"
+        body = "Details are available on the intranet."
+
+    title = _maybe_caps(rng, title, prob=0.05)
+    if rng.random() < 0.1:
+        body += " Thanks."
+    if rng.random() < 0.2:
+        body += " Reference: " + _maybe_links(rng, 1, suspicious=False)
+
+    return title, body
+
+
+def generate_labeled_dataset(n_total: int = 500, seed: int = 7) -> List[Dict[str, str]]:
+    assert n_total % 2 == 0, "n_total must be even for balance."
+    rng = random.Random(seed)
+    n_each = n_total // 2
+    data: List[Dict[str, str]] = []
+
+    for _ in range(n_each):
+        title, body = _spam_title_body(rng)
+        data.append({"title": title, "body": body, "label": "spam"})
+
+    for _ in range(n_each):
+        title, body = _safe_title_body(rng)
+        data.append({"title": title, "body": body, "label": "safe"})
+
+    rng.shuffle(data)
+    return data
+
+
+STARTER_LABELED_500 = generate_labeled_dataset(n_total=500, seed=42)
+STARTER_LABELED: List[Dict] = STARTER_LABELED_500
 
 STARTER_INCOMING: List[Dict] = [
     {"title": "Payroll direct deposit suspended", "body": "Your salary is on hold. Re-authenticate at http://payroll-auth.safe-bonus.io within 30 minutes to avoid delay."},
