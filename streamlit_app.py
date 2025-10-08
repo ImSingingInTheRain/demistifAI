@@ -323,6 +323,18 @@ ss.setdefault(
     "train_params",
     {"test_size": 0.30, "random_state": 42, "max_iter": 1000, "C": 1.0},
 )
+ss.setdefault(
+    "guard_params",
+    {
+        "uncertainty_band": 0.08,
+        "numeric_scale": 0.5,
+        "numeric_logit_cap": 1.0,
+        "combine_strategy": "blend",
+        "shift_suspicious_tld": -0.04,
+        "shift_many_links": -0.03,
+        "shift_calm_text": 0.02,
+    },
+)
 ss.setdefault("use_high_autonomy", ss.get("autonomy", AUTONOMY_LEVELS[0]).startswith("High"))
 ss.setdefault("use_batch_results", [])
 ss.setdefault("use_adaptiveness", bool(ss.get("adaptive", True)))
@@ -1334,6 +1346,24 @@ def render_train_stage():
                     step=1,
                     help="Fix this to make your train/test split reproducible.",
                 )
+                ss.setdefault("guard_params", {})
+                gp = ss["guard_params"]
+                gp["uncertainty_band"] = st.slider(
+                    "Uncertainty band (± around threshold)",
+                    min_value=0.0,
+                    max_value=0.20,
+                    step=0.01,
+                    value=float(gp.get("uncertainty_band", 0.08)),
+                    help="Only consult numeric cues when the text score falls inside this band.",
+                )
+                gp["numeric_scale"] = st.slider(
+                    "Numeric blend weight (when consulted)",
+                    min_value=0.0,
+                    max_value=1.0,
+                    step=0.05,
+                    value=float(gp.get("numeric_scale", 0.5)),
+                    help="How much numeric probability counts in the blend within the band.",
+                )
             with colB:
                 ss["train_params"]["max_iter"] = st.number_input(
                     "Max iterations (solver)",
@@ -1350,11 +1380,55 @@ def render_train_stage():
                     format="%.2f",
                     help="Higher C fits training data more tightly; lower C adds regularization to reduce overfitting.",
                 )
+                gp["numeric_logit_cap"] = st.slider(
+                    "Cap numeric logit (absolute)",
+                    min_value=0.2,
+                    max_value=3.0,
+                    step=0.1,
+                    value=float(gp.get("numeric_logit_cap", 1.0)),
+                    help="Limits how strongly numeric cues can push toward Spam/Safe.",
+                )
+                gp["combine_strategy"] = st.radio(
+                    "Numeric combination strategy",
+                    options=["blend", "threshold_shift"],
+                    index=0 if gp.get("combine_strategy", "blend") == "blend" else 1,
+                    horizontal=True,
+                    help="Blend = mix text & numeric probs; Threshold shift = keep text prob, adjust effective threshold slightly.",
+                )
+
+            if gp.get("combine_strategy", "blend") == "threshold_shift":
+                st.markdown("**Threshold-shift micro-rules** (applied only within the uncertainty band)")
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    gp["shift_suspicious_tld"] = st.number_input(
+                        "Shift for suspicious TLD",
+                        value=float(gp.get("shift_suspicious_tld", -0.04)),
+                        step=0.01,
+                        format="%.2f",
+                        help="Negative shift lowers the threshold (be stricter) when a suspicious domain is present.",
+                    )
+                with col2:
+                    gp["shift_many_links"] = st.number_input(
+                        "Shift for many external links",
+                        value=float(gp.get("shift_many_links", -0.03)),
+                        step=0.01,
+                        format="%.2f",
+                        help="Negative shift lowers the threshold when multiple external links are detected.",
+                    )
+                with col3:
+                    gp["shift_calm_text"] = st.number_input(
+                        "Shift for calm text",
+                        value=float(gp.get("shift_calm_text", +0.02)),
+                        step=0.01,
+                        format="%.2f",
+                        help="Positive shift raises the threshold when text looks calm (very low ALL-CAPS).",
+                    )
 
             st.info(
-                "• **Hold-out fraction**: keeps part of the data for an honest test.  \\\n"
-                "• **Random seed**: makes results repeatable.  \\\n"
-                "• **Max iterations / C**: learning dials—defaults are fine; feel free to experiment."
+                "• **Hold-out fraction**: keeps part of the data for an honest test.  \\\n+"
+                "• **Random seed**: makes results repeatable.  \\\n+"
+                "• **Max iterations / C**: learning dials—defaults are fine; feel free to experiment.  \\\n+"
+                "• **Numeric guardrails**: control when and how numeric cues assist the text model."
             )
 
     with section_surface():
@@ -1395,9 +1469,21 @@ def render_train_stage():
                     stratify=y,
                 )
 
-                model = HybridEmbedFeatsLogReg()
+                gp = ss.get("guard_params", {})
+                model = HybridEmbedFeatsLogReg(
+                    max_iter=max_iter,
+                    C=C_value,
+                    random_state=random_state,
+                    uncertainty_band=float(gp.get("uncertainty_band", 0.08)),
+                    numeric_scale=float(gp.get("numeric_scale", 0.5)),
+                    numeric_logit_cap=float(gp.get("numeric_logit_cap", 1.0)),
+                    combine_strategy=str(gp.get("combine_strategy", "blend")),
+                    shift_suspicious_tld=float(gp.get("shift_suspicious_tld", -0.04)),
+                    shift_many_links=float(gp.get("shift_many_links", -0.03)),
+                    shift_calm_text=float(gp.get("shift_calm_text", +0.02)),
+                )
                 try:
-                    model.lr.set_params(max_iter=max_iter, C=C_value)
+                    pass
                 except Exception:
                     pass
                 model = model.fit(X_tr_t, X_tr_b, y_tr)
@@ -2171,6 +2257,17 @@ def render_classify_stage():
                                 f"**Decision summary:** P(spam) = {p_spam_float:.2f} vs threshold {threshold_val:.2f} → **{decision}** "
                                 f"(margin {margin:+.2f})"
                             )
+                            if hasattr(ss.get("model"), "last_thr_eff"):
+                                idxs_thr = getattr(ss.get("model"), "last_thr_eff", None)
+                                if idxs_thr:
+                                    idxs, thr_eff = idxs_thr
+                                    try:
+                                        pos = list(idxs).index(email_idx)
+                                        st.caption(
+                                            f"Effective threshold (with numeric micro-rules): {thr_eff[pos]:.2f}"
+                                        )
+                                    except Exception:
+                                        pass
                         else:
                             st.caption("Probability not available for this email.")
 
@@ -2196,7 +2293,9 @@ def render_classify_stage():
                         else:
                             st.caption("No similar training emails available.")
 
-                        if hasattr(model_obj, "scaler") and hasattr(model_obj, "lr"):
+                        if hasattr(model_obj, "scaler") and (
+                            hasattr(model_obj, "lr_num") or hasattr(model_obj, "lr")
+                        ):
                             contribs = numeric_feature_contributions(model_obj, title, body)
                             if contribs:
                                 contribs_sorted = sorted(contribs, key=lambda x: x[2], reverse=True)
@@ -2329,9 +2428,21 @@ def render_classify_stage():
                     stratify=labels,
                 )
 
-                model = HybridEmbedFeatsLogReg()
+                gp = ss.get("guard_params", {})
+                model = HybridEmbedFeatsLogReg(
+                    max_iter=max_iter,
+                    C=C_value,
+                    random_state=random_state,
+                    uncertainty_band=float(gp.get("uncertainty_band", 0.08)),
+                    numeric_scale=float(gp.get("numeric_scale", 0.5)),
+                    numeric_logit_cap=float(gp.get("numeric_logit_cap", 1.0)),
+                    combine_strategy=str(gp.get("combine_strategy", "blend")),
+                    shift_suspicious_tld=float(gp.get("shift_suspicious_tld", -0.04)),
+                    shift_many_links=float(gp.get("shift_many_links", -0.03)),
+                    shift_calm_text=float(gp.get("shift_calm_text", +0.02)),
+                )
                 try:
-                    model.lr.set_params(max_iter=max_iter, C=C_value)
+                    pass
                 except Exception:
                     pass
                 model = model.fit(X_tr_t, X_tr_b, y_tr)
