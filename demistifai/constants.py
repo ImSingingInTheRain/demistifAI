@@ -1131,18 +1131,34 @@ LIFECYCLE_CYCLE_CSS = """
 <style>
 .lifecycle-cycle {
     display: flex;
-    align-items: center;
     justify-content: center;
-    flex-wrap: wrap;
-    gap: 0.9rem;
-    margin: 1.2rem 0 1.6rem;
+    align-items: center;
+    margin: 1.2rem auto 1.8rem;
+    max-width: 520px;
+}
+
+.lifecycle-cycle .cycle-ring {
+    position: relative;
+    width: 100%;
+    max-width: 420px;
+    aspect-ratio: 1 / 1;
+}
+
+.lifecycle-cycle .cycle-ring::before {
+    content: "";
+    position: absolute;
+    inset: 12%;
+    border-radius: 50%;
+    border: 2px dashed rgba(37, 99, 235, 0.25);
+    background: radial-gradient(circle at center, rgba(59, 130, 246, 0.08) 0%, transparent 55%);
 }
 
 .lifecycle-cycle .cycle-node {
-    width: 118px;
-    height: 118px;
+    position: absolute;
+    width: 126px;
+    height: 126px;
     border-radius: 50%;
-    background: linear-gradient(160deg, rgba(59, 130, 246, 0.15), rgba(59, 130, 246, 0.05));
+    background: linear-gradient(165deg, rgba(59, 130, 246, 0.16), rgba(59, 130, 246, 0.05));
     border: 2px solid rgba(37, 99, 235, 0.35);
     display: flex;
     flex-direction: column;
@@ -1150,40 +1166,140 @@ LIFECYCLE_CYCLE_CSS = """
     justify-content: center;
     text-align: center;
     padding: 1rem;
-    gap: 0.4rem;
+    gap: 0.35rem;
     color: #1d4ed8;
     font-weight: 600;
-    box-shadow: 0 22px 48px rgba(37, 99, 235, 0.18);
+    box-shadow: 0 18px 38px rgba(37, 99, 235, 0.18);
+    transform: translate(-50%, -50%);
 }
 
 .lifecycle-cycle .cycle-node .cycle-icon {
-    font-size: 1.45rem;
+    font-size: 1.5rem;
 }
 
 .lifecycle-cycle .cycle-node .cycle-title {
     font-size: 0.95rem;
+    line-height: 1.15;
 }
 
-.lifecycle-cycle .cycle-node .cycle-caption {
-    font-size: 0.75rem;
-    color: rgba(15, 23, 42, 0.65);
+.lifecycle-cycle .cycle-node--prepare {
+    top: 8%;
+    left: 50%;
+}
+
+.lifecycle-cycle .cycle-node--train {
+    top: 32%;
+    left: 92%;
+}
+
+.lifecycle-cycle .cycle-node--evaluate {
+    top: 78%;
+    left: 78%;
+}
+
+.lifecycle-cycle .cycle-node--use {
+    top: 90%;
+    left: 22%;
 }
 
 .lifecycle-cycle .cycle-arrow {
-    font-size: 1.65rem;
-    color: rgba(15, 23, 42, 0.45);
+    position: absolute;
+    width: 86px;
+    height: 86px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    color: rgba(30, 64, 175, 0.55);
+    font-size: 1.55rem;
+}
+
+.lifecycle-cycle .cycle-arrow::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    border: 1px dashed rgba(37, 99, 235, 0.2);
+}
+
+.lifecycle-cycle .cycle-arrow span {
+    display: block;
+}
+
+.lifecycle-cycle .cycle-arrow--prepare-train {
+    top: 18%;
+    left: 78%;
+    transform: translate(-50%, -50%) rotate(32deg);
+}
+
+.lifecycle-cycle .cycle-arrow--train-evaluate {
+    top: 60%;
+    left: 92%;
+    transform: translate(-50%, -50%) rotate(118deg);
+}
+
+.lifecycle-cycle .cycle-arrow--evaluate-use {
+    top: 88%;
+    left: 50%;
+    transform: translate(-50%, -50%) rotate(210deg);
+}
+
+.lifecycle-cycle .cycle-arrow--use-prepare {
+    top: 52%;
+    left: 12%;
+    transform: translate(-50%, -50%) rotate(302deg);
+}
+
+.lifecycle-cycle .cycle-arrow--prepare-train span {
+    transform: rotate(-32deg);
+}
+
+.lifecycle-cycle .cycle-arrow--train-evaluate span {
+    transform: rotate(-118deg);
+}
+
+.lifecycle-cycle .cycle-arrow--evaluate-use span {
+    transform: rotate(-210deg);
+}
+
+.lifecycle-cycle .cycle-arrow--use-prepare span {
+    transform: rotate(-302deg);
 }
 
 .lifecycle-cycle .cycle-loop {
-    width: 60px;
-    height: 60px;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 88px;
+    height: 88px;
     border-radius: 50%;
     background: rgba(59, 130, 246, 0.14);
     display: grid;
     place-items: center;
     color: #1d4ed8;
-    font-size: 1.2rem;
-    box-shadow: 0 18px 36px rgba(59, 130, 246, 0.18);
+    font-size: 1.3rem;
+    font-weight: 600;
+    transform: translate(-50%, -50%);
+    box-shadow: inset 0 0 12px rgba(37, 99, 235, 0.18);
+}
+
+@media (max-width: 640px) {
+    .lifecycle-cycle {
+        margin: 1rem auto 1.6rem;
+    }
+
+    .lifecycle-cycle .cycle-ring {
+        max-width: 320px;
+    }
+
+    .lifecycle-cycle .cycle-node {
+        width: 110px;
+        height: 110px;
+    }
+
+    .lifecycle-cycle .cycle-node .cycle-icon {
+        font-size: 1.35rem;
+    }
 }
 </style>
 """
