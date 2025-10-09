@@ -1897,7 +1897,7 @@ def render_data_stage():
 
         if ss.get("pii_open"):
             with section_surface():
-                st.markdown("### 🔐 PII Cleanup")
+                st.markdown("### 🔐 Personal Data Cleanup")
                 st.markdown(PII_INDICATOR_STYLE, unsafe_allow_html=True)
                 remaining_to_clean = len(flagged_ids)
                 indicator_values = [
