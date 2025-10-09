@@ -902,13 +902,11 @@ def render_intro_stage():
 def render_overview_stage():
     # --- Intro: EU AI Act quote + context card ---
     with section_surface():
-        intro_left, intro_right = st.columns(2, gap="large")
-        with intro_left:
-            # Fix grammar: machine-based
-            render_eu_ai_quote(
+         render_eu_ai_quote(
                 "The EU AI Act says that “An AI system is a machine-based system”."
             )
-        with intro_right:
+        
+    with section_surface():
             st.markdown(
                 """
                 <div class="callout callout--info">
