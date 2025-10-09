@@ -1590,6 +1590,72 @@ def render_data_stage():
         ss["pii_total_flagged"] = len(flagged_ids)
 
          
+        preview_summary_for_health = ss.get("dataset_preview_summary")
+        if preview_summary_for_health is not None:
+            lint_counts_preview = ss.get("dataset_preview_lint")
+            health = _evaluate_dataset_health(preview_summary_for_health, lint_counts_preview)
+            spam_pct = health["spam_pct"]
+            total_rows = health["total_rows"]
+            lint_label = health["lint_label"]
+            badge_text = health["badge_text"]
+            lint_flags_total = health["lint_flags"]
+            if lint_label == "Unknown":
+                lint_icon = "ℹ️"
+            elif lint_flags_total:
+                lint_icon = "⚠️"
+            else:
+                lint_icon = "🛡️"
+            lint_chip_html = (
+                "<span class='lint-chip'><span class='lint-chip__icon'>{icon}</span>"
+                "<span class='lint-chip__text'>PII lint: {label}</span></span>"
+            ).format(icon=lint_icon, label=html.escape(lint_label or "Unknown"))
+
+            with section_surface():
+                st.markdown(
+                    "#### Dataset health",
+                    help="Quick pulse on balance, volume, and lint signals for the generated preview.",
+                )
+                health_cols = st.columns([2, 1], gap="large")
+                with health_cols[0]:
+                    if spam_pct is not None and total_rows is not None:
+                        safe_pct = max(0.0, min(100.0, 100.0 - spam_pct))
+                        total_display = (
+                            int(total_rows) if isinstance(total_rows, (int, float)) else total_rows
+                        )
+                        st.markdown(
+                            """
+                            <div class="dataset-health-panel">
+                                <div class="dataset-health-panel__row">
+                                    <div class="dataset-health-panel__bar">
+                                        <span class="dataset-health-panel__bar-spam" style="width: {spam_width}%"></span>
+                                        <span class="dataset-health-panel__bar-safe" style="width: {safe_width}%"></span>
+                                    </div>
+                                </div>
+                                <div class="dataset-health-panel__row dataset-health-panel__row--meta">
+                                    <small>Balance: {spam_pct:.0f}% spam • Total: {total_rows}</small>
+                                    <div class="indicator-chip-row">{lint_chip}</div>
+                                </div>
+                            </div>
+                            """.format(
+                                spam_width=f"{spam_pct:.1f}",
+                                safe_width=f"{safe_pct:.1f}",
+                                spam_pct=spam_pct,
+                                total_rows=total_display,
+                                lint_chip=lint_chip_html,
+                            ),
+                            unsafe_allow_html=True,
+                        )
+                    else:
+                        st.caption("Dataset summary not available.")
+                with health_cols[1]:
+                    if badge_text:
+                        st.markdown(
+                            f"<div class='dataset-health-panel__badge'>{badge_text}</div>",
+                            unsafe_allow_html=True,
+                        )
+                    else:
+                        st.caption("Health badge unavailable.")
+
         with section_surface():
             st.markdown("### Dataset Preview")
             banner_clicked = render_pii_cleanup_banner(counts)
@@ -1763,72 +1829,6 @@ def render_data_stage():
                                 )
                             )
                             ss["pii_open"] = False
-
-        preview_summary_for_health = ss.get("dataset_preview_summary")
-        if preview_summary_for_health is not None:
-            lint_counts_preview = ss.get("dataset_preview_lint")
-            health = _evaluate_dataset_health(preview_summary_for_health, lint_counts_preview)
-            spam_pct = health["spam_pct"]
-            total_rows = health["total_rows"]
-            lint_label = health["lint_label"]
-            badge_text = health["badge_text"]
-            lint_flags_total = health["lint_flags"]
-            if lint_label == "Unknown":
-                lint_icon = "ℹ️"
-            elif lint_flags_total:
-                lint_icon = "⚠️"
-            else:
-                lint_icon = "🛡️"
-            lint_chip_html = (
-                "<span class='lint-chip'><span class='lint-chip__icon'>{icon}</span>"
-                "<span class='lint-chip__text'>PII lint: {label}</span></span>"
-            ).format(icon=lint_icon, label=html.escape(lint_label or "Unknown"))
-
-            with section_surface():
-                st.markdown(
-                    "#### Dataset health",
-                    help="Quick pulse on balance, volume, and lint signals for the generated preview.",
-                )
-                health_cols = st.columns([2, 1], gap="large")
-                with health_cols[0]:
-                    if spam_pct is not None and total_rows is not None:
-                        safe_pct = max(0.0, min(100.0, 100.0 - spam_pct))
-                        total_display = (
-                            int(total_rows) if isinstance(total_rows, (int, float)) else total_rows
-                        )
-                        st.markdown(
-                            """
-                            <div class="dataset-health-panel">
-                                <div class="dataset-health-panel__row">
-                                    <div class="dataset-health-panel__bar">
-                                        <span class="dataset-health-panel__bar-spam" style="width: {spam_width}%"></span>
-                                        <span class="dataset-health-panel__bar-safe" style="width: {safe_width}%"></span>
-                                    </div>
-                                </div>
-                                <div class="dataset-health-panel__row dataset-health-panel__row--meta">
-                                    <small>Balance: {spam_pct:.0f}% spam • Total: {total_rows}</small>
-                                    <div class="indicator-chip-row">{lint_chip}</div>
-                                </div>
-                            </div>
-                            """.format(
-                                spam_width=f"{spam_pct:.1f}",
-                                safe_width=f"{safe_pct:.1f}",
-                                spam_pct=spam_pct,
-                                total_rows=total_display,
-                                lint_chip=lint_chip_html,
-                            ),
-                            unsafe_allow_html=True,
-                        )
-                    else:
-                        st.caption("Dataset summary not available.")
-                with health_cols[1]:
-                    if badge_text:
-                        st.markdown(
-                            f"<div class='dataset-health-panel__badge'>{badge_text}</div>",
-                            unsafe_allow_html=True,
-                        )
-                    else:
-                        st.caption("Health badge unavailable.")
 
         with section_surface():
             st.markdown("### Review & approve")
