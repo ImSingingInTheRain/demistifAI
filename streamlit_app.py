@@ -3152,10 +3152,6 @@ def render_data_stage():
                 for title, labels in title_groups.items():
                     if len(labels) > 1 and title:
                         leakage_titles.append(title)
-                if leakage_titles:
-                    st.warning("Potential leakage: identical subjects across labels -> " + ", ".join(leakage_titles[:5]))
-                else:
-                    st.caption("Leakage check: no identical subjects across labels in the active dataset.")
 
                 strat_df = df_lab.groupby("label").size().reset_index(name="count")
                 st.dataframe(strat_df, hide_index=True, width="stretch")
