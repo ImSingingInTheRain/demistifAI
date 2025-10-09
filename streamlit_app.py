@@ -4985,6 +4985,9 @@ def render_train_stage():
                 </div>
                 """
                 st.markdown(meter_html, unsafe_allow_html=True)
+                st.caption(
+                    "Bigger distance means spam and safe live farther apart in meaning space—good separation."
+                )
             elif centroid_message:
                 st.caption(centroid_message)
 
@@ -5021,7 +5024,9 @@ def render_train_stage():
                     ]
                     hist_df = pd.DataFrame({"margin": labels, "count": counts})
                     st.bar_chart(hist_df.set_index("margin"), width="stretch")
-                    st.caption("Higher margins = clearer separation.")
+                    st.caption(
+                        "Higher margins = clearer decisions; lots of small margins means many borderline emails."
+                    )
                 except Exception as exc:
                     st.caption(f"Could not render margin histogram: {exc}")
             elif train_texts_combined and not margin_error:
@@ -5184,6 +5189,9 @@ def render_train_stage():
                         pd.DataFrame({"expected": [0.0, 1.0], "observed": [0.0, 1.0]})
                     ).mark_line(strokeDash=[4, 4], color="gray")
                     st.altair_chart(chart + diagonal, use_container_width=True)
+                    st.caption(
+                        "We align predicted probabilities to reality. If the curve hugs the diagonal, scores are trustworthy."
+                    )
 
             st.markdown(f"**Model object**: `{model_kind_string(ss['model'])}`")
 
@@ -5203,6 +5211,9 @@ def render_train_stage():
                     .set_index("friendly_name")["weight_per_std"]
                 )
                 st.bar_chart(chart_data, width="stretch")
+                st.caption(
+                    "Bars to the right push toward 'Spam'; left bars push toward 'Safe'. Longer bar = stronger nudge."
+                )
 
                 display_df = coef_details.assign(
                     odds_multiplier_plus_1sigma=coef_details["odds_multiplier_per_std"],
@@ -5354,6 +5365,9 @@ def render_train_stage():
 
                                 df_spans = pd.DataFrame(display_rows)
                                 st.dataframe(df_spans, hide_index=True, width="stretch")
+                                st.caption(
+                                    "We remove phrases and see how the score drops; bigger drops = more influence."
+                                )
 
                 st.markdown("#### Plain-language explanations & manual tweaks")
                 for row in coef_details.itertuples():
@@ -5405,11 +5419,13 @@ def render_train_stage():
                         top_k = order[: min(k, len(order))]
                         return top_k, sims[top_k]
 
+                    rendered_prototypes = False
                     for cls in CLASSES:
                         proto = prototype_for(cls)
                         if proto is None:
                             st.write(f"No training emails for {cls} yet.")
                             continue
+                        rendered_prototypes = True
                         idx, sims = top_nearest(proto, k=5)
                         st.markdown(f"**{cls.capitalize()} prototype — most similar training emails**")
                         for i, (ix, sc) in enumerate(zip(idx, sims), 1):
@@ -5420,6 +5436,10 @@ def render_train_stage():
                             st.write(f"{i}. *{title_i}*  — sim={sc:.2f}")
                             preview = body_i[:200]
                             st.caption(preview + ("..." if len(body_i) > 200 else ""))
+                    if rendered_prototypes:
+                        st.caption(
+                            "We average each class’s meaning; these are the emails closest to that average."
+                        )
                 else:
                     st.caption("Embedding details unavailable (no training texts).")
             except Exception as e:
