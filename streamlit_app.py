@@ -1097,7 +1097,6 @@ def render_overview_stage():
             border-radius: 1.5rem;
             border: 1px solid rgba(37, 99, 235, 0.25);
             box-shadow: 0 26px 48px rgba(15, 23, 42, 0.12);
-            padding: 1.8rem 2rem;
             color: rgba(15, 23, 42, 0.86);
         }
         .mission-brief__header {
