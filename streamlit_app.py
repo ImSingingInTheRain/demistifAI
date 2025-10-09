@@ -605,6 +605,7 @@ ss.setdefault("dataset_preview_config", None)
 ss.setdefault("dataset_preview_summary", None)
 ss.setdefault("dataset_manual_queue", None)
 ss.setdefault("dataset_controls_open", False)
+ss.setdefault("dataset_has_generated_once", False)
 ss.setdefault("datasets", [])
 ss.setdefault("active_dataset_snapshot", None)
 ss.setdefault("dataset_snapshot_name", "")
@@ -1199,6 +1200,7 @@ def render_data_stage():
         ss["dataset_manual_queue"] = manual_df
         ss["dataset_compare_delta"] = dataset_summary_delta(current_summary, preview_summary)
         ss["last_dataset_delta_story"] = dataset_delta_story(ss["dataset_compare_delta"])
+        ss["dataset_has_generated_once"] = True
 
         st.success("Dataset generated — scroll to **Review** and curate data before committing.")
         explanation = explain_config_change(config, ss.get("dataset_config", DEFAULT_DATASET_CONFIG))
@@ -1606,6 +1608,7 @@ def render_data_stage():
     badge_text = ""
     lint_chip_html = ""
     dataset_health_available = False
+    dataset_generated_once = bool(ss.get("dataset_has_generated_once"))
 
     if preview_summary_for_health is not None:
         health = _evaluate_dataset_health(preview_summary_for_health, lint_counts_preview)
@@ -1626,58 +1629,59 @@ def render_data_stage():
         ).format(icon=lint_icon, label=html.escape(lint_label or "Unknown"))
         dataset_health_available = True
 
-    with section_surface():
-        health_col, compare_col = st.columns([1.4, 1], gap="large")
-        with health_col:
-            st.markdown(
-                "#### Dataset health",
-                help="Quick pulse on balance, volume, and lint signals for the generated preview.",
-            )
-            if dataset_health_available:
-                health_cols = st.columns([2, 1], gap="large")
-                with health_cols[0]:
-                    if spam_pct is not None and total_rows is not None:
-                        safe_pct = max(0.0, min(100.0, 100.0 - spam_pct))
-                        total_display = (
-                            int(total_rows) if isinstance(total_rows, (int, float)) else total_rows
-                        )
-                        st.markdown(
-                            """
-                            <div class="dataset-health-panel">
-                                <div class="dataset-health-panel__row">
-                                    <div class="dataset-health-panel__bar">
-                                        <span class="dataset-health-panel__bar-spam" style="width: {spam_width}%"></span>
-                                        <span class="dataset-health-panel__bar-safe" style="width: {safe_width}%"></span>
+    if dataset_generated_once or preview_summary_for_health is not None:
+        with section_surface():
+            health_col, compare_col = st.columns([1.4, 1], gap="large")
+            with health_col:
+                st.markdown(
+                    "#### Dataset health",
+                    help="Quick pulse on balance, volume, and lint signals for the generated preview.",
+                )
+                if dataset_health_available:
+                    health_cols = st.columns([2, 1], gap="large")
+                    with health_cols[0]:
+                        if spam_pct is not None and total_rows is not None:
+                            safe_pct = max(0.0, min(100.0, 100.0 - spam_pct))
+                            total_display = (
+                                int(total_rows) if isinstance(total_rows, (int, float)) else total_rows
+                            )
+                            st.markdown(
+                                """
+                                <div class="dataset-health-panel">
+                                    <div class="dataset-health-panel__row">
+                                        <div class="dataset-health-panel__bar">
+                                            <span class="dataset-health-panel__bar-spam" style="width: {spam_width}%"></span>
+                                            <span class="dataset-health-panel__bar-safe" style="width: {safe_width}%"></span>
+                                        </div>
+                                    </div>
+                                    <div class="dataset-health-panel__row dataset-health-panel__row--meta">
+                                        <small>Balance: {spam_pct:.0f}% spam • Total: {total_rows}</small>
+                                        <div class="indicator-chip-row">{lint_chip}</div>
                                     </div>
                                 </div>
-                                <div class="dataset-health-panel__row dataset-health-panel__row--meta">
-                                    <small>Balance: {spam_pct:.0f}% spam • Total: {total_rows}</small>
-                                    <div class="indicator-chip-row">{lint_chip}</div>
-                                </div>
-                            </div>
-                            """.format(
-                                spam_width=f"{spam_pct:.1f}",
-                                safe_width=f"{safe_pct:.1f}",
-                                spam_pct=spam_pct,
-                                total_rows=total_display,
-                                lint_chip=lint_chip_html,
-                            ),
-                            unsafe_allow_html=True,
-                        )
-                    else:
-                        st.caption("Dataset summary not available.")
-                with health_cols[1]:
-                    if badge_text:
-                        st.markdown(
-                            f"<div class='dataset-health-panel__badge'>{badge_text}</div>",
-                            unsafe_allow_html=True,
-                        )
-                    else:
-                        st.caption("Health badge unavailable.")
-            else:
-                st.caption("Generate a preview to evaluate dataset health.")
-        with compare_col:
-            st.markdown(compare_panel_html, unsafe_allow_html=True)
+                                """.format(
+                                    spam_width=f"{spam_pct:.1f}",
+                                    safe_width=f"{safe_pct:.1f}",
+                                    spam_pct=spam_pct,
+                                    total_rows=total_display,
+                                    lint_chip=lint_chip_html,
+                                ),
+                                unsafe_allow_html=True,
+                            )
+                        else:
+                            st.caption("Dataset summary not available.")
+                    with health_cols[1]:
+                        if badge_text:
+                            st.markdown(
+                                f"<div class='dataset-health-panel__badge'>{badge_text}</div>",
+                                unsafe_allow_html=True,
+                            )
+                        else:
+                            st.caption("Health badge unavailable.")
+                else:
+                    st.caption("Generate a preview to evaluate dataset health.")
+            with compare_col:
+                st.markdown(compare_panel_html, unsafe_allow_html=True)
 
     if ss.get("dataset_preview"):
         # ===== PII Cleanup (mini-game) ================================================
@@ -2143,201 +2147,203 @@ def render_data_stage():
                 st.info("Preview cleared. The active labeled dataset remains unchanged.")
             st.markdown("</div>", unsafe_allow_html=True)
 
-    with section_surface():
-        st.markdown("### 3 · Snapshot & provenance")
-        current_config = ss.get("dataset_config", DEFAULT_DATASET_CONFIG)
-        config_json = json.dumps(current_config, indent=2, sort_keys=True)
-        current_summary = ss.get("dataset_summary") or compute_dataset_summary(ss.get("labeled", []))
-        st.caption("Save immutable snapshots to reference in the model card and audits.")
-
-        total_rows = current_summary.get("total") if isinstance(current_summary, dict) else None
-        if total_rows is None:
-            total_rows = len(ss.get("labeled", []))
-        rows_display = total_rows
-        try:
-            rows_display = int(total_rows)
-        except (TypeError, ValueError):
-            rows_display = total_rows or "—"
-
-        spam_ratio_val = None
-        if isinstance(current_summary, dict):
-            spam_ratio_val = current_summary.get("spam_ratio")
-        if spam_ratio_val is None:
-            spam_share_display = "—"
-        else:
+    if dataset_generated_once or preview_summary_for_health is not None:
+        with section_surface():
+            st.markdown("### 3 · Snapshot & provenance")
+            current_config = ss.get("dataset_config", DEFAULT_DATASET_CONFIG)
+            config_json = json.dumps(current_config, indent=2, sort_keys=True)
+            current_summary = ss.get("dataset_summary") or compute_dataset_summary(ss.get("labeled", []))
+            st.caption("Save immutable snapshots to reference in the model card and audits.")
+    
+            total_rows = current_summary.get("total") if isinstance(current_summary, dict) else None
+            if total_rows is None:
+                total_rows = len(ss.get("labeled", []))
+            rows_display = total_rows
             try:
-                spam_share_display = f"{float(spam_ratio_val) * 100:.1f}%"
+                rows_display = int(total_rows)
             except (TypeError, ValueError):
+                rows_display = total_rows or "—"
+    
+            spam_ratio_val = None
+            if isinstance(current_summary, dict):
+                spam_ratio_val = current_summary.get("spam_ratio")
+            if spam_ratio_val is None:
                 spam_share_display = "—"
-
-        edge_cases = current_config.get("edge_cases") if isinstance(current_config, dict) else None
-        edge_display = None
-        if edge_cases is not None:
+            else:
+                try:
+                    spam_share_display = f"{float(spam_ratio_val) * 100:.1f}%"
+                except (TypeError, ValueError):
+                    spam_share_display = "—"
+    
+            edge_cases = current_config.get("edge_cases") if isinstance(current_config, dict) else None
+            edge_display = None
+            if edge_cases is not None:
+                try:
+                    edge_display = int(edge_cases)
+                except (TypeError, ValueError):
+                    edge_display = edge_cases
+    
+            labeled_rows = ss.get("labeled", [])
             try:
-                edge_display = int(edge_cases)
-            except (TypeError, ValueError):
-                edge_display = edge_cases
-
-        labeled_rows = ss.get("labeled", [])
-        try:
-            snapshot_hash = compute_dataset_hash(labeled_rows)[:10]
-        except Exception:
-            snapshot_hash = "—"
-        timestamp_display = ss.get("dataset_last_built_at") or "—"
-        seed_value = current_config.get("seed") if isinstance(current_config, dict) else None
-        seed_display = seed_value if seed_value is not None else "—"
-
-        summary_rows_html = [
-            "<div style='display:flex;justify-content:space-between;'><span>Rows</span><strong>{}</strong></div>".format(
-                html.escape(str(rows_display))
-            ),
-            "<div style='display:flex;justify-content:space-between;'><span>Spam share</span><strong>{}</strong></div>".format(
-                html.escape(str(spam_share_display))
-            ),
-        ]
-        if edge_display is not None:
-            summary_rows_html.append(
-                "<div style='display:flex;justify-content:space-between;'><span>Edge cases</span><strong>{}</strong></div>".format(
-                    html.escape(str(edge_display))
+                snapshot_hash = compute_dataset_hash(labeled_rows)[:10]
+            except Exception:
+                snapshot_hash = "—"
+            timestamp_display = ss.get("dataset_last_built_at") or "—"
+            seed_value = current_config.get("seed") if isinstance(current_config, dict) else None
+            seed_display = seed_value if seed_value is not None else "—"
+    
+            summary_rows_html = [
+                "<div style='display:flex;justify-content:space-between;'><span>Rows</span><strong>{}</strong></div>".format(
+                    html.escape(str(rows_display))
+                ),
+                "<div style='display:flex;justify-content:space-between;'><span>Spam share</span><strong>{}</strong></div>".format(
+                    html.escape(str(spam_share_display))
+                ),
+            ]
+            if edge_display is not None:
+                summary_rows_html.append(
+                    "<div style='display:flex;justify-content:space-between;'><span>Edge cases</span><strong>{}</strong></div>".format(
+                        html.escape(str(edge_display))
+                    )
                 )
-            )
-
-        fingerprint_rows_html = [
-            "<div style='display:flex;justify-content:space-between;'><span>Short hash</span><strong>{}</strong></div>".format(
-                html.escape(str(snapshot_hash))
-            ),
-            "<div style='display:flex;justify-content:space-between;'><span>Timestamp</span><strong>{}</strong></div>".format(
-                html.escape(str(timestamp_display))
-            ),
-            "<div style='display:flex;justify-content:space-between;'><span>Seed</span><strong>{}</strong></div>".format(
-                html.escape(str(seed_display))
-            ),
-        ]
-
-        card_html = """
-            <div style="border:1px solid #E5E7EB;border-radius:12px;padding:1rem 1.25rem;margin-bottom:0.75rem;">
-                <div style="display:flex;gap:1.5rem;flex-wrap:wrap;">
-                    <div style="flex:1 1 240px;min-width:220px;">
-                        <div style="font-weight:600;font-size:0.95rem;margin-bottom:0.6rem;">Summary</div>
-                        <div style="display:flex;flex-direction:column;gap:0.4rem;font-size:0.9rem;">
-                            {summary_rows}
+    
+            fingerprint_rows_html = [
+                "<div style='display:flex;justify-content:space-between;'><span>Short hash</span><strong>{}</strong></div>".format(
+                    html.escape(str(snapshot_hash))
+                ),
+                "<div style='display:flex;justify-content:space-between;'><span>Timestamp</span><strong>{}</strong></div>".format(
+                    html.escape(str(timestamp_display))
+                ),
+                "<div style='display:flex;justify-content:space-between;'><span>Seed</span><strong>{}</strong></div>".format(
+                    html.escape(str(seed_display))
+                ),
+            ]
+    
+            card_html = """
+                <div style="border:1px solid #E5E7EB;border-radius:12px;padding:1rem 1.25rem;margin-bottom:0.75rem;">
+                    <div style="display:flex;gap:1.5rem;flex-wrap:wrap;">
+                        <div style="flex:1 1 240px;min-width:220px;">
+                            <div style="font-weight:600;font-size:0.95rem;margin-bottom:0.6rem;">Summary</div>
+                            <div style="display:flex;flex-direction:column;gap:0.4rem;font-size:0.9rem;">
+                                {summary_rows}
+                            </div>
                         </div>
-                    </div>
-                    <div style="flex:1 1 240px;min-width:220px;">
-                        <div style="font-weight:600;font-size:0.95rem;margin-bottom:0.6rem;">Fingerprint</div>
-                        <div style="display:flex;flex-direction:column;gap:0.4rem;font-size:0.9rem;">
-                            {fingerprint_rows}
+                        <div style="flex:1 1 240px;min-width:220px;">
+                            <div style="font-weight:600;font-size:0.95rem;margin-bottom:0.6rem;">Fingerprint</div>
+                            <div style="display:flex;flex-direction:column;gap:0.4rem;font-size:0.9rem;">
+                                {fingerprint_rows}
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
-        """.format(
-            summary_rows="".join(summary_rows_html),
-            fingerprint_rows="".join(fingerprint_rows_html),
-        )
-        st.markdown(card_html, unsafe_allow_html=True)
-
-        with st.expander("View JSON", expanded=False):
-            st.json(json.loads(config_json))
-        ss["dataset_snapshot_name"] = st.text_input(
-            "Snapshot name",
-            value=ss.get("dataset_snapshot_name", ""),
-            help="Describe the scenario (e.g., 'High links, 5% noise').",
-        )
-        if st.button("Save dataset snapshot", key="save_dataset_snapshot"):
-            snapshot_id = compute_dataset_hash(ss["labeled"])
-            entry = {
-                "id": snapshot_id,
-                "name": ss.get("dataset_snapshot_name") or f"snapshot-{len(ss['datasets'])+1}",
-                "timestamp": datetime.now().isoformat(timespec="seconds"),
-                "config": ss.get("dataset_config", DEFAULT_DATASET_CONFIG),
-                "config_json": config_json,
-                "rows": len(ss["labeled"]),
-            }
-            existing = next((snap for snap in ss["datasets"] if snap.get("id") == snapshot_id), None)
-            if existing:
-                existing.update(entry)
-            else:
-                ss["datasets"].append(entry)
-            ss["active_dataset_snapshot"] = snapshot_id
-            st.success(f"Snapshot saved with id `{snapshot_id[:10]}…`. Use it in the model card.")
-
-        if ss.get("datasets"):
-            st.markdown("#### Saved snapshots")
-            header_cols = st.columns([3, 2.2, 2.2, 1.4, 1.2])
-            for col, label in zip(header_cols, ["Name", "Fingerprint", "Saved", "Rows", ""]):
-                col.markdown(f"**{label}**")
-
-            datasets_sorted = sorted(
-                ss["datasets"],
-                key=lambda snap: snap.get("timestamp", ""),
-                reverse=True,
+            """.format(
+                summary_rows="".join(summary_rows_html),
+                fingerprint_rows="".join(fingerprint_rows_html),
             )
-            for idx, snap in enumerate(datasets_sorted):
-                name_col, fp_col, ts_col, rows_col, action_col = st.columns([3, 2.2, 2.2, 1.4, 1.2])
-                is_active = snap.get("id") == ss.get("active_dataset_snapshot")
-                name_value = snap.get("name") or "(unnamed snapshot)"
-                badge_html = ""
-                if is_active:
-                    badge_html = (
-                        "<span style='margin-left:0.35rem;background:#DCFCE7;color:#166534;font-size:0.7rem;font-weight:600;"
-                        "padding:2px 8px;border-radius:999px;vertical-align:middle;'>Active</span>"
-                    )
-                name_col.markdown(
-                    "<div style='display:flex;align-items:center;gap:0.25rem;'><span style='font-weight:600;'>{}</span>{}</div>".format(
-                        html.escape(name_value),
-                        badge_html,
-                    ),
-                    unsafe_allow_html=True,
+            st.markdown(card_html, unsafe_allow_html=True)
+    
+            with st.expander("View JSON", expanded=False):
+                st.json(json.loads(config_json))
+            ss["dataset_snapshot_name"] = st.text_input(
+                "Snapshot name",
+                value=ss.get("dataset_snapshot_name", ""),
+                help="Describe the scenario (e.g., 'High links, 5% noise').",
+            )
+            if st.button("Save dataset snapshot", key="save_dataset_snapshot"):
+                snapshot_id = compute_dataset_hash(ss["labeled"])
+                entry = {
+                    "id": snapshot_id,
+                    "name": ss.get("dataset_snapshot_name") or f"snapshot-{len(ss['datasets'])+1}",
+                    "timestamp": datetime.now().isoformat(timespec="seconds"),
+                    "config": ss.get("dataset_config", DEFAULT_DATASET_CONFIG),
+                    "config_json": config_json,
+                    "rows": len(ss["labeled"]),
+                }
+                existing = next((snap for snap in ss["datasets"] if snap.get("id") == snapshot_id), None)
+                if existing:
+                    existing.update(entry)
+                else:
+                    ss["datasets"].append(entry)
+                ss["active_dataset_snapshot"] = snapshot_id
+                st.success(f"Snapshot saved with id `{snapshot_id[:10]}…`. Use it in the model card.")
+    
+            if ss.get("datasets"):
+                st.markdown("#### Saved snapshots")
+                header_cols = st.columns([3, 2.2, 2.2, 1.4, 1.2])
+                for col, label in zip(header_cols, ["Name", "Fingerprint", "Saved", "Rows", ""]):
+                    col.markdown(f"**{label}**")
+    
+                datasets_sorted = sorted(
+                    ss["datasets"],
+                    key=lambda snap: snap.get("timestamp", ""),
+                    reverse=True,
                 )
-
-                snapshot_id = snap.get("id", "")
-                short_id = "—"
-                if snapshot_id:
-                    short_id = snapshot_id if len(snapshot_id) <= 10 else f"{snapshot_id[:10]}…"
-                fp_col.markdown(f"`{short_id}`")
-                ts_col.markdown(snap.get("timestamp", "—"))
-                rows_col.markdown(str(snap.get("rows", "—")))
-
-                button_label = "Set active"
-                button_disabled = is_active
-                button_key = f"set_active_snapshot_{idx}_{snapshot_id[:6]}"
-                if action_col.button(button_label, key=button_key, disabled=button_disabled):
-                    config = snap.get("config")
-                    if isinstance(config, str) and config:
-                        try:
-                            config = json.loads(config)
-                        except json.JSONDecodeError:
-                            config = None
-                    if not isinstance(config, dict):
-                        st.error("Snapshot is missing a valid configuration.")
-                    else:
-                        dataset_rows = build_dataset_from_config(config)
-                        summary = compute_dataset_summary(dataset_rows)
-                        lint_counts = lint_dataset(dataset_rows) or {}
-                        ss["labeled"] = dataset_rows
-                        ss["dataset_config"] = config
-                        _set_advanced_knob_state(config, force=True)
-                        ss["dataset_summary"] = summary
-                        ss["previous_dataset_summary"] = None
-                        ss["dataset_compare_delta"] = None
-                        ss["last_dataset_delta_story"] = None
-                        ss["dataset_snapshot_name"] = snap.get("name", "")
-                        ss["active_dataset_snapshot"] = snap.get("id")
-                        ss["dataset_last_built_at"] = datetime.now().isoformat(timespec="seconds")
-                        _clear_dataset_preview_state()
-                        st.success(
-                            f"Snapshot '{snap.get('name', 'snapshot')}' activated. Dataset rebuilt with {len(dataset_rows)} rows."
+                for idx, snap in enumerate(datasets_sorted):
+                    name_col, fp_col, ts_col, rows_col, action_col = st.columns([3, 2.2, 2.2, 1.4, 1.2])
+                    is_active = snap.get("id") == ss.get("active_dataset_snapshot")
+                    name_value = snap.get("name") or "(unnamed snapshot)"
+                    badge_html = ""
+                    if is_active:
+                        badge_html = (
+                            "<span style='margin-left:0.35rem;background:#DCFCE7;color:#166534;font-size:0.7rem;font-weight:600;"
+                            "padding:2px 8px;border-radius:999px;vertical-align:middle;'>Active</span>"
                         )
-                        if any(lint_counts.values()):
-                            st.warning(
-                                "Lint warnings present in restored snapshot ({}).".format(
-                                    format_pii_summary(lint_counts)
-                                )
+                    name_col.markdown(
+                        "<div style='display:flex;align-items:center;gap:0.25rem;'><span style='font-weight:600;'>{}</span>{}</div>".format(
+                            html.escape(name_value),
+                            badge_html,
+                        ),
+                        unsafe_allow_html=True,
+                    )
+    
+                    snapshot_id = snap.get("id", "")
+                    short_id = "—"
+                    if snapshot_id:
+                        short_id = snapshot_id if len(snapshot_id) <= 10 else f"{snapshot_id[:10]}…"
+                    fp_col.markdown(f"`{short_id}`")
+                    ts_col.markdown(snap.get("timestamp", "—"))
+                    rows_col.markdown(str(snap.get("rows", "—")))
+    
+                    button_label = "Set active"
+                    button_disabled = is_active
+                    button_key = f"set_active_snapshot_{idx}_{snapshot_id[:6]}"
+                    if action_col.button(button_label, key=button_key, disabled=button_disabled):
+                        config = snap.get("config")
+                        if isinstance(config, str) and config:
+                            try:
+                                config = json.loads(config)
+                            except json.JSONDecodeError:
+                                config = None
+                        if not isinstance(config, dict):
+                            st.error("Snapshot is missing a valid configuration.")
+                        else:
+                            dataset_rows = build_dataset_from_config(config)
+                            summary = compute_dataset_summary(dataset_rows)
+                            lint_counts = lint_dataset(dataset_rows) or {}
+                            ss["labeled"] = dataset_rows
+                            ss["dataset_config"] = config
+                            _set_advanced_knob_state(config, force=True)
+                            ss["dataset_summary"] = summary
+                            ss["previous_dataset_summary"] = None
+                            ss["dataset_compare_delta"] = None
+                            ss["last_dataset_delta_story"] = None
+                            ss["dataset_snapshot_name"] = snap.get("name", "")
+                            ss["active_dataset_snapshot"] = snap.get("id")
+                            ss["dataset_last_built_at"] = datetime.now().isoformat(timespec="seconds")
+                            _clear_dataset_preview_state()
+                            st.success(
+                                f"Snapshot '{snap.get('name', 'snapshot')}' activated. Dataset rebuilt with {len(dataset_rows)} rows."
                             )
-        else:
-            st.caption("No snapshots yet. Save one after curating your first dataset.")
-
+                            if any(lint_counts.values()):
+                                st.warning(
+                                    "Lint warnings present in restored snapshot ({}).".format(
+                                        format_pii_summary(lint_counts)
+                                    )
+                                )
+            else:
+                st.caption("No snapshots yet. Save one after curating your first dataset.")
+    
+    
     if nerd_mode_data_enabled:
         with section_surface():
             st.markdown("### Nerd Mode insights")
