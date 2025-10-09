@@ -4484,7 +4484,9 @@ def render_train_stage():
     lang_mix_train: Optional[Dict[str, Any]] = None
     lang_mix_test: Optional[Dict[str, Any]] = None
     lang_mix_error: Optional[str] = None
-    if ss.get("model") is not None and ss.get("split_cache") is not None:
+    has_model = ss.get("model") is not None
+    has_split_cache = ss.get("split_cache") is not None
+    if has_model and has_split_cache:
         try:
             parsed_split = _parse_split_cache(ss["split_cache"])
             X_tr_t, X_te_t, X_tr_b, X_te_b, y_tr_labels, y_te_labels = parsed_split
@@ -4775,6 +4777,10 @@ def render_train_stage():
                                     """,
                                     unsafe_allow_html=True,
                                 )
+                    else:
+                        st.caption("Unavailable")
+                elif model_for_story:
+                    st.caption("Unavailable")
 
                 # 2) Top signals the model noticed (plain list)
                 shown_any_signals = False
@@ -4812,78 +4818,76 @@ def render_train_stage():
 
                 # 3) A couple of concrete examples the model saw (subjects only)
                 paraphrase_demo: Optional[Tuple[str, str, float]] = None
-                paraphrase_error: Optional[str] = None
-                if has_embed:
+                paraphrase_ready = bool(has_embed and X_tr_t and X_tr_b and y_tr_labels)
+                if paraphrase_ready:
                     try:
-                        if X_tr_t and X_tr_b and y_tr_labels:
-                            train_subjects = list(X_tr_t)
-                            y_arr = list(y_tr_labels)
-                            # pick first spam + first safe subject line available
-                            spam_subj = next((s for s, y in zip(train_subjects, y_arr) if y == "spam"), None)
-                            safe_subj = next((s for s, y in zip(train_subjects, y_arr) if y == "safe"), None)
-                            if spam_subj or safe_subj:
-                                st.markdown("**Examples it learned from**")
-                                if spam_subj:
-                                    st.write(
-                                        f"• Spam example: *{spam_subj[:100]}{'…' if len(spam_subj)>100 else ''}*"
-                                    )
-                                if safe_subj:
-                                    st.write(
-                                        f"• Safe example: *{safe_subj[:100]}{'…' if len(safe_subj)>100 else ''}*"
-                                    )
+                        train_subjects = list(X_tr_t)
+                        y_arr = list(y_tr_labels)
+                        # pick first spam + first safe subject line available
+                        spam_subj = next((s for s, y in zip(train_subjects, y_arr) if y == "spam"), None)
+                        safe_subj = next((s for s, y in zip(train_subjects, y_arr) if y == "safe"), None)
+                        if spam_subj or safe_subj:
+                            st.markdown("**Examples it learned from**")
+                            if spam_subj:
+                                st.write(
+                                    f"• Spam example: *{spam_subj[:100]}{'…' if len(spam_subj)>100 else ''}*"
+                                )
+                            if safe_subj:
+                                st.write(
+                                    f"• Safe example: *{safe_subj[:100]}{'…' if len(safe_subj)>100 else ''}*"
+                                )
 
-                            spam_subjects = [
-                                s
-                                for s, label in zip(train_subjects, y_arr)
-                                if label == "spam" and isinstance(s, str) and s.strip()
-                            ]
-                            if len(spam_subjects) >= 2:
-                                limited_subjects = spam_subjects[:100]
-                                try:
-                                    subject_embeddings = encode_texts(limited_subjects)
-                                except Exception as exc:
-                                    subject_embeddings = None
-                                    paraphrase_error = str(exc) or exc.__class__.__name__
-                                if subject_embeddings is not None:
-                                    subject_embeddings = np.asarray(subject_embeddings)
-                                    if subject_embeddings.ndim == 2 and subject_embeddings.shape[0] >= 2:
-                                        norms = np.linalg.norm(subject_embeddings, axis=1)
-                                        normalized_subjects = [
-                                            s.strip().lower() for s in limited_subjects
-                                        ]
-                                        best_score = -1.0
-                                        best_pair: Optional[Tuple[int, int]] = None
-                                        for i in range(len(limited_subjects)):
-                                            if norms[i] == 0.0:
+                        spam_subjects = [
+                            s
+                            for s, label in zip(train_subjects, y_arr)
+                            if label == "spam" and isinstance(s, str) and s.strip()
+                        ]
+                        if len(spam_subjects) >= 2:
+                            limited_subjects = spam_subjects[:100]
+                            try:
+                                subject_embeddings = encode_texts(limited_subjects)
+                            except Exception:
+                                subject_embeddings = None
+                                paraphrase_ready = False
+                            if subject_embeddings is not None:
+                                subject_embeddings = np.asarray(subject_embeddings)
+                                if subject_embeddings.ndim == 2 and subject_embeddings.shape[0] >= 2:
+                                    norms = np.linalg.norm(subject_embeddings, axis=1)
+                                    normalized_subjects = [
+                                        s.strip().lower() for s in limited_subjects
+                                    ]
+                                    best_score = -1.0
+                                    best_pair: Optional[Tuple[int, int]] = None
+                                    for i in range(len(limited_subjects)):
+                                        if norms[i] == 0.0:
+                                            continue
+                                        for j in range(i + 1, len(limited_subjects)):
+                                            if norms[j] == 0.0:
                                                 continue
-                                            for j in range(i + 1, len(limited_subjects)):
-                                                if norms[j] == 0.0:
-                                                    continue
-                                                if normalized_subjects[i] == normalized_subjects[j]:
-                                                    continue
-                                                score = float(
-                                                    np.clip(
-                                                        np.dot(subject_embeddings[i], subject_embeddings[j])
-                                                        / (norms[i] * norms[j]),
-                                                        -1.0,
-                                                        1.0,
-                                                    )
+                                            if normalized_subjects[i] == normalized_subjects[j]:
+                                                continue
+                                            score = float(
+                                                np.clip(
+                                                    np.dot(subject_embeddings[i], subject_embeddings[j])
+                                                    / (norms[i] * norms[j]),
+                                                    -1.0,
+                                                    1.0,
                                                 )
-                                                if score > best_score:
-                                                    best_score = score
-                                                    best_pair = (i, j)
-                                        if best_pair and best_score >= 0.7:
-                                            paraphrase_demo = (
-                                                limited_subjects[best_pair[0]],
-                                                limited_subjects[best_pair[1]],
-                                                best_score,
                                             )
-                                            paraphrase_error = None
-                    except Exception as exc:
+                                            if score > best_score:
+                                                best_score = score
+                                                best_pair = (i, j)
+                                    if best_pair and best_score >= 0.7:
+                                        paraphrase_demo = (
+                                            limited_subjects[best_pair[0]],
+                                            limited_subjects[best_pair[1]],
+                                            best_score,
+                                        )
+                    except Exception:
                         paraphrase_demo = None
-                        paraphrase_error = str(exc) or exc.__class__.__name__
+                        paraphrase_ready = False
                 else:
-                    paraphrase_error = "text encoder unavailable"
+                    paraphrase_ready = False
 
                 # 4) What this means / next step
                 st.markdown(
@@ -4907,8 +4911,8 @@ def render_train_stage():
                         """,
                         unsafe_allow_html=True,
                     )
-                elif paraphrase_error:
-                    st.caption(f"Paraphrase demo unavailable ({paraphrase_error}).")
+                else:
+                    st.caption("Unavailable")
                 if not ss.get("nerd_mode_train"):
                     st.markdown(
                         """
@@ -4938,11 +4942,13 @@ def render_train_stage():
                     )
                 st.info("Go to **3) Evaluate** to test performance and choose a spam threshold.")
 
-        except Exception as e:
-            st.info(f"Training complete. (Details unavailable: {e})")
+        except Exception:
+            st.caption("Unavailable")
             parsed_split = None
             y_tr_labels = None
             y_te_labels = None
+    elif has_model or has_split_cache:
+        st.caption("Unavailable")
 
     if ss.get("nerd_mode_train") and ss.get("model") is not None and parsed_split:
         with st.expander("Nerd Mode — what just happened (technical)", expanded=True):
@@ -5115,7 +5121,7 @@ def render_train_stage():
 
             calibration_details = None
             if not has_calibration:
-                st.caption("Calibration unavailable (calibrator dependency missing).")
+                st.caption("Unavailable")
                 if hasattr(model_obj, "set_calibration"):
                     try:
                         model_obj.set_calibration(None)
@@ -5125,7 +5131,7 @@ def render_train_stage():
             elif calib_active:
                 test_size = len(y_te_labels) if y_te_labels is not None else 0
                 if test_size < 30:
-                    st.caption("Test set too small for calibration (need ≥ 30 examples).")
+                    st.caption("Unavailable")
                     if hasattr(model_obj, "set_calibration"):
                         try:
                             model_obj.set_calibration(None)
@@ -5134,7 +5140,7 @@ def render_train_stage():
                     calibration_details = {"status": "too_small", "test_size": test_size}
                     ss["calibration_result"] = calibration_details
                 elif model_obj is None:
-                    st.caption("Calibration unavailable (model missing).")
+                    st.caption("Unavailable")
                 else:
                     try:
                         spam_index = getattr(model_obj, "_i_spam", 1)
@@ -5195,14 +5201,14 @@ def render_train_stage():
                             "reliability": reliability_df,
                         }
                         ss["calibration_result"] = calibration_details
-                    except Exception as exc:
-                        st.caption(f"Calibration failed: {exc}")
+                    except Exception:
+                        st.caption("Unavailable")
                         if hasattr(model_obj, "set_calibration"):
                             try:
                                 model_obj.set_calibration(None)
                             except Exception:
                                 pass
-                        calibration_details = {"status": "error", "message": str(exc)}
+                        calibration_details = {"status": "error"}
                         ss["calibration_result"] = calibration_details
             else:
                 if hasattr(model_obj, "set_calibration"):
