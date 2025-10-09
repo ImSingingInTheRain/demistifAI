@@ -3329,6 +3329,32 @@ def render_train_stage():
                 "- The model now **looks for patterns** in those examples.  \n"
                 "- With enough clear examples, it learns to **generalize** to new emails."
             )
+            if not ss.get("nerd_mode_train"):
+                with st.expander(
+                    "How training works (plain English)",
+                    expanded=True,
+                ):
+                    st.markdown(
+                        "1. A compact Transformer (MiniLM) turns each email into a meaning vector (embedding). Paraphrases land nearby.\n"
+                        "2. We train a simple classifier that learns a weighted direction separating Spam vs Safe in that space.\n"
+                        "3. When scores are borderline, numeric guardrails (links/TLD/caps/$$) assist—depending on the uncertainty band."
+                    )
+                    good_col, hard_col = st.columns(2)
+                    with good_col:
+                        st.markdown(
+                            "**Good at**\n"
+                            "- English paraphrases\n"
+                            "- Short-ish emails\n"
+                            "- Phishing patterns\n"
+                            "- Promos vs alerts"
+                        )
+                    with hard_col:
+                        st.markdown(
+                            "**Hard for**\n"
+                            "- Very long emails (truncation)\n"
+                            "- Non-English\n"
+                            "- Very short ‘Hi’ emails"
+                        )
         with aside_col:
             st.markdown("### Training checklist")
             st.markdown(
