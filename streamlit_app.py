@@ -1445,11 +1445,6 @@ def render_overview_stage():
             <div class="mission-brief__grid">
                 <div class="mission-brief__objective">
                     <p>Keep unwanted email out while letting the important messages through. You’ll steer the controls, set the operating thresholds, and verify the system’s choices.</p>
-                    <ul class="mission-brief__list">
-                        <li>Curate examples so the model learns realistic spam and safe patterns.</li>
-                        <li>Tune autonomy and adaptiveness to balance human oversight with efficiency.</li>
-                        <li>Monitor outcomes in the inbox and correct the system when it misfires.</li>
-                    </ul>
                 </div>
             </div>
         </div>
