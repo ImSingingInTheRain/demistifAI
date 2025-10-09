@@ -102,6 +102,17 @@ from demistifai.modeling import (
     verdict_label,
 )
 
+
+def callable_or_attr(target: Any, attr: str | None = None) -> bool:
+    """Return True if ``target`` (or one of its attributes) is callable."""
+
+    try:
+        value = getattr(target, attr) if attr else target
+    except Exception:
+        return False
+    return callable(value)
+
+
 from sklearn.metrics import accuracy_score, confusion_matrix, precision_recall_fscore_support
 from sklearn.model_selection import train_test_split
 
@@ -250,6 +261,11 @@ except Exception:  # pragma: no cover - optional dependency
     _langdetect_detect = None
     _LangDetectException = Exception  # type: ignore
     _LANG_DETECT_AVAILABLE = False
+
+
+has_embed = callable_or_attr(locals().get("encode_texts"))
+has_calibration = callable_or_attr(locals().get("PlattProbabilityCalibrator"))
+has_langdetect = bool(_LANG_DETECT_AVAILABLE and callable_or_attr(_langdetect_detect))
 
 
 def _detect_language_code(text: str) -> str:
@@ -3860,11 +3876,14 @@ def render_train_stage():
                 ss["split_cache"] = (X_tr_t, X_te_t, X_tr_b, X_te_b, y_tr, y_te)
                 ss["eval_timestamp"] = datetime.now().isoformat(timespec="seconds")
                 ss["eval_temp_threshold"] = float(ss.get("threshold", 0.6))
-                try:
-                    train_texts_cache = [combine_text(t, b) for t, b in zip(X_tr_t, X_tr_b)]
-                    cache_train_embeddings(train_texts_cache)
-                except Exception:
-                    pass
+                if has_embed:
+                    try:
+                        train_texts_cache = [
+                            combine_text(t, b) for t, b in zip(X_tr_t, X_tr_b)
+                        ]
+                        cache_train_embeddings(train_texts_cache)
+                    except Exception:
+                        pass
 
     parsed_split = None
     y_tr_labels = None
@@ -3873,6 +3892,7 @@ def render_train_stage():
     test_texts_combined_cache: list[str] = []
     lang_mix_train: Optional[Dict[str, Any]] = None
     lang_mix_test: Optional[Dict[str, Any]] = None
+    lang_mix_error: Optional[str] = None
     if ss.get("model") is not None and ss.get("split_cache") is not None:
         try:
             parsed_split = _parse_split_cache(ss["split_cache"])
@@ -3887,8 +3907,16 @@ def render_train_stage():
                     combine_text(t, b) for t, b in zip(X_te_t, X_te_b)
                 ]
 
-            lang_mix_train = summarize_language_mix(train_texts_combined_cache)
-            lang_mix_test = summarize_language_mix(test_texts_combined_cache)
+            if has_langdetect:
+                try:
+                    lang_mix_train = summarize_language_mix(train_texts_combined_cache)
+                    lang_mix_test = summarize_language_mix(test_texts_combined_cache)
+                except Exception as exc:
+                    lang_mix_error = str(exc) or exc.__class__.__name__
+                    lang_mix_train = None
+                    lang_mix_test = None
+            else:
+                lang_mix_error = "language detector unavailable"
 
             # Existing success + story (kept)
             story = make_after_training_story(y_tr_labels, y_te_labels)
@@ -3908,7 +3936,12 @@ def render_train_stage():
                     "- It saved these patterns as simple rules (weights) it can use later to decide."
                 )
 
-                st.caption(format_language_mix_summary("train", lang_mix_train))
+                if lang_mix_error:
+                    st.caption(f"Language mix unavailable ({lang_mix_error}).")
+                else:
+                    st.caption(
+                        format_language_mix_summary("train", lang_mix_train)
+                    )
 
                 guard_caption = None
                 audit_info = None
@@ -3987,69 +4020,78 @@ def render_train_stage():
 
                 # 3) A couple of concrete examples the model saw (subjects only)
                 paraphrase_demo: Optional[Tuple[str, str, float]] = None
-                try:
-                    if X_tr_t and X_tr_b and y_tr_labels:
-                        train_subjects = list(X_tr_t)
-                        y_arr = list(y_tr_labels)
-                        # pick first spam + first safe subject line available
-                        spam_subj = next((s for s, y in zip(train_subjects, y_arr) if y == "spam"), None)
-                        safe_subj = next((s for s, y in zip(train_subjects, y_arr) if y == "safe"), None)
-                        if spam_subj or safe_subj:
-                            st.markdown("**Examples it learned from**")
-                            if spam_subj:
-                                st.write(
-                                    f"• Spam example: *{spam_subj[:100]}{'…' if len(spam_subj)>100 else ''}*"
-                                )
-                            if safe_subj:
-                                st.write(
-                                    f"• Safe example: *{safe_subj[:100]}{'…' if len(safe_subj)>100 else ''}*"
-                                )
+                paraphrase_error: Optional[str] = None
+                if has_embed:
+                    try:
+                        if X_tr_t and X_tr_b and y_tr_labels:
+                            train_subjects = list(X_tr_t)
+                            y_arr = list(y_tr_labels)
+                            # pick first spam + first safe subject line available
+                            spam_subj = next((s for s, y in zip(train_subjects, y_arr) if y == "spam"), None)
+                            safe_subj = next((s for s, y in zip(train_subjects, y_arr) if y == "safe"), None)
+                            if spam_subj or safe_subj:
+                                st.markdown("**Examples it learned from**")
+                                if spam_subj:
+                                    st.write(
+                                        f"• Spam example: *{spam_subj[:100]}{'…' if len(spam_subj)>100 else ''}*"
+                                    )
+                                if safe_subj:
+                                    st.write(
+                                        f"• Safe example: *{safe_subj[:100]}{'…' if len(safe_subj)>100 else ''}*"
+                                    )
 
-                        spam_subjects = [
-                            s
-                            for s, label in zip(train_subjects, y_arr)
-                            if label == "spam" and isinstance(s, str) and s.strip()
-                        ]
-                        if len(spam_subjects) >= 2:
-                            limited_subjects = spam_subjects[:100]
-                            try:
-                                subject_embeddings = encode_texts(limited_subjects)
-                            except Exception:
-                                subject_embeddings = None
-                            if subject_embeddings is not None:
-                                subject_embeddings = np.asarray(subject_embeddings)
-                                if subject_embeddings.ndim == 2 and subject_embeddings.shape[0] >= 2:
-                                    norms = np.linalg.norm(subject_embeddings, axis=1)
-                                    normalized_subjects = [s.strip().lower() for s in limited_subjects]
-                                    best_score = -1.0
-                                    best_pair: Optional[Tuple[int, int]] = None
-                                    for i in range(len(limited_subjects)):
-                                        if norms[i] == 0.0:
-                                            continue
-                                        for j in range(i + 1, len(limited_subjects)):
-                                            if norms[j] == 0.0:
+                            spam_subjects = [
+                                s
+                                for s, label in zip(train_subjects, y_arr)
+                                if label == "spam" and isinstance(s, str) and s.strip()
+                            ]
+                            if len(spam_subjects) >= 2:
+                                limited_subjects = spam_subjects[:100]
+                                try:
+                                    subject_embeddings = encode_texts(limited_subjects)
+                                except Exception as exc:
+                                    subject_embeddings = None
+                                    paraphrase_error = str(exc) or exc.__class__.__name__
+                                if subject_embeddings is not None:
+                                    subject_embeddings = np.asarray(subject_embeddings)
+                                    if subject_embeddings.ndim == 2 and subject_embeddings.shape[0] >= 2:
+                                        norms = np.linalg.norm(subject_embeddings, axis=1)
+                                        normalized_subjects = [
+                                            s.strip().lower() for s in limited_subjects
+                                        ]
+                                        best_score = -1.0
+                                        best_pair: Optional[Tuple[int, int]] = None
+                                        for i in range(len(limited_subjects)):
+                                            if norms[i] == 0.0:
                                                 continue
-                                            if normalized_subjects[i] == normalized_subjects[j]:
-                                                continue
-                                            score = float(
-                                                np.clip(
-                                                    np.dot(subject_embeddings[i], subject_embeddings[j])
-                                                    / (norms[i] * norms[j]),
-                                                    -1.0,
-                                                    1.0,
+                                            for j in range(i + 1, len(limited_subjects)):
+                                                if norms[j] == 0.0:
+                                                    continue
+                                                if normalized_subjects[i] == normalized_subjects[j]:
+                                                    continue
+                                                score = float(
+                                                    np.clip(
+                                                        np.dot(subject_embeddings[i], subject_embeddings[j])
+                                                        / (norms[i] * norms[j]),
+                                                        -1.0,
+                                                        1.0,
+                                                    )
                                                 )
+                                                if score > best_score:
+                                                    best_score = score
+                                                    best_pair = (i, j)
+                                        if best_pair and best_score >= 0.7:
+                                            paraphrase_demo = (
+                                                limited_subjects[best_pair[0]],
+                                                limited_subjects[best_pair[1]],
+                                                best_score,
                                             )
-                                            if score > best_score:
-                                                best_score = score
-                                                best_pair = (i, j)
-                                    if best_pair and best_score >= 0.7:
-                                        paraphrase_demo = (
-                                            limited_subjects[best_pair[0]],
-                                            limited_subjects[best_pair[1]],
-                                            best_score,
-                                        )
-                except Exception:
-                    paraphrase_demo = None
+                                            paraphrase_error = None
+                    except Exception as exc:
+                        paraphrase_demo = None
+                        paraphrase_error = str(exc) or exc.__class__.__name__
+                else:
+                    paraphrase_error = "text encoder unavailable"
 
                 # 4) What this means / next step
                 st.markdown(
@@ -4073,6 +4115,8 @@ def render_train_stage():
                         """,
                         unsafe_allow_html=True,
                     )
+                elif paraphrase_error:
+                    st.caption(f"Paraphrase demo unavailable ({paraphrase_error}).")
                 if not ss.get("nerd_mode_train"):
                     st.markdown(
                         """
@@ -4113,18 +4157,30 @@ def render_train_stage():
             X_tr_t, X_te_t, X_tr_b, X_te_b, y_tr_labels, y_te_labels = parsed_split
             train_texts_combined: list[str] = list(train_texts_combined_cache)
             train_embeddings: Optional[np.ndarray] = None
+            train_embeddings_error: Optional[str] = None
             if not train_texts_combined and X_tr_t and X_tr_b:
                 train_texts_combined = [combine_text(t, b) for t, b in zip(X_tr_t, X_tr_b)]
             if train_texts_combined:
-                try:
-                    train_embeddings = cache_train_embeddings(train_texts_combined)
-                except Exception:
-                    train_embeddings = None
-                if train_embeddings is None or getattr(train_embeddings, "size", 0) == 0:
+                if has_embed:
                     try:
-                        train_embeddings = encode_texts(train_texts_combined)
-                    except Exception:
+                        train_embeddings = cache_train_embeddings(train_texts_combined)
+                        if getattr(train_embeddings, "size", 0) == 0:
+                            train_embeddings = None
+                    except Exception as exc:
                         train_embeddings = None
+                        train_embeddings_error = str(exc) or exc.__class__.__name__
+                    if train_embeddings is None:
+                        try:
+                            train_embeddings = encode_texts(train_texts_combined)
+                            if getattr(train_embeddings, "size", 0) == 0:
+                                train_embeddings = None
+                        except Exception as exc:
+                            train_embeddings = None
+                            train_embeddings_error = str(exc) or exc.__class__.__name__
+                        else:
+                            train_embeddings_error = None
+                else:
+                    train_embeddings_error = "text encoder unavailable"
             try:
                 st.markdown("**Data split**")
                 st.markdown(
@@ -4133,17 +4189,28 @@ def render_train_stage():
                     f"- Class balance (train): {_counts(list(y_tr_labels))}  \n"
                     f"- Class balance (test): {_counts(list(y_te_labels))}"
                 )
-                render_language_mix_chip_rows(lang_mix_train, lang_mix_test)
             except Exception:
                 st.caption("Split details unavailable.")
+
+            if lang_mix_error:
+                st.caption(f"Language mix unavailable ({lang_mix_error}).")
+            elif has_langdetect:
+                try:
+                    render_language_mix_chip_rows(lang_mix_train, lang_mix_test)
+                except Exception as exc:
+                    msg = str(exc) or exc.__class__.__name__
+                    st.caption(f"Language mix unavailable ({msg}).")
 
             centroid_distance: Optional[float] = None
             centroid_message: Optional[str] = None
             try:
                 if not train_texts_combined:
                     centroid_message = "Centroid distance unavailable (no training texts)."
+                elif not has_embed:
+                    centroid_message = "Centroid distance unavailable (text encoder unavailable)."
                 elif train_embeddings is None or getattr(train_embeddings, "size", 0) == 0:
-                    centroid_message = "Centroid distance unavailable (embeddings missing)."
+                    detail = train_embeddings_error or "embeddings missing"
+                    centroid_message = f"Centroid distance unavailable ({detail})."
                 elif not y_tr_labels:
                     centroid_message = "Centroid distance unavailable (labels missing)."
                 else:
@@ -4244,11 +4311,21 @@ def render_train_stage():
                 value=calibrate_default,
                 key="train_calibrate_toggle",
                 help="Platt scaling if test size ≥ 30, else isotonic disabled.",
+                disabled=not has_calibration,
             )
-            ss["calibrate_probabilities"] = bool(calib_toggle)
+            calib_active = bool(calib_toggle and has_calibration)
+            ss["calibrate_probabilities"] = bool(calib_active)
 
             calibration_details = None
-            if calib_toggle:
+            if not has_calibration:
+                st.caption("Calibration unavailable (calibrator dependency missing).")
+                if hasattr(model_obj, "set_calibration"):
+                    try:
+                        model_obj.set_calibration(None)
+                    except Exception:
+                        pass
+                ss["calibration_result"] = None
+            elif calib_active:
                 test_size = len(y_te_labels) if y_te_labels is not None else 0
                 if test_size < 30:
                     st.caption("Test set too small for calibration (need ≥ 30 examples).")
