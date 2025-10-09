@@ -1126,7 +1126,7 @@ def render_data_stage():
             line-height: 1;
             background: rgba(15, 23, 42, 0.08);
             border-radius: 0.9rem;
-            padding: 0.55rem 0.7rem;
+            padding: 0.55rem 0.9375rem;
             box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.06);
         }
         .prepare-intro-card__eyebrow {
