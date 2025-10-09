@@ -871,6 +871,7 @@ ss.setdefault(
 ss.setdefault(
     "guard_params",
     {
+        "assist_center": float(ss.get("threshold", 0.6)),
         "uncertainty_band": 0.08,
         "numeric_scale": 0.5,
         "numeric_logit_cap": 1.0,
@@ -3676,6 +3677,17 @@ def render_train_stage():
                 )
                 ss.setdefault("guard_params", {})
                 gp = ss["guard_params"]
+                gp["assist_center"] = st.slider(
+                    "Numeric assist center (text score)",
+                    min_value=0.30,
+                    max_value=0.90,
+                    step=0.01,
+                    value=float(gp.get("assist_center", float(ss.get("threshold", 0.6)))),
+                    help=(
+                        "Center of the borderline region. When the text-only spam probability is near this "
+                        "value, numeric guardrails are allowed to lend a hand."
+                    ),
+                )
                 gp["uncertainty_band"] = st.slider(
                     "Uncertainty band (± around threshold)",
                     min_value=0.0,
@@ -3756,7 +3768,7 @@ def render_train_stage():
                 "• **Hold-out fraction**: keeps part of the data for an honest test.  \\\n"
                 "• **Random seed**: makes results repeatable.  \\\n"
                 "• **Max iterations / C**: learning dials—defaults are fine; feel free to experiment.  \\\n"
-                "• **Numeric guardrails**: control when and how numeric cues assist the text model."
+                "• **Numeric guardrails**: tune the center, band, and strength of numeric cues assisting the text model."
             )
 
     token_budget_text = "Token budget: —"
@@ -3801,15 +3813,17 @@ def render_train_stage():
             )
 
             if not ss.get("nerd_mode_train"):
-                threshold = float(ss.get("threshold", 0.6))
                 guard_params = ss.get("guard_params", {})
+                assist_center = float(
+                    guard_params.get("assist_center", float(ss.get("threshold", 0.6)))
+                )
                 band = float(guard_params.get("uncertainty_band", 0.08))
 
-                low = max(0.0, threshold - band)
-                high = min(1.0, threshold + band)
+                low = max(0.0, assist_center - band)
+                high = min(1.0, assist_center + band)
                 low_pct = low * 100.0
                 high_pct = high * 100.0
-                threshold_pct = max(0.0, min(100.0, threshold * 100.0))
+                threshold_pct = max(0.0, min(100.0, assist_center * 100.0))
 
                 band_left = max(0.0, min(100.0, low_pct))
                 band_right = max(0.0, min(100.0, high_pct))
@@ -3823,13 +3837,13 @@ def render_train_stage():
                         <div style=\"position:absolute;left:-2px;top:50%;transform:translate(-100%,-50%);font-size:0.65rem;color:rgba(49,51,63,0.6);\">0</div>
                         <div style=\"position:absolute;right:-2px;top:50%;transform:translate(100%,-50%);font-size:0.65rem;color:rgba(49,51,63,0.6);\">1</div>
                     </div>
-                    <div style=\"margin-top:0.25rem;font-size:0.65rem;color:rgba(15,23,42,0.65);\">τ = {threshold:.2f} • band ±{band:.2f}</div>
+                    <div style=\"margin-top:0.25rem;font-size:0.65rem;color:rgba(15,23,42,0.65);\">τ = {assist_center:.2f} • band ±{band:.2f}</div>
                 </div>
                 """
 
                 context_col.markdown(band_bar_html, unsafe_allow_html=True)
                 context_col.caption(
-                    "Inside this band, numeric cues (links/TLD/caps/money) may assist the text model."
+                    f"Inside this band (centered at τ={assist_center:.2f}), numeric cues (links/TLD/caps/money) may assist the text model."
                 )
 
     if trigger_train:
@@ -3863,6 +3877,9 @@ def render_train_stage():
                     max_iter=max_iter,
                     C=C_value,
                     random_state=random_state,
+                    numeric_assist_center=float(
+                        gp.get("assist_center", float(ss.get("threshold", 0.6)))
+                    ),
                     uncertainty_band=float(gp.get("uncertainty_band", 0.08)),
                     numeric_scale=float(gp.get("numeric_scale", 0.5)),
                     numeric_logit_cap=float(gp.get("numeric_logit_cap", 1.0)),
@@ -5393,6 +5410,9 @@ def render_classify_stage():
                     max_iter=max_iter,
                     C=C_value,
                     random_state=random_state,
+                    numeric_assist_center=float(
+                        gp.get("assist_center", float(ss.get("threshold", 0.6)))
+                    ),
                     uncertainty_band=float(gp.get("uncertainty_band", 0.08)),
                     numeric_scale=float(gp.get("numeric_scale", 0.5)),
                     numeric_logit_cap=float(gp.get("numeric_logit_cap", 1.0)),
