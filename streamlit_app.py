@@ -1200,16 +1200,9 @@ def render_data_stage():
         ss["dataset_compare_delta"] = dataset_summary_delta(current_summary, preview_summary)
         ss["last_dataset_delta_story"] = dataset_delta_story(ss["dataset_compare_delta"])
 
-        st.success("Preview ready — scroll to **Review & approve** to curate rows before committing.")
+        st.success("Dataset generated — scroll to **Review** and curate data before committing.")
         explanation = explain_config_change(config, ss.get("dataset_config", DEFAULT_DATASET_CONFIG))
-        if explanation:
-            st.caption(explanation)
-        if lint_counts and any(lint_counts.values()):
-            st.warning(
-                "PII lint flags — sensitive-looking patterns detected in safe emails ({}).".format(
-                    format_pii_summary(lint_counts)
-                )
-            )
+        
         if len(dataset_rows) > 200:
             st.caption(
                 "Manual queue shows the first 200 items per guardrail. Full dataset size: {}.".format(
