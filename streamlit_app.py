@@ -1259,7 +1259,7 @@ def render_data_stage():
             )
 
         with builder_col:
-            st.markdown("### 1 · Prepare data → Dataset builder")
+            st.markdown("### Dataset builder")
 
             col_m1, col_m2, col_m3, col_m4 = st.columns(4, gap="large")
             with col_m1:
