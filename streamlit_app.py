@@ -3952,7 +3952,7 @@ def render_train_stage():
                         <div class="train-how-card__header">
                             <div class="train-how-card__icon">🧩</div>
                             <div>
-                                <h5 class="train-how-card__title">How this training run behaves</h5>
+                                <h5 class="train-how-card__title">🎯 How this training run behaves</h5>
                                 <p class="train-how-card__body">Plain-language view of the mechanics so your team can follow along.</p>
                             </div>
                         </div>
@@ -3989,7 +3989,7 @@ def render_train_stage():
             st.markdown(
                 """
                 <div class="train-sidebar-card">
-                    <div class="train-sidebar-card__title">Training readiness checklist</div>
+                    <div class="train-sidebar-card__title">🎯 Training readiness checklist</div>
                     <ul class="train-sidebar-card__list">
                         <li><span class="train-sidebar-card__bullet">📊</span><span>Mix of labeled spam and safe emails (aim for balance).</span></li>
                         <li><span class="train-sidebar-card__bullet">🧪</span><span>Hold-out split ready so we can grade the model honestly.</span></li>
@@ -4050,7 +4050,7 @@ def render_train_stage():
             st.markdown(
                 """
                 <div class="train-nerd-intro">
-                    <h4>Advanced split & guardrail controls</h4>
+                    <h4>🛡️ Advanced split & guardrail controls</h4>
                     <p>Fine-tune how much data we hold out, solver behaviour, and the numeric assist rules that complement the text model.</p>
                 </div>
                 """,
@@ -4059,14 +4059,14 @@ def render_train_stage():
             colA, colB = st.columns(2)
             with colA:
                 ss["train_params"]["test_size"] = st.slider(
-                    "Hold-out test fraction",
+                    "🧪 Hold-out test fraction",
                     min_value=0.10,
                     max_value=0.50,
                     value=float(ss["train_params"]["test_size"]),
                     step=0.05,
                     help="How much labeled data to keep aside as a mini 'exam' (not used for learning).",
                 )
-                st.caption("More hold-out = more honest testing but fewer examples for learning.")
+                st.caption("🧪 More hold-out = more honest testing but fewer examples for learning.")
                 ss["train_params"]["random_state"] = st.number_input(
                     "Random seed",
                     min_value=0,
@@ -4078,7 +4078,7 @@ def render_train_stage():
                 ss.setdefault("guard_params", {})
                 gp = ss["guard_params"]
                 gp["assist_center"] = st.slider(
-                    "Numeric assist center (text score)",
+                    "🛡️ Numeric assist center (text score)",
                     min_value=0.30,
                     max_value=0.90,
                     step=0.01,
@@ -4089,26 +4089,26 @@ def render_train_stage():
                     ),
                 )
                 st.caption(
-                    "Where ‘borderline’ lives on the 0–1 scale; most emails away from here won’t use numeric cues."
+                    "🛡️ Where ‘borderline’ lives on the 0–1 scale; most emails away from here won’t use numeric cues."
                 )
                 gp["uncertainty_band"] = st.slider(
-                    "Uncertainty band (± around threshold)",
+                    "🛡️ Uncertainty band (± around threshold)",
                     min_value=0.0,
                     max_value=0.20,
                     step=0.01,
                     value=float(gp.get("uncertainty_band", 0.08)),
                     help="Only consult numeric cues when the text score falls inside this band.",
                 )
-                st.caption("Wider band = numeric cues help more often; narrower = trust text more.")
+                st.caption("🛡️ Wider band = numeric cues help more often; narrower = trust text more.")
                 gp["numeric_scale"] = st.slider(
-                    "Numeric blend weight (when consulted)",
+                    "🛡️ Numeric blend weight (when consulted)",
                     min_value=0.0,
                     max_value=1.0,
                     step=0.05,
                     value=float(gp.get("numeric_scale", 0.5)),
                     help="How much numeric probability counts in the blend within the band.",
                 )
-                st.caption("Higher = numeric cues have a stronger say when consulted.")
+                st.caption("🛡️ Higher = numeric cues have a stronger say when consulted.")
             with colB:
                 ss["train_params"]["max_iter"] = st.number_input(
                     "Max iterations (solver)",
@@ -4128,16 +4128,16 @@ def render_train_stage():
                 )
                 st.caption("Higher C hugs the training data (risk overfit). Lower C smooths (better generalization).")
                 gp["numeric_logit_cap"] = st.slider(
-                    "Cap numeric logit (absolute)",
+                    "🛡️ Cap numeric logit (absolute)",
                     min_value=0.2,
                     max_value=3.0,
                     step=0.1,
                     value=float(gp.get("numeric_logit_cap", 1.0)),
                     help="Limits how strongly numeric cues can push toward Spam/Safe.",
                 )
-                st.caption("A safety cap so numeric cues can’t overpower the text score.")
+                st.caption("🛡️ A safety cap so numeric cues can’t overpower the text score.")
                 gp["combine_strategy"] = st.radio(
-                    "Numeric combination strategy",
+                    "🛡️ Numeric combination strategy",
                     options=["blend", "threshold_shift"],
                     index=0 if gp.get("combine_strategy", "blend") == "blend" else 1,
                     horizontal=True,
@@ -4145,40 +4145,40 @@ def render_train_stage():
                 )
 
             if gp.get("combine_strategy", "blend") == "threshold_shift":
-                st.markdown("**Threshold-shift micro-rules** (applied only within the uncertainty band)")
+                st.markdown("**🛡️ Threshold-shift micro-rules** (applied only within the uncertainty band)")
                 col1, col2, col3 = st.columns(3)
                 with col1:
                     gp["shift_suspicious_tld"] = st.number_input(
-                        "Shift for suspicious TLD",
+                        "🛡️ Shift for suspicious TLD",
                         value=float(gp.get("shift_suspicious_tld", -0.04)),
                         step=0.01,
                         format="%.2f",
                         help="Negative shift lowers the threshold (be stricter) when a suspicious domain is present.",
                     )
-                    st.caption("Tweaks the cut-off in specific situations (e.g., suspicious domains → stricter).")
+                    st.caption("🛡️ Tweaks the cut-off in specific situations (e.g., suspicious domains → stricter).")
                 with col2:
                     gp["shift_many_links"] = st.number_input(
-                        "Shift for many external links",
+                        "🛡️ Shift for many external links",
                         value=float(gp.get("shift_many_links", -0.03)),
                         step=0.01,
                         format="%.2f",
                         help="Negative shift lowers the threshold when multiple external links are detected.",
                     )
-                    st.caption("Tweaks the cut-off in specific situations (e.g., suspicious domains → stricter).")
+                    st.caption("🛡️ Tweaks the cut-off in specific situations (e.g., suspicious domains → stricter).")
                 with col3:
                     gp["shift_calm_text"] = st.number_input(
-                        "Shift for calm text",
+                        "🛡️ Shift for calm text",
                         value=float(gp.get("shift_calm_text", +0.02)),
                         step=0.01,
                         format="%.2f",
                         help="Positive shift raises the threshold when text looks calm (very low ALL-CAPS).",
                     )
-                    st.caption("Tweaks the cut-off in specific situations (e.g., suspicious domains → stricter).")
+                    st.caption("🛡️ Tweaks the cut-off in specific situations (e.g., suspicious domains → stricter).")
 
             st.markdown(
                 """
                 <div class="train-nerd-hint">
-                    <strong>Guide:</strong> Hold-out keeps an honest exam set, the seed makes runs reproducible, <em>max iter</em> and <em>C</em> steer the solver, and the numeric guardrails define when structured cues can override the text score.
+                    <strong>🎯 Guide:</strong> Hold-out keeps an honest exam set, the seed makes runs reproducible, <em>max iter</em> and <em>C</em> steer the solver, and the numeric guardrails define when structured cues can override the text score.
                 </div>
                 """,
                 unsafe_allow_html=True,
