@@ -575,6 +575,7 @@ class HybridEmbedFeatsLogReg:
         C: float = 1.0,
         random_state: int = 42,
         # guarded-combination params
+        numeric_assist_center: float = 0.5,
         uncertainty_band: float = 0.08,
         numeric_scale: float = 0.5,
         numeric_logit_cap: float = 1.0,
@@ -595,6 +596,7 @@ class HybridEmbedFeatsLogReg:
         self.scaler = StandardScaler()
         self.classes_ = np.array(["safe", "spam"])
 
+        self.numeric_assist_center = float(numeric_assist_center)
         self.uncertainty_band = float(uncertainty_band)
         self.numeric_scale = float(numeric_scale)
         self.numeric_logit_cap = float(numeric_logit_cap)
@@ -733,8 +735,12 @@ class HybridEmbedFeatsLogReg:
         p = 1.0 / (1.0 + np.exp(-logit))
         return p, X_std
 
-    def _predict_proba_base(self, titles, bodies, threshold: float = 0.5):
+    def _predict_proba_base(
+        self, titles, bodies, threshold: float | None = None
+    ):
         self.last_thr_eff = None
+        if threshold is None:
+            threshold = float(getattr(self, "numeric_assist_center", 0.5))
         p_txt = self._p_text(titles, bodies)
         low, high = threshold - self.uncertainty_band, threshold + self.uncertainty_band
         consult = (p_txt >= low) & (p_txt <= high)
@@ -777,10 +783,16 @@ class HybridEmbedFeatsLogReg:
 
         return np.vstack([1 - p_out, p_out]).T
 
-    def predict_proba_base(self, titles, bodies, threshold: float = 0.5):
+    def predict_proba_base(
+        self, titles, bodies, threshold: float | None = None
+    ):
         return self._predict_proba_base(titles, bodies, threshold=threshold)
 
-    def predict_proba(self, titles, bodies, threshold: float = 0.5):
+    def predict_proba(
+        self, titles, bodies, threshold: float | None = None
+    ):
+        if threshold is None:
+            threshold = float(getattr(self, "numeric_assist_center", 0.5))
         probs = self._predict_proba_base(titles, bodies, threshold=threshold)
         if self.calibrator is not None:
             try:
@@ -797,7 +809,9 @@ class HybridEmbedFeatsLogReg:
     def set_calibration(self, calibrator: Callable[[np.ndarray], np.ndarray] | None) -> None:
         self.calibrator = calibrator
 
-    def predict(self, titles, bodies, threshold: float = 0.5):
+    def predict(self, titles, bodies, threshold: float | None = None):
+        if threshold is None:
+            threshold = float(getattr(self, "numeric_assist_center", 0.5))
         probs = self.predict_proba(titles, bodies, threshold=threshold)[:, self._i_spam]
         thr = np.full_like(probs, threshold, dtype=float)
         if self.combine_strategy == "threshold_shift" and self.last_thr_eff is not None:
@@ -835,7 +849,7 @@ class HybridEmbedFeatsLogReg:
     def audit_numeric_interplay(self, titles, bodies) -> dict:
         """Quantify how often numeric cues assisted the text head during CV."""
 
-        threshold = 0.5
+        threshold = float(getattr(self, "numeric_assist_center", 0.5))
 
         if titles is None or bodies is None:
             return {"pct_consulted": 0.0, "avg_threshold_shift": 0.0, "avg_prob_blend_weight": 0.0}
