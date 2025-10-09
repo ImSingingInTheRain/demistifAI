@@ -200,6 +200,14 @@ def format_pii_summary(counts: Dict[str, int]) -> str:
     )
 
 
+def _shorten_text(text: str, limit: int = 120) -> str:
+    """Return a shortened version of *text* capped at *limit* characters."""
+
+    if len(text) <= limit:
+        return text
+    return f"{text[: limit - 1]}…"
+
+
 def pii_chip_row_html(counts: Dict[str, int], extra_class: str = "") -> str:
     classes = ["indicator-chip-row", "pii-chip-row"]
     if extra_class:
@@ -3708,6 +3716,7 @@ def render_train_stage():
                     )
 
                 # 3) A couple of concrete examples the model saw (subjects only)
+                paraphrase_demo: Optional[Tuple[str, str, float]] = None
                 try:
                     if X_tr_t and X_tr_b and y_tr_labels:
                         train_subjects = list(X_tr_t)
@@ -3718,17 +3727,82 @@ def render_train_stage():
                         if spam_subj or safe_subj:
                             st.markdown("**Examples it learned from**")
                             if spam_subj:
-                                st.write(f"• Spam example: *{spam_subj[:100]}{'…' if len(spam_subj)>100 else ''}*")
+                                st.write(
+                                    f"• Spam example: *{spam_subj[:100]}{'…' if len(spam_subj)>100 else ''}*"
+                                )
                             if safe_subj:
-                                st.write(f"• Safe example: *{safe_subj[:100]}{'…' if len(safe_subj)>100 else ''}*")
+                                st.write(
+                                    f"• Safe example: *{safe_subj[:100]}{'…' if len(safe_subj)>100 else ''}*"
+                                )
+
+                        spam_subjects = [
+                            s
+                            for s, label in zip(train_subjects, y_arr)
+                            if label == "spam" and isinstance(s, str) and s.strip()
+                        ]
+                        if len(spam_subjects) >= 2:
+                            limited_subjects = spam_subjects[:100]
+                            try:
+                                subject_embeddings = encode_texts(limited_subjects)
+                            except Exception:
+                                subject_embeddings = None
+                            if subject_embeddings is not None:
+                                subject_embeddings = np.asarray(subject_embeddings)
+                                if subject_embeddings.ndim == 2 and subject_embeddings.shape[0] >= 2:
+                                    norms = np.linalg.norm(subject_embeddings, axis=1)
+                                    normalized_subjects = [s.strip().lower() for s in limited_subjects]
+                                    best_score = -1.0
+                                    best_pair: Optional[Tuple[int, int]] = None
+                                    for i in range(len(limited_subjects)):
+                                        if norms[i] == 0.0:
+                                            continue
+                                        for j in range(i + 1, len(limited_subjects)):
+                                            if norms[j] == 0.0:
+                                                continue
+                                            if normalized_subjects[i] == normalized_subjects[j]:
+                                                continue
+                                            score = float(
+                                                np.clip(
+                                                    np.dot(subject_embeddings[i], subject_embeddings[j])
+                                                    / (norms[i] * norms[j]),
+                                                    -1.0,
+                                                    1.0,
+                                                )
+                                            )
+                                            if score > best_score:
+                                                best_score = score
+                                                best_pair = (i, j)
+                                    if best_pair and best_score >= 0.7:
+                                        paraphrase_demo = (
+                                            limited_subjects[best_pair[0]],
+                                            limited_subjects[best_pair[1]],
+                                            best_score,
+                                        )
                 except Exception:
-                    pass
+                    paraphrase_demo = None
 
                 # 4) What this means / next step
                 st.markdown(
                     "Your model now has a simple **mental map** of what Spam vs. Safe looks like. "
                     "Next, we’ll check how well this map works on emails it hasn’t seen before."
                 )
+                if paraphrase_demo:
+                    subj_a, subj_b, cos_sim = paraphrase_demo
+                    subj_a_fmt = html.escape(_shorten_text(subj_a.strip()))
+                    subj_b_fmt = html.escape(_shorten_text(subj_b.strip()))
+                    st.markdown(
+                        f"""
+                        <div style="background: rgba(49, 51, 63, 0.05); border: 1px solid rgba(49, 51, 63, 0.08); border-radius: 0.6rem; padding: 0.75rem 1rem; margin-top: 0.75rem;">
+                            <p style="font-size: 0.85rem; font-weight: 600; margin: 0 0 0.35rem 0;">Paraphrase demo:</p>
+                            <ul style="margin: 0 0 0.5rem 1.1rem; padding: 0;">
+                                <li style="font-size: 0.85rem; margin-bottom: 0.25rem;"><em>{subj_a_fmt}</em></li>
+                                <li style="font-size: 0.85rem; margin-bottom: 0.25rem;"><em>{subj_b_fmt}</em></li>
+                            </ul>
+                            <p style="font-size: 0.8rem; color: rgba(49, 51, 63, 0.8); margin: 0;">Cosine similarity: {cos_sim:.2f}</p>
+                        </div>
+                        """,
+                        unsafe_allow_html=True,
+                    )
                 st.info("Go to **3) Evaluate** to test performance and choose a spam threshold.")
 
         except Exception as e:
