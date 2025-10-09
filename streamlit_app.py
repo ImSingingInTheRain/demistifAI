@@ -130,6 +130,38 @@ PII_DISPLAY_LABELS = [
 ]
 
 
+PII_INDICATOR_STYLE = """
+<style>
+.pii-indicators {
+    display: grid;
+    gap: 0.75rem;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    margin-bottom: 0.5rem;
+}
+.pii-indicator {
+    background: var(--secondary-background-color, rgba(250, 250, 250, 0.85));
+    border-radius: 0.75rem;
+    border: 1px solid rgba(49, 51, 63, 0.15);
+    box-shadow: 0 2px 6px rgba(15, 23, 42, 0.08);
+    padding: 0.75rem 1rem;
+    text-align: center;
+}
+.pii-indicator__label {
+    color: rgba(49, 51, 63, 0.65);
+    font-size: 0.75rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+.pii-indicator__value {
+    color: var(--text-color, #0d0d0d);
+    font-size: 1.75rem;
+    font-weight: 600;
+    margin-top: 0.35rem;
+}
+</style>
+"""
+
+
 def summarize_pii_counts(
     detailed_hits: Dict[int, Dict[str, List[Dict[str, Any]]]]
 ) -> Dict[str, int]:
@@ -275,10 +307,8 @@ def render_pii_cleanup_banner(lint_counts: Dict[str, int]) -> bool:
 
 def _ensure_pii_state() -> None:
     state = st.session_state
-    state.setdefault("pii_mode", "guided")
     state.setdefault("pii_queue_idx", 0)
     state.setdefault("pii_score", 0)
-    state.setdefault("pii_streak", 0)
     state.setdefault("pii_total_flagged", 0)
     state.setdefault("pii_cleaned_count", 0)
     state.setdefault("pii_queue", [])
@@ -1868,22 +1898,26 @@ def render_data_stage():
         if ss.get("pii_open"):
             with section_surface():
                 st.markdown("### 🔐 PII Cleanup")
-                metric_columns = st.columns([1, 1, 1, 1])
-                with metric_columns[0]:
-                    challenge_default = ss.get("pii_mode") == "challenge"
-                    challenge_on = st.toggle(
-                        "Challenge mode",
-                        key="pii_challenge_toggle",
-                        value=challenge_default,
-                        help="No highlights at first; find PII yourself for extra points.",
-                    )
-                    ss["pii_mode"] = "challenge" if challenge_on else "guided"
-                with metric_columns[1]:
-                    st.metric("Score", ss.get("pii_score", 0))
-                with metric_columns[2]:
-                    st.metric("Streak", ss.get("pii_streak", 0))
-                with metric_columns[3]:
-                    st.metric("Cleaned", ss.get("pii_cleaned_count", 0))
+                st.markdown(PII_INDICATOR_STYLE, unsafe_allow_html=True)
+                remaining_to_clean = len(flagged_ids)
+                indicator_values = [
+                    ("Score", int(ss.get("pii_score", 0) or 0)),
+                    ("Cleaned", int(ss.get("pii_cleaned_count", 0) or 0)),
+                    ("PII to be cleaned", remaining_to_clean),
+                ]
+                indicators_html = "".join(
+                    f"""
+                    <div class=\"pii-indicator\">
+                        <div class=\"pii-indicator__label\">{label}</div>
+                        <div class=\"pii-indicator__value\">{value}</div>
+                    </div>
+                    """
+                    for label, value in indicator_values
+                )
+                st.markdown(
+                    f"<div class='pii-indicators'>{indicators_html}</div>",
+                    unsafe_allow_html=True,
+                )
 
                 if not flagged_ids:
                     st.success("No PII left to clean in the preview. 🎉")
@@ -1895,19 +1929,13 @@ def render_data_stage():
                     row_id = flagged_ids[idx]
                     row_data = dict(preview_rows[row_id])
 
-                    col_queue, col_editor, col_tokens = st.columns([1.2, 2.4, 1.2], gap="large")
-
-                    with col_queue:
-                        st.caption("Queue")
-                        for display_index, rid in enumerate(flagged_ids[:20]):
-                            label = preview_rows[rid].get("label", "")
-                            indicator = "▶︎ " if display_index == idx else ""
-                            preview_title = preview_rows[rid].get("title", "")[:48]
-                            st.write(f"{indicator}{display_index + 1}. {preview_title} — *{label}*")
-                        st.caption(f"{len(flagged_ids)} flagged in total.")
+                    col_editor, col_tokens = st.columns([2.6, 1.2], gap="large")
 
                     with col_editor:
                         st.caption("Edit & highlight")
+                        st.caption(
+                            f"Cleaning email {idx + 1} of {remaining_to_clean} flagged entries."
+                        )
                         title_spans = ss["pii_hits_map"].get(row_id, {}).get("title", [])
                         body_spans = ss["pii_hits_map"].get(row_id, {}).get("body", [])
                         edited_values = ss.get("pii_edits", {}).get(row_id, {})
@@ -1937,13 +1965,19 @@ def render_data_stage():
                             else:
                                 ss["pii_pending_token"] = pending_token
 
-                        if ss.get("pii_mode") == "guided":
-                            st.markdown("**Title (highlighted)**", help="Highlights show detected PII.")
-                            st.markdown(_highlight_spans_html(st.session_state[title_key], title_spans), unsafe_allow_html=True)
-                            st.markdown("**Body (highlighted)**")
-                            st.markdown(_highlight_spans_html(st.session_state[body_key], body_spans), unsafe_allow_html=True)
-                        else:
-                            st.caption("No highlights (challenge mode). Try to spot the PII.")
+                        st.markdown(
+                            "**Title (highlighted)**",
+                            help="Highlights show detected PII.",
+                        )
+                        st.markdown(
+                            _highlight_spans_html(st.session_state[title_key], title_spans),
+                            unsafe_allow_html=True,
+                        )
+                        st.markdown("**Body (highlighted)**")
+                        st.markdown(
+                            _highlight_spans_html(st.session_state[body_key], body_spans),
+                            unsafe_allow_html=True,
+                        )
 
                         title_value = st.text_input("✏️ Title (editable)", key=title_key)
                         body_value = st.text_area("✏️ Body (editable)", key=body_key, height=180)
@@ -1992,12 +2026,9 @@ def render_data_stage():
                             ss["dataset_preview_lint"] = lint_dataset(preview_rows)
                             if not relinted_title and not relinted_body:
                                 ss["pii_cleaned_count"] = ss.get("pii_cleaned_count", 0) + 1
-                                ss["pii_streak"] = ss.get("pii_streak", 0) + 1
-                                points = 10 + min(ss["pii_streak"] * 2, 10)
-                                if ss.get("pii_mode") == "challenge":
-                                    points += 3
+                                points = 10
                                 ss["pii_score"] = ss.get("pii_score", 0) + points
-                                st.toast(f"Clean! +{points} points (streak {ss['pii_streak']})", icon="🎯")
+                                st.toast(f"Clean! +{points} points", icon="🎯")
                                 ss["pii_hits_map"].pop(row_id, None)
                                 ss["pii_queue"] = [rid for rid in flagged_ids if rid != row_id]
                                 flagged_ids = ss["pii_queue"]
@@ -2005,16 +2036,11 @@ def render_data_stage():
                                 ss["pii_total_flagged"] = len(flagged_ids)
                             else:
                                 ss["pii_hits_map"][row_id] = {"title": relinted_title, "body": relinted_body}
-                                ss["pii_streak"] = 0 if ss.get("pii_mode") == "guided" else ss.get("pii_streak", 0)
-                                if ss.get("pii_mode") == "guided":
-                                    ss["pii_score"] = max(0, ss.get("pii_score", 0) - 2)
-                                    st.toast("Still detecting PII — try replacing with tokens.", icon="⚠️")
-                                else:
-                                    st.toast("Looks like some PII remains. Replace with tokens like {{EMAIL}}.", icon="ℹ️")
+                                ss["pii_score"] = max(0, ss.get("pii_score", 0) - 2)
+                                st.toast("Still detecting PII — try replacing with tokens.", icon="⚠️")
                             _streamlit_rerun()
 
                         if skip_row:
-                            ss["pii_streak"] = 0
                             if flagged_ids:
                                 ss["pii_queue_idx"] = (idx + 1) % len(flagged_ids)
                             _streamlit_rerun()
