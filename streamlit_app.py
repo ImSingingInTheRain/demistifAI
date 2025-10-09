@@ -2773,7 +2773,7 @@ def render_data_stage():
 
     if dataset_generated_once or preview_summary_for_health is not None:
         with section_surface():
-            st.markdown("### 3 · Snapshot & provenance")
+            st.markdown("### Dataset snapshot")
             current_config = ss.get("dataset_config", DEFAULT_DATASET_CONFIG)
             config_json = json.dumps(current_config, indent=2, sort_keys=True)
             current_summary = ss.get("dataset_summary") or compute_dataset_summary(ss.get("labeled", []))
