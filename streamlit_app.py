@@ -1498,29 +1498,7 @@ def render_data_stage():
             target_summary_for_delta = preview_summary_local
 
         with builder_cols[1]:
-            action_cols = st.columns(2, gap="small")
-            with action_cols[0]:
-                if st.button("Compare to last dataset", key="compare_dataset_button"):
-                    if ss.get("previous_dataset_summary"):
-                        ss["dataset_compare_delta"] = dataset_summary_delta(
-                            ss["previous_dataset_summary"], current_summary
-                        )
-                        delta_summary = ss["dataset_compare_delta"]
-                        delta_text = dataset_delta_story(delta_summary)
-                        st.toast("Comparison updated below the builder.", icon="📊")
-                    else:
-                        st.toast(
-                            "No previous dataset stored yet — save a snapshot after your first tweak.",
-                            icon="ℹ️",
-                        )
-            with action_cols[1]:
-                st.button(
-                    "Clear preview",
-                    key="clear_dataset_preview",
-                    disabled=ss.get("dataset_preview") is None,
-                    on_click=_discard_preview,
-                )
-
+            
             panel_items: list[tuple[str, str, str, str]] = []
             spam_share_delta_pp: Optional[float] = None
 
