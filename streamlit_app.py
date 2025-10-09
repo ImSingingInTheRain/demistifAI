@@ -1174,8 +1174,6 @@ def render_data_stage():
         unsafe_allow_html=True,
     )
 
-    with section_surface():
-        lead_col, side_col = st.columns([3, 2], gap="large")
 
     delta_text = ""
     if ss.get("dataset_compare_delta"):
