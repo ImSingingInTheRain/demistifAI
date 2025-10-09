@@ -1834,6 +1834,7 @@ def render_data_stage():
                                 spam_width=f"{spam_pct:.1f}",
                                 safe_width=f"{safe_pct:.1f}",
                                 spam_pct=spam_pct,
+                                safe_pct=safe_pct,
                                 total_rows=html.escape(str(total_display)),
                                 lint_section=lint_section,
                             ),
