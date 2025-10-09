@@ -86,7 +86,7 @@ This stage is the home of all data curation logic, making it the best place to e
 
 **Normal mode experience.** `render_train_stage()` reinforces the EU AI Act concept of inference and provides a practical checklist (balanced classes, adequate examples) before exposing a primary "🚀 Train model" button. Pressing the button triggers validation (minimum six examples and both labels present) and, if successful, trains a `HybridEmbedFeatsLogReg` classifier using sentence embeddings plus engineered numeric features.
 
-**Nerd Mode enhancements.** The Nerd Mode toggle exposes sliders for hold-out size and threshold, numeric inputs for random seed, solver iterations, and regularisation (`C`). After training, the stage also surfaces interpretable outputs—feature weight tables, adjustable sliders for numeric cues, and embedding prototype explorers.
+**🔬 Nerd Mode enhancements.** The Nerd Mode toggle exposes sliders for hold-out size and threshold, numeric inputs for random seed, solver iterations, and regularisation (`C`). After training, the stage also surfaces interpretable outputs—feature weight tables, adjustable sliders for numeric cues, and embedding prototype explorers.
 
 ```python
 nerd_mode_train_enabled = render_nerd_mode_toggle(
