@@ -1906,12 +1906,12 @@ def render_data_stage():
                     ("PII to be cleaned", remaining_to_clean),
                 ]
                 indicators_html = "".join(
-                    f"""
-                    <div class=\"pii-indicator\">
-                        <div class=\"pii-indicator__label\">{label}</div>
-                        <div class=\"pii-indicator__value\">{value}</div>
-                    </div>
-                    """
+                    (
+                        "<div class='pii-indicator'>"
+                        f"<div class='pii-indicator__label'>{label}</div>"
+                        f"<div class='pii-indicator__value'>{value}</div>"
+                        "</div>"
+                    )
                     for label, value in indicator_values
                 )
                 st.markdown(
