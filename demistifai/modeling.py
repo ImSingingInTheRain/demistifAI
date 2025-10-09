@@ -546,6 +546,7 @@ class HybridEmbedFeatsLogReg:
         self.random_state = random_state
 
         self.lr_text: CalibratedClassifierCV | None = None
+        self.lr_text_base: LogisticRegression | None = None
         self.lr_num: LogisticRegression | None = None
 
         self.scaler = StandardScaler()
@@ -631,6 +632,7 @@ class HybridEmbedFeatsLogReg:
             max_iter=self.max_iter, C=self.C, random_state=self.random_state
         )
         base_text.fit(X_emb_tr, y_tr)
+        self.lr_text_base = base_text
         self.lr_text = CalibratedClassifierCV(base_text, method="isotonic", cv="prefit")
         self.lr_text.fit(X_emb_val, y_val)
 
@@ -724,4 +726,27 @@ class HybridEmbedFeatsLogReg:
             thr[idxs] = thr_eff
         labels = np.where(probs >= thr, "spam", "safe")
         return labels
+
+    def predict_logit(self, texts):
+        """Return raw logit scores from the text-only head before calibration."""
+
+        if self.lr_text_base is None and self.lr_text is None:
+            raise RuntimeError("Text model not trained")
+
+        if isinstance(texts, str):
+            texts = [texts]
+
+        embeddings = encode_texts(list(texts))
+
+        if self.lr_text_base is not None:
+            decision = self.lr_text_base.decision_function(embeddings)
+            decision = np.asarray(decision, dtype=float)
+            if decision.ndim == 2 and decision.shape[1] > 1:
+                decision = decision[:, self._i_spam]
+            return decision.reshape(-1)
+
+        probs = self.lr_text.predict_proba(embeddings)[:, self._i_spam]
+        probs = np.clip(probs, 1e-6, 1 - 1e-6)
+        logits = np.log(probs / (1.0 - probs))
+        return logits.reshape(-1)
 

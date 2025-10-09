@@ -3821,6 +3821,45 @@ def render_train_stage():
             elif centroid_message:
                 st.caption(centroid_message)
 
+            st.markdown("#### Decision margin spread (text head)")
+            margins: Optional[np.ndarray] = None
+            margin_error = False
+            if not train_texts_combined:
+                st.caption("Margin distribution unavailable (no training texts).")
+            else:
+                logits: Optional[np.ndarray] = None
+                model_obj = ss.get("model")
+                try:
+                    if hasattr(model_obj, "predict_logit"):
+                        logits = np.asarray(model_obj.predict_logit(train_texts_combined), dtype=float)
+                    if logits is None or logits.size == 0:
+                        probs = model_obj.predict_proba(X_tr_t, X_tr_b)[:, getattr(model_obj, "_i_spam", 1)]
+                        probs = np.clip(probs, 1e-6, 1 - 1e-6)
+                        logits = np.log(probs / (1.0 - probs))
+                    logits = np.asarray(logits, dtype=float).reshape(-1)
+                    logits = logits[np.isfinite(logits)]
+                    if logits.size > 0:
+                        margins = np.abs(logits)
+                except Exception as exc:
+                    st.caption(f"Margin distribution unavailable: {exc}")
+                    margins = None
+                    margin_error = True
+
+            if margins is not None and margins.size > 0:
+                try:
+                    bins = min(12, max(5, int(np.ceil(np.log2(margins.size + 1)))))
+                    counts, edges = np.histogram(margins, bins=bins)
+                    labels = [
+                        f"{edges[i]:.2f}–{edges[i + 1]:.2f}" for i in range(len(edges) - 1)
+                    ]
+                    hist_df = pd.DataFrame({"margin": labels, "count": counts})
+                    st.bar_chart(hist_df.set_index("margin"), width="stretch")
+                    st.caption("Higher margins = clearer separation.")
+                except Exception as exc:
+                    st.caption(f"Could not render margin histogram: {exc}")
+            elif train_texts_combined and not margin_error:
+                st.caption("Margin distribution unavailable (no valid logit values).")
+
             params = ss.get("train_params", {})
             st.markdown("**Parameters used**")
             st.markdown(
