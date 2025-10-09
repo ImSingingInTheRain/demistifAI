@@ -1311,206 +1311,214 @@ def render_data_stage():
     nerd_mode_data_enabled = bool(ss.get("nerd_mode_data"))
 
     with section_surface():
-        st.markdown("### 1 · Prepare data → Dataset builder")
-        nerd_mode_data_enabled = render_nerd_mode_toggle(
-            key="nerd_mode_data",
-            title="Nerd Mode — advanced dataset controls",
-            description="Expose feature prevalence, randomness, diagnostics, and CSV import when you need them.",
-        )
+        info_col, builder_col = st.columns([0.35, 0.75], gap="large")
+        with info_col:
+            st.markdown("#### Prepare data")
+            st.markdown(
+                """Your AI system must learn how to distinguish a safe email from spam. The first step to achieve this is to prepare a dataset representing what spam and safe emails look like. To make your life easy, to the right you can find a dataset builder that will generate a synthetic dataset for you. Play with size and properties of the dataset, generate a preview of the dataset and check its health status and recommendations to improve it. Toggle nerd mode below to get access to advanced configuration and diagnostic controls."""
+            )
+            nerd_mode_data_enabled = render_nerd_mode_toggle(
+                key="nerd_mode_data",
+                title="Nerd Mode — advanced dataset controls",
+                description="Expose feature prevalence, randomness, diagnostics, and CSV import when you need them.",
+            )
 
-        col_m1, col_m2, col_m3, col_m4 = st.columns(4, gap="large")
-        with col_m1:
-            st.metric("Examples", current_summary.get("total", 0))
-        with col_m2:
-            st.metric("Spam share", f"{current_summary.get('spam_ratio', 0) * 100:.1f}%")
-        with col_m3:
-            st.metric("Suspicious TLD hits", current_summary.get("suspicious_tlds", 0))
-        with col_m4:
-            st.metric("Avg suspicious links (spam)", f"{current_summary.get('avg_susp_links', 0.0):.2f}")
+        with builder_col:
+            st.markdown("### 1 · Prepare data → Dataset builder")
 
-        st.caption(
-            "Class balance and feature prevalence are governance controls — tweak them to see how they shape learning."
-        )
+            col_m1, col_m2, col_m3, col_m4 = st.columns(4, gap="large")
+            with col_m1:
+                st.metric("Examples", current_summary.get("total", 0))
+            with col_m2:
+                st.metric("Spam share", f"{current_summary.get('spam_ratio', 0) * 100:.1f}%")
+            with col_m3:
+                st.metric("Suspicious TLD hits", current_summary.get("suspicious_tlds", 0))
+            with col_m4:
+                st.metric("Avg suspicious links (spam)", f"{current_summary.get('avg_susp_links', 0.0):.2f}")
 
-        delta_summary = ss.get("dataset_compare_delta")
-        base_summary_for_delta = None
-        target_summary_for_delta = None
-        if ss.get("dataset_preview_summary"):
-            base_summary_for_delta = current_summary
-            target_summary_for_delta = ss["dataset_preview_summary"]
-        elif ss.get("previous_dataset_summary") and delta_summary:
-            base_summary_for_delta = ss.get("previous_dataset_summary")
-            target_summary_for_delta = ss.get("dataset_summary", current_summary)
-        else:
-            base_summary_for_delta = compute_dataset_summary(STARTER_LABELED)
-            target_summary_for_delta = current_summary
-            if delta_summary is None:
-                delta_summary = dataset_summary_delta(
-                    base_summary_for_delta, target_summary_for_delta
-                )
+            st.caption(
+                "Class balance and feature prevalence are governance controls — tweak them to see how they shape learning."
+            )
 
-        preview_clicked = False
-        reset_clicked = False
-
-        builder_cols = st.columns([3, 2], gap="large")
-
-        with builder_cols[0]:
-            cfg = ss.get("dataset_config", DEFAULT_DATASET_CONFIG)
-            _set_advanced_knob_state(cfg)
-
-            spam_ratio_default = float(cfg.get("spam_ratio", 0.5))
-            spam_share_default = int(round(spam_ratio_default * 100))
-            spam_share_default = min(max(spam_share_default, 20), 80)
-            if spam_share_default % 5 != 0:
-                spam_share_default = int(5 * round(spam_share_default / 5))
-
-            with st.form("dataset_builder_form"):
-                dataset_size = st.radio(
-                    "Dataset size",
-                    options=[100, 300, 500],
-                    index=[100, 300, 500].index(int(cfg.get("n_total", 500)))
-                    if int(cfg.get("n_total", 500)) in [100, 300, 500]
-                    else 2,
-                    help="Preset sizes illustrate how data volume influences learning (guarded ≤500).",
-                )
-                spam_share_pct = st.slider(
-                    "Spam share",
-                    min_value=20,
-                    max_value=80,
-                    value=spam_share_default,
-                    step=5,
-                    help="Adjust prevalence to explore bias/recall trade-offs.",
-                )
-                edge_cases = st.slider(
-                    "Edge cases",
-                    min_value=0,
-                    max_value=len(EDGE_CASE_TEMPLATES),
-                    value=int(cfg.get("edge_cases", 0)),
-                    help="Inject similar-looking spam/safe pairs to stress the model.",
-                )
-
-                if nerd_mode_data_enabled:
-                    with st.expander("Advanced knobs", expanded=True):
-                        st.caption(
-                            "Fine-tune suspicious links, domains, tone, attachments, randomness, and demos before generating a preview."
-                        )
-                        attachment_keys = list(ATTACHMENT_MIX_PRESETS.keys())
-                        adv_col_a, adv_col_b = st.columns(2, gap="large")
-                        with adv_col_a:
-                            st.slider(
-                                "Suspicious links per spam email",
-                                min_value=0,
-                                max_value=2,
-                                value=int(st.session_state.get("adv_links_level", 1)),
-                                help="Controls how many sketchy URLs appear in spam examples (0–2).",
-                                key="adv_links_level",
-                            )
-                            st.select_slider(
-                                "Suspicious TLD frequency",
-                                options=["low", "med", "high"],
-                                value=str(
-                                    st.session_state.get(
-                                        "adv_tld_level", cfg.get("susp_tld_level", "med")
-                                    )
-                                ),
-                                key="adv_tld_level",
-                            )
-                            st.select_slider(
-                                "ALL-CAPS / urgency intensity",
-                                options=["low", "med", "high"],
-                                value=str(
-                                    st.session_state.get(
-                                        "adv_caps_level", cfg.get("caps_intensity", "med")
-                                    )
-                                ),
-                                key="adv_caps_level",
-                            )
-                        with adv_col_b:
-                            st.select_slider(
-                                "Money symbols & urgency",
-                                options=["off", "low", "high"],
-                                value=str(
-                                    st.session_state.get(
-                                        "adv_money_level", cfg.get("money_urgency", "low")
-                                    )
-                                ),
-                                key="adv_money_level",
-                            )
-                            st.selectbox(
-                                "Attachment lure mix",
-                                options=attachment_keys,
-                                index=attachment_keys.index(
-                                    st.session_state.get("adv_attachment_choice", "Balanced")
-                                )
-                                if st.session_state.get("adv_attachment_choice", "Balanced") in attachment_keys
-                                else 1,
-                                help="Choose how often risky attachments (HTML/ZIP/XLSM/EXE) appear vs. safer PDFs.",
-                                key="adv_attachment_choice",
-                            )
-                            st.slider(
-                                "Label noise (%)",
-                                min_value=0.0,
-                                max_value=5.0,
-                                step=1.0,
-                                value=float(
-                                    st.session_state.get(
-                                        "adv_label_noise_pct", cfg.get("label_noise_pct", 0.0)
-                                    )
-                                ),
-                                key="adv_label_noise_pct",
-                            )
-                            st.number_input(
-                                "Random seed",
-                                min_value=0,
-                                value=int(st.session_state.get("adv_seed", cfg.get("seed", 42))),
-                                key="adv_seed",
-                                help="Keep this fixed for reproducibility.",
-                            )
-                            st.toggle(
-                                "Data poisoning demo (synthetic)",
-                                value=bool(
-                                    st.session_state.get(
-                                        "adv_poison_demo", cfg.get("poison_demo", False)
-                                    )
-                                ),
-                                key="adv_poison_demo",
-                                help="Adds a tiny malicious distribution shift labeled as safe to show metric degradation.",
-                            )
-
-                st.markdown("<div class='cta-sticky'>", unsafe_allow_html=True)
-                btn_primary, btn_secondary = st.columns([1, 1])
-                with btn_primary:
-                    preview_clicked = st.form_submit_button("Generate preview", type="primary")
-                with btn_secondary:
-                    reset_clicked = st.form_submit_button("Reset to baseline", type="secondary")
-                st.markdown("</div>", unsafe_allow_html=True)
-
-        spam_ratio = float(spam_share_pct) / 100.0
-
-        if reset_clicked:
-            ss["labeled"] = starter_dataset_copy()
-            ss["dataset_config"] = DEFAULT_DATASET_CONFIG.copy()
-            baseline_summary = compute_dataset_summary(ss["labeled"])
-            ss["dataset_summary"] = baseline_summary
-            ss["previous_dataset_summary"] = None
-            ss["dataset_compare_delta"] = None
-            ss["last_dataset_delta_story"] = None
-            ss["active_dataset_snapshot"] = None
-            ss["dataset_snapshot_name"] = ""
-            ss["dataset_last_built_at"] = datetime.now().isoformat(timespec="seconds")
-            ss["dataset_preview"] = None
-            ss["dataset_preview_config"] = None
-            ss["dataset_preview_summary"] = None
-            ss["dataset_preview_lint"] = None
-            ss["dataset_manual_queue"] = None
-            ss["dataset_controls_open"] = False
-            _set_advanced_knob_state(ss["dataset_config"], force=True)
-            st.success(f"Dataset reset to starter baseline ({len(STARTER_LABELED)} rows).")
-            current_summary = baseline_summary
             delta_summary = ss.get("dataset_compare_delta")
-            delta_text = explain_config_change(ss.get("dataset_config", DEFAULT_DATASET_CONFIG))
-            base_summary_for_delta = compute_dataset_summary(STARTER_LABELED)
-            target_summary_for_delta = current_summary
+            base_summary_for_delta = None
+            target_summary_for_delta = None
+            if ss.get("dataset_preview_summary"):
+                base_summary_for_delta = current_summary
+                target_summary_for_delta = ss["dataset_preview_summary"]
+            elif ss.get("previous_dataset_summary") and delta_summary:
+                base_summary_for_delta = ss.get("previous_dataset_summary")
+                target_summary_for_delta = ss.get("dataset_summary", current_summary)
+            else:
+                base_summary_for_delta = compute_dataset_summary(STARTER_LABELED)
+                target_summary_for_delta = current_summary
+                if delta_summary is None:
+                    delta_summary = dataset_summary_delta(
+                        base_summary_for_delta, target_summary_for_delta
+                    )
+
+            preview_clicked = False
+            reset_clicked = False
+
+            builder_cols = st.columns([3, 2], gap="large")
+
+            with builder_cols[0]:
+                cfg = ss.get("dataset_config", DEFAULT_DATASET_CONFIG)
+                _set_advanced_knob_state(cfg)
+
+                spam_ratio_default = float(cfg.get("spam_ratio", 0.5))
+                spam_share_default = int(round(spam_ratio_default * 100))
+                spam_share_default = min(max(spam_share_default, 20), 80)
+                if spam_share_default % 5 != 0:
+                    spam_share_default = int(5 * round(spam_share_default / 5))
+
+                with st.form("dataset_builder_form"):
+                    dataset_size = st.radio(
+                        "Dataset size",
+                        options=[100, 300, 500],
+                        index=[100, 300, 500].index(int(cfg.get("n_total", 500)))
+                        if int(cfg.get("n_total", 500)) in [100, 300, 500]
+                        else 2,
+                        help="Preset sizes illustrate how data volume influences learning (guarded ≤500).",
+                    )
+                    spam_share_pct = st.slider(
+                        "Spam share",
+                        min_value=20,
+                        max_value=80,
+                        value=spam_share_default,
+                        step=5,
+                        help="Adjust prevalence to explore bias/recall trade-offs.",
+                    )
+                    edge_cases = st.slider(
+                        "Edge cases",
+                        min_value=0,
+                        max_value=len(EDGE_CASE_TEMPLATES),
+                        value=int(cfg.get("edge_cases", 0)),
+                        help="Inject similar-looking spam/safe pairs to stress the model.",
+                    )
+
+                    if nerd_mode_data_enabled:
+                        with st.expander("Advanced knobs", expanded=True):
+                            st.caption(
+                                "Fine-tune suspicious links, domains, tone, attachments, randomness, and demos before generating a preview."
+                            )
+                            attachment_keys = list(ATTACHMENT_MIX_PRESETS.keys())
+                            adv_col_a, adv_col_b = st.columns(2, gap="large")
+                            with adv_col_a:
+                                st.slider(
+                                    "Suspicious links per spam email",
+                                    min_value=0,
+                                    max_value=2,
+                                    value=int(st.session_state.get("adv_links_level", 1)),
+                                    help="Controls how many sketchy URLs appear in spam examples (0–2).",
+                                    key="adv_links_level",
+                                )
+                                st.select_slider(
+                                    "Suspicious TLD frequency",
+                                    options=["low", "med", "high"],
+                                    value=str(
+                                        st.session_state.get(
+                                            "adv_tld_level", cfg.get("susp_tld_level", "med")
+                                        )
+                                    ),
+                                    key="adv_tld_level",
+                                )
+                                st.select_slider(
+                                    "ALL-CAPS / urgency intensity",
+                                    options=["low", "med", "high"],
+                                    value=str(
+                                        st.session_state.get(
+                                            "adv_caps_level", cfg.get("caps_intensity", "med")
+                                        )
+                                    ),
+                                    key="adv_caps_level",
+                                )
+                            with adv_col_b:
+                                st.select_slider(
+                                    "Money symbols & urgency",
+                                    options=["off", "low", "high"],
+                                    value=str(
+                                        st.session_state.get(
+                                            "adv_money_level", cfg.get("money_urgency", "low")
+                                        )
+                                    ),
+                                    key="adv_money_level",
+                                )
+                                st.selectbox(
+                                    "Attachment lure mix",
+                                    options=attachment_keys,
+                                    index=attachment_keys.index(
+                                        st.session_state.get("adv_attachment_choice", "Balanced")
+                                    )
+                                    if st.session_state.get("adv_attachment_choice", "Balanced") in attachment_keys
+                                    else 1,
+                                    help="Choose how often risky attachments (HTML/ZIP/XLSM/EXE) appear vs. safer PDFs.",
+                                    key="adv_attachment_choice",
+                                )
+                                st.slider(
+                                    "Label noise (%)",
+                                    min_value=0.0,
+                                    max_value=5.0,
+                                    step=1.0,
+                                    value=float(
+                                        st.session_state.get(
+                                            "adv_label_noise_pct", cfg.get("label_noise_pct", 0.0)
+                                        )
+                                    ),
+                                    key="adv_label_noise_pct",
+                                )
+                                st.number_input(
+                                    "Random seed",
+                                    min_value=0,
+                                    value=int(st.session_state.get("adv_seed", cfg.get("seed", 42))),
+                                    key="adv_seed",
+                                    help="Keep this fixed for reproducibility.",
+                                )
+                                st.toggle(
+                                    "Data poisoning demo (synthetic)",
+                                    value=bool(
+                                        st.session_state.get(
+                                            "adv_poison_demo", cfg.get("poison_demo", False)
+                                        )
+                                    ),
+                                    key="adv_poison_demo",
+                                    help="Adds a tiny malicious distribution shift labeled as safe to show metric degradation.",
+                                )
+
+                    st.markdown("<div class='cta-sticky'>", unsafe_allow_html=True)
+                    btn_primary, btn_secondary = st.columns([1, 1])
+                    with btn_primary:
+                        preview_clicked = st.form_submit_button("Generate preview", type="primary")
+                    with btn_secondary:
+                        reset_clicked = st.form_submit_button("Reset to baseline", type="secondary")
+                    st.markdown("</div>", unsafe_allow_html=True)
+
+            spam_ratio = float(spam_share_pct) / 100.0
+
+            if reset_clicked:
+                ss["labeled"] = starter_dataset_copy()
+                ss["dataset_config"] = DEFAULT_DATASET_CONFIG.copy()
+                baseline_summary = compute_dataset_summary(ss["labeled"])
+                ss["dataset_summary"] = baseline_summary
+                ss["previous_dataset_summary"] = None
+                ss["dataset_compare_delta"] = None
+                ss["last_dataset_delta_story"] = None
+                ss["active_dataset_snapshot"] = None
+                ss["dataset_snapshot_name"] = ""
+                ss["dataset_last_built_at"] = datetime.now().isoformat(timespec="seconds")
+                ss["dataset_preview"] = None
+                ss["dataset_preview_config"] = None
+                ss["dataset_preview_summary"] = None
+                ss["dataset_preview_lint"] = None
+                ss["dataset_manual_queue"] = None
+                ss["dataset_controls_open"] = False
+                _set_advanced_knob_state(ss["dataset_config"], force=True)
+                st.success(f"Dataset reset to starter baseline ({len(STARTER_LABELED)} rows).")
+                current_summary = baseline_summary
+                delta_summary = ss.get("dataset_compare_delta")
+                delta_text = explain_config_change(ss.get("dataset_config", DEFAULT_DATASET_CONFIG))
+                base_summary_for_delta = compute_dataset_summary(STARTER_LABELED)
+                target_summary_for_delta = current_summary
 
         preview_summary_local: Optional[Dict[str, Any]] = None
         if preview_clicked:
