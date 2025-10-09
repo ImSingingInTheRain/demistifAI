@@ -1261,20 +1261,6 @@ def render_data_stage():
         with builder_col:
             st.markdown("### Dataset builder")
 
-            col_m1, col_m2, col_m3, col_m4 = st.columns(4, gap="large")
-            with col_m1:
-                st.metric("Examples", current_summary.get("total", 0))
-            with col_m2:
-                st.metric("Spam share", f"{current_summary.get('spam_ratio', 0) * 100:.1f}%")
-            with col_m3:
-                st.metric("Suspicious TLD hits", current_summary.get("suspicious_tlds", 0))
-            with col_m4:
-                st.metric("Avg suspicious links (spam)", f"{current_summary.get('avg_susp_links', 0.0):.2f}")
-
-            st.caption(
-                "Class balance and feature prevalence are governance controls — tweak them to see how they shape learning."
-            )
-
             delta_summary = ss.get("dataset_compare_delta")
             base_summary_for_delta = None
             target_summary_for_delta = None
