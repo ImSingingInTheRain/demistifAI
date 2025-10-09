@@ -3779,6 +3779,38 @@ def render_train_stage():
                 "- Applies the hyperparameters you set above."
             )
 
+            if not ss.get("nerd_mode_train"):
+                threshold = float(ss.get("threshold", 0.6))
+                guard_params = ss.get("guard_params", {})
+                band = float(guard_params.get("uncertainty_band", 0.08))
+
+                low = max(0.0, threshold - band)
+                high = min(1.0, threshold + band)
+                low_pct = low * 100.0
+                high_pct = high * 100.0
+                threshold_pct = max(0.0, min(100.0, threshold * 100.0))
+
+                band_left = max(0.0, min(100.0, low_pct))
+                band_right = max(0.0, min(100.0, high_pct))
+                band_width = max(0.0, band_right - band_left)
+
+                band_bar_html = f"""
+                <div style=\"margin-top:0.6rem;\">
+                    <div style=\"position:relative;height:16px;width:100%;max-width:220px;background:rgba(49,51,63,0.08);border-radius:999px;\">
+                        <div style=\"position:absolute;left:{band_left:.2f}%;width:{band_width:.2f}%;top:0;bottom:0;background:rgba(235,105,26,0.28);border-radius:999px;\"></div>
+                        <div style=\"position:absolute;left:{threshold_pct:.2f}%;top:-4px;bottom:-4px;width:2px;background:rgba(210,73,15,0.9);border-radius:2px;\"></div>
+                        <div style=\"position:absolute;left:-2px;top:50%;transform:translate(-100%,-50%);font-size:0.65rem;color:rgba(49,51,63,0.6);\">0</div>
+                        <div style=\"position:absolute;right:-2px;top:50%;transform:translate(100%,-50%);font-size:0.65rem;color:rgba(49,51,63,0.6);\">1</div>
+                    </div>
+                    <div style=\"margin-top:0.25rem;font-size:0.65rem;color:rgba(15,23,42,0.65);\">τ = {threshold:.2f} • band ±{band:.2f}</div>
+                </div>
+                """
+
+                context_col.markdown(band_bar_html, unsafe_allow_html=True)
+                context_col.caption(
+                    "Inside this band, numeric cues (links/TLD/caps/money) may assist the text model."
+                )
+
     if trigger_train:
         if len(ss["labeled"]) < 6:
             st.warning("Please label a few more emails first (≥6 examples).")
