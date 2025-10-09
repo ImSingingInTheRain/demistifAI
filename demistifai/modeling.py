@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import re
-from typing import Any, Dict, List, Optional, Tuple, Callable
+from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
 from urllib.parse import urlparse
 
 import matplotlib.pyplot as plt
@@ -806,7 +806,7 @@ class HybridEmbedFeatsLogReg:
         labels = np.where(probs >= thr, "spam", "safe")
         return labels
 
-    def predict_logit(self, texts):
+    def predict_logit(self, texts: Sequence[str] | str) -> np.ndarray:
         """Return raw logit scores from the text-only head before calibration."""
 
         if self.lr_text_base is None and self.lr_text is None:
@@ -824,13 +824,18 @@ class HybridEmbedFeatsLogReg:
                 decision = decision[:, self._i_spam]
             return decision.reshape(-1)
 
+        if self.lr_text is None:
+            raise RuntimeError("Text model not trained")
+
         probs = self.lr_text.predict_proba(embeddings)[:, self._i_spam]
         probs = np.clip(probs, 1e-6, 1 - 1e-6)
         logits = np.log(probs / (1.0 - probs))
         return logits.reshape(-1)
 
-    def audit_numeric_interplay(self, titles, bodies, threshold: float = 0.5) -> dict:
+    def audit_numeric_interplay(self, titles, bodies) -> dict:
         """Quantify how often numeric cues assisted the text head during CV."""
+
+        threshold = 0.5
 
         if titles is None or bodies is None:
             return {"pct_consulted": 0.0, "avg_threshold_shift": 0.0, "avg_prob_blend_weight": 0.0}
