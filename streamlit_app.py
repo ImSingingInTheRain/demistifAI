@@ -1463,72 +1463,6 @@ def render_overview_stage():
             snippet = snippet[: limit - 1].rstrip() + "…"
         return snippet
 
-    mission_preview_items = []
-    for record in preview_records[:3]:
-        subject = html.escape(record.get("title", "Untitled email"))
-        snippet = html.escape(_format_snippet(record.get("body")))
-        mission_preview_items.append(
-            f"<li class='mission-brief__inbox-item'><span class='mission-brief__subject'>{subject}</span><span class='mission-brief__snippet'>{snippet}</span></li>"
-        )
-
-    if not mission_preview_items:
-        mission_preview_items.append(
-            "<li class='mission-brief__empty'>Inbox stream is quiet for now. New messages will arrive once you start operating your system.</li>"
-        )
-
-
-    preview_total = len(preview_records)
-    mission_preview_items_html = "".join(mission_preview_items)
-    preview_intro = (
-        f"These are the first {min(preview_total, 3)} messages queued for triage."
-        if preview_total
-        else "The inbox stream is quiet for now. As soon as emails arrive they’ll appear here and in the preview below."
-    )
-    preview_note = (
-        "They mirror the live inbox preview below — skim them now so you know what’s coming."
-        if preview_total
-        else "Once messages arrive, they’ll show up here and in the live inbox preview below."
-    )
-
-    mission_html = textwrap.dedent(
-        f"""
-        <div class="mission-brief">
-            <div class="mission-brief__header">
-                <span class="mission-brief__icon">🎯</span>
-                <div>
-                    <span class="mission-brief__eyebrow">Mission briefing</span>
-                    <h3 class="mission-brief__title">Your mission</h3>
-                </div>
-            </div>
-            <p class="mission-brief__bridge">You’re stepping into the control room of an email triage machine. The inbox snapshot on the right matches the live preview you’ll work from in a moment.</p>
-            <div class="mission-brief__grid">
-                <div class="mission-brief__objective">
-                    <p>Keep unwanted email out while letting the important messages through. You’ll steer the controls, set the operating thresholds, and verify the system’s choices.</p>
-                    <ul class="mission-brief__list">
-                        <li>Scan the inbox feed and spot risky patterns early.</li>
-                        <li>Decide how strict the spam filter should be and when autonomy applies.</li>
-                        <li>Confirm or correct decisions so the system learns your judgement.</li>
-                    </ul>
-                </div>
-                <div class="mission-brief__preview">
-                    <div class="mission-brief__preview-card">
-                        <span class="mission-brief__preview-eyebrow">Up next</span>
-                        <h4 class="mission-brief__preview-title">Live inbox preview</h4>
-                        <p class="mission-brief__preview-intro">{html.escape(preview_intro)}</p>
-                        <ul class="mission-brief__inbox-list">
-                            {mission_preview_items_html}
-                        </ul>
-                        <p class="mission-brief__preview-note">{html.escape(preview_note)}</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-        """
-    ).strip()
-
-    with section_surface():
-        st.markdown(mission_html, unsafe_allow_html=True)
-
     inbox_rows_html = []
     for record in preview_records:
         subject = html.escape(record.get("title", "Untitled email"))
@@ -1567,17 +1501,40 @@ def render_overview_stage():
         """
     ).format(count=len(preview_records) or 0, rows="".join(inbox_rows_html)).strip()
 
-    with section_surface():
-        st.markdown(
-            """
-            <div class="overview-subheading">
-                <span class="overview-subheading__eyebrow">Inbox stream</span>
-                <h3>Live inbox preview</h3>
+    mission_html = textwrap.dedent(
+        f"""
+        <div class="mission-brief">
+            <div class="mission-brief__header">
+                <span class="mission-brief__icon">🎯</span>
+                <div>
+                    <span class="mission-brief__eyebrow">Mission briefing</span>
+                    <h3 class="mission-brief__title">Your mission</h3>
+                </div>
             </div>
-            """,
-            unsafe_allow_html=True,
-        )
-        st.markdown(mailbox_html, unsafe_allow_html=True)
+            <p class="mission-brief__bridge">You’re stepping into the control room of an email triage machine. The inbox snapshot on the right matches the live preview you’ll work from in a moment.</p>
+            <div class="mission-brief__grid">
+                <div class="mission-brief__objective">
+                    <p>Keep unwanted email out while letting the important messages through. You’ll steer the controls, set the operating thresholds, and verify the system’s choices.</p>
+                    <ul class="mission-brief__list">
+                        <li>Scan the inbox feed and spot risky patterns early.</li>
+                        <li>Decide how strict the spam filter should be and when autonomy applies.</li>
+                        <li>Confirm or correct decisions so the system learns your judgement.</li>
+                    </ul>
+                </div>
+                <div class="mission-brief__preview">
+                    <div class="mission-brief__preview-card mission-brief__preview-card--mailbox">
+                        <span class="mission-brief__preview-eyebrow">Inbox stream</span>
+                        {mailbox_html}
+                    </div>
+                </div>
+            </div>
+        </div>
+        """
+    ).strip()
+
+    with section_surface():
+        st.markdown(mission_html, unsafe_allow_html=True)
+
 
     if nerd_enabled:
         with section_surface():
