@@ -945,57 +945,447 @@ def render_intro_stage():
                 )
 
 
+
 def render_overview_stage():
-    # --- Intro: EU AI Act quote + context card ---
+    stage = STAGE_BY_KEY["overview"]
+
+    next_stage_key: Optional[str] = None
+    overview_index = STAGE_INDEX.get("overview")
+    if overview_index is not None and overview_index < len(STAGES) - 1:
+        next_stage_key = STAGES[overview_index + 1].key
+
+    labeled_examples = ss.get("labeled") or []
+    dataset_rows = len(labeled_examples)
+    dataset_last_built = ss.get("dataset_last_built_at")
+    if dataset_last_built:
+        try:
+            built_dt = datetime.fromisoformat(dataset_last_built)
+            dataset_timestamp = f"Dataset build: {built_dt.strftime('%b %d, %H:%M')}"
+        except ValueError:
+            dataset_timestamp = f"Dataset build: {dataset_last_built}"
+    else:
+        dataset_timestamp = "Dataset build: pending"
+
+    incoming_records = ss.get("incoming") or []
+    incoming_count = len(incoming_records)
+    incoming_seed = ss.get("incoming_seed")
+    autonomy_label = str(ss.get("autonomy", AUTONOMY_LEVELS[0]))
+    adaptiveness_enabled = bool(ss.get("adaptive", False))
+    nerd_enabled = bool(ss.get("nerd_mode"))
+
+    st.markdown(
+        """
+        <style>
+        .overview-intro-card {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.16), rgba(14, 116, 144, 0.16));
+            border-radius: 1.25rem;
+            padding: 1.6rem;
+            border: 1px solid rgba(15, 23, 42, 0.08);
+            box-shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
+            margin-bottom: 1.4rem;
+        }
+        .overview-intro-card__header {
+            display: flex;
+            align-items: flex-start;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+        .overview-intro-card__icon {
+            font-size: 1.9rem;
+            line-height: 1;
+            background: rgba(15, 23, 42, 0.08);
+            border-radius: 0.9rem;
+            padding: 0.55rem 0.95rem;
+            box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.06);
+        }
+        .overview-intro-card__eyebrow {
+            font-size: 0.75rem;
+            letter-spacing: 0.16em;
+            text-transform: uppercase;
+            font-weight: 700;
+            color: rgba(15, 23, 42, 0.6);
+            display: inline-block;
+            margin-bottom: 0.35rem;
+        }
+        .overview-intro-card__title {
+            margin: 0;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #0f172a;
+        }
+        .overview-intro-card__body {
+            margin: 0;
+            color: rgba(15, 23, 42, 0.82);
+            font-size: 0.98rem;
+            line-height: 1.65;
+        }
+        .overview-checklist {
+            margin: 1.1rem 0 0;
+            padding: 0;
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 0.6rem;
+        }
+        .overview-checklist li {
+            display: flex;
+            gap: 0.6rem;
+            align-items: flex-start;
+            color: rgba(15, 23, 42, 0.78);
+            font-size: 0.95rem;
+            line-height: 1.6;
+        }
+        .overview-checklist li::before {
+            content: "✔";
+            font-weight: 700;
+            color: #1d4ed8;
+            margin-top: 0.1rem;
+        }
+        .overview-intro-actions {
+            margin-top: 1.35rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.45rem;
+        }
+        .overview-intro-actions__hint {
+            margin: 0;
+            font-size: 0.85rem;
+            color: rgba(15, 23, 42, 0.65);
+        }
+        .overview-intro-actions [data-testid="stButton"] > button {
+            border-radius: 0.8rem;
+            font-weight: 600;
+            box-shadow: 0 10px 20px rgba(37, 99, 235, 0.18);
+        }
+        .overview-status-panel {
+            position: sticky;
+            top: 5.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.9rem;
+            padding: 1.35rem;
+            border-radius: 1.1rem;
+            border: 1px solid rgba(15, 23, 42, 0.08);
+            background: rgba(255, 255, 255, 0.92);
+            box-shadow: 0 16px 42px rgba(15, 23, 42, 0.1);
+            backdrop-filter: blur(6px);
+        }
+        .overview-status-panel__header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+        .overview-status-panel__header h5 {
+            margin: 0;
+            font-size: 1.05rem;
+            font-weight: 700;
+        }
+        .overview-status-panel__timestamp {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            color: rgba(15, 23, 42, 0.6);
+            font-weight: 600;
+        }
+        .overview-status-panel__items {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+        .overview-status-item {
+            display: flex;
+            gap: 0.85rem;
+            padding: 0.8rem 1rem;
+            border-radius: 1rem;
+            border: 1px solid rgba(15, 23, 42, 0.08);
+            align-items: flex-start;
+        }
+        .overview-status-item__icon {
+            font-size: 1.2rem;
+            line-height: 1;
+        }
+        .overview-status-item__label {
+            display: block;
+            font-size: 0.8rem;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            color: rgba(15, 23, 42, 0.6);
+            font-weight: 700;
+        }
+        .overview-status-item__value {
+            margin: 0.15rem 0 0 0;
+            font-size: 0.96rem;
+            font-weight: 600;
+            color: rgba(15, 23, 42, 0.82);
+        }
+        .overview-status-item--ready {
+            background: rgba(34, 197, 94, 0.18);
+            border-color: rgba(34, 197, 94, 0.28);
+        }
+        .overview-status-item--info {
+            background: rgba(59, 130, 246, 0.14);
+            border-color: rgba(59, 130, 246, 0.26);
+        }
+        .overview-status-item--neutral {
+            background: rgba(148, 163, 184, 0.16);
+            border-color: rgba(148, 163, 184, 0.26);
+        }
+        .overview-status-item--idle {
+            background: rgba(226, 232, 240, 0.18);
+            border-color: rgba(148, 163, 184, 0.22);
+            border-style: dashed;
+        }
+        .overview-status-item--warn {
+            background: rgba(234, 179, 8, 0.2);
+            border-color: rgba(234, 179, 8, 0.3);
+        }
+        .overview-status-panel__story {
+            font-size: 0.92rem;
+            line-height: 1.6;
+            color: rgba(15, 23, 42, 0.75);
+        }
+        .overview-status-panel__footer {
+            border-top: 1px dashed rgba(15, 23, 42, 0.12);
+            padding-top: 0.75rem;
+        }
+        .overview-status-panel__footer h6 {
+            margin: 0 0 0.55rem 0;
+            font-size: 0.85rem;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            color: rgba(15, 23, 42, 0.6);
+        }
+        .overview-next-actions {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 0.55rem;
+        }
+        .overview-next-actions li {
+            display: flex;
+            gap: 0.55rem;
+            align-items: center;
+            font-size: 0.9rem;
+            color: rgba(15, 23, 42, 0.7);
+        }
+        .overview-next-actions li span {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 1.6rem;
+            height: 1.6rem;
+            border-radius: 999px;
+            background: rgba(59, 130, 246, 0.16);
+            color: #1d4ed8;
+            font-weight: 600;
+            font-size: 0.8rem;
+        }
+        .overview-subheading {
+            display: flex;
+            flex-direction: column;
+            gap: 0.4rem;
+            margin-bottom: 1.1rem;
+        }
+        .overview-subheading__eyebrow {
+            font-size: 0.72rem;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            color: rgba(15, 23, 42, 0.6);
+            font-weight: 700;
+        }
+        .overview-subheading h3 {
+            margin: 0;
+            color: #0f172a;
+        }
+        .overview-components {
+            gap: 1rem;
+        }
+        .overview-callout {
+            background: rgba(255, 255, 255, 0.9);
+            box-shadow: 0 16px 32px rgba(15, 23, 42, 0.08);
+            border-radius: 1rem;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
     with section_surface():
-         render_eu_ai_quote(
-                "The EU AI Act says that “An AI system is a machine-based system”."
+        render_eu_ai_quote(
+            "The EU AI Act says that “An AI system is a machine-based system”."
+        )
+
+    with section_surface():
+        top_left, top_right = st.columns([0.48, 0.52], gap="large")
+        with top_left:
+            stage_card_html = f"""
+                <div class="overview-intro-card">
+                    <div class="overview-intro-card__header">
+                        <span class="overview-intro-card__icon">{html.escape(stage.icon)}</span>
+                        <div>
+                            <span class="overview-intro-card__eyebrow">Orientation</span>
+                            <h4 class="overview-intro-card__title">{html.escape(stage.title)}</h4>
+                        </div>
+                    </div>
+                    <p class="overview-intro-card__body">
+                        You are already inside a <strong>machine-based system</strong>: a Streamlit UI (software)
+                        running in the cloud (hardware). Use this control room to <strong>build, evaluate, and operate</strong>
+                        a focused email spam detector. We'll guide you through each stage and surface tips when you need them.
+                    </p>
+                    <ul class="overview-checklist">
+                        <li>See how the lifecycle flows from data preparation to deployment.</li>
+                        <li>Meet the interface, model, and inbox components you’ll orchestrate.</li>
+                        <li>Decide when to enable <em>Nerd Mode</em> for deeper diagnostics.</li>
+                    </ul>
+                </div>
+            """
+            st.markdown(stage_card_html, unsafe_allow_html=True)
+
+            nerd_enabled = render_nerd_mode_toggle(
+                key="nerd_mode",
+                title="Nerd Mode",
+                icon="🧠",
+                description="Toggle to see technical details and extra functionality. You can enable it at any stage to look under the hood.",
             )
-        
+
+            if next_stage_key:
+                st.markdown("<div class='overview-intro-actions'>", unsafe_allow_html=True)
+                st.button(
+                    "📊 Continue to Prepare data",
+                    key="flow_start_machine_cta",
+                    type="primary",
+                    on_click=set_active_stage,
+                    args=(next_stage_key,),
+                    use_container_width=True,
+                )
+                st.markdown(
+                    "<p class='overview-intro-actions__hint'>Next you’ll curate examples so the model learns the right patterns.</p>",
+                    unsafe_allow_html=True,
+                )
+                st.markdown("</div>", unsafe_allow_html=True)
+
+        with top_right:
+            def _status_item(icon: str, label: str, value: str, tone: str = "neutral") -> str:
+                return (
+                    "<div class='overview-status-item overview-status-item--{tone}'>"
+                    "<div class='overview-status-item__icon'>{icon}</div>"
+                    "<div class='overview-status-item__content'>"
+                    "<span class='overview-status-item__label'>{label}</span>"
+                    "<p class='overview-status-item__value'>{value}</p>"
+                    "</div>"
+                    "</div>"
+                ).format(
+                    tone=tone,
+                    icon=html.escape(icon),
+                    label=html.escape(label),
+                    value=html.escape(value),
+                )
+
+            if dataset_rows >= 300:
+                dataset_tone = "ready"
+            elif dataset_rows > 0:
+                dataset_tone = "warn"
+            else:
+                dataset_tone = "idle"
+
+            dataset_value = f"{dataset_rows:,} labeled emails ready" if dataset_rows else "Starter dataset loading"
+            incoming_value = f"{incoming_count:,} emails queued"
+            if incoming_seed is not None:
+                incoming_value = f"{incoming_value} • seed {incoming_seed}"
+
+            adaptiveness_value = (
+                "On — confirmations feed future training"
+                if adaptiveness_enabled
+                else "Off — corrections stay manual"
+            )
+
+            status_items_html = "".join(
+                [
+                    _status_item("📊", "Starter dataset", dataset_value, dataset_tone),
+                    _status_item(
+                        "📥",
+                        "Incoming stream",
+                        incoming_value,
+                        "info" if incoming_count else "idle",
+                    ),
+                    _status_item("🤖", "Autonomy level", autonomy_label, "neutral"),
+                    _status_item(
+                        "🔁",
+                        "Adaptiveness",
+                        adaptiveness_value,
+                        "ready" if adaptiveness_enabled else "idle",
+                    ),
+                    _status_item(
+                        "🧠",
+                        "Nerd Mode",
+                        "Enabled for deeper diagnostics" if nerd_enabled else "Surface view (toggle when needed)",
+                        "info" if nerd_enabled else "neutral",
+                    ),
+                ]
+            )
+
+            status_panel_html = """
+                <div class="overview-status-panel">
+                    <div class="overview-status-panel__header">
+                        <h5>Control room snapshot</h5>
+                        <span class="overview-status-panel__timestamp">{timestamp}</span>
+                    </div>
+                    <div class="overview-status-panel__items">
+                        {items}
+                    </div>
+                    <div class="overview-status-panel__story">
+                        You're in the driver’s seat: the interface is live, a starter dataset is loaded, and an inbox feed is ready to route.
+                        When the overview feels clear, hop into <strong>Prepare Data</strong> to shape what the model will learn from.
+                    </div>
+                    <div class="overview-status-panel__footer">
+                        <h6>Up next</h6>
+                        <ul class="overview-next-actions">
+                            <li><span>1</span> Review the lifecycle components below.</li>
+                            <li><span>2</span> Keep Nerd Mode handy for governance discussions.</li>
+                            <li><span>3</span> Continue to <strong>Prepare Data</strong> and curate your examples.</li>
+                        </ul>
+                    </div>
+                </div>
+            """.format(
+                timestamp=html.escape(dataset_timestamp),
+                items=status_items_html,
+            )
+
+            st.markdown(status_panel_html, unsafe_allow_html=True)
+
     with section_surface():
+        left, right = st.columns([0.58, 0.42], gap="large")
+
+        with left:
             st.markdown(
                 """
-                <div class="callout callout--info">
-                    <h4>🧭 Start your machine</h4>
-                    <p>You are already inside a <strong>machine-based system</strong>: the Streamlit UI (software) running in the cloud (hardware).</p>
-                    <p>Use this simple interface to <strong>build, evaluate, and operate</strong> a small email spam detector.</p>
+                <div class="overview-subheading">
+                    <span class="overview-subheading__eyebrow">Console map</span>
+                    <h3>Meet the machine</h3>
                 </div>
                 """,
                 unsafe_allow_html=True,
             )
 
-    # --- Nerd Mode toggle (copy kept, text refined slightly) ---
-    with section_surface():
-        nerd_enabled = render_nerd_mode_toggle(
-            key="nerd_mode",
-            title="Nerd Mode",
-            icon="🧠",
-            description="Toggle to see technical details and extra functionality. You can enable it at any stage to look under the hood.",
-        )
-
-    # --- Meet the machine (left) + Mission & Inbox preview (right) ---
-    with section_surface():
-        left, right = st.columns([3, 2], gap="large")
-
-        with left:
-            st.markdown("### Meet the machine")
-
-            # 3 callouts: User interface, AI model, Inbox interface
             components_html = """
-            <div class="callout-grid">
-                <div class="callout callout--info">
+            <div class="callout-grid overview-components">
+                <div class="callout callout--info overview-callout">
                     <h5>🖥️ User interface</h5>
                     <p>The control panel for your AI system. Step through <strong>Prepare data</strong>, <strong>Train</strong>, <strong>Evaluate</strong>, and <strong>Use</strong>. Tooltips and short explainers guide you; <em>Nerd Mode</em> reveals more.</p>
                 </div>
-                <div class="callout callout--info">
-                    <h5>🧠 AI model (how it learns & infers)</h5>
+                <div class="callout callout--info overview-callout">
+                    <h5>🧠 AI model (how it learns &amp; infers)</h5>
                     <p>The model learns from <strong>labeled examples</strong> you provide to tell <strong>Spam</strong> from <strong>Safe</strong>. For each new email it produces a <strong>spam score</strong> (P(spam)); your <strong>threshold</strong> turns that score into a recommendation or decision.</p>
                 </div>
-                <div class="callout callout--info">
+                <div class="callout callout--info overview-callout">
                     <h5>📥 Inbox interface</h5>
                     <p>A simulated inbox feeds emails into the system. Preview items, process a batch or review one by one, and optionally enable <strong>adaptiveness</strong> so your confirmations/corrections help the model improve.</p>
                 </div>
-                <div class="callout callout--info">
+                <div class="callout callout--info overview-callout">
                     <h5>🎯 Your mission</h5>
                     <p>Keep unwanted email out while letting the important messages through.</p>
                 </div>
@@ -1004,6 +1394,15 @@ def render_overview_stage():
             st.markdown(components_html, unsafe_allow_html=True)
 
         with right:
+            st.markdown(
+                """
+                <div class="overview-subheading">
+                    <span class="overview-subheading__eyebrow">Preview</span>
+                    <h3>Inbox snapshot</h3>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
             st.markdown(
                 """
                 <div class="mission-preview-stack">
@@ -1019,10 +1418,10 @@ def render_overview_stage():
                 unsafe_allow_html=True,
             )
 
-            if not ss["incoming"]:
+            if not incoming_records:
                 render_email_inbox_table(pd.DataFrame(), title="Inbox", subtitle="Inbox stream is empty.")
             else:
-                df_incoming = pd.DataFrame(ss["incoming"])
+                df_incoming = pd.DataFrame(incoming_records)
                 preview = df_incoming.head(5)
                 render_email_inbox_table(preview, title="Inbox", columns=["title", "body"])
 
@@ -1035,10 +1434,17 @@ def render_overview_stage():
                 unsafe_allow_html=True,
             )
 
-    # --- Nerd Mode details (mirrors the 3 components; adds governance/packages/limits) ---
     if nerd_enabled:
         with section_surface():
-            st.markdown("### 🔬 Nerd Mode — technical details")
+            st.markdown(
+                """
+                <div class="overview-subheading">
+                    <span class="overview-subheading__eyebrow">Deep dive</span>
+                    <h3>🔬 Nerd Mode — technical details</h3>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
 
             nerd_details_html = """
             <div class="callout-grid">
@@ -1135,6 +1541,7 @@ def render_overview_stage():
             </div>
             """
             st.markdown(nerd_details_html, unsafe_allow_html=True)
+
 
 
 def render_data_stage():
