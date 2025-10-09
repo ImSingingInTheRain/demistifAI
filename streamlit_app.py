@@ -5,6 +5,7 @@ import html
 import json
 import random
 import string
+import textwrap
 import hashlib
 import re
 from collections import Counter
@@ -1093,11 +1094,11 @@ def render_overview_stage():
             border-radius: 1rem;
         }
         .mission-brief {
-            background: linear-gradient(150deg, rgba(59, 130, 246, 0.14), rgba(29, 78, 216, 0.12));
-            border-radius: 1.5rem;
-            border: 1px solid rgba(37, 99, 235, 0.25);
-            box-shadow: 0 26px 48px rgba(15, 23, 42, 0.12);
-            color: rgba(15, 23, 42, 0.86);
+            background: linear-gradient(135deg, rgba(37, 99, 235, 0.14), rgba(59, 130, 246, 0.08));
+            border-radius: 1.35rem;
+            border: 1px solid rgba(37, 99, 235, 0.22);
+            box-shadow: 0 20px 44px rgba(15, 23, 42, 0.12);
+            padding: 1.6rem 1.8rem;
         }
         .mission-brief__header {
             display: flex;
@@ -1107,32 +1108,44 @@ def render_overview_stage():
         .mission-brief__icon {
             font-size: 1.8rem;
             line-height: 1;
-            background: rgba(37, 99, 235, 0.16);
+            background: rgba(255, 255, 255, 0.7);
             border-radius: 1rem;
             padding: 0.55rem 0.85rem;
-            box-shadow: inset 0 0 0 1px rgba(37, 99, 235, 0.22);
+            box-shadow: inset 0 0 0 1px rgba(37, 99, 235, 0.25);
         }
         .mission-brief__eyebrow {
             font-size: 0.75rem;
             letter-spacing: 0.16em;
             text-transform: uppercase;
             font-weight: 700;
-            color: rgba(15, 23, 42, 0.6);
+            color: rgba(15, 23, 42, 0.64);
         }
         .mission-brief__title {
             margin: 0;
-            font-size: 1.55rem;
+            font-size: 1.6rem;
             font-weight: 700;
             color: #0f172a;
         }
+        .mission-brief__bridge {
+            margin-top: 1rem;
+            font-size: 0.95rem;
+            line-height: 1.6;
+            color: rgba(15, 23, 42, 0.75);
+        }
         .mission-brief__grid {
             display: grid;
-            grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
-            gap: 1.6rem;
-            margin-top: 1.4rem;
+            grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+            gap: 1.8rem;
+            margin-top: 1.6rem;
+            align-items: stretch;
+        }
+        .mission-brief__objective {
+            display: flex;
+            flex-direction: column;
+            gap: 1.1rem;
         }
         .mission-brief__objective p {
-            margin: 0 0 1rem 0;
+            margin: 0;
             font-size: 1rem;
             line-height: 1.65;
         }
@@ -1146,19 +1159,39 @@ def render_overview_stage():
         .mission-brief__list li {
             font-size: 0.94rem;
             line-height: 1.6;
+            color: rgba(15, 23, 42, 0.78);
         }
-        .mission-brief__panel {
-            background: rgba(255, 255, 255, 0.92);
-            border-radius: 1.1rem;
+        .mission-brief__preview {
+            display: flex;
+        }
+        .mission-brief__preview-card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 1.15rem;
             padding: 1.1rem 1.25rem;
-            box-shadow: 0 12px 28px rgba(15, 23, 42, 0.12);
-            border: 1px solid rgba(15, 23, 42, 0.08);
+            box-shadow: 0 16px 36px rgba(15, 23, 42, 0.16);
+            border: 1px solid rgba(37, 99, 235, 0.2);
+            display: flex;
+            flex-direction: column;
+            gap: 0.85rem;
+            width: 100%;
         }
-        .mission-brief__panel h4 {
-            margin: 0 0 0.75rem 0;
-            font-size: 1.05rem;
+        .mission-brief__preview-eyebrow {
+            font-size: 0.72rem;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            color: rgba(37, 99, 235, 0.8);
+            font-weight: 700;
+        }
+        .mission-brief__preview-title {
+            margin: 0;
+            font-size: 1.1rem;
+            color: #1d4ed8;
             font-weight: 600;
-            color: #1e3a8a;
+        }
+        .mission-brief__preview-intro {
+            margin: 0;
+            font-size: 0.92rem;
+            color: rgba(15, 23, 42, 0.7);
         }
         .mission-brief__inbox-list {
             list-style: none;
@@ -1184,11 +1217,15 @@ def render_overview_stage():
             line-height: 1.4;
         }
         .mission-brief__empty {
-            font-size: 0.92rem;
+            font-size: 0.9rem;
             color: rgba(15, 23, 42, 0.65);
         }
+        .mission-brief__preview-note {
+            margin: 0;
+            font-size: 0.85rem;
+            color: rgba(15, 23, 42, 0.6);
+        }
         .mission-brief__highlights {
-            margin-top: 1.6rem;
             display: flex;
             flex-wrap: wrap;
             gap: 0.7rem;
@@ -1302,6 +1339,13 @@ def render_overview_stage():
         @media (max-width: 960px) {
             .mission-brief__grid {
                 grid-template-columns: 1fr;
+                gap: 1.4rem;
+            }
+            .mission-brief {
+                padding: 1.35rem 1.4rem;
+            }
+            .mission-brief__preview {
+                margin-top: 0.4rem;
             }
             .mail-row {
                 grid-template-columns: auto 1fr;
@@ -1432,7 +1476,21 @@ def render_overview_stage():
         )
 
 
-    mission_html = """
+    preview_total = len(preview_records)
+    mission_preview_items_html = "".join(mission_preview_items)
+    preview_intro = (
+        f"These are the first {min(preview_total, 3)} messages queued for triage."
+        if preview_total
+        else "The inbox stream is quiet for now. As soon as emails arrive they’ll appear here and in the preview below."
+    )
+    preview_note = (
+        "They mirror the live inbox preview below — skim them now so you know what’s coming."
+        if preview_total
+        else "Once messages arrive, they’ll show up here and in the live inbox preview below."
+    )
+
+    mission_html = textwrap.dedent(
+        f"""
         <div class="mission-brief">
             <div class="mission-brief__header">
                 <span class="mission-brief__icon">🎯</span>
@@ -1441,13 +1499,31 @@ def render_overview_stage():
                     <h3 class="mission-brief__title">Your mission</h3>
                 </div>
             </div>
+            <p class="mission-brief__bridge">You’re stepping into the control room of an email triage machine. The inbox snapshot on the right matches the live preview you’ll work from in a moment.</p>
             <div class="mission-brief__grid">
                 <div class="mission-brief__objective">
                     <p>Keep unwanted email out while letting the important messages through. You’ll steer the controls, set the operating thresholds, and verify the system’s choices.</p>
+                    <ul class="mission-brief__list">
+                        <li>Scan the inbox feed and spot risky patterns early.</li>
+                        <li>Decide how strict the spam filter should be and when autonomy applies.</li>
+                        <li>Confirm or correct decisions so the system learns your judgement.</li>
+                    </ul>
+                </div>
+                <div class="mission-brief__preview">
+                    <div class="mission-brief__preview-card">
+                        <span class="mission-brief__preview-eyebrow">Up next</span>
+                        <h4 class="mission-brief__preview-title">Live inbox preview</h4>
+                        <p class="mission-brief__preview-intro">{html.escape(preview_intro)}</p>
+                        <ul class="mission-brief__inbox-list">
+                            {mission_preview_items_html}
+                        </ul>
+                        <p class="mission-brief__preview-note">{html.escape(preview_note)}</p>
+                    </div>
                 </div>
             </div>
         </div>
-    """
+        """
+    ).strip()
 
     with section_surface():
         st.markdown(mission_html, unsafe_allow_html=True)
@@ -1457,18 +1533,20 @@ def render_overview_stage():
         subject = html.escape(record.get("title", "Untitled email"))
         snippet = html.escape(_format_snippet(record.get("body")))
         inbox_rows_html.append(
-            """
-            <div class="mail-row">
-                <div class="mail-row__status"></div>
-                <div class="mail-row__details">
-                    <p class="mail-row__subject">{subject}</p>
-                    <p class="mail-row__snippet">{snippet}</p>
+            textwrap.dedent(
+                """
+                <div class="mail-row">
+                    <div class="mail-row__status"></div>
+                    <div class="mail-row__details">
+                        <p class="mail-row__subject">{subject}</p>
+                        <p class="mail-row__snippet">{snippet}</p>
+                    </div>
+                    <div class="mail-row__meta">
+                        <span class="mail-row__tag">Queued</span>
+                    </div>
                 </div>
-                <div class="mail-row__meta">
-                    <span class="mail-row__tag">Queued</span>
-                </div>
-            </div>
-            """.format(subject=subject, snippet=snippet)
+                """
+            ).format(subject=subject, snippet=snippet).strip()
         )
 
     if not inbox_rows_html:
@@ -1476,7 +1554,8 @@ def render_overview_stage():
             "<div class='mail-empty'>Inbox stream is empty. Once new emails arrive you’ll see them queue here for review.</div>"
         )
 
-    mailbox_html = """
+    mailbox_html = textwrap.dedent(
+        """
         <div class="mailbox-preview">
             <div class="mailbox-preview__header">
                 <h4>Live inbox preview</h4>
@@ -1484,7 +1563,8 @@ def render_overview_stage():
             </div>
             <div class="mail-rows">{rows}</div>
         </div>
-    """.format(count=len(preview_records) or 0, rows="".join(inbox_rows_html))
+        """
+    ).format(count=len(preview_records) or 0, rows="".join(inbox_rows_html)).strip()
 
     with section_surface():
         st.markdown(
