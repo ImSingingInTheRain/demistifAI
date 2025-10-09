@@ -4073,6 +4073,33 @@ def render_train_stage():
                         """,
                         unsafe_allow_html=True,
                     )
+                if not ss.get("nerd_mode_train"):
+                    st.markdown(
+                        """
+                        <div style="margin-top: 0.85rem; background: rgba(49, 51, 63, 0.05); border: 1px solid rgba(49, 51, 63, 0.08); border-radius: 0.6rem; padding: 0.85rem 1rem;">
+                            <p style="font-size: 0.85rem; font-weight: 600; margin: 0 0 0.5rem 0;">What to expect from MiniLM</p>
+                            <div style="display: flex; flex-wrap: wrap; gap: 1.25rem;">
+                                <div style="flex: 1 1 180px;">
+                                    <p style="font-size: 0.8rem; font-weight: 600; margin: 0 0 0.25rem 0;">Good at</p>
+                                    <ul style="margin: 0; padding-left: 1.1rem; font-size: 0.8rem;">
+                                        <li>Semantic paraphrases</li>
+                                        <li>Phishing-y phrasing</li>
+                                        <li>Short/mid emails</li>
+                                    </ul>
+                                </div>
+                                <div style="flex: 1 1 180px;">
+                                    <p style="font-size: 0.8rem; font-weight: 600; margin: 0 0 0.25rem 0;">Watch-outs</p>
+                                    <ul style="margin: 0; padding-left: 1.1rem; font-size: 0.8rem;">
+                                        <li>Truncation</li>
+                                        <li>Non-English</li>
+                                        <li>Ultra-short emails — rely more on numeric cues in these cases.</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        """,
+                        unsafe_allow_html=True,
+                    )
                 st.info("Go to **3) Evaluate** to test performance and choose a spam threshold.")
 
         except Exception as e:
