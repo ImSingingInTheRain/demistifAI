@@ -293,7 +293,7 @@ def render_pii_cleanup_banner(lint_counts: Dict[str, int]) -> bool:
         st.markdown(
             f"""
             <div class="callout callout--warn">
-              <h4>🔎 Personal data alert</h4>
+              <h4>⚠️ Personal data alert</h4>
               <p>The data used to build an AI system should not include personal data unless it is really necessary. Click on "start cleanup" to simulate a data minimization process and replace person data present in your data set with anonymized tags.</p>
               <p><strong>Summary:</strong> {format_pii_summary(lint_counts)}</p>
             </div>
@@ -1796,7 +1796,7 @@ def render_data_stage():
             lint_icon = "🛡️"
         lint_chip_html = (
             "<span class='lint-chip'><span class='lint-chip__icon'>{icon}</span>"
-            "<span class='lint-chip__text'>PII lint: {label}</span></span>"
+            "<span class='lint-chip__text'>Personal data alert: {label}</span></span>"
         ).format(icon=lint_icon, label=html.escape(lint_label or "Unknown"))
         dataset_health_available = True
 
@@ -1827,7 +1827,7 @@ def render_data_stage():
                         lint_section = (
                             f"<div class='indicator-chip-row'>{lint_chip_html}</div>"
                             if lint_chip_html
-                            else "<small class='dataset-health-panel__lint-placeholder'>PII lint results pending.</small>"
+                            else "<small class='dataset-health-panel__lint-placeholder'>Personal data results pending.</small>"
                         )
                         st.markdown(
                             """
