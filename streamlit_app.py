@@ -1136,7 +1136,6 @@ def render_data_stage():
             font-weight: 700;
             color: rgba(15, 23, 42, 0.55);
             display: inline-block;
-            margin-bottom: 0.35rem;
         }
         .prepare-intro-card__title {
             margin: 0;
