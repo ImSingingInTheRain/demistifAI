@@ -261,7 +261,7 @@ APP_THEME_CSS = """
 }
 
 .cta-sticky {
-    position: sticky;
+    position: absolute;
     bottom: 0;
     padding: 0.75rem 0 0.5rem 0;
     margin-top: 1rem;
