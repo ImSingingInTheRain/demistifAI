@@ -1076,20 +1076,154 @@ def render_data_stage():
     st.markdown(
         """
         <style>
+        .prepare-intro-card {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.16), rgba(236, 72, 153, 0.12));
+            border-radius: 1.25rem;
+            padding: 1.5rem;
+            border: 1px solid rgba(15, 23, 42, 0.08);
+            box-shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
+        }
+        .prepare-intro-card__header {
+            display: flex;
+            align-items: flex-start;
+            gap: 1rem;
+            margin-bottom: 0.9rem;
+        }
+        .prepare-intro-card__icon {
+            font-size: 1.75rem;
+            line-height: 1;
+            background: rgba(15, 23, 42, 0.08);
+            border-radius: 0.9rem;
+            padding: 0.55rem 0.7rem;
+            box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.06);
+        }
+        .prepare-intro-card__eyebrow {
+            font-size: 0.75rem;
+            letter-spacing: 0.16em;
+            text-transform: uppercase;
+            font-weight: 700;
+            color: rgba(15, 23, 42, 0.55);
+            display: inline-block;
+            margin-bottom: 0.35rem;
+        }
+        .prepare-intro-card__title {
+            margin: 0;
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: #0f172a;
+        }
+        .prepare-intro-card__body {
+            margin: 0;
+            color: rgba(15, 23, 42, 0.8);
+            font-size: 0.95rem;
+            line-height: 1.6;
+        }
+        .dataset-health-card {
+            border-radius: 1.1rem;
+            border: 1px solid rgba(15, 23, 42, 0.08);
+            padding: 1.35rem;
+            background: rgba(255, 255, 255, 0.88);
+            box-shadow: 0 14px 36px rgba(15, 23, 42, 0.1);
+            backdrop-filter: blur(6px);
+        }
         .dataset-health-panel {
             display: flex;
             flex-direction: column;
-            gap: 0.5rem;
+            gap: 0.75rem;
+        }
+        .dataset-health-panel__status {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+        }
+        .dataset-health-panel__status-copy {
+            display: flex;
+            flex-direction: column;
+            gap: 0.15rem;
+        }
+        .dataset-health-panel__status-copy h5 {
+            margin: 0;
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: #0f172a;
+        }
+        .dataset-health-panel__status-copy small {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            color: rgba(15, 23, 42, 0.55);
+            font-weight: 700;
+        }
+        .dataset-health-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.55rem;
+            padding: 0.4rem 1rem;
+            border-radius: 999px;
+            font-weight: 700;
+            font-size: 0.95rem;
+            line-height: 1;
+        }
+        .dataset-health-status__dot {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.85);
+        }
+        .dataset-health-status--good {
+            background: rgba(34, 197, 94, 0.18);
+            color: #15803d;
+        }
+        .dataset-health-status--good .dataset-health-status__dot {
+            background: #22c55e;
+        }
+        .dataset-health-status--warn {
+            background: rgba(234, 179, 8, 0.2);
+            color: #b45309;
+        }
+        .dataset-health-status--warn .dataset-health-status__dot {
+            background: #fbbf24;
+        }
+        .dataset-health-status--risk {
+            background: rgba(248, 113, 113, 0.2);
+            color: #b91c1c;
+        }
+        .dataset-health-status--risk .dataset-health-status__dot {
+            background: #f87171;
+        }
+        .dataset-health-status--neutral {
+            background: rgba(148, 163, 184, 0.22);
+            color: #1f2937;
+        }
+        .dataset-health-status--neutral .dataset-health-status__dot {
+            background: rgba(148, 163, 184, 0.9);
         }
         .dataset-health-panel__row {
             display: flex;
             align-items: center;
             gap: 1rem;
         }
+        .dataset-health-panel__row--bar {
+            margin-top: 0.35rem;
+        }
         .dataset-health-panel__row--meta {
             justify-content: space-between;
             flex-wrap: wrap;
-            gap: 0.5rem;
+            gap: 0.75rem;
+        }
+        .dataset-health-panel__meta-primary {
+            display: inline-flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: rgba(15, 23, 42, 0.75);
+        }
+        .dataset-health-panel__lint-placeholder {
+            font-size: 0.8rem;
+            color: rgba(15, 23, 42, 0.55);
         }
         .dataset-health-panel__bar {
             flex: 1;
@@ -1108,15 +1242,6 @@ def render_data_stage():
         }
         .dataset-health-panel__bar-safe {
             background: linear-gradient(90deg, #38bdf8 0%, #0ea5e9 100%);
-        }
-        .dataset-health-panel__badge {
-            display: inline-flex;
-            align-items: center;
-            padding: 0.25rem 0.6rem;
-            border-radius: 999px;
-            font-weight: 600;
-            font-size: 0.9rem;
-            background: rgba(15, 23, 42, 0.06);
         }
         .dataset-delta-panel {
             position: sticky;
@@ -1349,9 +1474,22 @@ def render_data_stage():
     with section_surface():
         info_col, builder_col = st.columns([0.45, 0.55], gap="large")
         with info_col:
-            st.markdown("#### Prepare data")
             st.markdown(
-                """Your AI system must learn how to distinguish a safe email from spam. The first step to achieve this is to prepare a dataset representing what spam and safe emails look like. To make your life easy, to the right you can find a dataset builder that will generate a synthetic dataset for you. Play with size and properties of the dataset, generate a preview of the dataset and check its health status and recommendations to improve it. Toggle nerd mode below to get access to advanced configuration and diagnostic controls."""
+                """
+                <div class="prepare-intro-card">
+                    <div class="prepare-intro-card__header">
+                        <span class="prepare-intro-card__icon">🧪</span>
+                        <div>
+                            <span class="prepare-intro-card__eyebrow">Stage 1</span>
+                            <h4 class="prepare-intro-card__title">Prepare data</h4>
+                        </div>
+                    </div>
+                    <p class="prepare-intro-card__body">
+                        Your AI system must learn how to distinguish a safe email from spam. The first step is to prepare a dataset representing what spam and safe emails look like. Use the dataset builder to generate a synthetic dataset, then review its health score and recommendations. Toggle Nerd Mode for advanced configuration and diagnostic controls when you need them.
+                    </p>
+                </div>
+                """,
+                unsafe_allow_html=True,
             )
             nerd_mode_data_enabled = render_nerd_mode_toggle(
                 key="nerd_mode_data",
@@ -1638,46 +1776,69 @@ def render_data_stage():
                     help="Quick pulse on balance, volume, and lint signals for the generated preview.",
                 )
                 if dataset_health_available:
-                    health_cols = st.columns([2, 1], gap="large")
-                    with health_cols[0]:
-                        if spam_pct is not None and total_rows is not None:
-                            safe_pct = max(0.0, min(100.0, 100.0 - spam_pct))
-                            total_display = (
-                                int(total_rows) if isinstance(total_rows, (int, float)) else total_rows
-                            )
-                            st.markdown(
-                                """
+                    if spam_pct is not None and total_rows is not None:
+                        safe_pct = max(0.0, min(100.0, 100.0 - spam_pct))
+                        total_display = (
+                            int(total_rows) if isinstance(total_rows, (int, float)) else total_rows
+                        )
+                        status_text = badge_text or "Awaiting checks"
+                        status_class = "neutral"
+                        if badge_text:
+                            lowered = badge_text.lower()
+                            if "good" in lowered:
+                                status_class = "good"
+                            elif "needs work" in lowered:
+                                status_class = "warn"
+                            elif "risky" in lowered:
+                                status_class = "risk"
+                        lint_section = (
+                            f"<div class='indicator-chip-row'>{lint_chip_html}</div>"
+                            if lint_chip_html
+                            else "<small class='dataset-health-panel__lint-placeholder'>PII lint results pending.</small>"
+                        )
+                        st.markdown(
+                            """
+                            <div class="dataset-health-card">
                                 <div class="dataset-health-panel">
-                                    <div class="dataset-health-panel__row">
+                                    <div class="dataset-health-panel__status">
+                                        <div class="dataset-health-panel__status-copy">
+                                            <small>Preview summary</small>
+                                            <h5>Balance &amp; lint</h5>
+                                        </div>
+                                        <div class="dataset-health-status dataset-health-status--{status_class}">
+                                            <span class="dataset-health-status__dot"></span>
+                                            <span>{status_text}</span>
+                                        </div>
+                                    </div>
+                                    <div class="dataset-health-panel__row dataset-health-panel__row--bar">
                                         <div class="dataset-health-panel__bar">
                                             <span class="dataset-health-panel__bar-spam" style="width: {spam_width}%"></span>
                                             <span class="dataset-health-panel__bar-safe" style="width: {safe_width}%"></span>
                                         </div>
                                     </div>
                                     <div class="dataset-health-panel__row dataset-health-panel__row--meta">
-                                        <small>Balance: {spam_pct:.0f}% spam • Total: {total_rows}</small>
-                                        <div class="indicator-chip-row">{lint_chip}</div>
+                                        <div class="dataset-health-panel__meta-primary">
+                                            <span>Spam {spam_pct:.0f}%</span>
+                                            <span>Safe {safe_pct:.0f}%</span>
+                                            <span>Rows {total_rows}</span>
+                                        </div>
+                                        {lint_section}
                                     </div>
                                 </div>
-                                """.format(
-                                    spam_width=f"{spam_pct:.1f}",
-                                    safe_width=f"{safe_pct:.1f}",
-                                    spam_pct=spam_pct,
-                                    total_rows=total_display,
-                                    lint_chip=lint_chip_html,
-                                ),
-                                unsafe_allow_html=True,
-                            )
-                        else:
-                            st.caption("Dataset summary not available.")
-                    with health_cols[1]:
-                        if badge_text:
-                            st.markdown(
-                                f"<div class='dataset-health-panel__badge'>{badge_text}</div>",
-                                unsafe_allow_html=True,
-                            )
-                        else:
-                            st.caption("Health badge unavailable.")
+                            </div>
+                            """.format(
+                                status_class=status_class,
+                                status_text=html.escape(status_text),
+                                spam_width=f"{spam_pct:.1f}",
+                                safe_width=f"{safe_pct:.1f}",
+                                spam_pct=spam_pct,
+                                total_rows=html.escape(str(total_display)),
+                                lint_section=lint_section,
+                            ),
+                            unsafe_allow_html=True,
+                        )
+                    else:
+                        st.caption("Dataset summary not available.")
                 else:
                     st.caption("Generate a preview to evaluate dataset health.")
             with compare_col:
@@ -1945,7 +2106,7 @@ def render_data_stage():
                 preview_rows = ss.get("dataset_preview", [])
                 spam_examples = [row for row in preview_rows if row.get("label") == "spam"]
                 safe_examples = [row for row in preview_rows if row.get("label") == "safe"]
-                max_cards = 10
+                max_cards = 4
                 cards: List[Dict[str, str]] = []
                 idx_spam = idx_safe = 0
                 for i in range(max_cards):
@@ -2028,12 +2189,22 @@ def render_data_stage():
                                 unsafe_allow_html=True,
                             )
 
+            preview_rows_full: List[Dict[str, Any]] = ss.get("dataset_preview") or []
             manual_df = ss.get("dataset_manual_queue")
-            if manual_df is None or manual_df.empty:
-                manual_df = pd.DataFrame(ss["dataset_preview"][: min(len(ss["dataset_preview"]), 200)])
-                if not manual_df.empty:
+            if not isinstance(manual_df, pd.DataFrame) or len(manual_df) != len(preview_rows_full):
+                manual_df = pd.DataFrame(preview_rows_full)
+            else:
+                manual_df = manual_df.copy()
+            if not manual_df.empty:
+                if "include" not in manual_df.columns:
                     manual_df.insert(0, "include", True)
-            with st.expander("Manually curate first 200 rows (optional)"):
+                else:
+                    manual_df["include"] = manual_df["include"].fillna(True)
+            elif preview_rows_full:
+                manual_df = pd.DataFrame(preview_rows_full)
+                if not manual_df.empty and "include" not in manual_df.columns:
+                    manual_df.insert(0, "include", True)
+            with st.expander("Manually curate rows (optional)"):
                 edited_df = st.data_editor(
                     manual_df,
                     width="stretch",
@@ -2045,7 +2216,7 @@ def render_data_stage():
                     },
                 )
             ss["dataset_manual_queue"] = edited_df
-            st.caption("Manual queue covers up to 200 rows per apply — re-run the builder to generate more variations.")
+            st.caption("Manual queue covers the entire preview — re-run the builder to generate more variations.")
 
         edited_df_for_commit = ss.get("dataset_manual_queue")
 
@@ -2054,7 +2225,7 @@ def render_data_stage():
             st.markdown("<div class='cta-sticky'>", unsafe_allow_html=True)
             commit_col, discard_col, _ = st.columns([1, 1, 2])
 
-            if commit_col.button("Commit dataset", type="primary"):
+            if commit_col.button("Commit dataset", type="primary", use_container_width=True):
                 preview_rows_commit = ss.get("dataset_preview")
                 config = ss.get("dataset_preview_config", ss.get("dataset_config", DEFAULT_DATASET_CONFIG))
                 if not preview_rows_commit:
@@ -2142,7 +2313,7 @@ def render_data_stage():
                                 )
                             )
 
-            if discard_col.button("Discard preview", type="secondary"):
+            if discard_col.button("Discard preview", type="secondary", use_container_width=True):
                 _discard_preview()
                 st.info("Preview cleared. The active labeled dataset remains unchanged.")
             st.markdown("</div>", unsafe_allow_html=True)
