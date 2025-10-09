@@ -11,7 +11,7 @@ import re
 from collections import Counter
 from datetime import datetime
 from contextlib import contextmanager
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, Iterable, List, Optional, Tuple
 from urllib.parse import urlencode
 from uuid import uuid4
 
@@ -199,6 +199,153 @@ def format_pii_summary(counts: Dict[str, int]) -> str:
     return " • ".join(
         f"{label}: {int(counts.get(key, 0) or 0)}" for key, label in PII_DISPLAY_LABELS
     )
+
+try:
+    from langdetect import DetectorFactory as _LangDetectFactory
+    from langdetect import LangDetectException as _LangDetectException
+    from langdetect import detect as _langdetect_detect
+
+    _LangDetectFactory.seed = 0
+    _LANG_DETECT_AVAILABLE = True
+except Exception:  # pragma: no cover - optional dependency
+    _langdetect_detect = None
+    _LangDetectException = Exception  # type: ignore
+    _LANG_DETECT_AVAILABLE = False
+
+
+def _detect_language_code(text: str) -> str:
+    """Return a two-letter language code, or blank if detection fails."""
+
+    text = (text or "").strip()
+    if not text:
+        return ""
+    if _LANG_DETECT_AVAILABLE and _langdetect_detect is not None:
+        try:
+            return str(_langdetect_detect(text)).lower()
+        except _LangDetectException:
+            return ""
+        except Exception:
+            return ""
+    return "en"
+
+
+def summarize_language_mix(texts: Iterable[str], top_k: int = 3) -> Dict[str, Any]:
+    """Summarize the language distribution for a collection of texts."""
+
+    if not _LANG_DETECT_AVAILABLE:
+        return {"available": False, "top": [], "total": 0, "other": 0.0, "counts": Counter()}
+
+    counts: Counter[str] = Counter()
+    detected_total = 0
+    for raw_text in texts:
+        code = _detect_language_code(raw_text)
+        if not code:
+            continue
+        counts[code] += 1
+        detected_total += 1
+
+    if detected_total == 0:
+        return {
+            "available": True,
+            "top": [],
+            "total": 0,
+            "other": 0.0,
+            "counts": counts,
+        }
+
+    top_items = counts.most_common(max(1, int(top_k)))
+    top = [(lang, count / detected_total) for lang, count in top_items]
+    covered = sum(share for _, share in top)
+    other_share = max(0.0, 1.0 - covered)
+
+    return {
+        "available": True,
+        "top": top,
+        "total": detected_total,
+        "other": other_share,
+        "counts": counts,
+    }
+
+
+def format_language_mix_summary(label: str, mix: Optional[Dict[str, Any]]) -> str:
+    """Format a single-line summary for the language mix."""
+
+    if not mix or not mix.get("available"):
+        return "Lang mix: unknown"
+
+    total = int(mix.get("total", 0))
+    top = list(mix.get("top", []))
+    if total <= 0 or not top:
+        return f"Lang mix ({label}): —."
+
+    parts = [f"{lang} {share * 100:.0f}%" for lang, share in top]
+    other_share = float(mix.get("other", 0.0))
+    if other_share > 0.005:
+        parts.append(f"other {other_share * 100:.0f}%")
+
+    return f"Lang mix ({label}): {', '.join(parts)}."
+
+
+def render_language_mix_chip_rows(
+    train_mix: Optional[Dict[str, Any]], test_mix: Optional[Dict[str, Any]]
+) -> None:
+    """Render side-by-side chip rows summarizing train/test language mix."""
+
+    if not train_mix and not test_mix:
+        st.caption("Lang mix: unknown")
+        return
+
+    train_available = bool(train_mix and train_mix.get("available"))
+    test_available = bool(test_mix and test_mix.get("available"))
+    if not train_available and not test_available:
+        st.caption("Lang mix: unknown")
+        return
+
+    col_train, col_test = st.columns(2)
+    _render_language_mix_column(col_train, "Train", train_mix)
+    _render_language_mix_column(col_test, "Test", test_mix)
+
+
+def _render_language_mix_column(container, title: str, mix: Optional[Dict[str, Any]]) -> None:
+    container.markdown(f"**{title} language mix**")
+
+    if not mix or not mix.get("available"):
+        container.caption("Unknown (language detector unavailable).")
+        return
+
+    total = int(mix.get("total", 0))
+    top = list(mix.get("top", []))
+    if total <= 0 or not top:
+        container.caption("No detected language (blank emails).")
+        return
+
+    chip_parts = [
+        "<div style=\"display:flex;flex-wrap:wrap;gap:0.35rem;margin-top:0.35rem;\">"
+    ]
+    for lang, share in top:
+        chip_parts.append(
+            (
+                "<span style=\"background:rgba(49,51,63,0.08);color:rgba(15,23,42,0.85);"
+                "border-radius:999px;padding:0.2rem 0.6rem;font-size:0.75rem;font-weight:600;\">"
+                f"{lang.upper()} {share * 100:.0f}%"
+                "</span>"
+            )
+        )
+
+    other_share = float(mix.get("other", 0.0))
+    if other_share > 0.005:
+        chip_parts.append(
+            (
+                "<span style=\"background:rgba(49,51,63,0.08);color:rgba(15,23,42,0.65);"
+                "border-radius:999px;padding:0.2rem 0.6rem;font-size:0.75rem;font-weight:600;\">"
+                f"OTHER {other_share * 100:.0f}%"
+                "</span>"
+            )
+        )
+
+    chip_parts.append("</div>")
+    container.markdown("".join(chip_parts), unsafe_allow_html=True)
+    container.caption(f"n={total}")
 
 
 def _shorten_text(text: str, limit: int = 120) -> str:
@@ -3651,10 +3798,26 @@ def render_train_stage():
     parsed_split = None
     y_tr_labels = None
     y_te_labels = None
+    train_texts_combined_cache: list[str] = []
+    test_texts_combined_cache: list[str] = []
+    lang_mix_train: Optional[Dict[str, Any]] = None
+    lang_mix_test: Optional[Dict[str, Any]] = None
     if ss.get("model") is not None and ss.get("split_cache") is not None:
         try:
             parsed_split = _parse_split_cache(ss["split_cache"])
             X_tr_t, X_te_t, X_tr_b, X_te_b, y_tr_labels, y_te_labels = parsed_split
+
+            if X_tr_t is not None and X_tr_b is not None:
+                train_texts_combined_cache = [
+                    combine_text(t, b) for t, b in zip(X_tr_t, X_tr_b)
+                ]
+            if X_te_t is not None and X_te_b is not None:
+                test_texts_combined_cache = [
+                    combine_text(t, b) for t, b in zip(X_te_t, X_te_b)
+                ]
+
+            lang_mix_train = summarize_language_mix(train_texts_combined_cache)
+            lang_mix_test = summarize_language_mix(test_texts_combined_cache)
 
             # Existing success + story (kept)
             story = make_after_training_story(y_tr_labels, y_te_labels)
@@ -3673,6 +3836,8 @@ def render_train_stage():
                     "- It looked for patterns that distinguish **Spam** from **Safe**.\n"
                     "- It saved these patterns as simple rules (weights) it can use later to decide."
                 )
+
+                st.caption(format_language_mix_summary("train", lang_mix_train))
 
                 guard_caption = None
                 audit_info = None
@@ -3848,23 +4013,20 @@ def render_train_stage():
     if ss.get("nerd_mode_train") and ss.get("model") is not None and parsed_split:
         with st.expander("Nerd Mode — what just happened (technical)", expanded=True):
             X_tr_t, X_te_t, X_tr_b, X_te_b, y_tr_labels, y_te_labels = parsed_split
-            train_texts_combined: list[str] = []
+            train_texts_combined: list[str] = list(train_texts_combined_cache)
             train_embeddings: Optional[np.ndarray] = None
-            if X_tr_t and X_tr_b:
+            if not train_texts_combined and X_tr_t and X_tr_b:
                 train_texts_combined = [combine_text(t, b) for t, b in zip(X_tr_t, X_tr_b)]
-                if train_texts_combined:
+            if train_texts_combined:
+                try:
+                    train_embeddings = cache_train_embeddings(train_texts_combined)
+                except Exception:
+                    train_embeddings = None
+                if train_embeddings is None or getattr(train_embeddings, "size", 0) == 0:
                     try:
-                        train_embeddings = cache_train_embeddings(train_texts_combined)
+                        train_embeddings = encode_texts(train_texts_combined)
                     except Exception:
                         train_embeddings = None
-                    if (
-                        train_embeddings is None
-                        or getattr(train_embeddings, "size", 0) == 0
-                    ):
-                        try:
-                            train_embeddings = encode_texts(train_texts_combined)
-                        except Exception:
-                            train_embeddings = None
             try:
                 st.markdown("**Data split**")
                 st.markdown(
@@ -3873,6 +4035,7 @@ def render_train_stage():
                     f"- Class balance (train): {_counts(list(y_tr_labels))}  \n"
                     f"- Class balance (test): {_counts(list(y_te_labels))}"
                 )
+                render_language_mix_chip_rows(lang_mix_train, lang_mix_test)
             except Exception:
                 st.caption("Split details unavailable.")
 
