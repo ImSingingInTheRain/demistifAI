@@ -175,6 +175,45 @@ PII_INDICATOR_STYLE = """
 """
 
 
+URL_CANDIDATE_RE = re.compile(r"(?i)\b(?:https?://|www\.)[\w\-._~:/?#\[\]@!$&'()*+,;=%]+")
+MONEY_CANDIDATE_RE = re.compile(
+    r"(?i)(?:\$\s?\d[\d,]*(?:\.\d{2})?|\b(?:usd|eur|gbp|aud|cad|sgd)\s?\$?\d[\d,]*(?:\.\d{2})?|\b\d[\d,]*(?:\.\d{2})?\s?(?:usd|eur|gbp|aud|cad|dollars)\b)"
+)
+ALERT_PHRASE_RE = re.compile(
+    r"(?i)\b(?:verify|reset|account|urgent)(?:\s+(?:verify|reset|account|urgent|your|the|this|that|my|our)){1,3}\b"
+)
+
+
+def extract_candidate_spans(text: str) -> List[Tuple[str, Tuple[int, int]]]:
+    """Return candidate spans (URL/money/alert phrases) with start/end indices."""
+
+    if not text:
+        return []
+
+    matches: list[Tuple[int, int, str]] = []
+    for pattern in (URL_CANDIDATE_RE, MONEY_CANDIDATE_RE, ALERT_PHRASE_RE):
+        for match in pattern.finditer(text):
+            start, end = match.span()
+            snippet = text[start:end]
+            if not snippet.strip():
+                continue
+            matches.append((start, end, snippet))
+
+    if not matches:
+        return []
+
+    matches.sort(key=lambda item: (item[0], item[1]))
+    deduped: list[Tuple[str, Tuple[int, int]]] = []
+    seen: set[Tuple[int, int]] = set()
+    for start, end, snippet in matches:
+        key = (start, end)
+        if key in seen:
+            continue
+        seen.add(key)
+        deduped.append((snippet, (start, end)))
+    return deduped
+
+
 def summarize_pii_counts(
     detailed_hits: Dict[int, Dict[str, List[Dict[str, Any]]]]
 ) -> Dict[str, int]:
@@ -4335,6 +4374,119 @@ def render_train_stage():
                     "Base weights come from training. Use the sliders below to nudge each cue if your domain knowledge "
                     "suggests it should count more or less. Adjustments apply per standard deviation of the raw feature."
                 )
+
+                st.markdown("#### What influenced the score (span knockout demo)")
+                if not train_texts_combined:
+                    st.caption("Span influence demo unavailable (no training emails).")
+                elif model_obj is None or not hasattr(model_obj, "predict_logit"):
+                    st.caption("Span influence demo unavailable (text-head logits missing).")
+                else:
+                    options = list(range(len(train_texts_combined)))
+
+                    def _format_train_option(i: int) -> str:
+                        label = (
+                            y_tr_labels[i]
+                            if y_tr_labels and 0 <= i < len(y_tr_labels)
+                            else "?"
+                        )
+                        subject = X_tr_t[i] if X_tr_t and 0 <= i < len(X_tr_t) else ""
+                        if not isinstance(subject, str) or not subject.strip():
+                            subject = train_texts_combined[i][:80]
+                        subject_short = _shorten_text(str(subject).strip(), limit=80)
+                        return f"{i + 1}. [{label.upper()}] {subject_short}" if label else subject_short
+
+                    selected_idx = st.selectbox(
+                        "Pick a training email",
+                        options,
+                        format_func=_format_train_option,
+                        key="nerd_span_email_index",
+                    )
+
+                    selected_text = train_texts_combined[selected_idx]
+                    candidate_spans = extract_candidate_spans(selected_text)
+
+                    if not candidate_spans:
+                        st.info("No influential spans detected for this email.")
+                    else:
+                        cache_bucket = ss.setdefault("nerd_span_cache", {})
+                        text_hash = hashlib.sha1(selected_text.encode("utf-8")).hexdigest()
+                        cache_key = f"{id(model_obj)}:{text_hash}"
+                        cached = cache_bucket.get(cache_key)
+
+                        if not cached:
+                            try:
+                                base_logit = float(model_obj.predict_logit([selected_text])[0])
+                            except Exception as exc:
+                                base_logit = None
+                                cached = {"error": str(exc)}
+                            else:
+                                influence_rows: list[dict[str, float | str]] = []
+                                for span_text, (start, end) in candidate_spans:
+                                    modified = selected_text[:start] + selected_text[end:]
+                                    try:
+                                        new_logit = float(
+                                            model_obj.predict_logit([modified])[0]
+                                        )
+                                    except Exception:
+                                        continue
+                                    delta = base_logit - new_logit
+                                    influence_rows.append(
+                                        {
+                                            "span": span_text,
+                                            "delta": delta,
+                                        }
+                                    )
+
+                                influence_rows.sort(
+                                    key=lambda row: row.get("delta", 0.0), reverse=True
+                                )
+                                cached = {
+                                    "base_logit": base_logit,
+                                    "rows": influence_rows,
+                                }
+                            cache_bucket[cache_key] = cached
+
+                        if cached.get("error"):
+                            st.caption(
+                                "Could not compute span influence: "
+                                f"{cached['error']}"
+                            )
+                        else:
+                            base_logit = cached.get("base_logit")
+                            rows = cached.get("rows", [])
+                            positive_rows = [
+                                row
+                                for row in rows
+                                if isinstance(row.get("delta"), (int, float))
+                                and float(row["delta"]) > 0.0
+                            ]
+
+                            if base_logit is not None:
+                                st.caption(
+                                    f"Base text-head logit: {float(base_logit):+.3f}"
+                                )
+
+                            if not positive_rows:
+                                st.info(
+                                    "Removing detected spans did not lower the score."
+                                )
+                            else:
+                                top_rows = positive_rows[:8]
+                                display_rows = []
+                                for row in top_rows:
+                                    span_text = str(row.get("span", "")).replace("\n", " ")
+                                    span_text = " ".join(span_text.split())
+                                    if len(span_text) > 120:
+                                        span_text = span_text[:117] + "…"
+                                    display_rows.append(
+                                        {
+                                            "Span": span_text,
+                                            "Δ logit (drop)": round(float(row["delta"]), 4),
+                                        }
+                                    )
+
+                                df_spans = pd.DataFrame(display_rows)
+                                st.dataframe(df_spans, hide_index=True, width="stretch")
 
                 st.markdown("#### Plain-language explanations & manual tweaks")
                 for row in coef_details.itertuples():
