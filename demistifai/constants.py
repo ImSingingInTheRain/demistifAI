@@ -205,6 +205,14 @@ APP_THEME_CSS = """
     align-items: center;
 }
 
+.pii-chip-row {
+    margin-top: 0.85rem;
+}
+
+.pii-chip-row--compact {
+    margin-bottom: 0.25rem;
+}
+
 .lint-chip {
     display: inline-flex;
     align-items: center;
@@ -234,6 +242,80 @@ APP_THEME_CSS = """
     display: inline-flex;
     align-items: center;
     gap: 0.25rem;
+}
+
+.pii-alert-card {
+    margin-top: 0.25rem;
+    margin-bottom: 0.75rem;
+    border-radius: 18px;
+    border: 1px solid rgba(217, 119, 6, 0.28);
+    background: linear-gradient(135deg, rgba(254, 243, 199, 0.75), rgba(255, 255, 255, 0.92));
+    box-shadow: 0 20px 35px rgba(217, 119, 6, 0.18);
+    padding: 1.4rem 1.6rem;
+    position: relative;
+    overflow: hidden;
+}
+
+.pii-alert-card::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at top left, rgba(217, 119, 6, 0.18), transparent 55%);
+    opacity: 0.9;
+    pointer-events: none;
+}
+
+.pii-alert-card > div[data-testid="column"] {
+    position: relative;
+}
+
+.pii-alert-card__body {
+    position: relative;
+    z-index: 1;
+    color: #7c2d12;
+}
+
+.pii-alert-card__title {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 1.05rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #9a3412;
+    margin-bottom: 0.4rem;
+}
+
+.pii-alert-card__body p {
+    margin-bottom: 0.65rem;
+    font-size: 0.95rem;
+    line-height: 1.6;
+}
+
+.pii-alert-card__chips {
+    margin-top: 0.35rem;
+}
+
+.pii-alert-card__action {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+}
+
+.pii-alert-card__action div[data-testid="stButton"] {
+    width: 100%;
+}
+
+.pii-alert-card__action button {
+    width: 100%;
+    min-height: 52px;
+    border-radius: 999px;
+    font-weight: 700;
+    box-shadow: 0 10px 18px rgba(217, 119, 6, 0.25);
 }
 
 .sample-card__label {
