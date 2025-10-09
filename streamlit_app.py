@@ -3740,6 +3740,23 @@ def render_train_stage():
     if ss.get("nerd_mode_train") and ss.get("model") is not None and parsed_split:
         with st.expander("Nerd Mode — what just happened (technical)", expanded=True):
             X_tr_t, X_te_t, X_tr_b, X_te_b, y_tr_labels, y_te_labels = parsed_split
+            train_texts_combined: list[str] = []
+            train_embeddings: Optional[np.ndarray] = None
+            if X_tr_t and X_tr_b:
+                train_texts_combined = [combine_text(t, b) for t, b in zip(X_tr_t, X_tr_b)]
+                if train_texts_combined:
+                    try:
+                        train_embeddings = cache_train_embeddings(train_texts_combined)
+                    except Exception:
+                        train_embeddings = None
+                    if (
+                        train_embeddings is None
+                        or getattr(train_embeddings, "size", 0) == 0
+                    ):
+                        try:
+                            train_embeddings = encode_texts(train_texts_combined)
+                        except Exception:
+                            train_embeddings = None
             try:
                 st.markdown("**Data split**")
                 st.markdown(
@@ -3750,6 +3767,59 @@ def render_train_stage():
                 )
             except Exception:
                 st.caption("Split details unavailable.")
+
+            centroid_distance: Optional[float] = None
+            centroid_message: Optional[str] = None
+            try:
+                if not train_texts_combined:
+                    centroid_message = "Centroid distance unavailable (no training texts)."
+                elif train_embeddings is None or getattr(train_embeddings, "size", 0) == 0:
+                    centroid_message = "Centroid distance unavailable (embeddings missing)."
+                elif not y_tr_labels:
+                    centroid_message = "Centroid distance unavailable (labels missing)."
+                else:
+                    y_train_arr = np.asarray(y_tr_labels)
+                    if train_embeddings.shape[0] != y_train_arr.shape[0]:
+                        centroid_message = "Centroid distance unavailable (embedding count mismatch)."
+                    else:
+                        spam_mask = y_train_arr == "spam"
+                        safe_mask = y_train_arr == "safe"
+                        if not np.any(spam_mask) or not np.any(safe_mask):
+                            centroid_message = "Centroid distance requires at least one spam and one safe email."
+                        else:
+                            spam_centroid = train_embeddings[spam_mask].mean(axis=0)
+                            safe_centroid = train_embeddings[safe_mask].mean(axis=0)
+                            spam_norm = float(np.linalg.norm(spam_centroid))
+                            safe_norm = float(np.linalg.norm(safe_centroid))
+                            if spam_norm == 0.0 or safe_norm == 0.0:
+                                centroid_message = "Centroid distance unavailable (zero-length centroid)."
+                            else:
+                                cosine_similarity = float(
+                                    np.clip(
+                                        np.dot(spam_centroid, safe_centroid)
+                                        / (spam_norm * safe_norm),
+                                        -1.0,
+                                        1.0,
+                                    )
+                                )
+                                centroid_distance = 1.0 - cosine_similarity
+            except Exception:
+                centroid_message = "Centroid distance unavailable."
+
+            if centroid_distance is not None:
+                st.metric("Centroid cosine distance", f"{centroid_distance:.2f}")
+                meter_width = float(np.clip(centroid_distance, 0.0, 1.0)) * 100.0
+                meter_html = f"""
+                <div style="margin-top:-0.5rem; margin-bottom:0.75rem;">
+                    <div style="background:rgba(49, 51, 63, 0.1); border-radius:999px; height:10px; width:100%;">
+                        <div style="background:linear-gradient(90deg, #4ade80, #22c55e); border-radius:999px; height:100%; width:{meter_width:.0f}%;"></div>
+                    </div>
+                    <div style="font-size:0.7rem; color:rgba(49,51,63,0.6); margin-top:0.25rem;">0 = identical • 1 = orthogonal</div>
+                </div>
+                """
+                st.markdown(meter_html, unsafe_allow_html=True)
+            elif centroid_message:
+                st.caption(centroid_message)
 
             params = ss.get("train_params", {})
             st.markdown("**Parameters used**")
@@ -3845,8 +3915,12 @@ def render_train_stage():
             st.markdown("#### Embedding prototypes & nearest neighbors")
             try:
                 if X_tr_t and X_tr_b:
-                    X_train_texts = [combine_text(t, b) for t, b in zip(X_tr_t, X_tr_b)]
-                    X_train_emb = encode_texts(X_train_texts)
+                    X_train_texts = train_texts_combined or [
+                        combine_text(t, b) for t, b in zip(X_tr_t, X_tr_b)
+                    ]
+                    X_train_emb = train_embeddings
+                    if X_train_emb is None or getattr(X_train_emb, "size", 0) == 0:
+                        X_train_emb = encode_texts(X_train_texts)
                     y_train_arr = np.array(y_tr_labels)
 
                     def prototype_for(cls):
