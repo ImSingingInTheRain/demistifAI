@@ -1547,7 +1547,7 @@ def render_data_stage():
                 else:
                     effect_hint = "No changes yet—adjust and preview."
 
-            panel_html = ["<div class='dataset-delta-panel'>", "<h5>What changed</h5>"]
+            panel_html = ["<div class='dataset-delta-panel'>", "<h5>Compare datasets</h5>"]
             if panel_items:
                 panel_html.append("<div class='dataset-delta-panel__items'>")
                 for label, arrow, arrow_class, value_str in panel_items:
@@ -1563,7 +1563,7 @@ def render_data_stage():
                 panel_html.append("</div>")
             else:
                 panel_html.append(
-                    "<p class='dataset-delta-panel__story'>No changes yet—adjust and preview.</p>"
+                    "<p class='dataset-delta-panel__story'>After you generate a dataset, you can tweak the configuration and preview here how these impact your data.</p>"
                 )
                 effect_hint = ""
 
