@@ -1651,7 +1651,6 @@ def render_data_stage():
                         st.caption("Health badge unavailable.")
 
         with section_surface():
-            st.markdown("### Dataset Preview")
             banner_clicked = render_pii_cleanup_banner(counts)
             if banner_clicked:
                 ss["pii_open"] = True
