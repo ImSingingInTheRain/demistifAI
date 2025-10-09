@@ -1069,6 +1069,9 @@ def render_data_stage():
     current_summary = compute_dataset_summary(ss["labeled"])
     ss["dataset_summary"] = current_summary
 
+    with section_surface():
+        render_eu_ai_quote("An AI system “infers, from the input it receives…”.")
+
     st.markdown(
         """
         <style>
