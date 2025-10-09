@@ -130,6 +130,16 @@ PII_DISPLAY_LABELS = [
 ]
 
 
+PII_CHIP_CONFIG = [
+    ("credit_card", "💳", "Credit card"),
+    ("iban", "🏦", "IBAN"),
+    ("email", "📧", "Emails"),
+    ("phone", "☎️", "Phones"),
+    ("otp6", "🔐", "OTPs"),
+    ("url", "🌐", "Suspicious URLs"),
+]
+
+
 PII_INDICATOR_STYLE = """
 <style>
 .pii-indicators {
@@ -185,6 +195,37 @@ def summarize_pii_counts(
 def format_pii_summary(counts: Dict[str, int]) -> str:
     return " • ".join(
         f"{label}: {int(counts.get(key, 0) or 0)}" for key, label in PII_DISPLAY_LABELS
+    )
+
+
+def pii_chip_row_html(counts: Dict[str, int], extra_class: str = "") -> str:
+    classes = ["indicator-chip-row", "pii-chip-row"]
+    if extra_class:
+        classes.append(extra_class)
+    chip_parts: List[str] = []
+    for key, icon, label in PII_CHIP_CONFIG:
+        count = counts.get(key, 0)
+        if isinstance(count, (int, float)):
+            count_value = float(count)
+            if abs(count_value - round(count_value)) < 1e-6:
+                count_display = str(int(round(count_value)))
+            else:
+                count_display = f"{count_value:.2f}".rstrip("0").rstrip(".")
+        else:
+            count_display = html.escape(str(count))
+        chip_parts.append(
+            "<span class='lint-chip'><span class='lint-chip__icon'>{icon}</span>"
+            "<span class='lint-chip__text'>{label}: {count}</span></span>".format(
+                icon=icon,
+                label=html.escape(label),
+                count=count_display,
+            )
+        )
+    if not chip_parts:
+        return ""
+    return "<div class='{classes}'>{chips}</div>".format(
+        classes=" ".join(classes),
+        chips="".join(chip_parts),
     )
 
 
@@ -288,20 +329,25 @@ def render_pii_cleanup_banner(lint_counts: Dict[str, int]) -> bool:
     total_hits = sum(int(value or 0) for value in lint_counts.values())
     if total_hits <= 0:
         return False
-    column_left, column_right = st.columns([3, 1])
+    st.markdown("<div class='pii-alert-card'>", unsafe_allow_html=True)
+    column_left, column_right = st.columns([3.5, 1.25], gap="large")
     with column_left:
+        summary_html = pii_chip_row_html(lint_counts, extra_class="pii-alert-card__chips")
         st.markdown(
-            f"""
-            <div class="callout callout--warn">
-              <h4>⚠️ Personal data alert</h4>
-              <p>The data used to build an AI system should not include personal data unless it is really necessary. Click on "start cleanup" to simulate a data minimization process and replace person data present in your data set with anonymized tags.</p>
-              <p><strong>Summary:</strong> {format_pii_summary(lint_counts)}</p>
+            """
+            <div class="pii-alert-card__body">
+                <div class="pii-alert-card__title">⚠️ Personal data alert</div>
+                <p>The data used to build an AI system should not include personal data unless it is really necessary. Click on <strong>Start cleanup</strong> to simulate a data minimization process and replace personal data in your dataset with anonymized tags.</p>
+                {summary}
             </div>
-            """,
+            """.format(summary=summary_html or ""),
             unsafe_allow_html=True,
         )
     with column_right:
+        st.markdown("<div class='pii-alert-card__action'>", unsafe_allow_html=True)
         start = st.button("🧹 Start cleanup", key="pii_btn_start", type="primary", use_container_width=True)
+        st.markdown("</div>", unsafe_allow_html=True)
+    st.markdown("</div>", unsafe_allow_html=True)
     return start
 
 
@@ -2097,38 +2143,9 @@ def render_data_stage():
                 """
                 st.markdown(bar_html, unsafe_allow_html=True)
 
-                chips = [
-                    ("💳", "Credit card", lint_counts.get("credit_card", 0)),
-                    ("🏦", "IBAN", lint_counts.get("iban", 0)),
-                    ("📧", "Emails", lint_counts.get("email", 0)),
-                    ("☎️", "Phones", lint_counts.get("phone", 0)),
-                    ("🔐", "OTPs", lint_counts.get("otp6", 0)),
-                    ("🌐", "Suspicious URLs", lint_counts.get("url", 0)),
-                ]
-                chip_parts: list[str] = []
-                for icon, label, count in chips:
-                    if isinstance(count, (int, float)):
-                        count_value = float(count)
-                        if abs(count_value - round(count_value)) < 1e-6:
-                            count_display = str(int(round(count_value)))
-                        else:
-                            count_display = f"{count_value:.2f}".rstrip("0").rstrip(".")
-                    else:
-                        count_display = html.escape(str(count))
-                    chip_parts.append(
-                        "<span class='lint-chip'><span class='lint-chip__icon'>{icon}</span>"
-                        "<span class='lint-chip__text'>{label}: {count}</span></span>".format(
-                            icon=icon,
-                            label=html.escape(label),
-                            count=count_display,
-                        )
-                    )
-                chip_html = "".join(chip_parts)
+                chip_html = pii_chip_row_html(lint_counts, extra_class="pii-chip-row--compact")
                 if chip_html:
-                    st.markdown(
-                        f"<div class='indicator-chip-row' style='margin-bottom:0.25rem;'>{chip_html}</div>",
-                        unsafe_allow_html=True,
-                    )
+                    st.markdown(chip_html, unsafe_allow_html=True)
                 st.caption("Guardrail: no live link fetching, HTML escaped, duplicates dropped.")
 
             with sample_col:
