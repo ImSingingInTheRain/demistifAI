@@ -2234,7 +2234,7 @@ def render_data_stage():
                 manual_df = pd.DataFrame(preview_rows_full)
                 if not manual_df.empty and "include" not in manual_df.columns:
                     manual_df.insert(0, "include", True)
-            with st.expander("Manually curate rows (optional)"):
+            with st.expander("Expand this section if you want to manually review and edit individual emails part of the dataset"):
                 edited_df = st.data_editor(
                     manual_df,
                     width="stretch",
