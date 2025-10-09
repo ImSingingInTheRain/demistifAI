@@ -4330,7 +4330,7 @@ def render_train_stage():
                     </div>
                     <div class='train-band-card__scale'><span>0</span><span>1</span></div>
                     <div class='train-band-card__caption'>τ = {assist_center:.2f} • band ±{band:.2f}</div>
-                    <div class='train-band-card__hint'>Inside this zone, numeric cues (links, TLDs, caps, money terms) can gently adjust the text score.</div>
+                    <div class='train-band-card__hint'>“Inside this zone, numeric cues (links, TLDs, caps, money terms) can gently adjust the text score.”</div>
                 </div>
                 """
 
