@@ -3587,6 +3587,11 @@ def render_train_stage():
                     expanded=True,
                 ):
                     st.markdown(
+                        "Your labels define the explicit objective: ‘Spam vs Safe’. "
+                        "MiniLM + the classifier discover an implicit strategy: a direction in meaning space that "
+                        "separates the two. The numeric cues only assist when the text score is borderline."
+                    )
+                    st.markdown(
                         "1. A compact Transformer (MiniLM) turns each email into a meaning vector (embedding). Paraphrases land nearby.\n"
                         "2. We train a simple classifier that learns a weighted direction separating Spam vs Safe in that space.\n"
                         "3. When scores are borderline, numeric guardrails (links/TLD/caps/$$) assist—depending on the uncertainty band."
@@ -3934,6 +3939,11 @@ def render_train_stage():
                     f"(Spam: {ct['spam']}, Safe: {ct['safe']}).\n"
                     "- It looked for patterns that distinguish **Spam** from **Safe**.\n"
                     "- It saved these patterns as simple rules (weights) it can use later to decide."
+                )
+                st.markdown(
+                    "Your labels define the explicit objective: ‘Spam vs Safe’. "
+                    "MiniLM + the classifier discover an implicit strategy: a direction in meaning space that "
+                    "separates the two. The numeric cues only assist when the text score is borderline."
                 )
 
                 if lang_mix_error:
