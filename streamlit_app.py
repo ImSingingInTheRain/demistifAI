@@ -1082,6 +1082,8 @@ def render_data_stage():
             padding: 1.5rem;
             border: 1px solid rgba(15, 23, 42, 0.08);
             box-shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
+            margin-bottom: 50px;
+            margin-top: 20px;
         }
         .prepare-intro-card__header {
             display: flex;
