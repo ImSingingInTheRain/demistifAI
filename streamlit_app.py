@@ -53,6 +53,7 @@ from demistifai.dataset import (
     build_dataset_from_config,
     compute_dataset_hash,
     compute_dataset_summary,
+    _estimate_token_stats,
     dataset_delta_story,
     dataset_summary_delta,
     explain_config_change,
@@ -3395,6 +3396,7 @@ def _discard_preview() -> None:
 def render_train_stage():
 
     stage = STAGE_BY_KEY["train"]
+    ss.setdefault("token_budget_cache", {})
 
     with section_surface():
         main_col, aside_col = st.columns([3, 2], gap="large")
@@ -3576,11 +3578,40 @@ def render_train_stage():
                     )
 
             st.info(
-                "• **Hold-out fraction**: keeps part of the data for an honest test.  \\\n+"
-                "• **Random seed**: makes results repeatable.  \\\n+"
-                "• **Max iterations / C**: learning dials—defaults are fine; feel free to experiment.  \\\n+"
+                "• **Hold-out fraction**: keeps part of the data for an honest test.  \\\n"
+                "• **Random seed**: makes results repeatable.  \\\n"
+                "• **Max iterations / C**: learning dials—defaults are fine; feel free to experiment.  \\\n"
                 "• **Numeric guardrails**: control when and how numeric cues assist the text model."
             )
+
+    token_budget_text = "Token budget: —"
+    show_trunc_tip = False
+    try:
+        labeled_rows = ss.get("labeled", [])
+        if labeled_rows:
+            dataset_hash = compute_dataset_hash(labeled_rows)
+            cache = ss.get("token_budget_cache", {})
+            stats = cache.get(dataset_hash)
+            if stats is None:
+                titles = [str(row.get("title", "")) for row in labeled_rows]
+                bodies = [str(row.get("body", "")) for row in labeled_rows]
+                stats = _estimate_token_stats(titles, bodies, max_tokens=384)
+                cache[dataset_hash] = stats
+                ss["token_budget_cache"] = cache
+            if stats and stats.get("n"):
+                avg_tokens = float(stats.get("avg_tokens", 0.0))
+                pct_trunc = float(stats.get("p_truncated", 0.0)) * 100.0
+                token_budget_text = f"Token budget: avg ~{avg_tokens:.0f} • truncated: {pct_trunc:.1f}%"
+                show_trunc_tip = float(stats.get("p_truncated", 0.0)) > 0.05
+        else:
+            token_budget_text = "Token budget: —"
+    except Exception:
+        token_budget_text = "Token budget: —"
+        show_trunc_tip = False
+
+    st.caption(token_budget_text)
+    if show_trunc_tip:
+        st.caption("Tip: long emails will be clipped; summaries help.")
 
     with section_surface():
         action_col, context_col = st.columns([2, 3], gap="large")
