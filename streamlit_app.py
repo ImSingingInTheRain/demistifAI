@@ -3569,56 +3569,450 @@ def render_train_stage():
     stage = STAGE_BY_KEY["train"]
     ss.setdefault("token_budget_cache", {})
 
+    st.markdown(
+        """
+        <style>
+        .train-intro-card {
+            background: linear-gradient(135deg, rgba(79, 70, 229, 0.16), rgba(14, 165, 233, 0.16));
+            border-radius: 1.25rem;
+            padding: 1.6rem;
+            border: 1px solid rgba(15, 23, 42, 0.08);
+            box-shadow: 0 18px 38px rgba(15, 23, 42, 0.1);
+            margin-bottom: 1.8rem;
+        }
+        .train-intro-card__header {
+            display: flex;
+            gap: 1rem;
+            align-items: flex-start;
+            margin-bottom: 0.85rem;
+        }
+        .train-intro-card__icon {
+            font-size: 1.75rem;
+            line-height: 1;
+            background: rgba(15, 23, 42, 0.08);
+            border-radius: 1rem;
+            padding: 0.55rem 0.95rem;
+            box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.05);
+        }
+        .train-intro-card__eyebrow {
+            font-size: 0.75rem;
+            letter-spacing: 0.16em;
+            text-transform: uppercase;
+            font-weight: 700;
+            color: rgba(15, 23, 42, 0.55);
+            display: inline-block;
+        }
+        .train-intro-card__title {
+            margin: 0;
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: #0f172a;
+        }
+        .train-intro-card__body {
+            margin: 0 0 1.15rem 0;
+            color: rgba(15, 23, 42, 0.82);
+            font-size: 0.95rem;
+            line-height: 1.6;
+        }
+        .train-intro-card__steps {
+            display: grid;
+            gap: 0.75rem;
+        }
+        .train-intro-card__step {
+            display: flex;
+            gap: 0.75rem;
+            align-items: flex-start;
+        }
+        .train-intro-card__step-index {
+            width: 2rem;
+            height: 2rem;
+            border-radius: 999px;
+            background: rgba(79, 70, 229, 0.18);
+            color: rgba(30, 64, 175, 0.9);
+            font-weight: 700;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.85rem;
+        }
+        .train-intro-card__step-body {
+            font-size: 0.9rem;
+            color: rgba(15, 23, 42, 0.8);
+            line-height: 1.55;
+        }
+        .train-sidebar-card {
+            border-radius: 1.1rem;
+            border: 1px solid rgba(15, 23, 42, 0.08);
+            background: rgba(255, 255, 255, 0.92);
+            box-shadow: 0 16px 36px rgba(15, 23, 42, 0.12);
+            padding: 1.2rem 1.35rem;
+            margin-bottom: 1rem;
+        }
+        .train-sidebar-card__title {
+            margin: 0 0 0.65rem 0;
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: #0f172a;
+        }
+        .train-sidebar-card__list {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            display: grid;
+            gap: 0.55rem;
+        }
+        .train-sidebar-card__list li {
+            display: grid;
+            grid-template-columns: 1.8rem 1fr;
+            gap: 0.55rem;
+            font-size: 0.9rem;
+            color: rgba(15, 23, 42, 0.78);
+            line-height: 1.4;
+        }
+        .train-sidebar-card__bullet {
+            width: 1.8rem;
+            height: 1.8rem;
+            border-radius: 0.75rem;
+            background: rgba(79, 70, 229, 0.12);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+        }
+        .train-sidebar-card--secondary {
+            background: rgba(30, 64, 175, 0.06);
+            border: 1px dashed rgba(30, 64, 175, 0.35);
+        }
+        .train-how-card {
+            border-radius: 1.1rem;
+            border: 1px solid rgba(15, 23, 42, 0.08);
+            padding: 1.2rem 1.35rem;
+            background: rgba(255, 255, 255, 0.94);
+            box-shadow: 0 14px 32px rgba(15, 23, 42, 0.1);
+        }
+        .train-how-card__header {
+            display: flex;
+            gap: 0.75rem;
+            align-items: center;
+            margin-bottom: 0.75rem;
+        }
+        .train-how-card__icon {
+            font-size: 1.35rem;
+        }
+        .train-how-card__title {
+            margin: 0;
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: #0f172a;
+        }
+        .train-how-card__body {
+            margin: 0 0 0.85rem 0;
+            font-size: 0.9rem;
+            color: rgba(15, 23, 42, 0.78);
+            line-height: 1.55;
+        }
+        .train-how-card__steps {
+            margin: 0 0 0.9rem 1.15rem;
+            padding: 0;
+            font-size: 0.9rem;
+            color: rgba(15, 23, 42, 0.82);
+        }
+        .train-how-card__grid {
+            display: grid;
+            gap: 0.75rem;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        }
+        .train-how-card__grid h6 {
+            margin: 0 0 0.4rem 0;
+            font-size: 0.82rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: rgba(15, 23, 42, 0.65);
+        }
+        .train-how-card__grid ul {
+            margin: 0;
+            padding-left: 1.1rem;
+            font-size: 0.85rem;
+            color: rgba(15, 23, 42, 0.75);
+        }
+        .train-token-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
+            border-radius: 999px;
+            padding: 0.4rem 0.85rem;
+            background: rgba(59, 130, 246, 0.12);
+            color: rgba(30, 64, 175, 0.9);
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+        .train-inline-note {
+            margin-top: 0.35rem;
+            font-size: 0.8rem;
+            color: rgba(30, 64, 175, 0.82);
+            background: rgba(191, 219, 254, 0.35);
+            border-radius: 0.6rem;
+            padding: 0.45rem 0.75rem;
+            display: inline-block;
+        }
+        .train-action-card {
+            border-radius: 1.1rem;
+            border: 1px solid rgba(15, 23, 42, 0.08);
+            padding: 1.25rem 1.35rem;
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.12), rgba(14, 165, 233, 0.12));
+            box-shadow: 0 16px 34px rgba(15, 23, 42, 0.1);
+            margin-bottom: 0.75rem;
+        }
+        .train-action-card__eyebrow {
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            letter-spacing: 0.14em;
+            font-weight: 700;
+            color: rgba(30, 64, 175, 0.75);
+        }
+        .train-action-card__title {
+            margin: 0.35rem 0 0.6rem 0;
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #0f172a;
+        }
+        .train-action-card__body {
+            margin: 0;
+            font-size: 0.9rem;
+            color: rgba(15, 23, 42, 0.78);
+            line-height: 1.5;
+        }
+        .train-context-card {
+            border-radius: 1rem;
+            border: 1px solid rgba(15, 23, 42, 0.08);
+            padding: 1rem 1.1rem;
+            background: rgba(255, 255, 255, 0.94);
+            box-shadow: 0 10px 26px rgba(15, 23, 42, 0.08);
+            margin-bottom: 0.9rem;
+        }
+        .train-context-card h5 {
+            margin: 0 0 0.5rem 0;
+            font-size: 1rem;
+            font-weight: 700;
+            color: #0f172a;
+        }
+        .train-context-card ul {
+            margin: 0;
+            padding-left: 1.1rem;
+            font-size: 0.88rem;
+            color: rgba(15, 23, 42, 0.78);
+            line-height: 1.5;
+        }
+        .train-context-card--tip {
+            background: rgba(236, 233, 254, 0.6);
+            border: 1px dashed rgba(79, 70, 229, 0.35);
+            color: rgba(55, 48, 163, 0.95);
+        }
+        .train-band-card {
+            border-radius: 1rem;
+            border: 1px solid rgba(79, 70, 229, 0.25);
+            padding: 0.95rem 1.1rem 1.05rem 1.1rem;
+            background: rgba(79, 70, 229, 0.08);
+            box-shadow: inset 0 0 0 1px rgba(79, 70, 229, 0.08);
+        }
+        .train-band-card__title {
+            margin: 0 0 0.55rem 0;
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: rgba(49, 46, 129, 0.9);
+        }
+        .train-band-card__bar {
+            position: relative;
+            width: 100%;
+            height: 16px;
+            border-radius: 999px;
+            background: rgba(30, 64, 175, 0.12);
+        }
+        .train-band-card__band {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            border-radius: 999px;
+            background: rgba(59, 130, 246, 0.35);
+        }
+        .train-band-card__threshold {
+            position: absolute;
+            top: -4px;
+            bottom: -4px;
+            width: 2px;
+            border-radius: 2px;
+            background: rgba(30, 64, 175, 0.95);
+        }
+        .train-band-card__scale {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.68rem;
+            color: rgba(30, 64, 175, 0.8);
+            margin-top: 0.35rem;
+        }
+        .train-band-card__caption {
+            margin-top: 0.45rem;
+            font-size: 0.75rem;
+            color: rgba(49, 46, 129, 0.85);
+        }
+        .train-band-card__hint {
+            margin-top: 0.35rem;
+            font-size: 0.78rem;
+            color: rgba(49, 46, 129, 0.75);
+        }
+        .train-nerd-intro {
+            border-radius: 1rem;
+            border: 1px solid rgba(15, 23, 42, 0.08);
+            padding: 1rem 1.1rem;
+            background: rgba(14, 165, 233, 0.08);
+            box-shadow: 0 12px 28px rgba(15, 23, 42, 0.08);
+            margin-bottom: 1rem;
+        }
+        .train-nerd-intro h4 {
+            margin: 0 0 0.35rem 0;
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: rgba(7, 89, 133, 0.9);
+        }
+        .train-nerd-intro p {
+            margin: 0;
+            font-size: 0.88rem;
+            color: rgba(7, 89, 133, 0.78);
+            line-height: 1.5;
+        }
+        .train-nerd-hint {
+            margin-top: 0.85rem;
+            font-size: 0.8rem;
+            color: rgba(15, 23, 42, 0.7);
+            background: rgba(191, 219, 254, 0.45);
+            border-radius: 0.75rem;
+            padding: 0.55rem 0.75rem;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    stage_number = STAGE_INDEX.get(stage.key, 0) - STAGE_INDEX.get("data", 0) + 1
+    if stage_number < 1:
+        stage_number = STAGE_INDEX.get(stage.key, 0) + 1
+
+    nerd_mode_train_enabled = bool(ss.get("nerd_mode_train"))
+
+    stage_title_html = html.escape(stage.title)
+    stage_desc_html = html.escape(stage.description)
+    stage_icon_html = html.escape(stage.icon)
+
     with section_surface():
-        main_col, aside_col = st.columns([3, 2], gap="large")
-        with main_col:
-            st.subheader(f"{stage.icon} {stage.title} — teach the model to infer")
+        intro_col, sidebar_col = st.columns([0.58, 0.42], gap="large")
+        with intro_col:
+            st.markdown(
+                """
+                <div class="train-intro-card">
+                    <div class="train-intro-card__header">
+                        <span class="train-intro-card__icon">{icon}</span>
+                        <div>
+                            <span class="train-intro-card__eyebrow">Stage {num}</span>
+                            <h4 class="train-intro-card__title">{title}</h4>
+                        </div>
+                    </div>
+                    <p class="train-intro-card__body">
+                        {desc} It now learns how to separate spam from safe emails using the examples you curated.
+                    </p>
+                    <div class="train-intro-card__steps">
+                        <div class="train-intro-card__step">
+                            <span class="train-intro-card__step-index">1</span>
+                            <div class="train-intro-card__step-body"><strong>Start from labeled history.</strong> The dataset built in <em>Prepare data</em> anchors what "Spam" and "Safe" mean.</div>
+                        </div>
+                        <div class="train-intro-card__step">
+                            <span class="train-intro-card__step-index">2</span>
+                            <div class="train-intro-card__step-body"><strong>Spot the patterns.</strong> MiniLM encodes each email; the classifier learns a direction that pulls spam and safe apart.</div>
+                        </div>
+                        <div class="train-intro-card__step">
+                            <span class="train-intro-card__step-index">3</span>
+                            <div class="train-intro-card__step-body"><strong>Generalize forward.</strong> With the patterns in hand, the model can infer outcomes for new emails it has never seen.</div>
+                        </div>
+                    </div>
+                </div>
+                """.format(
+                    icon=stage_icon_html,
+                    num=stage_number,
+                    title=stage_title_html,
+                    desc=stage_desc_html,
+                ),
+                unsafe_allow_html=True,
+            )
             render_eu_ai_quote("The EU AI Act says: “An AI system infers from the input it receives…”")
-            st.write(
-                "We’ll train the spam detector so it can **infer** whether each new email is **Spam** or **Safe**."
-            )
-            st.markdown(
-                "- In the previous step, you prepared **labeled examples** (emails marked as spam or safe).  \n"
-                "- The model now **looks for patterns** in those examples.  \n"
-                "- With enough clear examples, it learns to **generalize** to new emails."
-            )
             if not ss.get("nerd_mode_train"):
-                with st.expander(
-                    "How training works (plain English)",
-                    expanded=True,
-                ):
-                    st.markdown(
-                        "Your labels define the explicit objective: ‘Spam vs Safe’. "
-                        "MiniLM + the classifier discover an implicit strategy: a direction in meaning space that "
-                        "separates the two. The numeric cues only assist when the text score is borderline."
-                    )
-                    st.markdown(
-                        "1. A compact Transformer (MiniLM) turns each email into a meaning vector (embedding). Paraphrases land nearby.\n"
-                        "2. We train a simple classifier that learns a weighted direction separating Spam vs Safe in that space.\n"
-                        "3. When scores are borderline, numeric guardrails (links/TLD/caps/$$) assist—depending on the uncertainty band."
-                    )
-                    good_col, hard_col = st.columns(2)
-                    with good_col:
-                        st.markdown(
-                            "**Good at**\n"
-                            "- English paraphrases\n"
-                            "- Short-ish emails\n"
-                            "- Phishing patterns\n"
-                            "- Promos vs alerts"
-                        )
-                    with hard_col:
-                        st.markdown(
-                            "**Hard for**\n"
-                            "- Very long emails (truncation)\n"
-                            "- Non-English\n"
-                            "- Very short ‘Hi’ emails"
-                        )
-        with aside_col:
-            st.markdown("### Training checklist")
+                st.markdown(
+                    """
+                    <div class="train-how-card">
+                        <div class="train-how-card__header">
+                            <div class="train-how-card__icon">🧩</div>
+                            <div>
+                                <h5 class="train-how-card__title">How this training run behaves</h5>
+                                <p class="train-how-card__body">Plain-language view of the mechanics so your team can follow along.</p>
+                            </div>
+                        </div>
+                        <p class="train-how-card__body">Your labels define the explicit objective: “Spam vs Safe”. MiniLM and the classifier uncover an implicit strategy&mdash;a weighted direction in meaning space. Numeric guardrails only step in when the text score is borderline.</p>
+                        <ol class="train-how-card__steps">
+                            <li>A compact transformer (MiniLM) turns each email into an embedding; paraphrases end up nearby.</li>
+                            <li>A linear classifier learns the separating direction that best splits Spam from Safe.</li>
+                            <li>When the text score is uncertain, numeric cues (links, TLDs, caps, $$) lend assistance.</li>
+                        </ol>
+                        <div class="train-how-card__grid">
+                            <div>
+                                <h6>Good at</h6>
+                                <ul>
+                                    <li>English paraphrases</li>
+                                    <li>Short to medium emails</li>
+                                    <li>Phishing phrasing</li>
+                                    <li>Promo vs alert tone</li>
+                                </ul>
+                            </div>
+                            <div>
+                                <h6>Watch-outs</h6>
+                                <ul>
+                                    <li>Very long emails (truncation)</li>
+                                    <li>Non-English content</li>
+                                    <li>Ultra-short “hi” notes</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
+        with sidebar_col:
             st.markdown(
-                "- Ensure both **spam** and **safe** emails are labeled.\n"
-                "- Aim for a balanced mix of examples.\n"
-                "- Use Nerd Mode to tune advanced parameters when you’re ready."
+                """
+                <div class="train-sidebar-card">
+                    <div class="train-sidebar-card__title">Training readiness checklist</div>
+                    <ul class="train-sidebar-card__list">
+                        <li><span class="train-sidebar-card__bullet">📊</span><span>Mix of labeled spam and safe emails (aim for balance).</span></li>
+                        <li><span class="train-sidebar-card__bullet">🧪</span><span>Hold-out split ready so we can grade the model honestly.</span></li>
+                        <li><span class="train-sidebar-card__bullet">🧹</span><span>Personal data scrubbed or minimised in the dataset preview.</span></li>
+                        <li><span class="train-sidebar-card__bullet">📝</span><span>Document any assumptions you make before you ship the model.</span></li>
+                    </ul>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+            st.markdown(
+                """
+                <div class="train-sidebar-card train-sidebar-card--secondary">
+                    <div class="train-sidebar-card__title">Need precise control?</div>
+                    <p style="margin:0; font-size:0.88rem; color:rgba(30,64,175,0.82);">Toggle Nerd Mode to tune the train/test split and numeric guardrails before you launch training.</p>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+            nerd_mode_train_enabled = render_nerd_mode_toggle(
+                key="nerd_mode_train",
+                title="Nerd Mode — advanced controls",
+                description="Tweak the train/test split, solver iterations, and regularization strength.",
+                icon="🔬",
             )
 
     def _parse_split_cache(cache):
@@ -3650,14 +4044,17 @@ def render_train_stage():
         y_te = list(cache[-1]) if len(cache) >= 1 else []
         return [], [], [], [], y_tr, y_te
 
-    nerd_mode_train_enabled = render_nerd_mode_toggle(
-        key="nerd_mode_train",
-        title="Nerd Mode — advanced controls",
-        description="Tweak the train/test split, solver iterations, and regularization strength.",
-        icon="🔬",
-    )
     if nerd_mode_train_enabled:
         with section_surface():
+            st.markdown(
+                """
+                <div class="train-nerd-intro">
+                    <h4>Advanced split & guardrail controls</h4>
+                    <p>Fine-tune how much data we hold out, solver behaviour, and the numeric assist rules that complement the text model.</p>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
             colA, colB = st.columns(2)
             with colA:
                 ss["train_params"]["test_size"] = st.slider(
@@ -3764,11 +4161,13 @@ def render_train_stage():
                         help="Positive shift raises the threshold when text looks calm (very low ALL-CAPS).",
                     )
 
-            st.info(
-                "• **Hold-out fraction**: keeps part of the data for an honest test.  \\\n"
-                "• **Random seed**: makes results repeatable.  \\\n"
-                "• **Max iterations / C**: learning dials—defaults are fine; feel free to experiment.  \\\n"
-                "• **Numeric guardrails**: tune the center, band, and strength of numeric cues assisting the text model."
+            st.markdown(
+                """
+                <div class="train-nerd-hint">
+                    <strong>Guide:</strong> Hold-out keeps an honest exam set, the seed makes runs reproducible, <em>max iter</em> and <em>C</em> steer the solver, and the numeric guardrails define when structured cues can override the text score.
+                </div>
+                """,
+                unsafe_allow_html=True,
             )
 
     token_budget_text = "Token budget: —"
@@ -3796,20 +4195,43 @@ def render_train_stage():
         token_budget_text = "Token budget: —"
         show_trunc_tip = False
 
-    st.caption(token_budget_text)
+    st.markdown(
+        f"<div class='train-token-chip'>{html.escape(token_budget_text)}</div>",
+        unsafe_allow_html=True,
+    )
     if show_trunc_tip:
-        st.caption("Tip: long emails will be clipped; summaries help.")
+        st.markdown(
+            "<div class='train-inline-note'>Tip: long emails will be clipped; summaries help.</div>",
+            unsafe_allow_html=True,
+        )
 
     with section_surface():
-        action_col, context_col = st.columns([2, 3], gap="large")
+        action_col, context_col = st.columns([0.55, 0.45], gap="large")
         with action_col:
-            st.markdown("### Train the model")
-            st.markdown("👉 When you’re ready, click **Train**.")
-            trigger_train = st.button("🚀 Train model", type="primary")
+            st.markdown(
+                """
+                <div class="train-action-card">
+                    <div class="train-action-card__eyebrow">Run training</div>
+                    <div class="train-action-card__title">Teach the spam detector</div>
+                    <p class="train-action-card__body">When you’re ready, launch the training run. We’ll automatically evaluate on the hold-out split.</p>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+            trigger_train = st.button("🚀 Train model", type="primary", use_container_width=True)
         with context_col:
             st.markdown(
-                "- Uses the labeled dataset curated in the previous stage.\n"
-                "- Applies the hyperparameters you set above."
+                """
+                <div class="train-context-card">
+                    <h5>What happens when you train</h5>
+                    <ul>
+                        <li>Uses the labeled dataset curated in <em>Prepare data</em>.</li>
+                        <li>Applies your split, solver, and numeric guardrail settings.</li>
+                        <li>Captures metrics for the Evaluate stage automatically.</li>
+                    </ul>
+                </div>
+                """,
+                unsafe_allow_html=True,
             )
 
             if not ss.get("nerd_mode_train"):
@@ -3829,22 +4251,20 @@ def render_train_stage():
                 band_right = max(0.0, min(100.0, high_pct))
                 band_width = max(0.0, band_right - band_left)
 
-                band_bar_html = f"""
-                <div style=\"margin-top:0.6rem;\">
-                    <div style=\"position:relative;height:16px;width:100%;max-width:220px;background:rgba(49,51,63,0.08);border-radius:999px;\">
-                        <div style=\"position:absolute;left:{band_left:.2f}%;width:{band_width:.2f}%;top:0;bottom:0;background:rgba(235,105,26,0.28);border-radius:999px;\"></div>
-                        <div style=\"position:absolute;left:{threshold_pct:.2f}%;top:-4px;bottom:-4px;width:2px;background:rgba(210,73,15,0.9);border-radius:2px;\"></div>
-                        <div style=\"position:absolute;left:-2px;top:50%;transform:translate(-100%,-50%);font-size:0.65rem;color:rgba(49,51,63,0.6);\">0</div>
-                        <div style=\"position:absolute;right:-2px;top:50%;transform:translate(100%,-50%);font-size:0.65rem;color:rgba(49,51,63,0.6);\">1</div>
+                band_card_html = f"""
+                <div class='train-band-card'>
+                    <div class='train-band-card__title'>Numeric assist window</div>
+                    <div class='train-band-card__bar'>
+                        <div class='train-band-card__band' style='left:{band_left:.2f}%; width:{band_width:.2f}%;'></div>
+                        <div class='train-band-card__threshold' style='left:{threshold_pct:.2f}%;'></div>
                     </div>
-                    <div style=\"margin-top:0.25rem;font-size:0.65rem;color:rgba(15,23,42,0.65);\">τ = {assist_center:.2f} • band ±{band:.2f}</div>
+                    <div class='train-band-card__scale'><span>0</span><span>1</span></div>
+                    <div class='train-band-card__caption'>τ = {assist_center:.2f} • band ±{band:.2f}</div>
+                    <div class='train-band-card__hint'>Inside this zone, numeric cues (links, TLDs, caps, money terms) can gently adjust the text score.</div>
                 </div>
                 """
 
-                context_col.markdown(band_bar_html, unsafe_allow_html=True)
-                context_col.caption(
-                    f"Inside this band (centered at τ={assist_center:.2f}), numeric cues (links/TLD/caps/money) may assist the text model."
-                )
+                context_col.markdown(band_card_html, unsafe_allow_html=True)
 
     if trigger_train:
         if len(ss["labeled"]) < 6:
