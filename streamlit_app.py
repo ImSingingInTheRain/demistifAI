@@ -1057,133 +1057,6 @@ def render_overview_stage():
             font-weight: 600;
             box-shadow: 0 10px 20px rgba(37, 99, 235, 0.18);
         }
-        .overview-status-panel {
-            position: sticky;
-            top: 5.5rem;
-            display: flex;
-            flex-direction: column;
-            gap: 0.9rem;
-            padding: 1.35rem;
-            border-radius: 1.1rem;
-            border: 1px solid rgba(15, 23, 42, 0.08);
-            background: rgba(255, 255, 255, 0.92);
-            box-shadow: 0 16px 42px rgba(15, 23, 42, 0.1);
-            backdrop-filter: blur(6px);
-        }
-        .overview-status-panel__header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 0.75rem;
-            flex-wrap: wrap;
-        }
-        .overview-status-panel__header h5 {
-            margin: 0;
-            font-size: 1.05rem;
-            font-weight: 700;
-        }
-        .overview-status-panel__timestamp {
-            font-size: 0.8rem;
-            text-transform: uppercase;
-            letter-spacing: 0.12em;
-            color: rgba(15, 23, 42, 0.6);
-            font-weight: 600;
-        }
-        .overview-status-panel__items {
-            display: flex;
-            flex-direction: column;
-            gap: 0.75rem;
-        }
-        .overview-status-item {
-            display: flex;
-            gap: 0.85rem;
-            padding: 0.8rem 1rem;
-            border-radius: 1rem;
-            border: 1px solid rgba(15, 23, 42, 0.08);
-            align-items: flex-start;
-        }
-        .overview-status-item__icon {
-            font-size: 1.2rem;
-            line-height: 1;
-        }
-        .overview-status-item__label {
-            display: block;
-            font-size: 0.8rem;
-            letter-spacing: 0.14em;
-            text-transform: uppercase;
-            color: rgba(15, 23, 42, 0.6);
-            font-weight: 700;
-        }
-        .overview-status-item__value {
-            margin: 0.15rem 0 0 0;
-            font-size: 0.96rem;
-            font-weight: 600;
-            color: rgba(15, 23, 42, 0.82);
-        }
-        .overview-status-item--ready {
-            background: rgba(34, 197, 94, 0.18);
-            border-color: rgba(34, 197, 94, 0.28);
-        }
-        .overview-status-item--info {
-            background: rgba(59, 130, 246, 0.14);
-            border-color: rgba(59, 130, 246, 0.26);
-        }
-        .overview-status-item--neutral {
-            background: rgba(148, 163, 184, 0.16);
-            border-color: rgba(148, 163, 184, 0.26);
-        }
-        .overview-status-item--idle {
-            background: rgba(226, 232, 240, 0.18);
-            border-color: rgba(148, 163, 184, 0.22);
-            border-style: dashed;
-        }
-        .overview-status-item--warn {
-            background: rgba(234, 179, 8, 0.2);
-            border-color: rgba(234, 179, 8, 0.3);
-        }
-        .overview-status-panel__story {
-            font-size: 0.92rem;
-            line-height: 1.6;
-            color: rgba(15, 23, 42, 0.75);
-        }
-        .overview-status-panel__footer {
-            border-top: 1px dashed rgba(15, 23, 42, 0.12);
-            padding-top: 0.75rem;
-        }
-        .overview-status-panel__footer h6 {
-            margin: 0 0 0.55rem 0;
-            font-size: 0.85rem;
-            letter-spacing: 0.14em;
-            text-transform: uppercase;
-            color: rgba(15, 23, 42, 0.6);
-        }
-        .overview-next-actions {
-            list-style: none;
-            margin: 0;
-            padding: 0;
-            display: flex;
-            flex-direction: column;
-            gap: 0.55rem;
-        }
-        .overview-next-actions li {
-            display: flex;
-            gap: 0.55rem;
-            align-items: center;
-            font-size: 0.9rem;
-            color: rgba(15, 23, 42, 0.7);
-        }
-        .overview-next-actions li span {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            width: 1.6rem;
-            height: 1.6rem;
-            border-radius: 999px;
-            background: rgba(59, 130, 246, 0.16);
-            color: #1d4ed8;
-            font-weight: 600;
-            font-size: 0.8rem;
-        }
         .overview-subheading {
             display: flex;
             flex-direction: column;
@@ -1201,13 +1074,242 @@ def render_overview_stage():
             margin: 0;
             color: #0f172a;
         }
+        .overview-machine-panel {
+            background: rgba(255, 255, 255, 0.92);
+            border-radius: 1.25rem;
+            border: 1px solid rgba(37, 99, 235, 0.22);
+            box-shadow: 0 20px 44px rgba(37, 99, 235, 0.12);
+            padding: 1.5rem;
+        }
         .overview-components {
             gap: 1rem;
+        }
+        .overview-components.overview-components--compact .callout {
+            min-height: 100%;
         }
         .overview-callout {
             background: rgba(255, 255, 255, 0.9);
             box-shadow: 0 16px 32px rgba(15, 23, 42, 0.08);
             border-radius: 1rem;
+        }
+        .mission-brief {
+            background: linear-gradient(150deg, rgba(59, 130, 246, 0.14), rgba(29, 78, 216, 0.12));
+            border-radius: 1.5rem;
+            border: 1px solid rgba(37, 99, 235, 0.25);
+            box-shadow: 0 26px 48px rgba(15, 23, 42, 0.12);
+            padding: 1.8rem 2rem;
+            color: rgba(15, 23, 42, 0.86);
+        }
+        .mission-brief__header {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+        .mission-brief__icon {
+            font-size: 1.8rem;
+            line-height: 1;
+            background: rgba(37, 99, 235, 0.16);
+            border-radius: 1rem;
+            padding: 0.55rem 0.85rem;
+            box-shadow: inset 0 0 0 1px rgba(37, 99, 235, 0.22);
+        }
+        .mission-brief__eyebrow {
+            font-size: 0.75rem;
+            letter-spacing: 0.16em;
+            text-transform: uppercase;
+            font-weight: 700;
+            color: rgba(15, 23, 42, 0.6);
+        }
+        .mission-brief__title {
+            margin: 0;
+            font-size: 1.55rem;
+            font-weight: 700;
+            color: #0f172a;
+        }
+        .mission-brief__grid {
+            display: grid;
+            grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+            gap: 1.6rem;
+            margin-top: 1.4rem;
+        }
+        .mission-brief__objective p {
+            margin: 0 0 1rem 0;
+            font-size: 1rem;
+            line-height: 1.65;
+        }
+        .mission-brief__list {
+            margin: 0;
+            padding-left: 1.1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.45rem;
+        }
+        .mission-brief__list li {
+            font-size: 0.94rem;
+            line-height: 1.6;
+        }
+        .mission-brief__panel {
+            background: rgba(255, 255, 255, 0.92);
+            border-radius: 1.1rem;
+            padding: 1.1rem 1.25rem;
+            box-shadow: 0 12px 28px rgba(15, 23, 42, 0.12);
+            border: 1px solid rgba(15, 23, 42, 0.08);
+        }
+        .mission-brief__panel h4 {
+            margin: 0 0 0.75rem 0;
+            font-size: 1.05rem;
+            font-weight: 600;
+            color: #1e3a8a;
+        }
+        .mission-brief__inbox-list {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 0.65rem;
+        }
+        .mission-brief__inbox-item {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+        .mission-brief__subject {
+            font-weight: 600;
+            font-size: 0.96rem;
+            color: #0f172a;
+        }
+        .mission-brief__snippet {
+            font-size: 0.9rem;
+            color: rgba(15, 23, 42, 0.68);
+            line-height: 1.4;
+        }
+        .mission-brief__empty {
+            font-size: 0.92rem;
+            color: rgba(15, 23, 42, 0.65);
+        }
+        .mission-brief__highlights {
+            margin-top: 1.6rem;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.7rem;
+        }
+        .mission-highlight {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.55rem;
+            background: rgba(255, 255, 255, 0.85);
+            border-radius: 999px;
+            padding: 0.55rem 0.95rem;
+            font-size: 0.9rem;
+            box-shadow: 0 10px 22px rgba(15, 23, 42, 0.12);
+            border: 1px solid rgba(37, 99, 235, 0.18);
+        }
+        .mission-highlight__icon {
+            font-size: 1.1rem;
+        }
+        .mailbox-preview {
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 1.35rem;
+            border: 1px solid rgba(15, 23, 42, 0.08);
+            box-shadow: 0 20px 44px rgba(15, 23, 42, 0.1);
+            overflow: hidden;
+        }
+        .mailbox-preview__header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.1rem 1.4rem;
+            background: linear-gradient(135deg, rgba(37, 99, 235, 0.12), rgba(59, 130, 246, 0.1));
+            border-bottom: 1px solid rgba(37, 99, 235, 0.16);
+        }
+        .mailbox-preview__header h4 {
+            margin: 0;
+            font-size: 1.05rem;
+            font-weight: 600;
+            color: #1e3a8a;
+        }
+        .mailbox-preview__header span {
+            font-size: 0.85rem;
+            color: rgba(15, 23, 42, 0.65);
+        }
+        .mail-rows {
+            display: flex;
+            flex-direction: column;
+        }
+        .mail-row {
+            display: grid;
+            grid-template-columns: auto 1fr auto;
+            align-items: start;
+            gap: 1rem;
+            padding: 1rem 1.4rem;
+            border-bottom: 1px solid rgba(15, 23, 42, 0.06);
+            background: rgba(248, 250, 252, 0.7);
+        }
+        .mail-row:nth-child(even) {
+            background: rgba(255, 255, 255, 0.92);
+        }
+        .mail-row__status {
+            width: 12px;
+            height: 12px;
+            border-radius: 999px;
+            background: linear-gradient(135deg, #1d4ed8, #2563eb);
+            margin-top: 0.35rem;
+            box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.18);
+        }
+        .mail-row__details {
+            display: flex;
+            flex-direction: column;
+            gap: 0.35rem;
+        }
+        .mail-row__subject {
+            margin: 0;
+            font-size: 0.98rem;
+            font-weight: 600;
+            color: #0f172a;
+        }
+        .mail-row__snippet {
+            margin: 0;
+            font-size: 0.9rem;
+            color: rgba(15, 23, 42, 0.68);
+            line-height: 1.45;
+        }
+        .mail-row__meta {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 0.4rem;
+            font-size: 0.8rem;
+            color: rgba(15, 23, 42, 0.6);
+        }
+        .mail-row__tag {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.25rem 0.6rem;
+            border-radius: 999px;
+            background: rgba(37, 99, 235, 0.14);
+            color: #1d4ed8;
+            font-weight: 600;
+            font-size: 0.75rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+        .mail-empty {
+            padding: 1.35rem 1.4rem;
+            font-size: 0.92rem;
+            color: rgba(15, 23, 42, 0.65);
+        }
+        @media (max-width: 960px) {
+            .mission-brief__grid {
+                grid-template-columns: 1fr;
+            }
+            .mail-row {
+                grid-template-columns: auto 1fr;
+            }
+            .mail-row__meta {
+                align-items: flex-start;
+            }
         }
         </style>
         """,
@@ -1269,170 +1371,152 @@ def render_overview_stage():
                 st.markdown("</div>", unsafe_allow_html=True)
 
         with top_right:
-            def _status_item(icon: str, label: str, value: str, tone: str = "neutral") -> str:
-                return (
-                    "<div class='overview-status-item overview-status-item--{tone}'>"
-                    "<div class='overview-status-item__icon'>{icon}</div>"
-                    "<div class='overview-status-item__content'>"
-                    "<span class='overview-status-item__label'>{label}</span>"
-                    "<p class='overview-status-item__value'>{value}</p>"
-                    "</div>"
-                    "</div>"
-                ).format(
-                    tone=tone,
-                    icon=html.escape(icon),
-                    label=html.escape(label),
-                    value=html.escape(value),
-                )
-
-            if dataset_rows >= 300:
-                dataset_tone = "ready"
-            elif dataset_rows > 0:
-                dataset_tone = "warn"
-            else:
-                dataset_tone = "idle"
-
-            dataset_value = f"{dataset_rows:,} labeled emails ready" if dataset_rows else "Starter dataset loading"
-            incoming_value = f"{incoming_count:,} emails queued"
-            if incoming_seed is not None:
-                incoming_value = f"{incoming_value} • seed {incoming_seed}"
-
-            adaptiveness_value = (
-                "On — confirmations feed future training"
-                if adaptiveness_enabled
-                else "Off — corrections stay manual"
-            )
-
-            status_items_html = "".join(
-                [
-                    _status_item("📊", "Starter dataset", dataset_value, dataset_tone),
-                    _status_item(
-                        "📥",
-                        "Incoming stream",
-                        incoming_value,
-                        "info" if incoming_count else "idle",
-                    ),
-                    _status_item("🤖", "Autonomy level", autonomy_label, "neutral"),
-                    _status_item(
-                        "🔁",
-                        "Adaptiveness",
-                        adaptiveness_value,
-                        "ready" if adaptiveness_enabled else "idle",
-                    ),
-                    _status_item(
-                        "🧠",
-                        "Nerd Mode",
-                        "Enabled for deeper diagnostics" if nerd_enabled else "Surface view (toggle when needed)",
-                        "info" if nerd_enabled else "neutral",
-                    ),
-                ]
-            )
-
-            status_panel_html = """
-                <div class="overview-status-panel">
-                    <div class="overview-status-panel__header">
-                        <h5>Control room snapshot</h5>
-                        <span class="overview-status-panel__timestamp">{timestamp}</span>
+            machine_panel_html = """
+                <div class="overview-machine-panel">
+                    <div class="overview-subheading">
+                        <span class="overview-subheading__eyebrow">Console map</span>
+                        <h3>Meet the machine</h3>
                     </div>
-                    <div class="overview-status-panel__items">
-                        {items}
-                    </div>
-                    <div class="overview-status-panel__story">
-                        You're in the driver’s seat: the interface is live, a starter dataset is loaded, and an inbox feed is ready to route.
-                        When the overview feels clear, hop into <strong>Prepare Data</strong> to shape what the model will learn from.
-                    </div>
-                    <div class="overview-status-panel__footer">
-                        <h6>Up next</h6>
-                        <ul class="overview-next-actions">
-                            <li><span>1</span> Review the lifecycle components below.</li>
-                            <li><span>2</span> Keep Nerd Mode handy for governance discussions.</li>
-                            <li><span>3</span> Continue to <strong>Prepare Data</strong> and curate your examples.</li>
-                        </ul>
+                    <div class="callout-grid overview-components overview-components--compact">
+                        <div class="callout callout--info overview-callout">
+                            <h5>🖥️ User interface</h5>
+                            <p>The control panel for your AI system. Step through <strong>Prepare data</strong>, <strong>Train</strong>, <strong>Evaluate</strong>, and <strong>Use</strong>. Tooltips and short explainers guide you; <em>Nerd Mode</em> reveals more.</p>
+                        </div>
+                        <div class="callout callout--info overview-callout">
+                            <h5>🧠 AI model (how it learns &amp; infers)</h5>
+                            <p>The model learns from <strong>labeled examples</strong> you provide to tell <strong>Spam</strong> from <strong>Safe</strong>. For each new email it produces a <strong>spam score</strong> (P(spam)); your <strong>threshold</strong> turns that score into a recommendation or decision.</p>
+                        </div>
+                        <div class="callout callout--info overview-callout">
+                            <h5>📥 Inbox interface</h5>
+                            <p>A simulated inbox feeds emails into the system. Preview items, process a batch or review one by one, and optionally enable <strong>adaptiveness</strong> so your confirmations/corrections help the model improve.</p>
+                        </div>
                     </div>
                 </div>
-            """.format(
-                timestamp=html.escape(dataset_timestamp),
-                items=status_items_html,
-            )
+            """
 
-            st.markdown(status_panel_html, unsafe_allow_html=True)
+            st.markdown(machine_panel_html, unsafe_allow_html=True)
 
-    with section_surface():
-        left, right = st.columns([0.58, 0.42], gap="large")
+    dataset_value = f"{dataset_rows:,} labeled emails ready" if dataset_rows else "Starter dataset loading"
+    incoming_value = f"{incoming_count:,} emails queued"
+    if incoming_seed is not None:
+        incoming_value = f"{incoming_value} • seed {incoming_seed}"
 
-        with left:
-            st.markdown(
-                """
-                <div class="overview-subheading">
-                    <span class="overview-subheading__eyebrow">Console map</span>
-                    <h3>Meet the machine</h3>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
+    adaptiveness_value = (
+        "Adaptiveness on — confirmations feed future training"
+        if adaptiveness_enabled
+        else "Adaptiveness off — corrections stay manual"
+    )
 
-            components_html = """
-            <div class="callout-grid overview-components">
-                <div class="callout callout--info overview-callout">
-                    <h5>🖥️ User interface</h5>
-                    <p>The control panel for your AI system. Step through <strong>Prepare data</strong>, <strong>Train</strong>, <strong>Evaluate</strong>, and <strong>Use</strong>. Tooltips and short explainers guide you; <em>Nerd Mode</em> reveals more.</p>
-                </div>
-                <div class="callout callout--info overview-callout">
-                    <h5>🧠 AI model (how it learns &amp; infers)</h5>
-                    <p>The model learns from <strong>labeled examples</strong> you provide to tell <strong>Spam</strong> from <strong>Safe</strong>. For each new email it produces a <strong>spam score</strong> (P(spam)); your <strong>threshold</strong> turns that score into a recommendation or decision.</p>
-                </div>
-                <div class="callout callout--info overview-callout">
-                    <h5>📥 Inbox interface</h5>
-                    <p>A simulated inbox feeds emails into the system. Preview items, process a batch or review one by one, and optionally enable <strong>adaptiveness</strong> so your confirmations/corrections help the model improve.</p>
-                </div>
-                <div class="callout callout--info overview-callout">
-                    <h5>🎯 Your mission</h5>
-                    <p>Keep unwanted email out while letting the important messages through.</p>
+    preview_records: List[Dict[str, Any]] = []
+    if incoming_records:
+        df_incoming = pd.DataFrame(incoming_records)
+        preview_records = df_incoming.head(5).to_dict("records")
+
+    def _format_snippet(text: Optional[str], *, limit: int = 110) -> str:
+        snippet = (text or "").strip()
+        snippet = re.sub(r"\s+", " ", snippet)
+        if len(snippet) > limit:
+            snippet = snippet[: limit - 1].rstrip() + "…"
+        return snippet
+
+    mission_preview_items = []
+    for record in preview_records[:3]:
+        subject = html.escape(record.get("title", "Untitled email"))
+        snippet = html.escape(_format_snippet(record.get("body")))
+        mission_preview_items.append(
+            f"<li class='mission-brief__inbox-item'><span class='mission-brief__subject'>{subject}</span><span class='mission-brief__snippet'>{snippet}</span></li>"
+        )
+
+    if not mission_preview_items:
+        mission_preview_items.append(
+            "<li class='mission-brief__empty'>Inbox stream is quiet for now. New messages will arrive once you start operating your system.</li>"
+        )
+
+    mission_highlights = "".join(
+        [
+            f"<span class='mission-highlight'><span class='mission-highlight__icon'>📊</span>{html.escape(dataset_value)}</span>",
+            f"<span class='mission-highlight'><span class='mission-highlight__icon'>🕒</span>{html.escape(dataset_timestamp)}</span>",
+            f"<span class='mission-highlight'><span class='mission-highlight__icon'>📥</span>{html.escape(incoming_value)}</span>",
+            f"<span class='mission-highlight'><span class='mission-highlight__icon'>🤖</span>Autonomy level: {html.escape(str(autonomy_label))}</span>",
+            f"<span class='mission-highlight'><span class='mission-highlight__icon'>🔁</span>{html.escape(adaptiveness_value)}</span>",
+        ]
+    )
+
+    mission_html = """
+        <div class="mission-brief">
+            <div class="mission-brief__header">
+                <span class="mission-brief__icon">🎯</span>
+                <div>
+                    <span class="mission-brief__eyebrow">Mission briefing</span>
+                    <h3 class="mission-brief__title">Your mission</h3>
                 </div>
             </div>
+            <div class="mission-brief__grid">
+                <div class="mission-brief__objective">
+                    <p>Keep unwanted email out while letting the important messages through. You’ll steer the controls, set the operating thresholds, and verify the system’s choices.</p>
+                    <ul class="mission-brief__list">
+                        <li>Curate examples so the model learns realistic spam and safe patterns.</li>
+                        <li>Tune autonomy and adaptiveness to balance human oversight with efficiency.</li>
+                        <li>Monitor outcomes in the inbox and correct the system when it misfires.</li>
+                    </ul>
+                </div>
+                <div class="mission-brief__panel">
+                    <h4>Inbox preview intel</h4>
+                    <ul class="mission-brief__inbox-list">{items}</ul>
+                </div>
+            </div>
+            <div class="mission-brief__highlights">{highlights}</div>
+        </div>
+    """.format(items="".join(mission_preview_items), highlights=mission_highlights)
+
+    with section_surface():
+        st.markdown(mission_html, unsafe_allow_html=True)
+
+    inbox_rows_html = []
+    for record in preview_records:
+        subject = html.escape(record.get("title", "Untitled email"))
+        snippet = html.escape(_format_snippet(record.get("body")))
+        inbox_rows_html.append(
             """
-            st.markdown(components_html, unsafe_allow_html=True)
-
-        with right:
-            st.markdown(
-                """
-                <div class="overview-subheading">
-                    <span class="overview-subheading__eyebrow">Preview</span>
-                    <h3>Inbox snapshot</h3>
+            <div class="mail-row">
+                <div class="mail-row__status"></div>
+                <div class="mail-row__details">
+                    <p class="mail-row__subject">{subject}</p>
+                    <p class="mail-row__snippet">{snippet}</p>
                 </div>
-                """,
-                unsafe_allow_html=True,
-            )
-            st.markdown(
-                """
-                <div class="mission-preview-stack">
-                    <div class="inbox-preview-card">
-                        <div class="preview-header">
-                            <span class="preview-header-icon">📥</span>
-                            <div>
-                                <h4>Inbox preview</h4>
-                                <p>A snapshot of the next messages waiting to be classified.</p>
-                            </div>
-                        </div>
-                """,
-                unsafe_allow_html=True,
-            )
-
-            if not incoming_records:
-                render_email_inbox_table(pd.DataFrame(), title="Inbox", subtitle="Inbox stream is empty.")
-            else:
-                df_incoming = pd.DataFrame(incoming_records)
-                preview = df_incoming.head(5)
-                render_email_inbox_table(preview, title="Inbox", columns=["title", "body"])
-
-            st.markdown(
-                """
-                        <p class="preview-note">Preview only — you'll process batches in <strong>Use</strong> once your system is ready.</p>
-                    </div>
+                <div class="mail-row__meta">
+                    <span class="mail-row__tag">Queued</span>
                 </div>
-                """,
-                unsafe_allow_html=True,
-            )
+            </div>
+            """.format(subject=subject, snippet=snippet)
+        )
+
+    if not inbox_rows_html:
+        inbox_rows_html.append(
+            "<div class='mail-empty'>Inbox stream is empty. Once new emails arrive you’ll see them queue here for review.</div>"
+        )
+
+    mailbox_html = """
+        <div class="mailbox-preview">
+            <div class="mailbox-preview__header">
+                <h4>Live inbox preview</h4>
+                <span>First {count} messages waiting for triage</span>
+            </div>
+            <div class="mail-rows">{rows}</div>
+        </div>
+    """.format(count=len(preview_records) or 0, rows="".join(inbox_rows_html))
+
+    with section_surface():
+        st.markdown(
+            """
+            <div class="overview-subheading">
+                <span class="overview-subheading__eyebrow">Inbox stream</span>
+                <h3>Live inbox preview</h3>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        st.markdown(mailbox_html, unsafe_allow_html=True)
 
     if nerd_enabled:
         with section_surface():
