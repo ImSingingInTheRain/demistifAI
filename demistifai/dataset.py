@@ -842,6 +842,4 @@ def explain_config_change(config: DatasetConfig, baseline: DatasetConfig | None 
     if config.get("poison_demo") and not baseline.get("poison_demo"):
         messages.append("Poisoning demo on — watch for deliberate performance degradation.")
 
-    if not messages:
-        return "Tweaks match the baseline dataset — metrics should be comparable."
     return " ".join(messages)
