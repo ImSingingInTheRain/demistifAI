@@ -624,9 +624,24 @@ class HybridEmbedFeatsLogReg:
 
         X_num_std = self.scaler.transform(X_num_raw)
 
-        X_emb_tr, X_emb_val, y_tr, y_val = train_test_split(
-            X_emb, y_bin, test_size=0.2, stratify=y_bin, random_state=self.random_state
+        idx = np.arange(len(y_bin))
+        (
+            X_emb_tr,
+            X_emb_val,
+            y_tr,
+            y_val,
+            idx_tr,
+            idx_val,
+        ) = train_test_split(
+            X_emb,
+            y_bin,
+            idx,
+            test_size=0.2,
+            stratify=y_bin,
+            random_state=self.random_state,
         )
+        self._cv_idx_tr = np.asarray(idx_tr, dtype=int)
+        self._cv_idx_val = np.asarray(idx_val, dtype=int)
 
         base_text = LogisticRegression(
             max_iter=self.max_iter, C=self.C, random_state=self.random_state
@@ -749,4 +764,80 @@ class HybridEmbedFeatsLogReg:
         probs = np.clip(probs, 1e-6, 1 - 1e-6)
         logits = np.log(probs / (1.0 - probs))
         return logits.reshape(-1)
+
+    def audit_numeric_interplay(self, titles, bodies, threshold: float = 0.5) -> dict:
+        """Quantify how often numeric cues assisted the text head during CV."""
+
+        if titles is None or bodies is None:
+            return {"pct_consulted": 0.0, "avg_threshold_shift": 0.0, "avg_prob_blend_weight": 0.0}
+
+        n_total = len(titles)
+        if n_total == 0:
+            return {"pct_consulted": 0.0, "avg_threshold_shift": 0.0, "avg_prob_blend_weight": 0.0}
+
+        idx_val = getattr(self, "_cv_idx_val", None)
+        if idx_val is not None and len(idx_val) > 0:
+            safe_idx = [i for i in idx_val if 0 <= int(i) < n_total]
+        else:
+            safe_idx = list(range(n_total))
+
+        if not safe_idx:
+            return {"pct_consulted": 0.0, "avg_threshold_shift": 0.0, "avg_prob_blend_weight": 0.0}
+
+        sub_titles = [titles[int(i)] for i in safe_idx]
+        sub_bodies = [bodies[int(i)] for i in safe_idx]
+
+        p_txt = self._p_text(sub_titles, sub_bodies)
+        low, high = threshold - self.uncertainty_band, threshold + self.uncertainty_band
+        consult_mask = (p_txt >= low) & (p_txt <= high)
+
+        consulted_count = int(np.sum(consult_mask))
+        pct_consulted = 100.0 * consulted_count / max(1, len(sub_titles))
+
+        result = {
+            "pct_consulted": float(pct_consulted),
+            "avg_threshold_shift": 0.0,
+            "avg_prob_blend_weight": 0.0,
+        }
+
+        if consulted_count == 0:
+            return result
+
+        idx_consult = np.where(consult_mask)[0]
+        consult_titles = [sub_titles[i] for i in idx_consult]
+        consult_bodies = [sub_bodies[i] for i in idx_consult]
+
+        if self.combine_strategy == "blend":
+            p_num, _ = self._p_num(consult_titles, consult_bodies)
+            p_blend = p_txt[idx_consult] * (1 - self.numeric_scale) + p_num * self.numeric_scale
+            avg_delta = float(np.mean(p_blend - p_txt[idx_consult]))
+            result["avg_prob_blend_weight"] = avg_delta
+        else:
+            p_num, X_std = self._p_num(consult_titles, consult_bodies)
+            _ = p_num  # unused but keeps signature consistent
+
+            feat_index = {f: i for i, f in enumerate(FEATURE_ORDER)}
+
+            def has_feat(std_row, name, raw_threshold_std=0.0):
+                j = feat_index.get(name, None)
+                if j is None:
+                    return False
+                return std_row[j] > raw_threshold_std
+
+            shifts = []
+            for r in range(X_std.shape[0]):
+                row = X_std[r]
+                shift = 0.0
+                if has_feat(row, "suspicious_tld", raw_threshold_std=0.5):
+                    shift += self.shift_suspicious_tld
+                if has_feat(row, "external_link_count", raw_threshold_std=0.5):
+                    shift += self.shift_many_links
+                if not has_feat(row, "all_caps_ratio", raw_threshold_std=0.0):
+                    shift += self.shift_calm_text
+                shifts.append(shift)
+
+            avg_shift = float(np.mean(shifts)) if shifts else 0.0
+            result["avg_threshold_shift"] = avg_shift
+
+        return result
 

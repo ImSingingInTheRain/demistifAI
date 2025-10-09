@@ -3671,6 +3671,37 @@ def render_train_stage():
                     "- It saved these patterns as simple rules (weights) it can use later to decide."
                 )
 
+                guard_caption = None
+                audit_info = None
+                if hasattr(ss["model"], "audit_numeric_interplay"):
+                    try:
+                        audit_info = ss["model"].audit_numeric_interplay(X_tr_t, X_tr_b)
+                    except Exception:
+                        audit_info = None
+
+                if audit_info:
+                    pct_consulted = float(audit_info.get("pct_consulted", 0.0))
+                    combine_strategy = getattr(ss["model"], "combine_strategy", "blend")
+                    if combine_strategy == "threshold_shift":
+                        avg_shift = float(audit_info.get("avg_threshold_shift", 0.0))
+                        guard_caption = (
+                            "Numeric guardrails consulted on "
+                            f"{pct_consulted:.1f}% of borderline cases; avg shift Δτ={avg_shift:+.3f}."
+                        )
+                    else:
+                        avg_blend = float(audit_info.get("avg_prob_blend_weight", 0.0))
+                        guard_caption = (
+                            "Numeric guardrails consulted on "
+                            f"{pct_consulted:.1f}% of borderline cases; avg blend Δp={avg_blend:+.3f}."
+                        )
+                if not guard_caption:
+                    guard_caption = (
+                        "Numeric guardrails kick in when text scores are borderline,"
+                        " lending numeric cues before final decisions."
+                    )
+
+                st.caption(guard_caption)
+
                 # Mini class-balance chart
                 try:
                     bal_df = pd.DataFrame(
