@@ -1511,7 +1511,8 @@ def render_data_stage():
                 """
                 <div class="prepare-intro-card">
                     <div class="prepare-intro-card__header">
-                        <span class="prepare-intro-card__icon">🧪</span>
+                        <span class="prepare-intro-card__icon" style="
+    padding-bottom: 15px;">🧪</span>
                         <div>
                             <span class="prepare-intro-card__eyebrow">Stage 1</span>
                             <h4 class="prepare-intro-card__title" style="padding-top: 0px;">Prepare data</h4>
