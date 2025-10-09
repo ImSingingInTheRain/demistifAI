@@ -1139,6 +1139,7 @@ def render_data_stage():
         }
         .prepare-intro-card__title {
             margin: 0;
+            padding: 0;
             font-size: 1.4rem;
             font-weight: 700;
             color: #0f172a;
