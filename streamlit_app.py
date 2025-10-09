@@ -1432,15 +1432,6 @@ def render_overview_stage():
             "<li class='mission-brief__empty'>Inbox stream is quiet for now. New messages will arrive once you start operating your system.</li>"
         )
 
-    mission_highlights = "".join(
-        [
-            f"<span class='mission-highlight'><span class='mission-highlight__icon'>📊</span>{html.escape(dataset_value)}</span>",
-            f"<span class='mission-highlight'><span class='mission-highlight__icon'>🕒</span>{html.escape(dataset_timestamp)}</span>",
-            f"<span class='mission-highlight'><span class='mission-highlight__icon'>📥</span>{html.escape(incoming_value)}</span>",
-            f"<span class='mission-highlight'><span class='mission-highlight__icon'>🤖</span>Autonomy level: {html.escape(str(autonomy_label))}</span>",
-            f"<span class='mission-highlight'><span class='mission-highlight__icon'>🔁</span>{html.escape(adaptiveness_value)}</span>",
-        ]
-    )
 
     mission_html = """
         <div class="mission-brief">
@@ -1460,12 +1451,7 @@ def render_overview_stage():
                         <li>Monitor outcomes in the inbox and correct the system when it misfires.</li>
                     </ul>
                 </div>
-                <div class="mission-brief__panel">
-                    <h4>Inbox preview intel</h4>
-                    <ul class="mission-brief__inbox-list">{items}</ul>
-                </div>
             </div>
-            <div class="mission-brief__highlights">{highlights}</div>
         </div>
     """.format(items="".join(mission_preview_items), highlights=mission_highlights)
 
