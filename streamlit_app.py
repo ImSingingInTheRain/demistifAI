@@ -1453,7 +1453,7 @@ def render_overview_stage():
                 </div>
             </div>
         </div>
-    """.format(items="".join(mission_preview_items), highlights=mission_highlights)
+    """
 
     with section_surface():
         st.markdown(mission_html, unsafe_allow_html=True)
