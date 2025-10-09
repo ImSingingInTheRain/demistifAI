@@ -1176,28 +1176,6 @@ def render_data_stage():
 
     with section_surface():
         lead_col, side_col = st.columns([3, 2], gap="large")
-        with lead_col:
-            st.subheader(f"{stage.icon} {stage.title} — curate the objective-aligned dataset")
-            st.markdown(
-                """
-                You define the purpose (**filter spam**) and you curate the evidence the model will learn from.
-                Adjust class balance, feature prevalence, and data quality to see how governance choices change performance.
-                """
-            )
-        with side_col:
-            st.markdown(
-                """
-                <div class="callout callout--mission">
-                    <h4>EU AI Act tie-ins</h4>
-                    <ul>
-                        <li><strong>Objective &amp; data:</strong> You set the purpose and align the dataset to it.</li>
-                        <li><strong>Risk controls:</strong> Class balance, noise limits, and validation guardrails manage bias &amp; quality.</li>
-                        <li><strong>Transparency:</strong> Snapshots capture config + hash for provenance.</li>
-                    </ul>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
 
     delta_text = ""
     if ss.get("dataset_compare_delta"):
