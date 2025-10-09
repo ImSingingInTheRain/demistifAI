@@ -7,7 +7,8 @@ import json
 import random
 import re
 import string
-from typing import Any, Dict, List, TypedDict
+from itertools import zip_longest
+from typing import Any, Dict, List, Sequence, TypedDict
 
 import numpy as np
 
@@ -44,6 +45,7 @@ __all__ = [
     "lint_dataset",
     "compute_dataset_summary",
     "compute_dataset_hash",
+    "_estimate_token_stats",
     "dataset_summary_delta",
     "dataset_delta_story",
     "explain_config_change",
@@ -762,6 +764,39 @@ def compute_dataset_hash(rows: List[Dict[str, str]]) -> str:
     normalized.sort(key=lambda r: (r["label"], r["title"], r["body"]))
     payload = json.dumps(normalized, ensure_ascii=False, sort_keys=True).encode("utf-8")
     return hashlib.sha256(payload).hexdigest()
+
+
+_APPROX_TOKEN_REGEX = re.compile(r"\w+|\S")
+
+
+def _estimate_token_stats(
+    titles: Sequence[str] | None,
+    bodies: Sequence[str] | None,
+    max_tokens: int = 384,
+) -> Dict[str, float]:
+    """Estimate average token usage and truncation share for email texts."""
+
+    counts: List[int] = []
+    truncated = 0
+
+    titles_seq: Sequence[str] = titles or []
+    bodies_seq: Sequence[str] = bodies or []
+
+    for title, body in zip_longest(titles_seq, bodies_seq, fillvalue=""):
+        text = f"{(title or '').strip()} {(body or '').strip()}".strip()
+        tokens = _APPROX_TOKEN_REGEX.findall(text)
+        n_tokens = len(tokens)
+        counts.append(n_tokens)
+        if n_tokens > max_tokens:
+            truncated += 1
+
+    n = len(counts)
+    if n == 0:
+        return {"avg_tokens": 0.0, "p_truncated": 0.0, "n": 0}
+
+    avg_tokens = float(sum(counts)) / n
+    p_truncated = float(truncated) / n
+    return {"avg_tokens": avg_tokens, "p_truncated": p_truncated, "n": n}
 
 
 def dataset_summary_delta(old: Dict[str, Any], new: Dict[str, Any]) -> Dict[str, Any]:
