@@ -4501,6 +4501,207 @@ def render_train_stage():
                 except Exception:
                     pass
 
+                model_for_story = ss.get("model")
+                labeled_rows_story = ss.get("labeled") or []
+                if model_for_story and labeled_rows_story:
+                    def _select_story_examples(rows: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+                        spam_rows = [r for r in rows if (r.get("label") == "spam")]
+                        safe_rows = [r for r in rows if (r.get("label") == "safe")]
+                        selected: List[Dict[str, Any]] = []
+                        for idx in range(2):
+                            if idx < len(spam_rows):
+                                selected.append({"label": "spam", "row": spam_rows[idx]})
+                            if idx < len(safe_rows):
+                                selected.append({"label": "safe", "row": safe_rows[idx]})
+                        return selected
+
+                    contrast_examples = _select_story_examples(labeled_rows_story)
+                    if contrast_examples:
+                        titles_story = [str(ex["row"].get("title", "")) for ex in contrast_examples]
+                        bodies_story = [str(ex["row"].get("body", "")) for ex in contrast_examples]
+                        combined_story = [
+                            combine_text(t, b) for t, b in zip(titles_story, bodies_story)
+                        ]
+
+                        logits_story: Optional[np.ndarray] = None
+                        try:
+                            if hasattr(model_for_story, "predict_logit"):
+                                raw_logits = model_for_story.predict_logit(combined_story)
+                                logits_story = np.asarray(raw_logits, dtype=float).reshape(-1)
+                        except Exception:
+                            logits_story = None
+
+                        if (
+                            logits_story is None
+                            or logits_story.size != len(contrast_examples)
+                            or not np.all(np.isfinite(logits_story))
+                        ):
+                            try:
+                                probs_story = model_for_story.predict_proba(
+                                    titles_story, bodies_story
+                                )
+                                probs_story = np.asarray(probs_story, dtype=float)
+                                if probs_story.ndim == 1:
+                                    probs_story = probs_story.reshape(-1, 1)
+                                if probs_story.shape[0] == len(contrast_examples):
+                                    if probs_story.shape[1] == 1:
+                                        p_spam_story = np.clip(
+                                            probs_story[:, 0], 1e-6, 1 - 1e-6
+                                        )
+                                    else:
+                                        spam_idx = getattr(
+                                            model_for_story, "_i_spam", None
+                                        )
+                                        if spam_idx is None:
+                                            classes_story = list(
+                                                getattr(
+                                                    model_for_story, "classes_", []
+                                                )
+                                            )
+                                            if classes_story and "spam" in classes_story:
+                                                spam_idx = classes_story.index("spam")
+                                            else:
+                                                spam_idx = (
+                                                    1
+                                                    if probs_story.shape[1] > 1
+                                                    else 0
+                                                )
+                                        p_spam_story = np.clip(
+                                            probs_story[:, int(spam_idx)], 1e-6, 1 - 1e-6
+                                        )
+                                    logits_story = np.log(
+                                        p_spam_story / (1.0 - p_spam_story)
+                                    )
+                            except Exception:
+                                logits_story = None
+
+                        logits_story = (
+                            logits_story
+                            if logits_story is not None
+                            and logits_story.size == len(contrast_examples)
+                            else None
+                        )
+
+                        feature_weights: Dict[str, float] = {}
+                        feature_names: Dict[str, str] = {}
+                        if callable_or_attr(model_for_story, "numeric_feature_details"):
+                            try:
+                                nfd_story = model_for_story.numeric_feature_details().copy()
+                                feature_weights = {
+                                    str(row["feature"]): float(row["weight_per_std"])
+                                    for _, row in nfd_story.iterrows()
+                                }
+                                feature_names = {
+                                    key: FEATURE_DISPLAY_NAMES.get(key, key)
+                                    for key in feature_weights
+                                }
+                            except Exception:
+                                feature_weights = {}
+                                feature_names = {}
+
+                        reasons: List[str] = []
+                        for ex_idx, ex in enumerate(contrast_examples):
+                            label = ex["label"]
+                            reason_text = (
+                                "Typical spam phrasing"
+                                if label == "spam"
+                                else "Routine business phrasing"
+                            )
+                            if feature_weights:
+                                try:
+                                    feats = compute_numeric_features(
+                                        titles_story[ex_idx], bodies_story[ex_idx]
+                                    )
+                                    if label == "spam":
+                                        candidates = [
+                                            feat
+                                            for feat, value in feats.items()
+                                            if value > 0 and feature_weights.get(feat, 0.0) > 0
+                                        ]
+                                        candidates.sort(
+                                            key=lambda f: feature_weights.get(f, 0.0),
+                                            reverse=True,
+                                        )
+                                    else:
+                                        candidates = [
+                                            feat
+                                            for feat, value in feats.items()
+                                            if value > 0 and feature_weights.get(feat, 0.0) < 0
+                                        ]
+                                        candidates.sort(
+                                            key=lambda f: feature_weights.get(f, 0.0)
+                                        )
+                                    if candidates:
+                                        top_feat = candidates[0]
+                                        reason_text = feature_names.get(
+                                            top_feat, top_feat
+                                        )
+                                except Exception:
+                                    pass
+                            reasons.append(reason_text)
+
+                        clarity_badges: List[str] = []
+                        for idx in range(len(contrast_examples)):
+                            logit_value = (
+                                float(logits_story[idx])
+                                if logits_story is not None
+                                and idx < logits_story.size
+                                and np.isfinite(logits_story[idx])
+                                else None
+                            )
+                            borderline = (
+                                abs(logit_value) < 0.4 if logit_value is not None else False
+                            )
+                            clarity_badges.append("Borderline" if borderline else "Clear")
+
+                        before_col, after_col = st.columns(2, gap="large")
+                        with before_col:
+                            st.markdown("**Before training**")
+                            for ex in contrast_examples:
+                                row = ex["row"]
+                                label_value = ex["label"]
+                                label_icon = {"spam": "🚩", "safe": "📥"}.get(
+                                    label_value, "✉️"
+                                )
+                                title_text = (row.get("title") or "").strip()
+                                body_text = (row.get("body") or "").strip()
+                                excerpt = (
+                                    (body_text[:110] + "…")
+                                    if len(body_text) > 110
+                                    else body_text
+                                ).replace("\n", " ")
+                                st.markdown(
+                                    f"""
+                                    <div style="border:1px solid #E5E7EB;border-radius:10px;padding:0.75rem;margin-bottom:0.6rem;">
+                                        <div style="font-size:0.8rem;color:#6B7280;margin-bottom:0.25rem;">{label_icon} {html.escape(label_value.title())}</div>
+                                        <div style="font-weight:600;margin-bottom:0.35rem;">{html.escape(title_text)}</div>
+                                        <div style="font-size:0.85rem;color:#374151;line-height:1.35;">{html.escape(excerpt)}</div>
+                                    </div>
+                                    """,
+                                    unsafe_allow_html=True,
+                                )
+                        with after_col:
+                            st.markdown("**What the model sees now**")
+                            for idx, ex in enumerate(contrast_examples):
+                                row = ex["row"]
+                                title_text = (row.get("title") or "").strip()
+                                badge_label = clarity_badges[idx]
+                                is_borderline = badge_label == "Borderline"
+                                badge_color = "#f97316" if is_borderline else "#10b981"
+                                reason_text = html.escape(reasons[idx])
+                                st.markdown(
+                                    f"""
+                                    <div style="border:1px solid #CBD5F5;border-radius:10px;padding:0.75rem;margin-bottom:0.6rem;background:rgba(226,232,240,0.35);">
+                                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.35rem;">
+                                            <div style="font-weight:600;color:#1E3A8A;">{html.escape(title_text)}</div>
+                                            <span style="background:{badge_color};color:white;font-size:0.7rem;font-weight:600;padding:0.2rem 0.55rem;border-radius:999px;">{badge_label}</span>
+                                        </div>
+                                        <div style="font-size:0.85rem;color:#1F2937;line-height:1.35;">{reason_text}</div>
+                                    </div>
+                                    """,
+                                    unsafe_allow_html=True,
+                                )
+
                 # 2) Top signals the model noticed (plain list)
                 shown_any_signals = False
                 try:
