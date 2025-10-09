@@ -3575,7 +3575,7 @@ def render_train_stage():
         .train-intro-card {
             background: linear-gradient(135deg, rgba(79, 70, 229, 0.16), rgba(14, 165, 233, 0.16));
             border-radius: 1.25rem;
-            padding: 1.6rem;
+            padding: 1.28rem 1.6rem;
             border: 1px solid rgba(15, 23, 42, 0.08);
             box-shadow: 0 18px 38px rgba(15, 23, 42, 0.1);
             margin-bottom: 1.8rem;
@@ -3645,7 +3645,7 @@ def render_train_stage():
             border: 1px solid rgba(15, 23, 42, 0.08);
             background: rgba(255, 255, 255, 0.92);
             box-shadow: 0 16px 36px rgba(15, 23, 42, 0.12);
-            padding: 1.2rem 1.35rem;
+            padding: 0.96rem 1.35rem;
             margin-bottom: 1rem;
         }
         .train-sidebar-card__title {
@@ -3686,7 +3686,7 @@ def render_train_stage():
         .train-how-card {
             border-radius: 1.1rem;
             border: 1px solid rgba(15, 23, 42, 0.08);
-            padding: 1.2rem 1.35rem;
+            padding: 0.96rem 1.35rem;
             background: rgba(255, 255, 255, 0.94);
             box-shadow: 0 14px 32px rgba(15, 23, 42, 0.1);
         }
@@ -3759,7 +3759,7 @@ def render_train_stage():
         .train-action-card {
             border-radius: 1.1rem;
             border: 1px solid rgba(15, 23, 42, 0.08);
-            padding: 1.25rem 1.35rem;
+            padding: 1rem 1.35rem;
             background: linear-gradient(135deg, rgba(99, 102, 241, 0.12), rgba(14, 165, 233, 0.12));
             box-shadow: 0 16px 34px rgba(15, 23, 42, 0.1);
             margin-bottom: 0.75rem;
@@ -3786,7 +3786,7 @@ def render_train_stage():
         .train-context-card {
             border-radius: 1rem;
             border: 1px solid rgba(15, 23, 42, 0.08);
-            padding: 1rem 1.1rem;
+            padding: 0.8rem 1.1rem;
             background: rgba(255, 255, 255, 0.94);
             box-shadow: 0 10px 26px rgba(15, 23, 42, 0.08);
             margin-bottom: 0.9rem;
