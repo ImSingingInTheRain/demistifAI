@@ -1202,14 +1202,150 @@ def render_data_stage():
 
         st.success("Dataset generated — scroll to **Review** and curate data before committing.")
         explanation = explain_config_change(config, ss.get("dataset_config", DEFAULT_DATASET_CONFIG))
-        
+
 
         return preview_summary
 
+    def _build_compare_panel_html(
+        base_summary: Optional[Dict[str, Any]],
+        target_summary: Optional[Dict[str, Any]],
+        delta_summary: Optional[Dict[str, Any]],
+        delta_story_text: str,
+    ) -> str:
+        panel_items: list[tuple[str, str, str, str]] = []
+        spam_share_delta_pp: Optional[float] = None
+
+        def _add_panel_item(
+            label: str,
+            value: Any,
+            *,
+            unit: str = "",
+            decimals: Optional[int] = None,
+        ) -> None:
+            if value is None:
+                return
+            try:
+                numeric_value = float(value)
+            except (TypeError, ValueError):
+                return
+            if abs(numeric_value) < 1e-6:
+                return
+            arrow = "▲" if numeric_value > 0 else "▼"
+            arrow_class = "delta-arrow--up" if numeric_value > 0 else "delta-arrow--down"
+            abs_value = abs(numeric_value)
+            if decimals is not None:
+                value_str = f"{abs_value:.{decimals}f}".rstrip("0").rstrip(".")
+            else:
+                if abs(abs_value - round(abs_value)) < 1e-6:
+                    value_str = f"{int(round(abs_value))}"
+                else:
+                    value_str = f"{abs_value:.2f}".rstrip("0").rstrip(".")
+            if unit:
+                value_str = f"{value_str}{unit}"
+            panel_items.append((label, arrow, arrow_class, value_str))
+
+        if base_summary and target_summary:
+            try:
+                base_ratio = float(base_summary.get("spam_ratio") or 0.0)
+                target_ratio = float(target_summary.get("spam_ratio") or 0.0)
+                spam_share_delta_pp = (target_ratio - base_ratio) * 100.0
+            except (TypeError, ValueError):
+                spam_share_delta_pp = None
+            if spam_share_delta_pp is not None and abs(spam_share_delta_pp) >= 0.1:
+                _add_panel_item("Spam share", spam_share_delta_pp, unit="pp", decimals=1)
+
+        if delta_summary:
+            _add_panel_item("Examples", delta_summary.get("total"))
+            _add_panel_item(
+                "Avg suspicious links",
+                delta_summary.get("avg_susp_links"),
+                decimals=2,
+            )
+            _add_panel_item("Suspicious TLD hits", delta_summary.get("suspicious_tlds"))
+            _add_panel_item("Money cues", delta_summary.get("money_mentions"))
+            _add_panel_item("Attachment lures", delta_summary.get("attachment_lures"))
+
+        effect_hint = ""
+        if spam_share_delta_pp is not None and abs(spam_share_delta_pp) >= 0.1:
+            if spam_share_delta_pp > 0:
+                effect_hint = (
+                    "Higher spam share → recall ↑, precision may ↓; adjust threshold later in Evaluate."
+                )
+            else:
+                effect_hint = (
+                    "Lower spam share → precision ↑, recall may ↓; consider rebalancing spam examples before training."
+                )
+        elif delta_summary:
+            link_delta = float(delta_summary.get("avg_susp_links") or 0.0)
+            tld_delta = float(delta_summary.get("suspicious_tlds") or 0.0)
+            money_delta = float(delta_summary.get("money_mentions") or 0.0)
+            attachment_delta = float(delta_summary.get("attachment_lures") or 0.0)
+            if link_delta > 0:
+                effect_hint = "More suspicious links → phishing recall should improve via URL cues."
+            elif link_delta < 0:
+                effect_hint = "Fewer suspicious links → URL-heavy spam might slip by; monitor precision/recall."
+            elif tld_delta > 0:
+                effect_hint = "Suspicious TLD hits increased — domain heuristics strengthen spam recall."
+            elif tld_delta < 0:
+                effect_hint = "Suspicious TLD hits dropped — rely more on text patterns and validate in Evaluate."
+            elif money_delta > 0:
+                effect_hint = "Money cues rose — expect better coverage on payment scams."
+            elif money_delta < 0:
+                effect_hint = "Money cues fell — finance-themed recall could dip."
+            elif attachment_delta > 0:
+                effect_hint = "Attachment lures increased — the model leans on risky file signals."
+            elif attachment_delta < 0:
+                effect_hint = "Attachment lures decreased — detection may hinge on text clues."
+
+        if not effect_hint:
+            if panel_items:
+                effect_hint = "Changes logged — move to Evaluate to measure the impact."
+            else:
+                effect_hint = "No changes yet—adjust and preview."
+
+        panel_html = ["<div class='dataset-delta-panel'>", "<h5>Compare datasets</h5>"]
+        if panel_items:
+            panel_html.append("<div class='dataset-delta-panel__items'>")
+            for label, arrow, arrow_class, value_str in panel_items:
+                panel_html.append(
+                    "<div class='dataset-delta-panel__item'><span>{label}</span>"
+                    "<span class='delta-arrow {cls}'>{arrow}{value}</span></div>".format(
+                        label=html.escape(label),
+                        cls=arrow_class,
+                        arrow=html.escape(arrow),
+                        value=html.escape(value_str),
+                    )
+                )
+            panel_html.append("</div>")
+        else:
+            panel_html.append(
+                "<p class='dataset-delta-panel__story'>After you generate a dataset, you can tweak the configuration and preview here how these impact your data.</p>"
+            )
+            effect_hint = ""
+
+        if effect_hint:
+            panel_html.append(
+                "<div class='dataset-delta-panel__hint'>{}</div>".format(
+                    html.escape(effect_hint)
+                )
+            )
+        if delta_story_text:
+            panel_html.append(
+                "<div class='dataset-delta-panel__story'>{}</div>".format(
+                    html.escape(delta_story_text)
+                )
+            )
+        panel_html.append("</div>")
+        return "".join(panel_html)
+
     nerd_mode_data_enabled = bool(ss.get("nerd_mode_data"))
+    delta_summary: Optional[Dict[str, Any]] = ss.get("dataset_compare_delta")
+    base_summary_for_delta: Optional[Dict[str, Any]] = None
+    target_summary_for_delta: Optional[Dict[str, Any]] = None
+    compare_panel_html = ""
 
     with section_surface():
-        info_col, builder_col = st.columns([0.35, 0.75], gap="large")
+        info_col, builder_col = st.columns([0.45, 0.55], gap="large")
         with info_col:
             st.markdown("#### Prepare data")
             st.markdown(
@@ -1224,9 +1360,6 @@ def render_data_stage():
         with builder_col:
             st.markdown("### Dataset builder")
 
-            delta_summary = ss.get("dataset_compare_delta")
-            base_summary_for_delta = None
-            target_summary_for_delta = None
             if ss.get("dataset_preview_summary"):
                 base_summary_for_delta = current_summary
                 target_summary_for_delta = ss["dataset_preview_summary"]
@@ -1244,138 +1377,135 @@ def render_data_stage():
             preview_clicked = False
             reset_clicked = False
 
-            builder_cols = st.columns([3, 2], gap="large")
+            cfg = ss.get("dataset_config", DEFAULT_DATASET_CONFIG)
+            _set_advanced_knob_state(cfg)
 
-            with builder_cols[0]:
-                cfg = ss.get("dataset_config", DEFAULT_DATASET_CONFIG)
-                _set_advanced_knob_state(cfg)
+            spam_ratio_default = float(cfg.get("spam_ratio", 0.5))
+            spam_share_default = int(round(spam_ratio_default * 100))
+            spam_share_default = min(max(spam_share_default, 20), 80)
+            if spam_share_default % 5 != 0:
+                spam_share_default = int(5 * round(spam_share_default / 5))
 
-                spam_ratio_default = float(cfg.get("spam_ratio", 0.5))
-                spam_share_default = int(round(spam_ratio_default * 100))
-                spam_share_default = min(max(spam_share_default, 20), 80)
-                if spam_share_default % 5 != 0:
-                    spam_share_default = int(5 * round(spam_share_default / 5))
+            with st.form("dataset_builder_form"):
+                dataset_size = st.radio(
+                    "Dataset size",
+                    options=[100, 300, 500],
+                    index=[100, 300, 500].index(int(cfg.get("n_total", 500)))
+                    if int(cfg.get("n_total", 500)) in [100, 300, 500]
+                    else 2,
+                    help="Preset sizes illustrate how data volume influences learning (guarded ≤500).",
+                )
+                spam_share_pct = st.slider(
+                    "Spam share",
+                    min_value=20,
+                    max_value=80,
+                    value=spam_share_default,
+                    step=5,
+                    help="Adjust prevalence to explore bias/recall trade-offs.",
+                )
+                edge_cases = st.slider(
+                    "Edge cases",
+                    min_value=0,
+                    max_value=len(EDGE_CASE_TEMPLATES),
+                    value=int(cfg.get("edge_cases", 0)),
+                    help="Inject similar-looking spam/safe pairs to stress the model.",
+                )
 
-                with st.form("dataset_builder_form"):
-                    dataset_size = st.radio(
-                        "Dataset size",
-                        options=[100, 300, 500],
-                        index=[100, 300, 500].index(int(cfg.get("n_total", 500)))
-                        if int(cfg.get("n_total", 500)) in [100, 300, 500]
-                        else 2,
-                        help="Preset sizes illustrate how data volume influences learning (guarded ≤500).",
-                    )
-                    spam_share_pct = st.slider(
-                        "Spam share",
-                        min_value=20,
-                        max_value=80,
-                        value=spam_share_default,
-                        step=5,
-                        help="Adjust prevalence to explore bias/recall trade-offs.",
-                    )
-                    edge_cases = st.slider(
-                        "Edge cases",
-                        min_value=0,
-                        max_value=len(EDGE_CASE_TEMPLATES),
-                        value=int(cfg.get("edge_cases", 0)),
-                        help="Inject similar-looking spam/safe pairs to stress the model.",
-                    )
-
-                    if nerd_mode_data_enabled:
-                        with st.expander("Advanced knobs", expanded=True):
-                            st.caption(
-                                "Fine-tune suspicious links, domains, tone, attachments, randomness, and demos before generating a preview."
+                if nerd_mode_data_enabled:
+                    with st.expander("Advanced knobs", expanded=True):
+                        st.caption(
+                            "Fine-tune suspicious links, domains, tone, attachments, randomness, and demos before generating a preview."
+                        )
+                        attachment_keys = list(ATTACHMENT_MIX_PRESETS.keys())
+                        adv_col_a, adv_col_b = st.columns(2, gap="large")
+                        with adv_col_a:
+                            st.slider(
+                                "Suspicious links per spam email",
+                                min_value=0,
+                                max_value=2,
+                                value=int(st.session_state.get("adv_links_level", 1)),
+                                help="Controls how many sketchy URLs appear in spam examples (0–2).",
+                                key="adv_links_level",
                             )
-                            attachment_keys = list(ATTACHMENT_MIX_PRESETS.keys())
-                            adv_col_a, adv_col_b = st.columns(2, gap="large")
-                            with adv_col_a:
-                                st.slider(
-                                    "Suspicious links per spam email",
-                                    min_value=0,
-                                    max_value=2,
-                                    value=int(st.session_state.get("adv_links_level", 1)),
-                                    help="Controls how many sketchy URLs appear in spam examples (0–2).",
-                                    key="adv_links_level",
-                                )
-                                st.select_slider(
-                                    "Suspicious TLD frequency",
-                                    options=["low", "med", "high"],
-                                    value=str(
-                                        st.session_state.get(
-                                            "adv_tld_level", cfg.get("susp_tld_level", "med")
-                                        )
-                                    ),
-                                    key="adv_tld_level",
-                                )
-                                st.select_slider(
-                                    "ALL-CAPS / urgency intensity",
-                                    options=["low", "med", "high"],
-                                    value=str(
-                                        st.session_state.get(
-                                            "adv_caps_level", cfg.get("caps_intensity", "med")
-                                        )
-                                    ),
-                                    key="adv_caps_level",
-                                )
-                            with adv_col_b:
-                                st.select_slider(
-                                    "Money symbols & urgency",
-                                    options=["off", "low", "high"],
-                                    value=str(
-                                        st.session_state.get(
-                                            "adv_money_level", cfg.get("money_urgency", "low")
-                                        )
-                                    ),
-                                    key="adv_money_level",
-                                )
-                                st.selectbox(
-                                    "Attachment lure mix",
-                                    options=attachment_keys,
-                                    index=attachment_keys.index(
-                                        st.session_state.get("adv_attachment_choice", "Balanced")
+                            st.select_slider(
+                                "Suspicious TLD frequency",
+                                options=["low", "med", "high"],
+                                value=str(
+                                    st.session_state.get(
+                                        "adv_tld_level", cfg.get("susp_tld_level", "med")
                                     )
-                                    if st.session_state.get("adv_attachment_choice", "Balanced") in attachment_keys
-                                    else 1,
-                                    help="Choose how often risky attachments (HTML/ZIP/XLSM/EXE) appear vs. safer PDFs.",
-                                    key="adv_attachment_choice",
+                                ),
+                                key="adv_tld_level",
+                            )
+                            st.select_slider(
+                                "ALL-CAPS / urgency intensity",
+                                options=["low", "med", "high"],
+                                value=str(
+                                    st.session_state.get(
+                                        "adv_caps_level", cfg.get("caps_intensity", "med")
+                                    )
+                                ),
+                                key="adv_caps_level",
+                            )
+                        with adv_col_b:
+                            st.select_slider(
+                                "Money symbols & urgency",
+                                options=["off", "low", "high"],
+                                value=str(
+                                    st.session_state.get(
+                                        "adv_money_level", cfg.get("money_urgency", "low")
+                                    )
+                                ),
+                                key="adv_money_level",
+                            )
+                            st.selectbox(
+                                "Attachment lure mix",
+                                options=attachment_keys,
+                                index=attachment_keys.index(
+                                    st.session_state.get("adv_attachment_choice", "Balanced")
                                 )
-                                st.slider(
-                                    "Label noise (%)",
-                                    min_value=0.0,
-                                    max_value=5.0,
-                                    step=1.0,
-                                    value=float(
-                                        st.session_state.get(
-                                            "adv_label_noise_pct", cfg.get("label_noise_pct", 0.0)
-                                        )
-                                    ),
-                                    key="adv_label_noise_pct",
-                                )
-                                st.number_input(
-                                    "Random seed",
-                                    min_value=0,
-                                    value=int(st.session_state.get("adv_seed", cfg.get("seed", 42))),
-                                    key="adv_seed",
-                                    help="Keep this fixed for reproducibility.",
-                                )
-                                st.toggle(
-                                    "Data poisoning demo (synthetic)",
-                                    value=bool(
-                                        st.session_state.get(
-                                            "adv_poison_demo", cfg.get("poison_demo", False)
-                                        )
-                                    ),
-                                    key="adv_poison_demo",
-                                    help="Adds a tiny malicious distribution shift labeled as safe to show metric degradation.",
-                                )
+                                if st.session_state.get("adv_attachment_choice", "Balanced") in attachment_keys
+                                else 1,
+                                help="Choose how often risky attachments (HTML/ZIP/XLSM/EXE) appear vs. safer PDFs.",
+                                key="adv_attachment_choice",
+                            )
+                            st.slider(
+                                "Label noise (%)",
+                                min_value=0.0,
+                                max_value=5.0,
+                                step=1.0,
+                                value=float(
+                                    st.session_state.get(
+                                        "adv_label_noise_pct", cfg.get("label_noise_pct", 0.0)
+                                    )
+                                ),
+                                key="adv_label_noise_pct",
+                            )
+                            st.number_input(
+                                "Random seed",
+                                min_value=0,
+                                value=int(st.session_state.get("adv_seed", cfg.get("seed", 42))),
+                                key="adv_seed",
+                                help="Keep this fixed for reproducibility.",
+                            )
+                            st.toggle(
+                                "Data poisoning demo (synthetic)",
+                                value=bool(
+                                    st.session_state.get(
+                                        "adv_poison_demo", cfg.get("poison_demo", False)
+                                    )
+                                ),
+                                key="adv_poison_demo",
+                                help="Adds a tiny malicious distribution shift labeled as safe to show metric degradation.",
+                            )
 
-                    st.markdown("<div class='cta-sticky'>", unsafe_allow_html=True)
-                    btn_primary, btn_secondary = st.columns([1, 1])
-                    with btn_primary:
-                        preview_clicked = st.form_submit_button("Generate preview", type="primary")
-                    with btn_secondary:
-                        reset_clicked = st.form_submit_button("Reset to baseline", type="secondary")
-                    st.markdown("</div>", unsafe_allow_html=True)
+                st.markdown("<div class='cta-sticky'>", unsafe_allow_html=True)
+                btn_primary, btn_secondary = st.columns([1, 1])
+                with btn_primary:
+                    preview_clicked = st.form_submit_button("Generate preview", type="primary")
+                with btn_secondary:
+                    reset_clicked = st.form_submit_button("Reset to baseline", type="secondary")
+                st.markdown("</div>", unsafe_allow_html=True)
 
             spam_ratio = float(spam_share_pct) / 100.0
 
@@ -1459,156 +1589,51 @@ def render_data_stage():
                 delta_text = dataset_delta_story(delta_summary)
             base_summary_for_delta = current_summary
             target_summary_for_delta = preview_summary_local
+        compare_panel_html = _build_compare_panel_html(
+            base_summary_for_delta,
+            target_summary_for_delta,
+            delta_summary,
+            delta_text,
+        )
 
-        with builder_cols[1]:
-            
-            panel_items: list[tuple[str, str, str, str]] = []
-            spam_share_delta_pp: Optional[float] = None
+    preview_summary_for_health = ss.get("dataset_preview_summary")
+    lint_counts_preview = (
+        ss.get("dataset_preview_lint") if preview_summary_for_health is not None else None
+    )
+    spam_pct: Optional[float] = None
+    total_rows: Optional[float] = None
+    lint_label = ""
+    badge_text = ""
+    lint_chip_html = ""
+    dataset_health_available = False
 
-            def _add_panel_item(label: str, value: Any, *, unit: str = "", decimals: Optional[int] = None) -> None:
-                if value is None:
-                    return
-                try:
-                    numeric_value = float(value)
-                except (TypeError, ValueError):
-                    return
-                if abs(numeric_value) < 1e-6:
-                    return
-                arrow = "▲" if numeric_value > 0 else "▼"
-                arrow_class = "delta-arrow--up" if numeric_value > 0 else "delta-arrow--down"
-                abs_value = abs(numeric_value)
-                if decimals is not None:
-                    value_str = f"{abs_value:.{decimals}f}".rstrip("0").rstrip(".")
-                else:
-                    if abs(abs_value - round(abs_value)) < 1e-6:
-                        value_str = f"{int(round(abs_value))}"
-                    else:
-                        value_str = f"{abs_value:.2f}".rstrip("0").rstrip(".")
-                if unit:
-                    value_str = f"{value_str}{unit}"
-                panel_items.append((label, arrow, arrow_class, value_str))
+    if preview_summary_for_health is not None:
+        health = _evaluate_dataset_health(preview_summary_for_health, lint_counts_preview)
+        spam_pct = health["spam_pct"]
+        total_rows = health["total_rows"]
+        lint_label = health["lint_label"]
+        badge_text = health["badge_text"]
+        lint_flags_total = health["lint_flags"]
+        if lint_label == "Unknown":
+            lint_icon = "ℹ️"
+        elif lint_flags_total:
+            lint_icon = "⚠️"
+        else:
+            lint_icon = "🛡️"
+        lint_chip_html = (
+            "<span class='lint-chip'><span class='lint-chip__icon'>{icon}</span>"
+            "<span class='lint-chip__text'>PII lint: {label}</span></span>"
+        ).format(icon=lint_icon, label=html.escape(lint_label or "Unknown"))
+        dataset_health_available = True
 
-            if base_summary_for_delta and target_summary_for_delta:
-                try:
-                    base_ratio = float(base_summary_for_delta.get("spam_ratio") or 0.0)
-                    target_ratio = float(target_summary_for_delta.get("spam_ratio") or 0.0)
-                    spam_share_delta_pp = (target_ratio - base_ratio) * 100.0
-                except (TypeError, ValueError):
-                    spam_share_delta_pp = None
-                if spam_share_delta_pp is not None and abs(spam_share_delta_pp) >= 0.1:
-                    _add_panel_item("Spam share", spam_share_delta_pp, unit="pp", decimals=1)
-
-            if delta_summary:
-                _add_panel_item("Examples", delta_summary.get("total"))
-                _add_panel_item("Avg suspicious links", delta_summary.get("avg_susp_links"), decimals=2)
-                _add_panel_item("Suspicious TLD hits", delta_summary.get("suspicious_tlds"))
-                _add_panel_item("Money cues", delta_summary.get("money_mentions"))
-                _add_panel_item("Attachment lures", delta_summary.get("attachment_lures"))
-
-            effect_hint = ""
-            if spam_share_delta_pp is not None and abs(spam_share_delta_pp) >= 0.1:
-                if spam_share_delta_pp > 0:
-                    effect_hint = "Higher spam share → recall ↑, precision may ↓; adjust threshold later in Evaluate."
-                else:
-                    effect_hint = (
-                        "Lower spam share → precision ↑, recall may ↓; consider rebalancing spam examples before training."
-                    )
-            elif delta_summary:
-                link_delta = float(delta_summary.get("avg_susp_links") or 0.0)
-                tld_delta = float(delta_summary.get("suspicious_tlds") or 0.0)
-                money_delta = float(delta_summary.get("money_mentions") or 0.0)
-                attachment_delta = float(delta_summary.get("attachment_lures") or 0.0)
-                if link_delta > 0:
-                    effect_hint = "More suspicious links → phishing recall should improve via URL cues."
-                elif link_delta < 0:
-                    effect_hint = "Fewer suspicious links → URL-heavy spam might slip by; monitor precision/recall."
-                elif tld_delta > 0:
-                    effect_hint = "Suspicious TLD hits increased — domain heuristics strengthen spam recall."
-                elif tld_delta < 0:
-                    effect_hint = "Suspicious TLD hits dropped — rely more on text patterns and validate in Evaluate."
-                elif money_delta > 0:
-                    effect_hint = "Money cues rose — expect better coverage on payment scams."
-                elif money_delta < 0:
-                    effect_hint = "Money cues fell — finance-themed recall could dip."
-                elif attachment_delta > 0:
-                    effect_hint = "Attachment lures increased — the model leans on risky file signals."
-                elif attachment_delta < 0:
-                    effect_hint = "Attachment lures decreased — detection may hinge on text clues."
-
-            if not effect_hint:
-                if panel_items:
-                    effect_hint = "Changes logged — move to Evaluate to measure the impact."
-                else:
-                    effect_hint = "No changes yet—adjust and preview."
-
-            panel_html = ["<div class='dataset-delta-panel'>", "<h5>Compare datasets</h5>"]
-            if panel_items:
-                panel_html.append("<div class='dataset-delta-panel__items'>")
-                for label, arrow, arrow_class, value_str in panel_items:
-                    panel_html.append(
-                        "<div class='dataset-delta-panel__item'><span>{label}</span><span class='delta-arrow {cls}'>{arrow}{value}</span></div>"
-                        .format(
-                            label=html.escape(label),
-                            cls=arrow_class,
-                            arrow=html.escape(arrow),
-                            value=html.escape(value_str),
-                        )
-                    )
-                panel_html.append("</div>")
-            else:
-                panel_html.append(
-                    "<p class='dataset-delta-panel__story'>After you generate a dataset, you can tweak the configuration and preview here how these impact your data.</p>"
-                )
-                effect_hint = ""
-
-            if effect_hint:
-                panel_html.append(
-                    "<div class='dataset-delta-panel__hint'>{}</div>".format(html.escape(effect_hint))
-                )
-            if delta_text:
-                panel_html.append(
-                    "<div class='dataset-delta-panel__story'>{}</div>".format(html.escape(delta_text))
-                )
-            panel_html.append("</div>")
-            st.markdown("".join(panel_html), unsafe_allow_html=True)
-
-    if ss.get("dataset_preview"):
-        # ===== PII Cleanup (mini-game) ================================================
-        _ensure_pii_state()
-        preview_rows = ss["dataset_preview"]
-        detailed_hits = lint_dataset_detailed(preview_rows)
-        counts = summarize_pii_counts(detailed_hits)
-        ss["pii_hits_map"] = detailed_hits
-        flagged_ids = sorted(detailed_hits.keys())
-        ss["pii_queue"] = flagged_ids
-        ss["pii_total_flagged"] = len(flagged_ids)
-
-         
-        preview_summary_for_health = ss.get("dataset_preview_summary")
-        if preview_summary_for_health is not None:
-            lint_counts_preview = ss.get("dataset_preview_lint")
-            health = _evaluate_dataset_health(preview_summary_for_health, lint_counts_preview)
-            spam_pct = health["spam_pct"]
-            total_rows = health["total_rows"]
-            lint_label = health["lint_label"]
-            badge_text = health["badge_text"]
-            lint_flags_total = health["lint_flags"]
-            if lint_label == "Unknown":
-                lint_icon = "ℹ️"
-            elif lint_flags_total:
-                lint_icon = "⚠️"
-            else:
-                lint_icon = "🛡️"
-            lint_chip_html = (
-                "<span class='lint-chip'><span class='lint-chip__icon'>{icon}</span>"
-                "<span class='lint-chip__text'>PII lint: {label}</span></span>"
-            ).format(icon=lint_icon, label=html.escape(lint_label or "Unknown"))
-
-            with section_surface():
-                st.markdown(
-                    "#### Dataset health",
-                    help="Quick pulse on balance, volume, and lint signals for the generated preview.",
-                )
+    with section_surface():
+        health_col, compare_col = st.columns([1.4, 1], gap="large")
+        with health_col:
+            st.markdown(
+                "#### Dataset health",
+                help="Quick pulse on balance, volume, and lint signals for the generated preview.",
+            )
+            if dataset_health_available:
                 health_cols = st.columns([2, 1], gap="large")
                 with health_cols[0]:
                     if spam_pct is not None and total_rows is not None:
@@ -1649,7 +1674,23 @@ def render_data_stage():
                         )
                     else:
                         st.caption("Health badge unavailable.")
+            else:
+                st.caption("Generate a preview to evaluate dataset health.")
+        with compare_col:
+            st.markdown(compare_panel_html, unsafe_allow_html=True)
 
+    if ss.get("dataset_preview"):
+        # ===== PII Cleanup (mini-game) ================================================
+        _ensure_pii_state()
+        preview_rows = ss["dataset_preview"]
+        detailed_hits = lint_dataset_detailed(preview_rows)
+        counts = summarize_pii_counts(detailed_hits)
+        ss["pii_hits_map"] = detailed_hits
+        flagged_ids = sorted(detailed_hits.keys())
+        ss["pii_queue"] = flagged_ids
+        ss["pii_total_flagged"] = len(flagged_ids)
+
+         
         with section_surface():
             banner_clicked = render_pii_cleanup_banner(counts)
             if banner_clicked:
