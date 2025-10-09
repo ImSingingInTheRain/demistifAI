@@ -293,8 +293,8 @@ def render_pii_cleanup_banner(lint_counts: Dict[str, int]) -> bool:
         st.markdown(
             f"""
             <div class="callout callout--warn">
-              <h4>🔎 PII found in safe emails</h4>
-              <p>We spotted sensitive patterns (like IBANs or card numbers) inside safe-labeled emails. Clean them to protect privacy and avoid leakage.</p>
+              <h4>🔎 Personal data alert</h4>
+              <p>The data used to build an AI system should not include personal data unless it is really necessary. Click on "start cleanup" to simulate a data minimization process and replace person data present in your data set with anonymized tags.</p>
               <p><strong>Summary:</strong> {format_pii_summary(lint_counts)}</p>
             </div>
             """,
