@@ -1203,12 +1203,6 @@ def render_data_stage():
         st.success("Dataset generated — scroll to **Review** and curate data before committing.")
         explanation = explain_config_change(config, ss.get("dataset_config", DEFAULT_DATASET_CONFIG))
         
-        if len(dataset_rows) > 200:
-            st.caption(
-                "Manual queue shows the first 200 items per guardrail. Full dataset size: {}.".format(
-                    len(dataset_rows)
-                )
-            )
 
         return preview_summary
 
