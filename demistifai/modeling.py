@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import re
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, Callable
 from urllib.parse import urlparse
 
 import matplotlib.pyplot as plt
@@ -52,7 +52,50 @@ __all__ = [
     "FEATURE_PLAIN_LANGUAGE",
     "features_matrix",
     "HybridEmbedFeatsLogReg",
+    "PlattProbabilityCalibrator",
 ]
+
+
+def _safe_logit(p: np.ndarray) -> np.ndarray:
+    """Compute logit scores while avoiding infinities at 0 or 1."""
+
+    p = np.clip(np.asarray(p, dtype=float), 1e-6, 1 - 1e-6)
+    return np.log(p / (1.0 - p))
+
+
+class PlattProbabilityCalibrator:
+    """One-dimensional logistic regression for probability calibration."""
+
+    def __init__(self, max_iter: int = 1000, random_state: int | None = None):
+        self.max_iter = int(max_iter)
+        self.random_state = random_state
+        self.lr = LogisticRegression(max_iter=self.max_iter, random_state=self.random_state)
+        self._fitted = False
+
+    def fit(self, logits: np.ndarray, labels: List[str] | np.ndarray) -> "PlattProbabilityCalibrator":
+        logits = np.asarray(logits, dtype=float).reshape(-1, 1)
+        if logits.size == 0:
+            raise ValueError("Cannot fit calibrator without logits.")
+        if isinstance(labels, np.ndarray):
+            y_bin = np.array([1 if y == "spam" else 0 for y in labels.tolist()], dtype=int)
+        else:
+            y_bin = _y01(list(labels))
+        self.lr.fit(logits, y_bin)
+        self._fitted = True
+        return self
+
+    def transform_logits(self, logits: np.ndarray) -> np.ndarray:
+        if not self._fitted:
+            raise RuntimeError("Calibrator not fitted.")
+        logits = np.asarray(logits, dtype=float).reshape(-1, 1)
+        if logits.size == 0:
+            return np.empty((0,), dtype=float)
+        return self.lr.predict_proba(logits)[:, 1]
+
+    def __call__(self, probs: np.ndarray) -> np.ndarray:
+        logits = _safe_logit(np.asarray(probs, dtype=float))
+        calibrated = self.transform_logits(logits)
+        return np.clip(calibrated, 0.0, 1.0)
 
 def df_confusion(y_true, y_pred, labels):
     cm = confusion_matrix(y_true, y_pred, labels=labels)
@@ -564,6 +607,7 @@ class HybridEmbedFeatsLogReg:
         self.notes: list[str] = []
         self._user_adj = {k: 0.0 for k in FEATURE_ORDER}
         self.last_thr_eff: tuple[np.ndarray, np.ndarray] | None = None
+        self.calibrator: Callable[[np.ndarray], np.ndarray] | None = None
 
     # --- compatibility helpers ---
     def _encode_concat(self, titles, bodies):
@@ -689,7 +733,7 @@ class HybridEmbedFeatsLogReg:
         p = 1.0 / (1.0 + np.exp(-logit))
         return p, X_std
 
-    def predict_proba(self, titles, bodies, threshold: float = 0.5):
+    def _predict_proba_base(self, titles, bodies, threshold: float = 0.5):
         self.last_thr_eff = None
         p_txt = self._p_text(titles, bodies)
         low, high = threshold - self.uncertainty_band, threshold + self.uncertainty_band
@@ -732,6 +776,26 @@ class HybridEmbedFeatsLogReg:
             self.last_thr_eff = (idx, thr_eff)
 
         return np.vstack([1 - p_out, p_out]).T
+
+    def predict_proba_base(self, titles, bodies, threshold: float = 0.5):
+        return self._predict_proba_base(titles, bodies, threshold=threshold)
+
+    def predict_proba(self, titles, bodies, threshold: float = 0.5):
+        probs = self._predict_proba_base(titles, bodies, threshold=threshold)
+        if self.calibrator is not None:
+            try:
+                spam_probs = probs[:, self._i_spam]
+                calibrated = self.calibrator(spam_probs)
+                calibrated = np.clip(calibrated, 1e-6, 1 - 1e-6)
+                probs[:, self._i_spam] = calibrated
+                probs[:, 1 - self._i_spam] = 1.0 - calibrated
+            except Exception:
+                # If calibration fails, fall back to base probabilities.
+                pass
+        return probs
+
+    def set_calibration(self, calibrator: Callable[[np.ndarray], np.ndarray] | None) -> None:
+        self.calibrator = calibrator
 
     def predict(self, titles, bodies, threshold: float = 0.5):
         probs = self.predict_proba(titles, bodies, threshold=threshold)[:, self._i_spam]

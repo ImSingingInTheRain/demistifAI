@@ -71,6 +71,7 @@ from demistifai.modeling import (
     FEATURE_ORDER,
     FEATURE_PLAIN_LANGUAGE,
     HybridEmbedFeatsLogReg,
+    PlattProbabilityCalibrator,
     _combine_text,
     _fmt_delta,
     _fmt_pct,
@@ -659,6 +660,8 @@ ss.setdefault("last_classification", None)
 ss.setdefault("numeric_adjustments", {feat: 0.0 for feat in FEATURE_ORDER})
 ss.setdefault("nerd_mode_data", False)
 ss.setdefault("nerd_mode_train", False)
+ss.setdefault("calibrate_probabilities", False)
+ss.setdefault("calibration_result", None)
 ss.setdefault(
     "train_params",
     {"test_size": 0.30, "random_state": 42, "max_iter": 1000, "C": 1.0},
@@ -3929,11 +3932,11 @@ def render_train_stage():
             st.markdown("#### Decision margin spread (text head)")
             margins: Optional[np.ndarray] = None
             margin_error = False
+            model_obj = ss.get("model")
             if not train_texts_combined:
                 st.caption("Margin distribution unavailable (no training texts).")
             else:
                 logits: Optional[np.ndarray] = None
-                model_obj = ss.get("model")
                 try:
                     if hasattr(model_obj, "predict_logit"):
                         logits = np.asarray(model_obj.predict_logit(train_texts_combined), dtype=float)
@@ -3973,6 +3976,145 @@ def render_train_stage():
                 f"- Max iterations: {params.get('max_iter', '—')}  \n"
                 f"- C (inverse regularization): {params.get('C', '—')}"
             )
+
+            calibrate_default = bool(ss.get("calibrate_probabilities", False))
+            calib_toggle = st.toggle(
+                "Calibrate probabilities (test set)",
+                value=calibrate_default,
+                key="train_calibrate_toggle",
+                help="Platt scaling if test size ≥ 30, else isotonic disabled.",
+            )
+            ss["calibrate_probabilities"] = bool(calib_toggle)
+
+            calibration_details = None
+            if calib_toggle:
+                test_size = len(y_te_labels) if y_te_labels is not None else 0
+                if test_size < 30:
+                    st.caption("Test set too small for calibration (need ≥ 30 examples).")
+                    if hasattr(model_obj, "set_calibration"):
+                        try:
+                            model_obj.set_calibration(None)
+                        except Exception:
+                            pass
+                    calibration_details = {"status": "too_small", "test_size": test_size}
+                    ss["calibration_result"] = calibration_details
+                elif model_obj is None:
+                    st.caption("Calibration unavailable (model missing).")
+                else:
+                    try:
+                        spam_index = getattr(model_obj, "_i_spam", 1)
+                        if hasattr(model_obj, "predict_proba_base"):
+                            base_matrix = model_obj.predict_proba_base(X_te_t, X_te_b)
+                        else:
+                            base_matrix = model_obj.predict_proba(X_te_t, X_te_b)
+                        base_matrix = np.asarray(base_matrix, dtype=float)
+                        if base_matrix.ndim != 2 or base_matrix.shape[0] == 0:
+                            raise ValueError("Empty probability matrix from model.")
+                        base_probs = base_matrix[:, spam_index]
+                        base_probs = np.clip(base_probs, 1e-6, 1 - 1e-6)
+                        y_true01 = np.asarray(_y01(list(y_te_labels)), dtype=float)
+                        base_logits = np.log(base_probs / (1.0 - base_probs))
+                        calibrator = PlattProbabilityCalibrator(
+                            random_state=int(params.get("random_state", 42))
+                        )
+                        calibrator.fit(base_logits, list(y_te_labels))
+                        if hasattr(model_obj, "set_calibration"):
+                            model_obj.set_calibration(calibrator)
+                        calibrated_matrix = model_obj.predict_proba(X_te_t, X_te_b)
+                        calibrated_matrix = np.asarray(calibrated_matrix, dtype=float)
+                        calibrated_probs = calibrated_matrix[:, spam_index]
+                        calibrated_probs = np.clip(calibrated_probs, 1e-6, 1 - 1e-6)
+                        brier_before = float(np.mean((base_probs - y_true01) ** 2))
+                        brier_after = float(np.mean((calibrated_probs - y_true01) ** 2))
+                        bins = np.linspace(0.0, 1.0, 11)
+                        reliability_rows: List[Dict[str, object]] = []
+                        stages = [
+                            ("Before calibration", base_probs),
+                            ("After calibration", calibrated_probs),
+                        ]
+                        for stage_label, probs in stages:
+                            bin_ids = np.digitize(probs, bins, right=True) - 1
+                            bin_ids = np.clip(bin_ids, 0, len(bins) - 2)
+                            for b in range(len(bins) - 1):
+                                mask = bin_ids == b
+                                if not np.any(mask):
+                                    continue
+                                reliability_rows.append(
+                                    {
+                                        "stage": stage_label,
+                                        "bin": b,
+                                        "expected": float(np.mean(probs[mask])),
+                                        "observed": float(np.mean(y_true01[mask])),
+                                        "count": int(mask.sum()),
+                                    }
+                                )
+                        reliability_df = pd.DataFrame(reliability_rows)
+                        reliability_df["bin_label"] = reliability_df["bin"].map(
+                            lambda b: f"{bins[b]:.1f}–{bins[b + 1]:.1f}"
+                        )
+                        calibration_details = {
+                            "status": "ok",
+                            "brier_before": brier_before,
+                            "brier_after": brier_after,
+                            "test_size": test_size,
+                            "reliability": reliability_df,
+                        }
+                        ss["calibration_result"] = calibration_details
+                    except Exception as exc:
+                        st.caption(f"Calibration failed: {exc}")
+                        if hasattr(model_obj, "set_calibration"):
+                            try:
+                                model_obj.set_calibration(None)
+                            except Exception:
+                                pass
+                        calibration_details = {"status": "error", "message": str(exc)}
+                        ss["calibration_result"] = calibration_details
+            else:
+                if hasattr(model_obj, "set_calibration"):
+                    try:
+                        model_obj.set_calibration(None)
+                    except Exception:
+                        pass
+                ss["calibration_result"] = None
+
+            if calibration_details and calibration_details.get("status") == "ok":
+                brier_before = calibration_details["brier_before"]
+                brier_after = calibration_details["brier_after"]
+                delta = brier_after - brier_before
+                col_b1, col_b2 = st.columns(2)
+                col_b1.metric("Brier score (uncalibrated)", f"{brier_before:.4f}")
+                col_b2.metric(
+                    "Brier score (calibrated)",
+                    f"{brier_after:.4f}",
+                    delta=f"{delta:+.4f}",
+                    delta_color="inverse",
+                )
+                st.caption(
+                    f"Calibrated on {calibration_details['test_size']} hold-out examples using Platt scaling."
+                )
+                reliability_df = calibration_details.get("reliability")
+                if reliability_df is not None and not reliability_df.empty:
+                    chart = (
+                        alt.Chart(reliability_df)
+                        .mark_line(point=True)
+                        .encode(
+                            x=alt.X("expected:Q", title="Mean predicted probability"),
+                            y=alt.Y("observed:Q", title="Observed spam rate"),
+                            color=alt.Color("stage:N", title=""),
+                            tooltip=[
+                                alt.Tooltip("stage:N", title="Series"),
+                                alt.Tooltip("bin_label:N", title="Bin"),
+                                alt.Tooltip("expected:Q", title="Predicted", format=".2f"),
+                                alt.Tooltip("observed:Q", title="Observed", format=".2f"),
+                                alt.Tooltip("count:Q", title="Count"),
+                            ],
+                        )
+                        .properties(height=260)
+                    )
+                    diagonal = alt.Chart(
+                        pd.DataFrame({"expected": [0.0, 1.0], "observed": [0.0, 1.0]})
+                    ).mark_line(strokeDash=[4, 4], color="gray")
+                    st.altair_chart(chart + diagonal, use_container_width=True)
 
             st.markdown(f"**Model object**: `{model_kind_string(ss['model'])}`")
 
