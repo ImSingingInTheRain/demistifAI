@@ -1591,8 +1591,7 @@ def render_data_stage():
 
          
         with section_surface():
-            st.markdown("### Preview & lint")
-            st.caption("Generate a preview to lint for potential PII and spot-check before approvals.")
+            st.markdown("### Dataset Preview")
             banner_clicked = render_pii_cleanup_banner(counts)
             if banner_clicked:
                 ss["pii_open"] = True
