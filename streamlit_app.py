@@ -412,6 +412,15 @@ def _shorten_text(text: str, limit: int = 120) -> str:
     return f"{text[: limit - 1]}…"
 
 
+def _safe_subject(row: dict) -> str:
+    return str(row.get("title", "") or "").strip()
+
+
+def _excerpt(text: str, n: int = 120) -> str:
+    text = (text or "").replace("\\n", " ").strip()
+    return text[:n] + ("…" if len(text) > n else "")
+
+
 def pii_chip_row_html(counts: Dict[str, int], extra_class: str = "") -> str:
     classes = ["indicator-chip-row", "pii-chip-row"]
     if extra_class:
@@ -4253,12 +4262,8 @@ def render_train_stage():
         for card in spam_examples + safe_examples:
             label_value = (card.get("label", "") or "").strip().lower()
             icon = "🚩" if label_value == "spam" else "📥"
-            subject = html.escape((card.get("title") or "").strip())
-            body_text = (card.get("body") or "")
-            excerpt_raw = body_text[:120]
-            if len(body_text) > 120:
-                excerpt_raw += "…"
-            excerpt = html.escape(excerpt_raw.replace("\n", " "))
+            subject = html.escape(_safe_subject(card))
+            excerpt = html.escape(_excerpt(card.get("body")))
             cards_html_parts.append(
                 f"""
                 <div style="border:1px solid #E5E7EB;border-radius:10px;padding:0.65rem;background-color:#FFFFFF;display:flex;flex-direction:column;gap:0.4rem;">
@@ -4737,13 +4742,8 @@ def render_train_stage():
                                 label_icon = {"spam": "🚩", "safe": "📥"}.get(
                                     label_value, "✉️"
                                 )
-                                title_text = (row.get("title") or "").strip()
-                                body_text = (row.get("body") or "").strip()
-                                excerpt = (
-                                    (body_text[:110] + "…")
-                                    if len(body_text) > 110
-                                    else body_text
-                                ).replace("\n", " ")
+                                title_text = _safe_subject(row)
+                                excerpt = _excerpt(row.get("body"), 110)
                                 st.markdown(
                                     f"""
                                     <div style="border:1px solid #E5E7EB;border-radius:10px;padding:0.75rem;margin-bottom:0.6rem;">
@@ -4758,7 +4758,7 @@ def render_train_stage():
                             st.markdown("**What the model sees now**")
                             for idx, ex in enumerate(contrast_examples):
                                 row = ex["row"]
-                                title_text = (row.get("title") or "").strip()
+                                title_text = _safe_subject(row)
                                 badge_label = clarity_badges[idx]
                                 is_borderline = badge_label == "Borderline"
                                 badge_color = "#f97316" if is_borderline else "#10b981"
