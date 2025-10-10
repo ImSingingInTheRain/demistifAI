@@ -73,6 +73,7 @@ from demistifai.modeling import (
     FEATURE_PLAIN_LANGUAGE,
     HybridEmbedFeatsLogReg,
     PlattProbabilityCalibrator,
+    URGENCY_TERMS,
     _combine_text,
     _fmt_delta,
     _fmt_pct,
@@ -186,6 +187,159 @@ PII_INDICATOR_STYLE = """
 }
 </style>
 """
+
+
+GUARDRAIL_PANEL_STYLE = """
+<style>
+.guardrail-panel {
+    display: grid;
+    gap: 1.5rem;
+}
+.guardrail-panel__chart {
+    background: var(--secondary-background-color, rgba(248, 250, 252, 0.85));
+    border-radius: 1rem;
+    border: 1px solid rgba(148, 163, 184, 0.35);
+    padding: 1rem;
+}
+.guardrail-card-list {
+    max-height: 320px;
+    overflow-y: auto;
+    padding-right: 0.5rem;
+    display: grid;
+    gap: 0.75rem;
+}
+.guardrail-card {
+    background: rgba(255, 255, 255, 0.82);
+    border-radius: 0.85rem;
+    border: 1px solid rgba(148, 163, 184, 0.4);
+    box-shadow: 0 4px 18px rgba(15, 23, 42, 0.08);
+    padding: 0.85rem 1rem;
+}
+.guardrail-card__subject {
+    font-weight: 600;
+    color: var(--text-color, #111827);
+    margin-bottom: 0.35rem;
+    line-height: 1.3;
+}
+.guardrail-card__meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 0.8rem;
+    color: rgba(55, 65, 81, 0.85);
+    margin-bottom: 0.5rem;
+    gap: 0.75rem;
+}
+.guardrail-card__label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-weight: 500;
+}
+.guardrail-card__label--spam {
+    color: #b91c1c;
+}
+.guardrail-card__label--safe {
+    color: #1d4ed8;
+}
+.guardrail-card__badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+}
+.guardrail-badge {
+    border-radius: 999px;
+    padding: 0.25rem 0.65rem;
+    font-size: 0.8rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    border: 1px solid rgba(148, 163, 184, 0.55);
+}
+.guardrail-badge--on {
+    background: rgba(250, 204, 21, 0.25);
+    border-color: rgba(234, 179, 8, 0.8);
+    color: #854d0e;
+}
+.guardrail-badge--off {
+    background: rgba(226, 232, 240, 0.35);
+    color: rgba(71, 85, 105, 0.75);
+}
+.guardrail-panel__example {
+    font-size: 0.85rem;
+    color: rgba(55, 65, 81, 0.9);
+    background: rgba(226, 232, 240, 0.45);
+    border-radius: 0.75rem;
+    padding: 0.65rem 0.85rem;
+}
+</style>
+"""
+
+
+GUARDRAIL_BADGE_DEFS = [
+    ("link", "🔗", "Suspicious link"),
+    ("caps", "🔊", "ALL CAPS"),
+    ("money", "💰", "Money"),
+    ("urgency", "⚡", "Urgency"),
+]
+
+
+GUARDRAIL_CAPS_THRESHOLD = 0.3
+
+
+GUARDRAIL_URGENCY_TERMS = {term.lower() for term in URGENCY}
+GUARDRAIL_URGENCY_TERMS.update({term.lower() for term in URGENCY_TERMS})
+
+
+GUARDRAIL_LABEL_ICONS = {"spam": "🚩", "safe": "📥"}
+
+
+def _guardrail_signals(subject: str, body: str) -> Dict[str, bool]:
+    text = f"{subject or ''}\n{body or ''}".strip()
+    if not text:
+        text = subject or body or ""
+
+    text_lower = text.lower()
+
+    suspicious_links = False
+    if text:
+        try:
+            suspicious_links = (
+                _count_suspicious_links(text) > 0
+                or _has_suspicious_tld(text)
+            )
+        except Exception:
+            suspicious_links = False
+
+    try:
+        caps_ratio = _caps_ratio(text)
+    except Exception:
+        caps_ratio = 0.0
+
+    try:
+        money_hits = _count_money_mentions(text) > 0
+    except Exception:
+        money_hits = False
+
+    urgency_hits = any(term in text_lower for term in GUARDRAIL_URGENCY_TERMS)
+
+    return {
+        "link": bool(suspicious_links),
+        "caps": bool(caps_ratio >= GUARDRAIL_CAPS_THRESHOLD),
+        "money": bool(money_hits),
+        "urgency": bool(urgency_hits),
+    }
+
+
+def _guardrail_badges_html(flags: Dict[str, bool]) -> str:
+    badges: List[str] = []
+    for key, icon, label in GUARDRAIL_BADGE_DEFS:
+        active = bool(flags.get(key))
+        classes = "guardrail-badge guardrail-badge--on" if active else "guardrail-badge guardrail-badge--off"
+        badges.append(
+            f"<span class='{classes}' title='{html.escape(label)}' aria-label='{html.escape(label)}'>{icon}<span style='font-size:0.75rem;'>{html.escape(label)}</span></span>"
+        )
+    return "".join(badges)
 
 
 URL_CANDIDATE_RE = re.compile(r"(?i)\b(?:https?://|www\.)[\w\-._~:/?#\[\]@!$&'()*+,;=%]+")
@@ -802,6 +956,7 @@ def _prepare_meaning_map(
             "body_excerpt": [
                 _excerpt(body, n=180) if body else "(no body text)" for body in sampled_bodies
             ],
+            "body_full": sampled_bodies,
         }
     )
 
@@ -1147,6 +1302,104 @@ def _build_meaning_map_chart(
     detail_layer = alt.layer(detail_bg, detail_subject, detail_excerpt, detail_reason).properties(height=110)
 
     return alt.vconcat(scatter_layer, detail_layer, spacing=12).configure_view(strokeWidth=0)
+
+
+def _build_borderline_guardrail_chart(
+    df: pd.DataFrame,
+    meta: Dict[str, Any],
+) -> Optional[alt.Chart]:
+    if df is None or df.empty:
+        return None
+
+    borderline_df = df[df["borderline"] == True]  # noqa: E712
+    if borderline_df.empty:
+        return None
+
+    color_scale = alt.Scale(domain=["spam", "safe"], range=["#ef4444", "#3b82f6"])
+    tooltip_fields = [
+        alt.Tooltip("subject_tooltip:N", title="Subject"),
+        alt.Tooltip("label_title:N", title="True label"),
+        alt.Tooltip("predicted_label_title:N", title="Model prediction"),
+        alt.Tooltip("spam_probability:Q", title="Spam probability", format=".2f"),
+        alt.Tooltip("distance_display:N", title="Distance to line"),
+    ]
+
+    layers: List[alt.Chart] = []
+
+    non_borderline_df = df[df["borderline"] == False]  # noqa: E712
+    if not non_borderline_df.empty:
+        background = (
+            alt.Chart(non_borderline_df)
+            .mark_circle(size=55, opacity=0.12)
+            .encode(
+                x=alt.X(
+                    "x:Q",
+                    axis=alt.Axis(title="Meaning dimension 1", grid=False, ticks=False, labels=False),
+                ),
+                y=alt.Y(
+                    "y:Q",
+                    axis=alt.Axis(title="Meaning dimension 2", grid=False, ticks=False, labels=False),
+                ),
+                color=alt.Color("label:N", scale=color_scale, legend=None),
+            )
+        )
+        layers.append(background)
+
+    boundary = meta.get("boundary") if isinstance(meta, dict) else None
+    if isinstance(boundary, dict):
+        band_df = boundary.get("band_df")
+        if isinstance(band_df, pd.DataFrame) and not band_df.empty:
+            band_layer = (
+                alt.Chart(band_df)
+                .mark_polygon(color="rgba(250, 204, 21, 0.18)")
+                .encode(x="x:Q", y="y:Q", order="order:O")
+            )
+            layers.append(band_layer)
+
+        line_df = boundary.get("line_df")
+        if isinstance(line_df, pd.DataFrame) and not line_df.empty:
+            line_layer = (
+                alt.Chart(line_df)
+                .mark_line(color="#1f2937", strokeWidth=2)
+                .encode(x="x:Q", y="y:Q")
+            )
+            layers.append(line_layer)
+
+    borderline_points = (
+        alt.Chart(borderline_df)
+        .mark_circle(size=170, stroke="#f8fafc", strokeWidth=1.6)
+        .encode(
+            x=alt.X(
+                "x:Q",
+                axis=alt.Axis(title="Meaning dimension 1", grid=False, ticks=False, labels=False),
+            ),
+            y=alt.Y(
+                "y:Q",
+                axis=alt.Axis(title="Meaning dimension 2", grid=False, ticks=False, labels=False),
+            ),
+            color=alt.Color("label:N", scale=color_scale, legend=None),
+            tooltip=tooltip_fields,
+        )
+    )
+    layers.append(borderline_points)
+
+    outline = (
+        alt.Chart(borderline_df)
+        .mark_circle(
+            size=240,
+            fillOpacity=0.0,
+            stroke="#facc15",
+            strokeDash=[6, 4],
+            strokeWidth=2.6,
+        )
+        .encode(
+            x="x:Q",
+            y="y:Q",
+        )
+    )
+    layers.append(outline)
+
+    return alt.layer(*layers).properties(height=320)
 
 
 def pii_chip_row_html(counts: Dict[str, int], extra_class: str = "") -> str:
@@ -5628,6 +5881,101 @@ def render_train_stage():
                     )
 
                 st.caption(guard_caption)
+                st.markdown(GUARDRAIL_PANEL_STYLE, unsafe_allow_html=True)
+                st.markdown("<div class='guardrail-panel'>", unsafe_allow_html=True)
+                st.markdown("#### Guardrails for Borderline Emails")
+                st.markdown(
+                    "Some emails land right near the dividing line — the model isn’t sure.\n"
+                    "In these cases, it looks at a few extra clues:"
+                )
+                st.markdown(
+                    "- 🔗 suspicious links\n"
+                    "- 🔊 ALL CAPS\n"
+                    "- 💰 money symbols\n"
+                    "- ⚡ urgency terms"
+                )
+                st.markdown(
+                    "If several guardrails are triggered, the email tips toward spam."
+                )
+                st.markdown(
+                    "<div class='guardrail-panel__example'><strong>Example shown:</strong> “Your invoice is ready” (0 guardrails) → Safe zone<br>“URGENT! CLICK NOW TO CLAIM $$$” (3 guardrails) → Spam zone</div>",
+                    unsafe_allow_html=True,
+                )
+
+                guardrail_chart = _build_borderline_guardrail_chart(
+                    meaning_map_df,
+                    meaning_map_meta,
+                )
+                borderline_df = meaning_map_df[meaning_map_df["borderline"] == True]  # noqa: E712
+                cards_html_parts: List[str] = []
+                if not borderline_df.empty:
+                    sorted_borderline = borderline_df.sort_values(
+                        "distance_abs",
+                        ascending=True,
+                        na_position="last",
+                    )
+                    max_cards = 20
+                    for row in sorted_borderline.head(max_cards).itertuples():
+                        subject_text = str(getattr(row, "subject_full", "")).strip()
+                        if not subject_text:
+                            subject_text = "(no subject)"
+                        body_raw = getattr(row, "body_full", "")
+                        body_text = body_raw if isinstance(body_raw, str) else ""
+                        label_value = str(getattr(row, "label", ""))
+                        label_title = label_value.title() if label_value else "Unknown"
+                        label_icon = GUARDRAIL_LABEL_ICONS.get(label_value, "✉️")
+                        spam_prob = getattr(row, "spam_probability", float("nan"))
+                        if isinstance(spam_prob, (int, float)) and math.isfinite(spam_prob):
+                            score_text = f"p(spam) {spam_prob:.2f}"
+                        else:
+                            score_text = "Near the line"
+                        signals = _guardrail_signals(subject_text, body_text)
+                        badges_html = _guardrail_badges_html(signals)
+                        card_html = """
+                        <div class='guardrail-card'>
+                            <div class='guardrail-card__subject'>{subject}</div>
+                            <div class='guardrail-card__meta'>
+                                <span class='guardrail-card__label guardrail-card__label--{label_cls}'>{icon} {label}</span>
+                                <span>{score}</span>
+                            </div>
+                            <div class='guardrail-card__badges'>{badges}</div>
+                        </div>
+                        """.format(
+                            subject=html.escape(subject_text),
+                            label_cls=html.escape(label_value or ""),
+                            icon=label_icon,
+                            label=html.escape(label_title),
+                            score=html.escape(score_text),
+                            badges=badges_html,
+                        )
+                        cards_html_parts.append(card_html)
+
+                layout_cols = st.columns([0.58, 0.42], gap="large")
+                with layout_cols[0]:
+                    st.markdown("<div class='guardrail-panel__chart'>", unsafe_allow_html=True)
+                    if guardrail_chart is not None:
+                        st.altair_chart(guardrail_chart, use_container_width=True)
+                    else:
+                        st.info(
+                            "Label more emails near the decision boundary to see guardrails in action."
+                        )
+                    st.markdown("</div>", unsafe_allow_html=True)
+                with layout_cols[1]:
+                    if cards_html_parts:
+                        cards_html = "".join(cards_html_parts)
+                        st.markdown(
+                            f"<div class='guardrail-card-list'>{cards_html}</div>",
+                            unsafe_allow_html=True,
+                        )
+                    else:
+                        st.info(
+                            "No borderline emails yet. As you label more tricky examples, guardrail details will appear here."
+                        )
+
+                st.caption(
+                    "How to read this: Guardrails don’t matter for clear-cut emails. But for borderline cases near the line, they add extra weight. More guardrails = higher chance of spam classification."
+                )
+                st.markdown("</div>", unsafe_allow_html=True)
                 labeled_rows_story = ss.get("labeled") or []
                 if model_for_story and labeled_rows_story:
                     def _select_story_examples(rows: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
