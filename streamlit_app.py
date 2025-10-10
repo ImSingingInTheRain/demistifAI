@@ -1252,12 +1252,17 @@ def _build_meaning_map_chart(
         if isinstance(shading_df, pd.DataFrame) and not shading_df.empty:
             shading_layer = (
                 alt.Chart(shading_df)
-                .mark_polygon(opacity=0.18)
+                .mark_line(
+                    filled=True,
+                    opacity=0.18,
+                    strokeOpacity=0,
+                    fillOpacity=0.18,
+                )
                 .encode(
                     x="x:Q",
                     y="y:Q",
                     order="order:O",
-                    color=alt.Color(
+                    fill=alt.Color(
                         "side:N",
                         scale=alt.Scale(
                             domain=["spam", "safe"],
@@ -1273,8 +1278,19 @@ def _build_meaning_map_chart(
         if isinstance(band_df, pd.DataFrame) and not band_df.empty:
             band_layer = (
                 alt.Chart(band_df)
-                .mark_polygon(color="#f97316", opacity=0.18)
-                .encode(x="x:Q", y="y:Q", order="order:O")
+                .mark_line(
+                    filled=True,
+                    color="#f97316",
+                    opacity=0.18,
+                    strokeOpacity=0,
+                    fillOpacity=0.18,
+                )
+                .encode(
+                    x="x:Q",
+                    y="y:Q",
+                    order="order:O",
+                    fill=alt.value("#f97316"),
+                )
             )
             layers.append(band_layer)
 
