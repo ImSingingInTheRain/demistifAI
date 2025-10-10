@@ -6090,9 +6090,6 @@ def render_train_stage():
                 band_right = max(0.0, min(100.0, high_pct))
                 band_width = max(0.0, band_right - band_left)
 
-                context_col.markdown(band_card_html, unsafe_allow_html=True)
-                st.caption(_numeric_guardrails_caption_text())
-
     _render_unified_training_storyboard()
 
     if trigger_train:
