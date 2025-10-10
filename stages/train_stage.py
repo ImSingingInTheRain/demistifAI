@@ -164,17 +164,18 @@ def _go_to_prepare(ss):
     ss["stage"] = "prepare"
     st.experimental_rerun()
 
-def render_train_stage(ss):
-    from streamlit_app import (
-        _streamlit_rerun,
-        has_embed,
-        has_langdetect,
-        render_eu_ai_quote,
-        render_language_mix_chip_rows,
-        render_nerd_mode_toggle,
-        section_surface,
-        summarize_language_mix,
-    )
+def render_train_stage(
+    ss,
+    *,
+    streamlit_rerun,
+    has_embed,
+    has_langdetect,
+    render_eu_ai_quote,
+    render_language_mix_chip_rows,
+    render_nerd_mode_toggle,
+    section_surface,
+    summarize_language_mix,
+):
 
 
     stage = STAGE_BY_KEY["train"]
@@ -1205,7 +1206,7 @@ def render_train_stage(ss):
     has_split_cache = ss.get("split_cache") is not None
 
     def _request_refresh(section: str | None) -> None:
-        _request_meaning_map_refresh(ss, section, _streamlit_rerun)
+        _request_meaning_map_refresh(ss, section, streamlit_rerun)
 
     _render_unified_training_storyboard(
         ss,
@@ -1215,7 +1216,7 @@ def render_train_stage(ss):
         section_surface=section_surface,
         request_meaning_map_refresh=_request_refresh,
         parse_split_cache=_parse_split_cache,
-        rerun=_streamlit_rerun,
+        rerun=streamlit_rerun,
         logger=logger,
     )
 
@@ -1331,7 +1332,7 @@ def render_train_stage(ss):
                     ss["train_in_progress"] = False
 
     if should_rerun_after_training and training_successful:
-        _streamlit_rerun()
+        streamlit_rerun()
         return
 
     parsed_split = None
