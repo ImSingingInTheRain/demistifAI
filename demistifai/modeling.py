@@ -11,7 +11,7 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 from sentence_transformers import SentenceTransformer
-from sklearn.calibration import CalibratedClassifierCV
+from sklearn.calibration import CalibratedClassifierCV, FrozenEstimator
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import confusion_matrix, precision_recall_fscore_support
 from sklearn.model_selection import train_test_split
@@ -694,7 +694,12 @@ class HybridEmbedFeatsLogReg:
         )
         base_text.fit(X_emb_tr, y_tr)
         self.lr_text_base = base_text
-        self.lr_text = CalibratedClassifierCV(base_text, method="isotonic", cv="prefit")
+        frozen_base = FrozenEstimator(base_text)
+        self.lr_text = CalibratedClassifierCV(
+            frozen_base,
+            method="isotonic",
+            ensemble=False,
+        )
         self.lr_text.fit(X_emb_val, y_val)
 
         self.lr_num = LogisticRegression(
