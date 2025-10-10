@@ -2017,6 +2017,36 @@ def _render_training_examples_preview() -> None:
     )
 
 
+def _guardrail_window_values() -> Tuple[float, float, float, float]:
+    """Return the guardrail center, band, and clipped window bounds."""
+
+    guard_params = ss.get("guard_params", {}) or {}
+    threshold_default = float(ss.get("threshold", 0.6))
+    try:
+        center = float(guard_params.get("assist_center", threshold_default))
+    except (TypeError, ValueError):
+        center = threshold_default
+    try:
+        band = float(guard_params.get("uncertainty_band", 0.08))
+    except (TypeError, ValueError):
+        band = 0.08
+    center = max(0.0, min(1.0, center))
+    band = max(0.0, band)
+    low = max(0.0, min(1.0, center - band))
+    high = max(0.0, min(1.0, center + band))
+    return center, band, low, high
+
+
+def _numeric_guardrails_caption_text() -> str:
+    """Build the consistent caption that explains the guardrail window."""
+
+    center, _, low, high = _guardrail_window_values()
+    return (
+        f"Numeric guardrails watch emails when the text score is near τ≈{center:.2f} "
+        f"(window {low:.2f}–{high:.2f})."
+    )
+
+
 def render_email_inbox_table(
     df: pd.DataFrame,
     *,
@@ -5873,17 +5903,10 @@ def render_train_stage():
                 )
 
             if not ss.get("nerd_mode_train"):
-                guard_params = ss.get("guard_params", {})
-                assist_center = float(
-                    guard_params.get("assist_center", float(ss.get("threshold", 0.6)))
-                )
-                band = float(guard_params.get("uncertainty_band", 0.08))
-
-                low = max(0.0, assist_center - band)
-                high = min(1.0, assist_center + band)
+                center, band, low, high = _guardrail_window_values()
                 low_pct = low * 100.0
                 high_pct = high * 100.0
-                threshold_pct = max(0.0, min(100.0, assist_center * 100.0))
+                threshold_pct = max(0.0, min(100.0, center * 100.0))
 
                 band_left = max(0.0, min(100.0, low_pct))
                 band_right = max(0.0, min(100.0, high_pct))
@@ -5891,18 +5914,21 @@ def render_train_stage():
 
                 band_card_html = f"""
                 <div class='train-band-card'>
-                    <div class='train-band-card__title'>Numeric assist window</div>
+                    <div class='train-band-card__title'>Numeric guardrails window</div>
                     <div class='train-band-card__bar'>
                         <div class='train-band-card__band' style='left:{band_left:.2f}%; width:{band_width:.2f}%;'></div>
                         <div class='train-band-card__threshold' style='left:{threshold_pct:.2f}%;'></div>
                     </div>
                     <div class='train-band-card__scale'><span>0</span><span>1</span></div>
-                    <div class='train-band-card__caption'>τ = {assist_center:.2f} • band ±{band:.2f}</div>
+                    <div class='train-band-card__caption'>τ = {center:.2f} • band ±{band:.2f}</div>
                     <div class='train-band-card__hint'>“Inside this zone, numeric cues (links, TLDs, caps, money terms) can gently adjust the text score.”</div>
                 </div>
                 """
 
                 context_col.markdown(band_card_html, unsafe_allow_html=True)
+                st.caption(_numeric_guardrails_caption_text())
+
+    story_run_id_default = ss.get("train_story_run_id") or "initial"
 
     if not (ss.get("model") and ss.get("split_cache")):
         with section_surface():
@@ -5912,18 +5938,30 @@ def render_train_stage():
                 st.markdown(
                     "**1) Meaning points**  \nMiniLM places each email so similar wording lands close."
                 )
-                st.altair_chart(_ghost_meaning_map(), use_container_width=True)
+                st.altair_chart(
+                    _ghost_meaning_map(),
+                    use_container_width=True,
+                    key=f"ghost_meaning_map1_{story_run_id_default}",
+                )
                 _render_training_examples_preview()
             with s2:
                 st.markdown(
                     "**2) A simple dividing line**  \nA straight line separates spam from safe."
                 )
-                st.altair_chart(_ghost_meaning_map(), use_container_width=True)
+                st.altair_chart(
+                    _ghost_meaning_map(),
+                    use_container_width=True,
+                    key=f"ghost_meaning_map2_{story_run_id_default}",
+                )
             with s3:
                 st.markdown(
                     "**3) Extra clues when unsure**  \nNear the line, we consult links, CAPS, money/urgency."
                 )
-                st.altair_chart(_ghost_meaning_map(), use_container_width=True)
+                st.altair_chart(
+                    _ghost_meaning_map(),
+                    use_container_width=True,
+                    key=f"ghost_meaning_map3_{story_run_id_default}",
+                )
 
     if trigger_train:
         if len(ss["labeled"]) < 6:
@@ -6065,16 +6103,20 @@ def render_train_stage():
             model_for_story = ss.get("model")
             story_run_id = ss.get("train_story_run_id") or "initial"
 
-            try:
-                meaning_map_df, meaning_map_meta = _prepare_meaning_map(
-                    list(X_tr_t) if X_tr_t is not None else [],
-                    list(X_tr_b) if X_tr_b is not None else [],
-                    list(y_tr_labels) if y_tr_labels is not None else [],
-                    model_for_story,
-                )
-            except Exception as exc:
-                meaning_map_error = f"Meaning Map unavailable ({exc})."
-                logger.exception("Meaning Map failed")
+            if has_embed:
+                try:
+                    meaning_map_df, meaning_map_meta = _prepare_meaning_map(
+                        list(X_tr_t) if X_tr_t is not None else [],
+                        list(X_tr_b) if X_tr_b is not None else [],
+                        list(y_tr_labels) if y_tr_labels is not None else [],
+                        model_for_story,
+                    )
+                except Exception as exc:
+                    meaning_map_error = f"Meaning Map unavailable ({exc})."
+                    logger.exception("Meaning Map failed")
+            else:
+                meaning_map_df = None
+                meaning_map_meta = {}
 
             if isinstance(meaning_map_meta, dict):
                 guard_params_current = ss.get("guard_params", {}) or {}
@@ -6094,15 +6136,25 @@ def render_train_stage():
                     "guard_window_high", min(1.0, center_for_bounds + band_default)
                 )
 
-            guard_center_display = None
-            guard_low_display = None
-            guard_high_display = None
-            guard_margin_display = None
+            (
+                guard_center_display,
+                guard_margin_display,
+                guard_low_display,
+                guard_high_display,
+            ) = _guardrail_window_values()
             if meaning_map_meta:
-                guard_center_display = meaning_map_meta.get("guard_center_probability")
-                guard_low_display = meaning_map_meta.get("guard_window_low")
-                guard_high_display = meaning_map_meta.get("guard_window_high")
-                guard_margin_display = meaning_map_meta.get("guard_margin_probability")
+                center_value = meaning_map_meta.get("guard_center_probability")
+                margin_value = meaning_map_meta.get("guard_margin_probability")
+                low_value = meaning_map_meta.get("guard_window_low")
+                high_value = meaning_map_meta.get("guard_window_high")
+                if center_value is not None:
+                    guard_center_display = center_value
+                if margin_value is not None:
+                    guard_margin_display = margin_value
+                if low_value is not None:
+                    guard_low_display = low_value
+                if high_value is not None:
+                    guard_high_display = high_value
 
             with section_surface():
                 st.markdown("### Training storyboard — what just happened")
@@ -6116,7 +6168,11 @@ def render_train_stage():
                     f"(Spam: {ct.get('spam', 0)}, Safe: {ct.get('safe', 0)})."
                 )
 
-                chart_ready = meaning_map_df is not None and not meaning_map_df.empty
+                chart_ready = (
+                    has_embed
+                    and meaning_map_df is not None
+                    and not meaning_map_df.empty
+                )
 
                 if meaning_map_error:
                     st.info(meaning_map_error)
@@ -6152,7 +6208,11 @@ def render_train_stage():
                             highlight_borderline=False,
                         )
                         if chart1 is not None:
-                            st.altair_chart(chart1, use_container_width=True)
+                            st.altair_chart(
+                                chart1,
+                                use_container_width=True,
+                                key=f"meaning_map_chart1_{story_run_id}",
+                            )
                         else:
                             st.info("Meaning Map unavailable for this run.")
                         _render_training_examples_preview()
@@ -6172,7 +6232,11 @@ def render_train_stage():
                             highlight_borderline=False,
                         )
                         if chart2 is not None:
-                            st.altair_chart(chart2, use_container_width=True)
+                            st.altair_chart(
+                                chart2,
+                                use_container_width=True,
+                                key=f"meaning_map_chart2_{story_run_id}",
+                            )
                         else:
                             st.info("Meaning Map unavailable for this run.")
 
@@ -6191,7 +6255,11 @@ def render_train_stage():
                             highlight_borderline=highlight_borderline_state,
                         )
                         if chart3 is not None:
-                            st.altair_chart(chart3, use_container_width=True)
+                            st.altair_chart(
+                                chart3,
+                                use_container_width=True,
+                                key=f"meaning_map_chart3_{story_run_id}",
+                            )
                         else:
                             st.info("Meaning Map unavailable for this run.")
 
