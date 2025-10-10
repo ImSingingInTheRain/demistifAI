@@ -5876,14 +5876,38 @@ def render_train_stage():
                     shift_many_links=float(gp.get("shift_many_links", -0.03)),
                     shift_calm_text=float(gp.get("shift_calm_text", +0.02)),
                 )
-                try:
-                    pass
-                except Exception:
-                    pass
                 model = model.fit(X_tr_t, X_tr_b, y_tr)
                 model.apply_numeric_adjustments(ss["numeric_adjustments"])
                 ss["model"] = model
                 ss["split_cache"] = (X_tr_t, X_te_t, X_tr_b, X_te_b, y_tr, y_te)
+                try:
+                    gp = ss.get("guard_params", {}) or {}
+                    if gp.get("assist_center_mode") == "auto" and len(X_te_t) and len(X_te_b):
+                        probs_te_raw = model.predict_proba(X_te_t, X_te_b)
+                        probs_te = np.asarray(probs_te_raw, dtype=float)
+                        if probs_te.ndim != 2 or probs_te.shape[1] < 2:
+                            raise ValueError(
+                                "predict_proba must return a 2D array with at least two columns"
+                            )
+                        spam_idx = int(getattr(model, "_i_spam", 1))
+                        if spam_idx < 0 or spam_idx >= probs_te.shape[1]:
+                            raise IndexError("Spam index is out of bounds for predict_proba output")
+                        p_spam_te = np.clip(probs_te[:, spam_idx], 1e-6, 1 - 1e-6)
+                        y_true = np.asarray(y_te) == "spam"
+                        fallback_center = float(
+                            gp.get("assist_center", float(ss.get("threshold", 0.6)))
+                        )
+                        best_tau, best_f1 = fallback_center, -1.0
+                        if y_true.size:
+                            for tau in np.linspace(0.30, 0.90, 61):
+                                y_pred = p_spam_te >= tau
+                                f1 = f1_score(y_true, y_pred)
+                                if f1 > best_f1:
+                                    best_f1, best_tau = float(f1), float(tau)
+                        gp["assist_center"] = float(best_tau)
+                        ss["guard_params"] = gp
+                except Exception:
+                    logger.exception("Failed to auto-select assist center from hold-out set")
                 ss["eval_timestamp"] = datetime.now().isoformat(timespec="seconds")
                 ss["eval_temp_threshold"] = float(ss.get("threshold", 0.6))
                 ss["train_story_run_id"] = uuid4().hex
@@ -5975,6 +5999,23 @@ def render_train_stage():
                 except Exception as exc:
                     meaning_map_error = f"Meaning Map unavailable ({exc})."
                     logger.exception("Meaning Map failed")
+
+                if isinstance(meaning_map_meta, dict):
+                    guard_params_current = ss.get("guard_params", {}) or {}
+                    center_default = float(
+                        guard_params_current.get(
+                            "assist_center", float(ss.get("threshold", 0.6))
+                        )
+                    )
+                    band_default = float(guard_params_current.get("uncertainty_band", 0.08))
+                    meaning_map_meta.setdefault("guard_center_probability", center_default)
+                    meaning_map_meta.setdefault("guard_margin_probability", band_default)
+                    meaning_map_meta.setdefault(
+                        "guard_window_low", max(0.0, center_default - band_default)
+                    )
+                    meaning_map_meta.setdefault(
+                        "guard_window_high", min(1.0, center_default + band_default)
+                    )
 
                 guard_center_display = None
                 guard_low_display = None
