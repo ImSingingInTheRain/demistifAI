@@ -2076,8 +2076,16 @@ def _render_numeric_clue_cards(df: Optional[pd.DataFrame]) -> None:
         mask = pd.Series([False] * len(working), index=working.index)
 
     subset = working.loc[mask]
+    if "borderline" in subset.columns:
+        try:
+            borderline_mask = subset["borderline"].astype(bool)
+        except Exception:
+            borderline_mask = pd.Series([False] * len(subset), index=subset.index)
+        subset = subset.loc[borderline_mask]
     if subset.empty:
-        st.info("No emails needed the extra numeric guardrails — the text score was decisive.")
+        st.info(
+            "No emails inside the assist window needed the extra numeric guardrails — the text score was decisive."
+        )
         return
 
     if "distance_abs" in subset.columns and subset["distance_abs"].notna().any():
@@ -2167,7 +2175,12 @@ def _render_numeric_clue_cards(df: Optional[pd.DataFrame]) -> None:
         st.info("Numeric clue cards could not be generated.")
         return
 
-    wrapper = "<div class='numeric-clue-card-grid'>{}</div>".format("".join(cards))
+    run_marker_raw = st.session_state.get("train_story_run_id") if hasattr(st, "session_state") else None
+    run_marker = html.escape(str(run_marker_raw or "initial"))
+    wrapper = "<div class='numeric-clue-card-grid' data-run='{}'>{}</div>".format(
+        run_marker,
+        "".join(cards),
+    )
     st.markdown(wrapper, unsafe_allow_html=True)
 
 
