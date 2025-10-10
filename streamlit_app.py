@@ -1013,6 +1013,253 @@ def _ghost_meaning_map(height: int = 220):
     return base
 
 
+def _ghost_meaning_map_enhanced(
+    *, height: int = 220, title: str = "", show_divider: bool = True, show_band: bool = True
+) -> "alt.Chart":
+    """
+    Pre-train placeholder: shows labeled axes, an indicative dividing line, and (optionally) the numeric guardrail band.
+    We map probability-ish params τ and band from [0,1] onto the x-axis domain [-1,1] via x = 2*(p-0.5).
+    """
+
+    import altair as alt, pandas as pd, numpy as np
+
+    base = alt.Chart(pd.DataFrame({"x": [-1, 1], "y": [-1, 1]})).mark_point(opacity=0).encode(
+        x=alt.X("x:Q", scale=alt.Scale(domain=[-1, 1]), title="meaning dimension 1"),
+        y=alt.Y("y:Q", scale=alt.Scale(domain=[-1, 1]), title="meaning dimension 2"),
+    ).properties(height=height, title=title or None)
+
+    c, b, low, high = _guardrail_window_values()
+    tau = float(ss.get("threshold", c))
+    x_center = 2.0 * (c - 0.5)
+    x_tau = 2.0 * (tau - 0.5)
+    band_left = 2.0 * (max(0.0, c - b) - 0.5)
+    band_right = 2.0 * (min(1.0, c + b) - 0.5)
+
+    layers = [base]
+
+    if show_band and band_right > band_left:
+        band_df = pd.DataFrame({
+            "x1": [band_left],
+            "x2": [band_right],
+            "y1": [-1.0],
+            "y2": [1.0],
+        })
+        rect = alt.Chart(band_df).mark_rect(opacity=0.18).encode(
+            x=alt.X("x1:Q"),
+            x2="x2:Q",
+            y=alt.Y("y1:Q"),
+            y2="y2:Q",
+            tooltip=[alt.Tooltip("x1:Q", title="band left"), alt.Tooltip("x2:Q", title="band right")],
+        )
+        layers.append(rect)
+
+    if show_divider:
+        line_df = pd.DataFrame({"x": [x_tau, x_tau], "y": [-1.0, 1.0]})
+        divider = alt.Chart(line_df).mark_rule(strokeDash=[5, 5], strokeOpacity=0.9).encode(
+            x="x:Q",
+            y="y:Q",
+        )
+        layers.append(divider)
+
+    center_df = pd.DataFrame({"x": [x_center], "y": [0.0], "τ": [c]})
+    dot = alt.Chart(center_df).mark_point(size=60, filled=True, opacity=0.9).encode(
+        x="x:Q",
+        y="y:Q",
+        tooltip=[alt.Tooltip("τ:Q", title="guard center τ", format=".2f")],
+    )
+    layers.append(dot)
+
+    return alt.layer(*layers)
+
+
+def _render_unified_training_storyboard():
+    """
+    One dynamic section that:
+      • Pre-train: shows ghost maps (axes, divider hint, guardrail band) + explanatory text.
+      • Post-train: shows real meaning-map charts with toggles, re-using the same section.
+    Layout = 3 stacked rows; each row is 2 columns (left = text/toggles, right = chart).
+    """
+
+    import altair as alt, pandas as pd, numpy as np
+
+    story_run_id = ss.get("train_story_run_id") or "initial"
+    has_model = ss.get("model") is not None
+    has_split = ss.get("split_cache") is not None
+
+    meaning_map_df, meaning_map_meta, chart_ready, meaning_map_error = None, {}, False, None
+    if has_model and has_split and has_embed:
+        try:
+            X_tr_t, X_te_t, X_tr_b, X_te_b, y_tr, y_te = _parse_split_cache(ss["split_cache"])
+            meaning_map_df, meaning_map_meta = _prepare_meaning_map(
+                list(X_tr_t) if X_tr_t else [],
+                list(X_tr_b) if X_tr_b else [],
+                list(y_tr) if y_tr else [],
+                ss.get("model"),
+            )
+            gp = ss.get("guard_params", {}) or {}
+            center_default = float(gp.get("assist_center", float(ss.get("threshold", 0.6))))
+            band_default = float(gp.get("uncertainty_band", 0.08))
+            meaning_map_meta.setdefault("guard_center_probability", center_default)
+            meaning_map_meta.setdefault("guard_margin_probability", band_default)
+            c = float(meaning_map_meta["guard_center_probability"])
+            b = float(meaning_map_meta["guard_margin_probability"])
+            meaning_map_meta.setdefault("guard_window_low", max(0.0, c - b))
+            meaning_map_meta.setdefault("guard_window_high", min(1.0, c + b))
+            chart_ready = meaning_map_df is not None and not meaning_map_df.empty
+        except Exception as exc:
+            meaning_map_error = f"Meaning Map unavailable ({exc})."
+
+    ss["train_storyboard_payload"] = {
+        "meaning_map_df": meaning_map_df if chart_ready else None,
+        "meaning_map_meta": meaning_map_meta if meaning_map_meta else {},
+        "meaning_map_error": meaning_map_error,
+        "chart_ready": chart_ready,
+    }
+
+    with section_surface():
+        st.markdown("### How training works — live storyboard")
+
+        left1, right1 = st.columns([0.48, 0.52], gap="large")
+        with left1:
+            st.markdown("**1) Meaning points**")
+            st.markdown(
+                "MiniLM places each email so **similar wording lands close**. "
+                "These two axes are the first two directions of that meaning space — "
+                "_meaning dimension 1_ and _meaning dimension 2_."
+            )
+            show_examples = st.toggle(
+                "Show examples",
+                value=bool(ss.get("meaning_map_show_examples", False)),
+                key="meaning_map_show_examples",
+            )
+            if st.button(
+                "Show similar pair",
+                key=f"meaning_map_show_pair_button_live_{story_run_id}",
+            ):
+                st.session_state["meaning_map_show_examples"] = True
+                show_examples = True
+
+        with right1:
+            if meaning_map_error:
+                st.info(meaning_map_error)
+            elif chart_ready:
+                chart1 = _build_meaning_map_chart(
+                    meaning_map_df,
+                    meaning_map_meta,
+                    show_examples=show_examples,
+                    show_class_centers=False,
+                    highlight_borderline=False,
+                )
+                if chart1 is not None:
+                    st.altair_chart(
+                        chart1,
+                        use_container_width=True,
+                        key=f"meaning_map_chart1_live_{story_run_id}",
+                    )
+                else:
+                    st.info("Meaning Map unavailable for this run.")
+            else:
+                st.altair_chart(
+                    _ghost_meaning_map_enhanced(
+                        title="Meaning map (schematic)",
+                        show_divider=False,
+                        show_band=False,
+                    ),
+                    use_container_width=True,
+                    key=f"ghost_live_map1_{story_run_id}",
+                )
+            _render_training_examples_preview()
+
+        left2, right2 = st.columns([0.48, 0.52], gap="large")
+        with left2:
+            st.markdown("**2) A simple dividing line**")
+            st.markdown(
+                "A straight line will separate spam from safe. Before training, we show where the **current configuration** "
+                "would place that dividing line conceptually. After training, you’ll see the actual learned boundary."
+            )
+            show_centers = st.toggle(
+                "Show class centers",
+                value=bool(ss.get("meaning_map_show_centers", False)),
+                key="meaning_map_show_centers",
+            )
+
+        with right2:
+            if meaning_map_error:
+                st.info(meaning_map_error)
+            elif chart_ready:
+                chart2 = _build_meaning_map_chart(
+                    meaning_map_df,
+                    meaning_map_meta,
+                    show_examples=False,
+                    show_class_centers=show_centers,
+                    highlight_borderline=False,
+                )
+                if chart2 is not None:
+                    st.altair_chart(
+                        chart2,
+                        use_container_width=True,
+                        key=f"meaning_map_chart2_live_{story_run_id}",
+                    )
+                else:
+                    st.info("Meaning Map unavailable for this run.")
+            else:
+                st.altair_chart(
+                    _ghost_meaning_map_enhanced(
+                        title="Dividing line (schematic)",
+                        show_divider=True,
+                        show_band=False,
+                    ),
+                    use_container_width=True,
+                    key=f"ghost_live_map2_{story_run_id}",
+                )
+
+        left3, right3 = st.columns([0.48, 0.52], gap="large")
+        with left3:
+            st.markdown("**3) Extra clues when unsure**")
+            c = float(ss["guard_params"].get("assist_center", ss.get("threshold", 0.6)))
+            b = float(ss["guard_params"].get("uncertainty_band", 0.08))
+            st.markdown(
+                f"When the text score is near **τ≈{c:.2f}**, numeric guardrails help out within a small window "
+                f"(**±{b:.2f}**) — we look at links, ALL-CAPS, money or urgency hints."
+            )
+            highlight_borderline = st.toggle(
+                "Highlight borderline emails",
+                value=bool(ss.get("meaning_map_highlight_borderline", False)),
+                key="meaning_map_highlight_borderline",
+            )
+
+        with right3:
+            if meaning_map_error:
+                st.info(meaning_map_error)
+            elif chart_ready:
+                chart3 = _build_meaning_map_chart(
+                    meaning_map_df,
+                    meaning_map_meta,
+                    show_examples=False,
+                    show_class_centers=False,
+                    highlight_borderline=highlight_borderline,
+                )
+                if chart3 is not None:
+                    st.altair_chart(
+                        chart3,
+                        use_container_width=True,
+                        key=f"meaning_map_chart3_live_{story_run_id}",
+                    )
+                else:
+                    st.info("Meaning Map unavailable for this run.")
+            else:
+                st.altair_chart(
+                    _ghost_meaning_map_enhanced(
+                        title="Borderline window (schematic)",
+                        show_divider=True,
+                        show_band=True,
+                    ),
+                    use_container_width=True,
+                    key=f"ghost_live_map3_{story_run_id}",
+                )
+
+        st.caption(_numeric_guardrails_caption_text())
+
 def _prepare_meaning_map(
     titles: List[str],
     bodies: List[str],
@@ -5844,6 +6091,9 @@ def render_train_stage():
                 unsafe_allow_html=True,
             )
             trigger_train = st.button("🚀 Train model", type="primary", use_container_width=True)
+            if ss.get("train_flash_finished"):
+                st.success("Training finished.")
+                ss["train_flash_finished"] = False
         with context_col:
             
             chip_texts: List[str] = []
@@ -5928,40 +6178,7 @@ def render_train_stage():
                 context_col.markdown(band_card_html, unsafe_allow_html=True)
                 st.caption(_numeric_guardrails_caption_text())
 
-    story_run_id_default = ss.get("train_story_run_id") or "initial"
-
-    if not (ss.get("model") and ss.get("split_cache")):
-        with section_surface():
-            st.markdown("### How training works — three simple steps")
-            s1, s2, s3 = st.columns(3)
-            with s1:
-                st.markdown(
-                    "**1) Meaning points**  \nMiniLM places each email so similar wording lands close."
-                )
-                st.altair_chart(
-                    _ghost_meaning_map(),
-                    use_container_width=True,
-                    key=f"ghost_meaning_map1_{story_run_id_default}",
-                )
-                _render_training_examples_preview()
-            with s2:
-                st.markdown(
-                    "**2) A simple dividing line**  \nA straight line separates spam from safe."
-                )
-                st.altair_chart(
-                    _ghost_meaning_map(),
-                    use_container_width=True,
-                    key=f"ghost_meaning_map2_{story_run_id_default}",
-                )
-            with s3:
-                st.markdown(
-                    "**3) Extra clues when unsure**  \nNear the line, we consult links, CAPS, money/urgency."
-                )
-                st.altair_chart(
-                    _ghost_meaning_map(),
-                    use_container_width=True,
-                    key=f"ghost_meaning_map3_{story_run_id_default}",
-                )
+    _render_unified_training_storyboard()
 
     if trigger_train:
         if len(ss["labeled"]) < 6:
@@ -6040,6 +6257,7 @@ def render_train_stage():
                 ss["eval_timestamp"] = datetime.now().isoformat(timespec="seconds")
                 ss["eval_temp_threshold"] = float(ss.get("threshold", 0.6))
                 ss["train_story_run_id"] = uuid4().hex
+                ss["train_flash_finished"] = True
                 for key in (
                     "meaning_map_show_examples",
                     "meaning_map_show_centers",
@@ -6093,769 +6311,10 @@ def render_train_stage():
 
             # Existing success + story (kept)
             story = make_after_training_story(y_tr_labels, y_te_labels)
-            st.success("Training finished.")
             st.markdown(story)
-
-            
-            meaning_map_df: Optional[pd.DataFrame] = None
-            meaning_map_meta: Dict[str, Any] = {}
-            meaning_map_error: Optional[str] = None
-            model_for_story = ss.get("model")
-            story_run_id = ss.get("train_story_run_id") or "initial"
-
-            if has_embed:
-                try:
-                    meaning_map_df, meaning_map_meta = _prepare_meaning_map(
-                        list(X_tr_t) if X_tr_t is not None else [],
-                        list(X_tr_b) if X_tr_b is not None else [],
-                        list(y_tr_labels) if y_tr_labels is not None else [],
-                        model_for_story,
-                    )
-                except Exception as exc:
-                    meaning_map_error = f"Meaning Map unavailable ({exc})."
-                    logger.exception("Meaning Map failed")
-            else:
-                meaning_map_df = None
-                meaning_map_meta = {}
-
-            if isinstance(meaning_map_meta, dict):
-                guard_params_current = ss.get("guard_params", {}) or {}
-                center_default = float(
-                    guard_params_current.get("assist_center", float(ss.get("threshold", 0.6)))
-                )
-                band_default = float(guard_params_current.get("uncertainty_band", 0.08))
-                meaning_map_meta.setdefault("guard_center_probability", center_default)
-                meaning_map_meta.setdefault("guard_margin_probability", band_default)
-                center_for_bounds = float(
-                    meaning_map_meta.get("guard_center_probability", center_default)
-                )
-                meaning_map_meta.setdefault(
-                    "guard_window_low", max(0.0, center_for_bounds - band_default)
-                )
-                meaning_map_meta.setdefault(
-                    "guard_window_high", min(1.0, center_for_bounds + band_default)
-                )
-
-            (
-                guard_center_display,
-                guard_margin_display,
-                guard_low_display,
-                guard_high_display,
-            ) = _guardrail_window_values()
-            if meaning_map_meta:
-                center_value = meaning_map_meta.get("guard_center_probability")
-                margin_value = meaning_map_meta.get("guard_margin_probability")
-                low_value = meaning_map_meta.get("guard_window_low")
-                high_value = meaning_map_meta.get("guard_window_high")
-                if center_value is not None:
-                    guard_center_display = center_value
-                if margin_value is not None:
-                    guard_margin_display = margin_value
-                if low_value is not None:
-                    guard_low_display = low_value
-                if high_value is not None:
-                    guard_high_display = high_value
-
-            with section_surface():
-                st.markdown("### Training storyboard — what just happened")
-
-                ct = (
-                    _counts(list(y_tr_labels)) if y_tr_labels is not None else {"spam": 0, "safe": 0}
-                )
-                total_train = len(list(y_tr_labels)) if y_tr_labels is not None else 0
-                st.markdown(
-                    f"MiniLM turned **{total_train} training emails** into a meaning map "
-                    f"(Spam: {ct.get('spam', 0)}, Safe: {ct.get('safe', 0)})."
-                )
-
-                chart_ready = (
-                    has_embed
-                    and meaning_map_df is not None
-                    and not meaning_map_df.empty
-                )
-
-                if meaning_map_error:
-                    st.info(meaning_map_error)
-                elif not chart_ready:
-                    st.info("Meaning Map not available for this run.")
-                else:
-                    show_examples_state = bool(ss.get("meaning_map_show_examples", False))
-                    show_centers_state = bool(ss.get("meaning_map_show_centers", False))
-                    highlight_borderline_state = bool(
-                        ss.get("meaning_map_highlight_borderline", False)
-                    )
-
-                    col1, col2, col3 = st.columns(3)
-
-                    with col1:
-                        st.markdown("**1) Meaning points**")
-                        show_examples_state = st.toggle(
-                            "Show examples",
-                            value=show_examples_state,
-                            key="meaning_map_show_examples",
-                        )
-                        if st.button(
-                            "Show similar pair",
-                            key="meaning_map_show_pair_button2",
-                        ):
-                            st.session_state["meaning_map_show_examples"] = True
-                            show_examples_state = True
-                        chart1 = _build_meaning_map_chart(
-                            meaning_map_df,
-                            meaning_map_meta,
-                            show_examples=show_examples_state,
-                            show_class_centers=False,
-                            highlight_borderline=False,
-                        )
-                        if chart1 is not None:
-                            st.altair_chart(
-                                chart1,
-                                use_container_width=True,
-                                key=f"meaning_map_chart1_{story_run_id}",
-                            )
-                        else:
-                            st.info("Meaning Map unavailable for this run.")
-                        _render_training_examples_preview()
-
-                    with col2:
-                        st.markdown("**2) A simple dividing line**")
-                        show_centers_state = st.toggle(
-                            "Show class centers",
-                            value=show_centers_state,
-                            key="meaning_map_show_centers",
-                        )
-                        chart2 = _build_meaning_map_chart(
-                            meaning_map_df,
-                            meaning_map_meta,
-                            show_examples=False,
-                            show_class_centers=show_centers_state,
-                            highlight_borderline=False,
-                        )
-                        if chart2 is not None:
-                            st.altair_chart(
-                                chart2,
-                                use_container_width=True,
-                                key=f"meaning_map_chart2_{story_run_id}",
-                            )
-                        else:
-                            st.info("Meaning Map unavailable for this run.")
-
-                    with col3:
-                        st.markdown("**3) Extra clues when unsure**")
-                        highlight_borderline_state = st.toggle(
-                            "Highlight borderline emails",
-                            value=highlight_borderline_state,
-                            key="meaning_map_highlight_borderline",
-                        )
-                        chart3 = _build_meaning_map_chart(
-                            meaning_map_df,
-                            meaning_map_meta,
-                            show_examples=False,
-                            show_class_centers=False,
-                            highlight_borderline=highlight_borderline_state,
-                        )
-                        if chart3 is not None:
-                            st.altair_chart(
-                                chart3,
-                                use_container_width=True,
-                                key=f"meaning_map_chart3_{story_run_id}",
-                            )
-                        else:
-                            st.info("Meaning Map unavailable for this run.")
-
-                    class_counts_shown = meaning_map_meta.get("class_counts", {})
-                    st.caption(
-                        f"Training emails shown: {meaning_map_meta.get('shown', len(meaning_map_df))} "
-                        f"(Spam: {class_counts_shown.get('spam', 0)}, Safe: {class_counts_shown.get('safe', 0)})."
-                    )
-                    if meaning_map_meta.get("sampled"):
-                        st.caption("Showing 500 training emails for clarity.")
-
-                    distance = meaning_map_meta.get("centroid_distance")
-                    if isinstance(distance, (int, float)) and math.isfinite(distance):
-                        st.caption(
-                            f"Distance between centers ≈ {float(distance):.2f}. More distance = easier to classify."
-                        )
-
-                    if show_examples_state and isinstance(meaning_map_meta.get("pair"), dict):
-                        pair_info = meaning_map_meta["pair"]
-                        subjects = pair_info.get("subjects", [])
-                        if len(subjects) >= 2:
-                            label_pair = str(pair_info.get("label", "spam")).title()
-                            st.markdown(
-                                f"_{label_pair} look-alikes the model clusters together:_\n"
-                                f"• {subjects[0]}\n"
-                                f"• {subjects[1]}"
-                            )
-
-                    guard_window_phrase = ""
-                    if (
-                        isinstance(guard_center_display, (int, float))
-                        and isinstance(guard_margin_display, (int, float))
-                    ):
-                        guard_window_phrase = (
-                            f" (τ≈{guard_center_display:.2f} ± {guard_margin_display:.2f})"
-                        )
-                    elif (
-                        isinstance(guard_center_display, (int, float))
-                        and isinstance(guard_low_display, (int, float))
-                        and isinstance(guard_high_display, (int, float))
-                    ):
-                        guard_window_phrase = (
-                            f" (τ≈{guard_center_display:.2f}, window {guard_low_display:.2f}–{guard_high_display:.2f})"
-                        )
-
-                    st.markdown(
-                        "- **Drawing a dividing line.** A simple linear classifier draws the straight line that separates spam from safe.\n"
-                        "- **Using extra clues when uncertain.** Numeric guardrails step in when the text score is borderline"
-                        f"{guard_window_phrase}."
-                    )
-
-                    guard_caption = None
-                    audit_info = None
-                    if hasattr(ss["model"], "audit_numeric_interplay"):
-                        try:
-                            audit_info = ss["model"].audit_numeric_interplay(X_tr_t, X_tr_b)
-                        except Exception:
-                            audit_info = None
-
-                    if audit_info:
-                        pct_consulted = float(audit_info.get("pct_consulted", 0.0))
-                        combine_strategy = getattr(ss["model"], "combine_strategy", "blend")
-                        if combine_strategy == "threshold_shift":
-                            avg_shift = float(audit_info.get("avg_threshold_shift", 0.0))
-                            guard_caption = (
-                                "Numeric guardrails consulted on "
-                                f"{pct_consulted:.1f}% of borderline cases; avg shift Δτ={avg_shift:+.3f}."
-                            )
-                        else:
-                            avg_blend = float(audit_info.get("avg_prob_blend_weight", 0.0))
-                            guard_caption = (
-                                "Numeric guardrails consulted on "
-                                f"{pct_consulted:.1f}% of borderline cases; avg blend Δp={avg_blend:+.3f}."
-                            )
-                    if not guard_caption:
-                        guard_caption = (
-                            "Numeric guardrails kick in when text scores are borderline,"
-                            " lending numeric cues before final decisions."
-                        )
-                    if (
-                        isinstance(guard_center_display, (int, float))
-                        and isinstance(guard_low_display, (int, float))
-                        and isinstance(guard_high_display, (int, float))
-                    ):
-                        guard_caption = (
-                            f"{guard_caption.rstrip()} Window: τ≈{guard_center_display:.2f} "
-                            f"({guard_low_display:.2f}–{guard_high_display:.2f})."
-                        )
-
-                    st.caption(guard_caption)
-                    st.markdown(GUARDRAIL_PANEL_STYLE, unsafe_allow_html=True)
-                    st.markdown("<div class='guardrail-panel'>", unsafe_allow_html=True)
-                    st.markdown("#### Guardrails for Borderline Emails")
-                    st.markdown(
-                        "Some emails land right near the dividing line — the model isn’t sure.\n"
-                        "In these cases, it looks at a few extra clues:"
-                    )
-                    st.markdown(
-                        "- 🔗 suspicious links\n"
-                        "- 🔊 ALL CAPS\n"
-                        "- 💰 money symbols\n"
-                        "- ⚡ urgency terms"
-                    )
-                    st.markdown(
-                        "If several guardrails are triggered, the email tips toward spam."
-                    )
-                    st.markdown(
-                        "<div class='guardrail-panel__example'><strong>Example shown:</strong> “Your invoice is ready” (0 guardrails) → Safe zone<br>“URGENT! CLICK NOW TO CLAIM $$$” (3 guardrails) → Spam zone</div>",
-                        unsafe_allow_html=True,
-                    )
-
-                    try:
-                        if "borderline" in meaning_map_df.columns:
-                            guardrail_chart = _build_borderline_guardrail_chart(
-                                meaning_map_df,
-                                meaning_map_meta,
-                            )
-                            left_col, right_col = st.columns([0.58, 0.42], gap="large")
-                            with left_col:
-                                st.markdown("<div class='guardrail-panel__chart'>", unsafe_allow_html=True)
-                                if guardrail_chart is not None:
-                                    st.altair_chart(
-                                        guardrail_chart,
-                                        use_container_width=True,
-                                        key=f"guardrail_chart_{story_run_id}",
-                                    )
-                                else:
-                                    st.info(
-                                        "Label more emails near the decision boundary to see guardrails in action."
-                                    )
-                                st.markdown("</div>", unsafe_allow_html=True)
-
-                            with right_col:
-                                has_distance = "distance_abs" in meaning_map_df.columns
-                                borderline_df = (
-                                    meaning_map_df.loc[meaning_map_df["borderline"] == True]
-                                    if "borderline" in meaning_map_df.columns
-                                    else pd.DataFrame()
-                                )
-                                cards_html_parts: List[str] = []
-                                if not borderline_df.empty and has_distance:
-                                    sorted_borderline = borderline_df.sort_values(
-                                        "distance_abs",
-                                        ascending=True,
-                                        na_position="last",
-                                    ).head(20)
-                                    for row in sorted_borderline.itertuples():
-                                        subject_value = getattr(row, "subject_full", "")
-                                        subject_text = str(subject_value).strip()
-                                        if not subject_text:
-                                            subject_text = "(no subject)"
-                                        body_raw = getattr(row, "body_full", "")
-                                        body_text = body_raw if isinstance(body_raw, str) else ""
-                                        label_value = str(getattr(row, "label", "") or "")
-                                        label_title = label_value.title() if label_value else "Unknown"
-                                        label_icon = GUARDRAIL_LABEL_ICONS.get(label_value, "✉️")
-                                        spam_prob = getattr(row, "spam_probability", float("nan"))
-                                        if isinstance(spam_prob, (int, float)) and math.isfinite(spam_prob):
-                                            score_text = f"p(spam) {spam_prob:.2f}"
-                                        else:
-                                            score_text = "Near the line"
-                                        signals = _guardrail_signals(subject_text, body_text)
-                                        badges_html = _guardrail_badges_html(signals)
-                                        card_template = textwrap.dedent(
-                                            """
-                                            <div class='guardrail-card'>
-                                                <div class='guardrail-card__subject'>{subject}</div>
-                                                <div class='guardrail-card__meta'>
-                                                    <span class='guardrail-card__label guardrail-card__label--{label_cls}'>{icon} {label}</span>
-                                                    <span>{score}</span>
-                                                </div>
-                                                <div class='guardrail-card__badges'>{badges}</div>
-                                            </div>
-                                            """
-                                        ).strip()
-                                        card_html = card_template.format(
-                                            subject=html.escape(subject_text),
-                                            label_cls=html.escape(label_value or ""),
-                                            icon=label_icon,
-                                            label=html.escape(label_title),
-                                            score=html.escape(score_text),
-                                            badges=badges_html,
-                                        )
-                                        cards_html_parts.append(card_html)
-
-                                if cards_html_parts:
-                                    cards_html = "\n".join(cards_html_parts)
-                                    st.markdown(
-                                        f"<div class='guardrail-card-list'>\n{cards_html}\n</div>",
-                                        unsafe_allow_html=True,
-                                    )
-                                else:
-                                    st.info("No borderline emails yet.")
-                        else:
-                            st.info("Guardrails appear when borderline emails are present.")
-                    except Exception as exc:
-                        st.warning(f"Guardrail view failed: {exc}")
-                        logger.exception("Guardrail view failed")
-
-                    st.caption(
-                        "How to read this: Guardrails don’t matter for clear-cut emails. But for borderline cases near the line, they add extra weight. More guardrails = higher chance of spam classification."
-                    )
-                    st.markdown("</div>", unsafe_allow_html=True)
-
-                    with st.expander("Debug (Meaning Map)"):
-                        backend_info = (meaning_map_meta or {}).get("embedding_backend", {})
-                        st.write(
-                            {
-                                "backend": backend_info,
-                                "df_shape": None if meaning_map_df is None else meaning_map_df.shape,
-                                "df_cols": [] if meaning_map_df is None else list(meaning_map_df.columns),
-                            }
-                        )
-
-                    st.markdown(
-                        "Your labels define the explicit objective: ‘Spam vs Safe’. "
-                        "MiniLM + the classifier discover an implicit strategy: a direction in meaning space that "
-                        "separates the two. The numeric cues only assist when the text score is borderline."
-                    )
-
-                if lang_mix_error:
-                    st.caption(f"Language mix unavailable ({lang_mix_error}).")
-                else:
-                    st.caption(format_language_mix_summary("train", lang_mix_train))
-                labeled_rows_story = ss.get("labeled") or []
-                if model_for_story and labeled_rows_story:
-                    def _select_story_examples(rows: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-                        spam_rows = [r for r in rows if (r.get("label") == "spam")]
-                        safe_rows = [r for r in rows if (r.get("label") == "safe")]
-                        selected: List[Dict[str, Any]] = []
-                        for idx in range(2):
-                            if idx < len(spam_rows):
-                                selected.append({"label": "spam", "row": spam_rows[idx]})
-                            if idx < len(safe_rows):
-                                selected.append({"label": "safe", "row": safe_rows[idx]})
-                        return selected
-
-                    contrast_examples = _select_story_examples(labeled_rows_story)
-                    if contrast_examples:
-                        titles_story = [str(ex["row"].get("title", "")) for ex in contrast_examples]
-                        bodies_story = [str(ex["row"].get("body", "")) for ex in contrast_examples]
-                        combined_story = [
-                            combine_text(t, b) for t, b in zip(titles_story, bodies_story)
-                        ]
-
-                        logits_story: Optional[np.ndarray] = None
-                        try:
-                            if hasattr(model_for_story, "predict_logit"):
-                                raw_logits = model_for_story.predict_logit(combined_story)
-                                logits_story = np.asarray(raw_logits, dtype=float).reshape(-1)
-                        except Exception:
-                            logits_story = None
-
-                        if (
-                            logits_story is None
-                            or logits_story.size != len(contrast_examples)
-                            or not np.all(np.isfinite(logits_story))
-                        ):
-                            try:
-                                probs_story = model_for_story.predict_proba(
-                                    titles_story, bodies_story
-                                )
-                                probs_story = np.asarray(probs_story, dtype=float)
-                                if probs_story.ndim == 1:
-                                    probs_story = probs_story.reshape(-1, 1)
-                                if probs_story.shape[0] == len(contrast_examples):
-                                    if probs_story.shape[1] == 1:
-                                        p_spam_story = np.clip(
-                                            probs_story[:, 0], 1e-6, 1 - 1e-6
-                                        )
-                                    else:
-                                        spam_idx = getattr(
-                                            model_for_story, "_i_spam", None
-                                        )
-                                        if spam_idx is None:
-                                            classes_story = list(
-                                                getattr(
-                                                    model_for_story, "classes_", []
-                                                )
-                                            )
-                                            if classes_story and "spam" in classes_story:
-                                                spam_idx = classes_story.index("spam")
-                                            else:
-                                                spam_idx = (
-                                                    1
-                                                    if probs_story.shape[1] > 1
-                                                    else 0
-                                                )
-                                        p_spam_story = np.clip(
-                                            probs_story[:, int(spam_idx)], 1e-6, 1 - 1e-6
-                                        )
-                                    logits_story = np.log(
-                                        p_spam_story / (1.0 - p_spam_story)
-                                    )
-                            except Exception:
-                                logits_story = None
-
-                        logits_story = (
-                            logits_story
-                            if logits_story is not None
-                            and logits_story.size == len(contrast_examples)
-                            else None
-                        )
-
-                        feature_weights: Dict[str, float] = {}
-                        feature_names: Dict[str, str] = {}
-                        if callable_or_attr(model_for_story, "numeric_feature_details"):
-                            try:
-                                nfd_story = model_for_story.numeric_feature_details().copy()
-                                feature_weights = {
-                                    str(row["feature"]): float(row["weight_per_std"])
-                                    for _, row in nfd_story.iterrows()
-                                }
-                                feature_names = {
-                                    key: FEATURE_DISPLAY_NAMES.get(key, key)
-                                    for key in feature_weights
-                                }
-                            except Exception:
-                                feature_weights = {}
-                                feature_names = {}
-
-                        reasons: List[str] = []
-                        for ex_idx, ex in enumerate(contrast_examples):
-                            label = ex["label"]
-                            reason_text = (
-                                "Typical spam phrasing"
-                                if label == "spam"
-                                else "Routine business phrasing"
-                            )
-                            if feature_weights:
-                                try:
-                                    feats = compute_numeric_features(
-                                        titles_story[ex_idx], bodies_story[ex_idx]
-                                    )
-                                    if label == "spam":
-                                        candidates = [
-                                            feat
-                                            for feat, value in feats.items()
-                                            if value > 0 and feature_weights.get(feat, 0.0) > 0
-                                        ]
-                                        candidates.sort(
-                                            key=lambda f: feature_weights.get(f, 0.0),
-                                            reverse=True,
-                                        )
-                                    else:
-                                        candidates = [
-                                            feat
-                                            for feat, value in feats.items()
-                                            if value > 0 and feature_weights.get(feat, 0.0) < 0
-                                        ]
-                                        candidates.sort(
-                                            key=lambda f: feature_weights.get(f, 0.0)
-                                        )
-                                    if candidates:
-                                        top_feat = candidates[0]
-                                        reason_text = feature_names.get(
-                                            top_feat, top_feat
-                                        )
-                                except Exception:
-                                    pass
-                            reasons.append(reason_text)
-
-                        clarity_badges: List[str] = []
-                        for idx in range(len(contrast_examples)):
-                            logit_value = (
-                                float(logits_story[idx])
-                                if logits_story is not None
-                                and idx < logits_story.size
-                                and np.isfinite(logits_story[idx])
-                                else None
-                            )
-                            borderline = (
-                                abs(logit_value) < 0.4 if logit_value is not None else False
-                            )
-                            clarity_badges.append("Borderline" if borderline else "Clear")
-
-                        before_col, after_col = st.columns(2, gap="large")
-                        with before_col:
-                            st.markdown("**Before training**")
-                            for ex in contrast_examples:
-                                row = ex["row"]
-                                label_value = ex["label"]
-                                label_icon = {"spam": "🚩", "safe": "📥"}.get(
-                                    label_value, "✉️"
-                                )
-                                title_text = _safe_subject(row)
-                                excerpt = _excerpt(row.get("body"), 110)
-                                st.markdown(
-                                    f"""
-                                    <div style="border:1px solid #E5E7EB;border-radius:10px;padding:0.75rem;margin-bottom:0.6rem;">
-                                        <div style="font-size:0.8rem;color:#6B7280;margin-bottom:0.25rem;">{label_icon} {html.escape(label_value.title())}</div>
-                                        <div style="font-weight:600;margin-bottom:0.35rem;">{html.escape(title_text)}</div>
-                                        <div style="font-size:0.85rem;color:#374151;line-height:1.35;">{html.escape(excerpt)}</div>
-                                    </div>
-                                    """,
-                                    unsafe_allow_html=True,
-                                )
-                        with after_col:
-                            st.markdown("**What the model sees now**")
-                            for idx, ex in enumerate(contrast_examples):
-                                row = ex["row"]
-                                title_text = _safe_subject(row)
-                                badge_label = clarity_badges[idx]
-                                is_borderline = badge_label == "Borderline"
-                                badge_color = "#f97316" if is_borderline else "#10b981"
-                                reason_text = html.escape(reasons[idx])
-                                st.markdown(
-                                    f"""
-                                    <div style="border:1px solid #CBD5F5;border-radius:10px;padding:0.75rem;margin-bottom:0.6rem;background:rgba(226,232,240,0.35);">
-                                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.35rem;">
-                                            <div style="font-weight:600;color:#1E3A8A;">{html.escape(title_text)}</div>
-                                            <span style="background:{badge_color};color:white;font-size:0.7rem;font-weight:600;padding:0.2rem 0.55rem;border-radius:999px;">{badge_label}</span>
-                                        </div>
-                                        <div style="font-size:0.85rem;color:#1F2937;line-height:1.35;">{reason_text}</div>
-                                    </div>
-                                    """,
-                                    unsafe_allow_html=True,
-                                )
-                    else:
-                        st.caption("Unavailable")
-                elif model_for_story:
-                    st.caption("Unavailable")
-
-                # 2) Top signals the model noticed (plain list)
-                shown_any_signals = False
-                try:
-                    # Prefer numeric-feature view if available (Hybrid model)
-                    if hasattr(ss["model"], "numeric_feature_details"):
-                        nfd = ss["model"].numeric_feature_details().copy()
-                        nfd["friendly_name"] = nfd["feature"].map(FEATURE_DISPLAY_NAMES)
-                        # Positive weights → Spam, Negative → Safe
-                        top_spam = (
-                            nfd.sort_values("weight_per_std", ascending=False)
-                            .head(3)["friendly_name"].tolist()
-                        )
-                        top_safe = (
-                            nfd.sort_values("weight_per_std", ascending=True)
-                            .head(3)["friendly_name"].tolist()
-                        )
-                        st.markdown("**Top signals the model picked up**")
-                        st.write(f"• Toward **Spam**: {', '.join(top_spam) if top_spam else '—'}")
-                        st.write(f"• Toward **Safe**: {', '.join(top_safe) if top_safe else '—'}")
-                        st.caption(
-                            "These are simple cues (e.g., links, ALL-CAPS bursts, money/urgency hints) that nudged decisions."
-                        )
-                        shown_any_signals = True
-                except Exception:
-                    pass
-
-                if not shown_any_signals:
-                    # Fallback wording if coefficients aren’t available
-                    st.markdown("**What it learned**")
-                    st.write(
-                        "The model pays more attention to words and cues that frequently appear in spam (e.g., urgent offers, suspicious links) "
-                        "and learns to ignore everyday business phrases that tend to be safe."
-                    )
-
-                # 3) A couple of concrete examples the model saw (subjects only)
-                paraphrase_demo: Optional[Tuple[str, str, float]] = None
-                paraphrase_ready = bool(X_tr_t and X_tr_b and y_tr_labels)
-                paraphrase_error: Optional[str] = None
-                try:
-                    if paraphrase_ready:
-                        train_subjects = list(X_tr_t)
-                        y_arr = list(y_tr_labels)
-                        # pick first spam + first safe subject line available
-                        spam_subj = next((s for s, y in zip(train_subjects, y_arr) if y == "spam"), None)
-                        safe_subj = next((s for s, y in zip(train_subjects, y_arr) if y == "safe"), None)
-                        if spam_subj or safe_subj:
-                            st.markdown("**Examples it learned from**")
-                            if spam_subj:
-                                st.write(
-                                    f"• Spam example: *{spam_subj[:100]}{'…' if len(spam_subj)>100 else ''}*"
-                                )
-                            if safe_subj:
-                                st.write(
-                                    f"• Safe example: *{safe_subj[:100]}{'…' if len(safe_subj)>100 else ''}*"
-                                )
-
-                        spam_subjects = [
-                            s
-                            for s, label in zip(train_subjects, y_arr)
-                            if label == "spam" and isinstance(s, str) and s.strip()
-                        ]
-                        if len(spam_subjects) >= 2:
-                            limited_subjects = spam_subjects[:100]
-                            try:
-                                subject_embeddings = encode_texts(limited_subjects)
-                            except Exception as exc:
-                                subject_embeddings = None
-                                paraphrase_ready = False
-                                paraphrase_error = (
-                                    str(exc) or exc.__class__.__name__
-                                )
-                                logger.exception("Paraphrase embedding encoding failed")
-                            if subject_embeddings is not None:
-                                subject_embeddings = np.asarray(subject_embeddings)
-                                if subject_embeddings.ndim == 2 and subject_embeddings.shape[0] >= 2:
-                                    norms = np.linalg.norm(subject_embeddings, axis=1)
-                                    normalized_subjects = [
-                                        s.strip().lower() for s in limited_subjects
-                                    ]
-                                    best_score = -1.0
-                                    best_pair: Optional[Tuple[int, int]] = None
-                                    for i in range(len(limited_subjects)):
-                                        if norms[i] == 0.0:
-                                            continue
-                                        for j in range(i + 1, len(limited_subjects)):
-                                            if norms[j] == 0.0:
-                                                continue
-                                            if normalized_subjects[i] == normalized_subjects[j]:
-                                                continue
-                                            score = float(
-                                                np.clip(
-                                                    np.dot(subject_embeddings[i], subject_embeddings[j])
-                                                    / (norms[i] * norms[j]),
-                                                    -1.0,
-                                                    1.0,
-                                                )
-                                            )
-                                            if score > best_score:
-                                                best_score = score
-                                                best_pair = (i, j)
-                                    if best_pair and best_score >= 0.7:
-                                        paraphrase_demo = (
-                                            limited_subjects[best_pair[0]],
-                                            limited_subjects[best_pair[1]],
-                                            best_score,
-                                        )
-                except Exception as exc:
-                    paraphrase_demo = None
-                    paraphrase_ready = False
-                    paraphrase_error = str(exc) or exc.__class__.__name__
-                    logger.exception("Paraphrase demo failed")
-
-                # 4) What this means / next step
-                st.markdown(
-                    "Your model now has a simple **mental map** of what Spam vs. Safe looks like. "
-                    "Next, we’ll check how well this map works on emails it hasn’t seen before."
-                )
-                if paraphrase_demo:
-                    subj_a, subj_b, cos_sim = paraphrase_demo
-                    subj_a_fmt = html.escape(_shorten_text(subj_a.strip()))
-                    subj_b_fmt = html.escape(_shorten_text(subj_b.strip()))
-                    st.markdown(
-                        f"""
-                        <div style="background: rgba(49, 51, 63, 0.05); border: 1px solid rgba(49, 51, 63, 0.08); border-radius: 0.6rem; padding: 0.75rem 1rem; margin-top: 0.75rem;">
-                            <p style="font-size: 0.85rem; font-weight: 600; margin: 0 0 0.35rem 0;">Paraphrase demo:</p>
-                            <ul style="margin: 0 0 0.5rem 1.1rem; padding: 0;">
-                                <li style="font-size: 0.85rem; margin-bottom: 0.25rem;"><em>{subj_a_fmt}</em></li>
-                                <li style="font-size: 0.85rem; margin-bottom: 0.25rem;"><em>{subj_b_fmt}</em></li>
-                            </ul>
-                            <p style="font-size: 0.8rem; color: rgba(49, 51, 63, 0.8); margin: 0;">Cosine similarity: {cos_sim:.2f}</p>
-                        </div>
-                        """,
-                        unsafe_allow_html=True,
-                    )
-                else:
-                    if paraphrase_error:
-                        st.caption(f"Paraphrase demo unavailable ({paraphrase_error}).")
-                    else:
-                        st.caption("Paraphrase demo unavailable.")
-                if not ss.get("nerd_mode_train"):
-                    st.markdown(
-                        """
-                        <div style="margin-top: 0.85rem; background: rgba(49, 51, 63, 0.05); border: 1px solid rgba(49, 51, 63, 0.08); border-radius: 0.6rem; padding: 0.85rem 1rem;">
-                            <p style="font-size: 0.85rem; font-weight: 600; margin: 0 0 0.5rem 0;">What to expect from MiniLM</p>
-                            <div style="display: flex; flex-wrap: wrap; gap: 1.25rem;">
-                                <div style="flex: 1 1 180px;">
-                                    <p style="font-size: 0.8rem; font-weight: 600; margin: 0 0 0.25rem 0;">Good at</p>
-                                    <ul style="margin: 0; padding-left: 1.1rem; font-size: 0.8rem;">
-                                        <li>Semantic paraphrases</li>
-                                        <li>Phishing-y phrasing</li>
-                                        <li>Short/mid emails</li>
-                                    </ul>
-                                </div>
-                                <div style="flex: 1 1 180px;">
-                                    <p style="font-size: 0.8rem; font-weight: 600; margin: 0 0 0.25rem 0;">Watch-outs</p>
-                                    <ul style="margin: 0; padding-left: 1.1rem; font-size: 0.8rem;">
-                                        <li>Truncation</li>
-                                        <li>Non-English</li>
-                                        <li>Ultra-short emails — rely more on numeric cues in these cases.</li>
-                                    </ul>
-                                </div>
-                            </div>
-                        </div>
-                        """,
-                        unsafe_allow_html=True,
-                    )
-                st.info("Go to **3) Evaluate** to test performance and choose a spam threshold.")
-
         except Exception as exc:
             st.caption(f"Training storyboard unavailable ({exc}).")
             logger.exception("Training storyboard failed")
-    elif has_model or has_split_cache:
-        st.caption("Unavailable")
 
     if ss.get("nerd_mode_train") and ss.get("model") is not None and parsed_split:
         with st.expander("Nerd Mode — what just happened (technical)", expanded=True):
