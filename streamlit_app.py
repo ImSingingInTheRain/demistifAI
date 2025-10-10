@@ -1298,7 +1298,8 @@ def _render_unified_training_storyboard():
             st.markdown("**2) A simple dividing line**")
             st.markdown(
                 "A straight line will separate spam from safe. Before training, we show where the **current configuration** "
-                "would place that dividing line conceptually. After training, you’ll see the actual learned boundary."
+                "would place that dividing line conceptually. After training, you’ll see the actual learned boundary in a "
+                "zoomed-in view that spotlights borderline emails and those closest to each class center."
             )
             show_centers = st.toggle(
                 "Show class centers",
@@ -1310,8 +1311,9 @@ def _render_unified_training_storyboard():
             if meaning_map_error:
                 st.info(meaning_map_error)
             elif chart_ready:
+                zoom_df = _meaning_map_zoom_subset(meaning_map_df, meaning_map_meta)
                 chart2 = _build_meaning_map_chart(
-                    meaning_map_df,
+                    zoom_df if zoom_df is not None else meaning_map_df,
                     meaning_map_meta,
                     show_examples=False,
                     show_class_centers=show_centers,
@@ -1659,6 +1661,65 @@ def _prepare_meaning_map(
 
     return df, meta
 
+
+def _meaning_map_zoom_subset(
+    df: Optional[pd.DataFrame],
+    meta: Optional[Dict[str, Any]],
+    *,
+    max_line_points: int = 24,
+    max_center_points_per_class: int = 6,
+) -> Optional[pd.DataFrame]:
+    """Return a filtered dataframe highlighting the most informative points."""
+
+    if df is None or df.empty:
+        return df
+
+    working = df.copy()
+    if "label" not in working.columns:
+        return working
+
+    subset_indices: set[int] = set()
+
+    # 1) Capture samples nearest to the decision boundary.
+    if "distance_abs" in working.columns and working["distance_abs"].notna().any():
+        labels = sorted({lbl for lbl in working["label"].dropna().unique()})
+        if labels:
+            per_label = max(1, max_line_points // max(len(labels), 1))
+            for label in labels:
+                class_df = working.loc[working["label"] == label]
+                if class_df.empty:
+                    continue
+                top = class_df.nsmallest(per_label, "distance_abs")
+                subset_indices.update(top.index.tolist())
+
+    # 2) Capture prototypical samples around each centroid.
+    centroids = None
+    if isinstance(meta, dict):
+        centroids = meta.get("centroids")
+    if isinstance(centroids, pd.DataFrame) and not centroids.empty:
+        if "x" in working.columns and "y" in working.columns and "label" in centroids.columns:
+            for _, row in centroids.iterrows():
+                label = row.get("label")
+                if label not in working["label"].values:
+                    continue
+                class_df = working.loc[working["label"] == label]
+                if class_df.empty:
+                    continue
+                cx = float(row.get("x", 0.0) or 0.0)
+                cy = float(row.get("y", 0.0) or 0.0)
+                distances = pd.Series(
+                    np.hypot(class_df["x"] - cx, class_df["y"] - cy), index=class_df.index
+                )
+                per_label = max(1, max_center_points_per_class)
+                indices = distances.nsmallest(per_label).index
+                top = class_df.loc[indices]
+                subset_indices.update(top.index.tolist())
+
+    if not subset_indices:
+        return working
+
+    subset = working.loc[sorted(subset_indices)].copy()
+    return subset.reset_index(drop=True)
 
 
 def _build_meaning_map_chart(
