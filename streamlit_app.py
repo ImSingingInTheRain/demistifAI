@@ -1060,73 +1060,134 @@ def _compute_decision_boundary_overlay(
 
 def _conceptual_meaning_sketch():
     """
-    Pre-training illustrative map:
-    - Two loose clusters (Safe-like vs Spam-like)
-    - A few borderline points in the middle
-    - A simple dividing line (educational only)
+    Pre-training illustrative map highlighting anticipated clusters with chip-like cards.
     """
-    import numpy as np
-    import pandas as pd
+
     import altair as alt
+    import pandas as pd
 
-    rng = np.random.default_rng(42)
+    domain = [-3.2, 3.2]
 
-    # Safe-like cluster (bottom-left)
-    safe = pd.DataFrame({
-        "x": rng.normal(-2.0, 0.45, 36),
-        "y": rng.normal(-2.0, 0.45, 36),
-        "label": "Safe-like"
-    })
+    cards = pd.DataFrame(
+        [
+            {
+                "label": "Meeting emails",
+                "details": "agenda, follow-ups",
+                "tone": "Safe-like",
+                "x1": -3.0,
+                "x2": -1.4,
+                "y1": -2.6,
+                "y2": -1.4,
+            },
+            {
+                "label": "Project updates",
+                "details": "status summaries",
+                "tone": "Safe-like",
+                "x1": -2.6,
+                "x2": -1.0,
+                "y1": -0.8,
+                "y2": 0.4,
+            },
+            {
+                "label": "Courier tracking",
+                "details": "delivery notices",
+                "tone": "Borderline",
+                "x1": -0.8,
+                "x2": 0.8,
+                "y1": -0.6,
+                "y2": 0.8,
+            },
+            {
+                "label": "Account alerts",
+                "details": "password/security",
+                "tone": "Borderline",
+                "x1": 0.4,
+                "x2": 1.8,
+                "y1": -1.6,
+                "y2": -0.4,
+            },
+            {
+                "label": "Marketing blasts",
+                "details": "promos & offers",
+                "tone": "Spam-like",
+                "x1": 1.2,
+                "x2": 3.0,
+                "y1": 1.0,
+                "y2": 2.4,
+            },
+            {
+                "label": "Phishy invoices",
+                "details": "urgent payment",
+                "tone": "Spam-like",
+                "x1": 0.8,
+                "x2": 2.4,
+                "y1": 2.0,
+                "y2": 3.0,
+            },
+        ]
+    )
+    cards["xc"] = (cards["x1"] + cards["x2"]) / 2
+    cards["yc"] = (cards["y1"] + cards["y2"]) / 2
 
-    # Spam-like cluster (top-right)
-    spam = pd.DataFrame({
-        "x": rng.normal(2.0, 0.45, 36),
-        "y": rng.normal(2.0, 0.45, 36),
-        "label": "Spam-like"
-    })
-
-    # Borderline points (center-ish)
-    mid = pd.DataFrame({
-        "x": rng.normal(0.0, 0.55, 12),
-        "y": rng.normal(0.0, 0.55, 12),
-        "label": "Borderline"
-    })
-
-    df = pd.concat([safe, spam, mid], ignore_index=True)
-
-    # Base scatter
-    points = (
-        alt.Chart(df)
-        .mark_circle(size=80, opacity=0.9)
+    base = (
+        alt.Chart(pd.DataFrame({"x": domain, "y": domain}))
+        .mark_point(opacity=0)
         .encode(
-            x=alt.X("x:Q", title="Meaning dimension 1"),
-            y=alt.Y("y:Q", title="Meaning dimension 2"),
-            color=alt.Color(
-                "label:N",
-                title="",
-                scale=alt.Scale(
-                    domain=["Safe-like", "Spam-like", "Borderline"],
-                    range=["#3b82f6", "#ef4444", "#f59e0b"]
-                )
-            ),
-            tooltip=["label:N"]
+            x=alt.X("x:Q", scale=alt.Scale(domain=domain), title="Meaning dimension 1"),
+            y=alt.Y("y:Q", scale=alt.Scale(domain=domain), title="Meaning dimension 2"),
+        )
+        .properties(height=360)
+    )
+
+    tone_scale = alt.Scale(
+        domain=["Safe-like", "Borderline", "Spam-like"],
+        range=["#bfdbfe", "#fde68a", "#fecaca"],
+    )
+
+    card_rects = (
+        alt.Chart(cards)
+        .mark_rect(stroke="#1f2937", strokeWidth=1, opacity=0.85)
+        .encode(
+            x=alt.X("x1:Q", scale=alt.Scale(domain=domain)),
+            x2="x2:Q",
+            y=alt.Y("y1:Q", scale=alt.Scale(domain=domain)),
+            y2="y2:Q",
+            color=alt.Color("tone:N", title="", scale=tone_scale),
+            tooltip=[
+                alt.Tooltip("label:N", title="Cluster"),
+                alt.Tooltip("details:N", title="Typical content"),
+                alt.Tooltip("tone:N", title="Tone"),
+            ],
         )
     )
 
-    # Simple dividing line (educational, not data-driven)
-    # Diagonal from bottom-left to top-right center
-    line_df = pd.DataFrame({"x": [-3.2, 3.2], "y": [-2.2, 4.2]})
-    divider = (
-        alt.Chart(line_df)
-        .mark_line(strokeDash=[6, 4], opacity=0.9)
-        .encode(x="x:Q", y="y:Q")
+    card_titles = (
+        alt.Chart(cards)
+        .mark_text(fontSize=14, fontWeight="600", color="#0f172a")
+        .encode(x="xc:Q", y="yc:Q", text="label:N")
+    )
+
+    card_details = (
+        alt.Chart(cards)
+        .mark_text(fontSize=11, color="#334155", baseline="top")
+        .encode(x="xc:Q", y="yc:Q", text="details:N", dy=alt.value(14))
+    )
+
+    crosshair = (
+        alt.Chart(pd.DataFrame({"x": [0], "y": [0]}))
+        .mark_rule(color="#94a3b8", strokeDash=[4, 4])
+        .encode(x="x:Q")
+        + alt.Chart(pd.DataFrame({"x": [0], "y": [0]}))
+        .mark_rule(color="#94a3b8", strokeDash=[4, 4])
+        .encode(y="y:Q")
     )
 
     chart = (
-        (points + divider)
-        .properties(title="Conceptual meaning sketch (before training)")
+        (base + card_rects + card_titles + card_details + crosshair)
+        .properties(title="Conceptual meaning map (before training)")
         .configure_axis(labelColor="#334155", titleColor="#0f172a")
         .configure_legend(labelColor="#334155", title=None)
+        .configure_view(strokeOpacity=0)
     )
     return chart
 
@@ -1297,8 +1358,10 @@ def _render_unified_training_storyboard():
                     "Think of each email as a dot placed by MiniLM in a 2-D meaning space:\n\n"
                     "- **Meaning dimension 1**: a blend of traits such as *formality ↔ salesy tone*, *generic phrasing ↔ brand-specific details*, or *routine biz-speak ↔ promotional language*.\n"
                     "- **Meaning dimension 2**: a complementary blend such as *calm, factual ↔ urgent, persuasive*, *low CTA ↔ strong CTA*, or *neutral ↔ attention-grabbing*.\n\n"
-                    "Below is a **conceptual meaning sketch** (an illustrative example shown *before* training). "
-                    "It shows how safe-like emails tend to cluster together, spam-like emails cluster elsewhere, and a few **borderline** cases sit in between. "
+                    "Below is a **conceptual meaning map** (an illustrative example shown *before* training). "
+                    "Instead of dots, it uses chip-style cards to preview likely clusters from this dataset — "
+                    "meeting notes, courier tracking, promotional blasts, security alerts, and other themes — each placed where that tone usually lands. "
+                    "This helps you imagine the semantic neighborhoods MiniLM will uncover and why borderline content often sits near the middle. "
                     "After you train on your labeled emails, this sketch will be replaced by the **real** map built from your data."
                 )
             else:
