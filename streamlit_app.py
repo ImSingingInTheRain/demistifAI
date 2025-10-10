@@ -6090,19 +6090,6 @@ def render_train_stage():
                 band_right = max(0.0, min(100.0, high_pct))
                 band_width = max(0.0, band_right - band_left)
 
-                band_card_html = f"""
-                <div class='train-band-card'>
-                    <div class='train-band-card__title'>Numeric guardrails window</div>
-                    <div class='train-band-card__bar'>
-                        <div class='train-band-card__band' style='left:{band_left:.2f}%; width:{band_width:.2f}%;'></div>
-                        <div class='train-band-card__threshold' style='left:{threshold_pct:.2f}%;'></div>
-                    </div>
-                    <div class='train-band-card__scale'><span>0</span><span>1</span></div>
-                    <div class='train-band-card__caption'>τ = {center:.2f} • band ±{band:.2f}</div>
-                    <div class='train-band-card__hint'>“Inside this zone, numeric cues (links, TLDs, caps, money terms) can gently adjust the text score.”</div>
-                </div>
-                """
-
                 context_col.markdown(band_card_html, unsafe_allow_html=True)
                 st.caption(_numeric_guardrails_caption_text())
 
