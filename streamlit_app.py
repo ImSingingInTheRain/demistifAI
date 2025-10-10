@@ -1163,7 +1163,7 @@ def _conceptual_meaning_sketch():
 
     card_titles = (
         alt.Chart(cards)
-        .mark_text(fontSize=14, fontWeight="600", color="#0f172a")
+        .mark_text(fontSize=14, fontWeight=600, color="#0f172a")
         .encode(x="xc:Q", y="yc:Q", text="label:N")
     )
 
