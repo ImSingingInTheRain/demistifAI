@@ -667,6 +667,29 @@ FEATURE_REASON_SAFE = {
     "urgency_terms_count": "Neutral tone without urgency",
 }
 
+FEATURE_CLUE_CHIPS = {
+    "num_links_external": {
+        "spam": "🔗 Many external links",
+        "safe": "🔗 Few external links",
+    },
+    "has_suspicious_tld": {
+        "spam": "🌐 Risky domain in links",
+        "safe": "🌐 Links look safe",
+    },
+    "punct_burst_ratio": {
+        "spam": "❗ Intense punctuation",
+        "safe": "❗ Calm punctuation",
+    },
+    "money_symbol_count": {
+        "spam": "💰 Money cues",
+        "safe": "💰 No money cues",
+    },
+    "urgency_terms_count": {
+        "spam": "⏱️ Urgent wording",
+        "safe": "⏱️ Neutral urgency",
+    },
+}
+
 
 def _reason_from_contributions(label: str, contributions: List[Tuple[str, float, float]]) -> str:
     if not contributions:
@@ -690,6 +713,42 @@ def _reason_from_contributions(label: str, contributions: List[Tuple[str, float,
     if not summary:
         return "Mostly positioned by wording similarity."
     return f"Signals: {summary}"
+
+
+def _extract_numeric_clues(
+    contributions: List[Tuple[str, float, float]],
+    *,
+    threshold: float = 0.08,
+) -> list[dict[str, Any]]:
+    """Return structured clue details for sizable numeric contributions."""
+
+    clues: list[dict[str, Any]] = []
+    if not contributions:
+        return clues
+
+    for feature, _z_score, contrib in contributions:
+        direction: str | None = None
+        if contrib >= threshold:
+            direction = "spam"
+        elif contrib <= -threshold:
+            direction = "safe"
+        if direction is None:
+            continue
+        mapping = FEATURE_CLUE_CHIPS.get(feature, {}) if isinstance(feature, str) else {}
+        label = mapping.get(direction)
+        if not label:
+            label = FEATURE_DISPLAY_NAMES.get(feature, str(feature))
+        clues.append(
+            {
+                "feature": feature,
+                "direction": direction,
+                "label": label,
+                "contribution": float(contrib),
+            }
+        )
+
+    clues.sort(key=lambda item: abs(item.get("contribution", 0.0)), reverse=True)
+    return clues
 
 
 def _sample_indices_by_label(labels: List[str], limit: int) -> List[int]:
@@ -1349,41 +1408,25 @@ def _render_unified_training_storyboard():
                 f"When the text score is near **τ≈{c:.2f}**, numeric guardrails help out within a small window "
                 f"(**±{b:.2f}**) — we look at links, ALL-CAPS, money or urgency hints."
             )
-            highlight_borderline = st.toggle(
-                "Highlight borderline emails",
-                value=bool(ss.get("meaning_map_highlight_borderline", False)),
-                key="meaning_map_highlight_borderline",
-            )
+            guard_low = None
+            guard_high = None
+            if isinstance(meaning_map_meta, dict):
+                guard_low = meaning_map_meta.get("guard_window_low")
+                guard_high = meaning_map_meta.get("guard_window_high")
+            if chart_ready and isinstance(guard_low, (int, float)) and isinstance(guard_high, (int, float)):
+                st.caption(
+                    f"Showing emails where the spam probability falls between {guard_low:.2f} and {guard_high:.2f}."
+                )
+            else:
+                st.caption("Train the model to see which emails triggered these numeric clues.")
 
         with right3:
             if meaning_map_error:
                 st.info(meaning_map_error)
             elif chart_ready:
-                chart3 = _build_meaning_map_chart(
-                    meaning_map_df,
-                    meaning_map_meta,
-                    show_examples=False,
-                    show_class_centers=False,
-                    highlight_borderline=highlight_borderline,
-                )
-                if chart3 is not None:
-                    st.altair_chart(
-                        chart3,
-                        use_container_width=True,
-                        key=f"meaning_map_chart3_live_{story_run_id}",
-                    )
-                else:
-                    st.info("Meaning Map unavailable for this run.")
+                _render_numeric_clue_cards(meaning_map_df)
             else:
-                st.altair_chart(
-                    _ghost_meaning_map_enhanced(
-                        title="Borderline window (schematic)",
-                        show_divider=True,
-                        show_band=True,
-                    ),
-                    use_container_width=True,
-                    key=f"ghost_live_map3_{story_run_id}",
-                )
+                st.info("After training, this panel will list emails that needed extra numeric clues.")
 
         st.caption(_numeric_guardrails_caption_text())
 
@@ -1481,10 +1524,13 @@ def _prepare_meaning_map(
     )
 
     reasons: List[str] = []
+    numeric_contribs: List[List[Tuple[str, float, float]]] = []
     for title, body, label in zip(sampled_titles, sampled_bodies, sampled_labels):
         contribs = numeric_feature_contributions(model, title, body) if model else []
+        numeric_contribs.append(contribs or [])
         reasons.append(_reason_from_contributions(label, contribs))
     df["reason"] = reasons
+    df["_numeric_contribs"] = numeric_contribs
 
     class_counts = df["label"].value_counts().to_dict()
 
@@ -1642,6 +1688,19 @@ def _prepare_meaning_map(
     guard_margin_effective = max(0.0, guard_margin_effective)
     guard_low = max(0.0, min(1.0, guard_low))
     guard_high = max(0.0, min(1.0, guard_high))
+
+    if "numeric_clues" not in df.columns:
+        if "_numeric_contribs" in df.columns:
+            contrib_lists = df["_numeric_contribs"].tolist()
+            df.drop(columns=["_numeric_contribs"], inplace=True)
+        else:
+            contrib_lists = [[] for _ in range(len(df))]
+        df["numeric_clues"] = [
+            _extract_numeric_clues(contribs) if contribs else [] for contribs in contrib_lists
+        ]
+    else:
+        if "_numeric_contribs" in df.columns:
+            df.drop(columns=["_numeric_contribs"], inplace=True)
 
     meta = {
         "class_counts": class_counts,
@@ -1997,6 +2056,119 @@ def _build_meaning_map_chart(
         )
 
     return alt.vconcat(scatter_layer, detail_layer, spacing=12).configure_view(strokeWidth=0)
+
+
+def _render_numeric_clue_cards(df: Optional[pd.DataFrame]) -> None:
+    """Render guardrail clue cards for emails assisted by numeric features."""
+
+    if df is None or df.empty:
+        st.info("No emails to review yet — train the model to surface numeric clues.")
+        return
+
+    if "numeric_clues" not in df.columns:
+        st.info("Numeric clue details were unavailable for this run.")
+        return
+
+    working = df.copy()
+    try:
+        mask = working["numeric_clues"].apply(lambda val: bool(val))
+    except Exception:
+        mask = pd.Series([False] * len(working), index=working.index)
+
+    subset = working.loc[mask]
+    if subset.empty:
+        st.info("No emails needed the extra numeric guardrails — the text score was decisive.")
+        return
+
+    if "distance_abs" in subset.columns and subset["distance_abs"].notna().any():
+        subset = subset.sort_values("distance_abs", na_position="last")
+    elif "spam_probability" in subset.columns:
+        subset = subset.sort_values("spam_probability", ascending=False, na_position="last")
+
+    subset = subset.head(9)
+
+    cards: list[str] = []
+    for _, row in subset.iterrows():
+        chips = row.get("numeric_clues") or []
+        if not isinstance(chips, list):
+            continue
+
+        chip_parts: list[str] = []
+        for clue in chips[:6]:
+            if not isinstance(clue, dict):
+                continue
+            label = html.escape(str(clue.get("label", "")) or "")
+            if not label:
+                continue
+            direction = str(clue.get("direction", "") or "").lower()
+            dir_class = f" numeric-clue-chip--{direction}" if direction in {"spam", "safe"} else ""
+            chip_parts.append(f"<span class='numeric-clue-chip{dir_class}'>{label}</span>")
+
+        if not chip_parts:
+            continue
+
+        subject = row.get("subject_full") or "(no subject)"
+        subject_display = html.escape(_shorten_text(str(subject), 96))
+
+        predicted_label_raw = str(row.get("predicted_label", "") or "").strip().lower()
+        if predicted_label_raw not in {"spam", "safe"}:
+            predicted_label_raw = str(row.get("label", "") or "").strip().lower()
+        predicted_class = predicted_label_raw if predicted_label_raw in {"spam", "safe"} else "unknown"
+        predicted_label_title = html.escape(
+            str(row.get("predicted_label_title") or predicted_label_raw.title() or "")
+        )
+        if not predicted_label_title:
+            predicted_label_title = "Unknown"
+
+        true_label_title = html.escape(str(row.get("label_title") or str(row.get("label", "")).title()))
+
+        prob = row.get("spam_probability")
+        details: list[str] = []
+        if isinstance(prob, (int, float)) and math.isfinite(prob):
+            details.append(f"Spam probability {prob * 100:.0f}%")
+
+        distance_display = str(row.get("distance_display", "") or "")
+        if distance_display and distance_display != "–":
+            details.append(f"Distance to line {html.escape(distance_display)}")
+
+        if bool(row.get("borderline", False)):
+            details.append("Inside assist window")
+
+        reason_text = html.escape(str(row.get("reason", "")) or "")
+
+        meta_line = " · ".join(details)
+        meta_html = (
+            f"<div class='numeric-clue-card__meta'>{meta_line}</div>" if meta_line else ""
+        )
+
+        reason_html = (
+            f"<div class='numeric-clue-card__reason'>{reason_text}</div>" if reason_text else ""
+        )
+
+        card_html = "".join(
+            [
+                "<div class='numeric-clue-card'>",
+                "  <div class='numeric-clue-card__header'>",
+                f"    <div class='numeric-clue-card__subject'>{subject_display}</div>",
+                "    <div class='numeric-clue-card__tags'>",
+                f"      <span class='numeric-clue-tag numeric-clue-tag--truth'>Truth: {true_label_title}</span>",
+                f"      <span class='numeric-clue-tag numeric-clue-tag--{predicted_class}'>Model: {predicted_label_title}</span>",
+                "    </div>",
+                "  </div>",
+                f"  <div class='numeric-clue-card__chips'>{''.join(chip_parts)}</div>",
+                reason_html,
+                meta_html,
+                "</div>",
+            ]
+        )
+        cards.append(card_html)
+
+    if not cards:
+        st.info("Numeric clue cards could not be generated.")
+        return
+
+    wrapper = "<div class='numeric-clue-card-grid'>{}</div>".format("".join(cards))
+    st.markdown(wrapper, unsafe_allow_html=True)
 
 
 def _build_borderline_guardrail_chart(
@@ -5668,6 +5840,95 @@ def render_train_stage():
             color: rgba(30, 64, 175, 0.9);
             font-size: 0.8rem;
             font-weight: 600;
+        }
+        .numeric-clue-card-grid {
+            display: grid;
+            gap: 0.85rem;
+        }
+        .numeric-clue-card {
+            border-radius: 1rem;
+            border: 1px solid rgba(15, 23, 42, 0.08);
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.08), rgba(14, 165, 233, 0.08));
+            box-shadow: 0 12px 28px rgba(15, 23, 42, 0.08);
+            padding: 0.85rem 1rem;
+        }
+        .numeric-clue-card__header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 0.75rem;
+        }
+        .numeric-clue-card__subject {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: #0f172a;
+            flex: 1 1 auto;
+        }
+        .numeric-clue-card__tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.4rem;
+            justify-content: flex-end;
+        }
+        .numeric-clue-tag {
+            display: inline-flex;
+            align-items: center;
+            border-radius: 999px;
+            padding: 0.2rem 0.6rem;
+            font-size: 0.72rem;
+            font-weight: 600;
+            background: rgba(15, 23, 42, 0.06);
+            color: rgba(15, 23, 42, 0.7);
+        }
+        .numeric-clue-tag--truth {
+            background: rgba(15, 23, 42, 0.08);
+            color: rgba(15, 23, 42, 0.65);
+        }
+        .numeric-clue-tag--spam {
+            background: rgba(239, 68, 68, 0.18);
+            color: #b91c1c;
+        }
+        .numeric-clue-tag--safe {
+            background: rgba(59, 130, 246, 0.18);
+            color: #1d4ed8;
+        }
+        .numeric-clue-tag--unknown {
+            background: rgba(148, 163, 184, 0.22);
+            color: rgba(30, 41, 59, 0.72);
+        }
+        .numeric-clue-chip {
+            display: inline-flex;
+            align-items: center;
+            border-radius: 999px;
+            padding: 0.28rem 0.65rem;
+            font-size: 0.76rem;
+            font-weight: 600;
+            background: rgba(15, 23, 42, 0.08);
+            color: rgba(15, 23, 42, 0.75);
+        }
+        .numeric-clue-chip--spam {
+            background: rgba(239, 68, 68, 0.18);
+            color: #b91c1c;
+        }
+        .numeric-clue-chip--safe {
+            background: rgba(34, 197, 94, 0.18);
+            color: #15803d;
+        }
+        .numeric-clue-card__chips {
+            margin-top: 0.65rem;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.45rem;
+        }
+        .numeric-clue-card__reason {
+            margin-top: 0.55rem;
+            font-size: 0.82rem;
+            color: rgba(15, 23, 42, 0.78);
+        }
+        .numeric-clue-card__meta {
+            margin-top: 0.45rem;
+            font-size: 0.72rem;
+            color: rgba(15, 23, 42, 0.62);
         }
         .train-inline-note {
             margin-top: 0.35rem;
