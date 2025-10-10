@@ -4265,23 +4265,27 @@ def render_train_stage():
             subject = html.escape(_safe_subject(card))
             excerpt = html.escape(_excerpt(card.get("body")))
             cards_html_parts.append(
-                f"""
-                <div style="border:1px solid #E5E7EB;border-radius:10px;padding:0.65rem;background-color:#FFFFFF;display:flex;flex-direction:column;gap:0.4rem;">
-                    <div style=\"font-size:0.85rem;color:#4B5563;display:flex;align-items:center;gap:0.4rem;\">{icon}<span style=\"font-weight:600;color:#111827;\">{html.escape(label_value.title() or 'Unlabeled')}</span></div>
-                    <div style="font-weight:600;color:#111827;font-size:0.95rem;line-height:1.3;">{subject}</div>
-                    <div style="font-size:0.85rem;color:#374151;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{excerpt}</div>
-                </div>
-                """
+                textwrap.dedent(
+                    f"""
+                    <div style="border:1px solid #E5E7EB;border-radius:10px;padding:0.65rem;background-color:#FFFFFF;display:flex;flex-direction:column;gap:0.4rem;">
+                        <div style=\"font-size:0.85rem;color:#4B5563;display:flex;align-items:center;gap:0.4rem;\">{icon}<span style=\"font-weight:600;color:#111827;\">{html.escape(label_value.title() or 'Unlabeled')}</span></div>
+                        <div style="font-weight:600;color:#111827;font-size:0.95rem;line-height:1.3;">{subject}</div>
+                        <div style="font-size:0.85rem;color:#374151;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{excerpt}</div>
+                    </div>
+                    """
+                ).strip()
             )
 
         if cards_html_parts:
             cards_html = "".join(cards_html_parts)
             st.markdown(
-                f"""
-                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:0.75rem;">
-                    {cards_html}
-                </div>
-                """,
+                textwrap.dedent(
+                    f"""
+                    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:0.75rem;">
+                        {cards_html}
+                    </div>
+                    """
+                ).strip(),
                 unsafe_allow_html=True,
             )
         else:
