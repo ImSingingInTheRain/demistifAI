@@ -5739,20 +5739,7 @@ def render_train_stage():
             )
             trigger_train = st.button("🚀 Train model", type="primary", use_container_width=True)
         with context_col:
-            st.markdown(
-                """
-                <div class="train-context-card">
-                    <h5>What happens when you train</h5>
-                    <ul>
-                        <li>Uses the labeled dataset curated in <em>Prepare data</em>.</li>
-                        <li>Applies your split, solver, and numeric guardrail settings.</li>
-                        <li>Captures metrics for the Evaluate stage automatically.</li>
-                    </ul>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
-
+            
             chip_texts: List[str] = []
 
             params = ss.get("train_params") or {}
