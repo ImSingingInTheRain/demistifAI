@@ -5287,7 +5287,7 @@ def render_train_stage():
                     </div>
                     <div class="train-how-card__header">
                             <div>
-                                <h5 class="train-how-card__title">🎯 Now your AI system will learn how to achieve an objective</h5>
+                                <h5 class="train-how-card__title">Now your AI system will learn how to achieve an objective</h5>
                                 <p class="train-how-card__body">Think of this as teaching your AI assistant how to tell the difference between spam and safe emails.</p>
                             </div>
                         </div>
@@ -5317,25 +5317,6 @@ def render_train_stage():
                 st.markdown(
                     """
                     <div class="train-how-card">
-                        <div class="train-how-card__header">
-                            <div>
-                                <h5 class="train-how-card__title">🎯 Now your AI system will learn how to achieve an objective</h5>
-                                <p class="train-how-card__body">Think of this as teaching your AI assistant how to tell the difference between spam and safe emails.</p>
-                            </div>
-                        </div>
-                        <div class="train-how-card__grid">
-                            <div class="train-how-card__panel">
-                                <div class="train-how-card__panel-icon">🫶</div>
-                                <h6 class="train-how-card__panel-title">Your part</h6>
-                                <p class="train-how-card__panel-body">Provide examples with clear labels (“This one is spam, that one is safe”).</p>
-                            </div>
-                            <div class="train-how-card__panel">
-                                <div class="train-how-card__panel-icon">🤖</div>
-                                <h6 class="train-how-card__panel-title">The system’s part</h6>
-                                <p class="train-how-card__panel-body">Spot patterns that generalize to emails it hasn’t seen yet.</p>
-                            </div>
-                        </div>
-                        <div class="train-how-card__divider"></div>
                         <p class="train-how-card__body train-how-card__body--muted">We can break it down into three simple steps:</p>
                         <div class="train-how-card__step-grid">
                             <div class="train-how-card__step-box">
