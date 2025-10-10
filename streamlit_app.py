@@ -7,6 +7,7 @@ import json
 import logging
 import random
 import string
+import time
 import textwrap
 import hashlib
 import re
@@ -1115,6 +1116,26 @@ def _render_unified_training_storyboard():
         "meaning_map_error": meaning_map_error,
         "chart_ready": chart_ready,
     }
+
+    refresh_expected = bool(ss.get("train_refresh_expected"))
+    refresh_attempts = int(ss.get("train_refresh_attempts", 0) or 0)
+    if refresh_expected:
+        if chart_ready:
+            ss["train_refresh_expected"] = False
+            ss["train_refresh_attempts"] = 0
+        elif refresh_attempts > 0:
+            ss["train_refresh_attempts"] = refresh_attempts - 1
+            logger.debug(
+                "Meaning map still warming after training; scheduling auto-rerun (%s attempts left)",
+                refresh_attempts - 1,
+            )
+            st.caption("Refreshing training meaning maps…")
+            time.sleep(0.35)
+            _streamlit_rerun()
+            return
+        else:
+            ss["train_refresh_expected"] = False
+            ss["train_refresh_attempts"] = 0
 
     with section_surface():
         st.markdown("### How training works — live storyboard")
@@ -5170,6 +5191,8 @@ def render_train_stage():
     ss.setdefault("token_budget_cache", {})
     ss.setdefault("guard_params", {})
     ss.setdefault("train_in_progress", False)
+    ss.setdefault("train_refresh_expected", False)
+    ss.setdefault("train_refresh_attempts", 0)
     ss["guard_params"].setdefault("assist_center_mode", "manual")  # "manual" | "auto"
     ss["guard_params"].setdefault("assist_center", float(ss.get("threshold", 0.6)))
     ss["guard_params"].setdefault("uncertainty_band", 0.08)
@@ -6137,6 +6160,8 @@ def render_train_stage():
                         ss["eval_temp_threshold"] = float(ss.get("threshold", 0.6))
                         ss["train_story_run_id"] = uuid4().hex
                         ss["train_flash_finished"] = True
+                        ss["train_refresh_expected"] = True
+                        ss["train_refresh_attempts"] = 1
                         should_rerun_after_training = True
                         training_successful = True
                         for key in (
