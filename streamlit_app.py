@@ -424,6 +424,64 @@ has_calibration = callable_or_attr(locals().get("PlattProbabilityCalibrator"))
 has_langdetect = bool(_LANG_DETECT_AVAILABLE and callable_or_attr(_langdetect_detect))
 
 
+def _make_selection_point(
+    fields: list[str], *, on: str, empty: str
+) -> Any | None:
+    """Create an Altair selection/parameter that works across Altair versions."""
+
+    try:
+        if hasattr(alt, "selection_point"):
+            return alt.selection_point(fields=fields, on=on, empty=empty)
+    except Exception:
+        pass
+
+    # Altair < 5 uses the legacy selection API
+    try:
+        if hasattr(alt, "selection_single"):
+            return alt.selection_single(fields=fields, on=on, empty=empty)
+    except Exception:
+        pass
+
+    try:
+        if hasattr(alt, "selection"):
+            return alt.selection(type="single", fields=fields, on=on, empty=empty)
+    except Exception:
+        pass
+
+    return None
+
+
+def _chart_add_params(chart: alt.Chart, *params: Any) -> alt.Chart:
+    """Attach parameters/selections using whichever API is available."""
+
+    valid = [param for param in params if param is not None]
+    if not valid:
+        return chart
+
+    if hasattr(chart, "add_params"):
+        return chart.add_params(*valid)
+    if hasattr(chart, "add_selection"):
+        return chart.add_selection(*valid)
+    return chart
+
+
+def _combine_selections(*selections: Any) -> Any | None:
+    """Return the logical union of selections/parameters that support it."""
+
+    active = [sel for sel in selections if sel is not None]
+    if not active:
+        return None
+
+    combined = active[0]
+    for sel in active[1:]:
+        try:
+            combined = combined | sel
+        except Exception:
+            # If the union operation is unavailable, prefer the last selection
+            combined = sel
+    return combined
+
+
 def _detect_language_code(text: str) -> str:
     """Return a two-letter language code, or blank if detection fails."""
 
@@ -1110,8 +1168,9 @@ def _build_meaning_map_chart(
     highlight_borderline: bool = False,
 ) -> alt.VConcatChart:
     color_scale = alt.Scale(domain=["spam", "safe"], range=["#ef4444", "#3b82f6"])
-    hover = alt.selection_point(fields=["plot_index"], on="mouseover", empty="none")
-    select = alt.selection_point(fields=["plot_index"], on="click", empty="none")
+    hover = _make_selection_point(["plot_index"], on="mouseover", empty="none")
+    select = _make_selection_point(["plot_index"], on="click", empty="none")
+    combined_selection = _combine_selections(select, hover)
 
     base = alt.Chart(df)
     scatter = base.mark_circle(size=80).encode(
@@ -1131,10 +1190,24 @@ def _build_meaning_map_chart(
             alt.Tooltip("spam_probability:Q", title="Spam probability", format=".2f"),
             alt.Tooltip("distance_display:N", title="Distance to line"),
         ],
-        opacity=alt.condition(select | hover, alt.value(0.95), alt.value(0.45)),
-        stroke=alt.condition(select | hover, alt.value("#ffffff"), alt.value("rgba(0,0,0,0)")),
-        strokeWidth=alt.condition(select | hover, alt.value(2), alt.value(0)),
-    ).add_params(hover, select)
+        opacity=
+            alt.condition(combined_selection, alt.value(0.95), alt.value(0.45))
+            if combined_selection is not None
+            else alt.value(0.65),
+        stroke=
+            alt.condition(
+                combined_selection,
+                alt.value("#ffffff"),
+                alt.value("rgba(0,0,0,0)"),
+            )
+            if combined_selection is not None
+            else alt.value("rgba(0,0,0,0)"),
+        strokeWidth=
+            alt.condition(combined_selection, alt.value(2), alt.value(0))
+            if combined_selection is not None
+            else alt.value(0),
+    )
+    scatter = _chart_add_params(scatter, hover, select)
 
     layers = [scatter]
 
@@ -1242,64 +1315,72 @@ def _build_meaning_map_chart(
 
     scatter_layer = alt.layer(*layers).properties(height=320)
 
-    detail_bg = (
-        alt.Chart(df)
-        .transform_filter(select)
-        .mark_rect(
-            color="rgba(226,232,240,0.65)",
-            stroke="#94a3b8",
-            strokeWidth=1,
-            cornerRadius=10,
-        )
-        .encode(
-            x=alt.value(0),
-            x2=alt.value(400),
-            y=alt.value(0),
-            y2=alt.value(110),
-        )
-    )
-    detail_subject = (
-        alt.Chart(df)
-        .transform_filter(select)
-        .mark_text(
-            align="left",
-            baseline="top",
-            dx=16,
-            dy=16,
-            fontSize=14,
-            fontWeight="bold",
-            color="#1f2937",
-        )
-        .encode(text="subject_full:N")
-    )
-    detail_excerpt = (
-        alt.Chart(df)
-        .transform_filter(select)
-        .mark_text(
-            align="left",
-            baseline="top",
-            dx=16,
-            dy=46,
-            fontSize=12,
-            color="#374151",
-        )
-        .encode(text="body_excerpt:N")
-    )
-    detail_reason = (
-        alt.Chart(df)
-        .transform_filter(select)
-        .mark_text(
-            align="left",
-            baseline="top",
-            dx=16,
-            dy=78,
-            fontSize=11,
-            color="#1d4ed8",
-        )
-        .encode(text="reason:N")
-    )
+    if select is not None:
+        detail_chart = alt.Chart(df).transform_filter(select)
 
-    detail_layer = alt.layer(detail_bg, detail_subject, detail_excerpt, detail_reason).properties(height=110)
+        detail_bg = (
+            detail_chart
+            .mark_rect(
+                color="rgba(226,232,240,0.65)",
+                stroke="#94a3b8",
+                strokeWidth=1,
+                cornerRadius=10,
+            )
+            .encode(
+                x=alt.value(0),
+                x2=alt.value(400),
+                y=alt.value(0),
+                y2=alt.value(110),
+            )
+        )
+        detail_subject = (
+            detail_chart
+            .mark_text(
+                align="left",
+                baseline="top",
+                dx=16,
+                dy=16,
+                fontSize=14,
+                fontWeight="bold",
+                color="#1f2937",
+            )
+            .encode(text="subject_full:N")
+        )
+        detail_excerpt = (
+            detail_chart
+            .mark_text(
+                align="left",
+                baseline="top",
+                dx=16,
+                dy=46,
+                fontSize=12,
+                color="#374151",
+            )
+            .encode(text="body_excerpt:N")
+        )
+        detail_reason = (
+            detail_chart
+            .mark_text(
+                align="left",
+                baseline="top",
+                dx=16,
+                dy=78,
+                fontSize=11,
+                color="#1d4ed8",
+            )
+            .encode(text="reason:N")
+        )
+
+        detail_layer = alt.layer(
+            detail_bg, detail_subject, detail_excerpt, detail_reason
+        ).properties(height=110)
+    else:
+        detail_layer = (
+            alt.Chart(pd.DataFrame({"x": []}))
+            .mark_text()
+            .encode(text=alt.value(""))
+            .properties(height=0)
+        )
 
     return alt.vconcat(scatter_layer, detail_layer, spacing=12).configure_view(strokeWidth=0)
 
