@@ -500,23 +500,247 @@ def _sample_indices_by_label(labels: List[str], limit: int) -> List[int]:
     return sorted(sampled)
 
 
-def _reduce_embeddings_to_2d(embeddings: np.ndarray) -> np.ndarray:
+def _reduce_embeddings_to_2d(embeddings: np.ndarray) -> tuple[np.ndarray, Dict[str, Any]]:
     if embeddings.ndim != 2 or embeddings.shape[1] <= 2:
-        return embeddings[:, :2] if embeddings.ndim == 2 else np.empty((0, 2))
+        coords = embeddings[:, :2] if embeddings.ndim == 2 else np.empty((0, 2))
+        return coords, {"kind": "raw"}
 
     try:
         import umap  # type: ignore
 
         reducer = umap.UMAP(n_components=2, random_state=42, metric="cosine")
-        return reducer.fit_transform(embeddings)
+        coords = reducer.fit_transform(embeddings)
+        return coords, {"kind": "umap"}
     except Exception:
         pass
 
     try:
         reducer = PCA(n_components=2, random_state=42)
-        return reducer.fit_transform(embeddings)
+        coords = reducer.fit_transform(embeddings)
+        return coords, {
+            "kind": "pca",
+            "components": getattr(reducer, "components_", None),
+            "mean": getattr(reducer, "mean_", None),
+        }
     except Exception:
-        return np.empty((0, 2))
+        return np.empty((0, 2)), {"kind": "failed"}
+
+
+def _line_box_intersections(
+    bounds: Tuple[float, float, float, float],
+    weight: np.ndarray,
+    intercept: float,
+) -> List[Tuple[float, float]]:
+    x_min, x_max, y_min, y_max = bounds
+    w_x, w_y = weight
+    points: List[Tuple[float, float]] = []
+    tol = 1e-9
+
+    if abs(w_y) > tol:
+        for x in (x_min, x_max):
+            y = -(w_x * x + intercept) / w_y
+            if y_min - 1e-6 <= y <= y_max + 1e-6:
+                points.append((float(x), float(y)))
+
+    if abs(w_x) > tol:
+        for y in (y_min, y_max):
+            x = -(w_y * y + intercept) / w_x
+            if x_min - 1e-6 <= x <= x_max + 1e-6:
+                points.append((float(x), float(y)))
+
+    # Deduplicate points (within tolerance)
+    unique: List[Tuple[float, float]] = []
+    for x, y in points:
+        if not any(abs(x - ux) < 1e-6 and abs(y - uy) < 1e-6 for ux, uy in unique):
+            unique.append((x, y))
+
+    if len(unique) >= 2:
+        # Sort for stable plotting
+        unique.sort(key=lambda item: (item[0], item[1]))
+        return unique[:2]
+
+    # Fallback: use center with perpendicular direction
+    cx = (x_min + x_max) / 2.0
+    cy = (y_min + y_max) / 2.0
+    perp = np.array([-w_y, w_x], dtype=float)
+    norm = np.linalg.norm(perp)
+    if norm < tol:
+        perp = np.array([1.0, 0.0])
+        norm = 1.0
+    perp /= norm
+    span = max(x_max - x_min, y_max - y_min) or 1.0
+    half = span / 2.0
+    return [
+        (float(cx - perp[0] * half), float(cy - perp[1] * half)),
+        (float(cx + perp[0] * half), float(cy + perp[1] * half)),
+    ]
+
+
+def _clip_polygon_with_halfplane(
+    polygon: List[Tuple[float, float]],
+    weight: np.ndarray,
+    intercept: float,
+    threshold: float,
+    keep_leq: bool,
+) -> List[Tuple[float, float]]:
+    if not polygon:
+        return []
+
+    def eval_point(pt: Tuple[float, float]) -> float:
+        return float(np.dot(weight, pt) + intercept - threshold)
+
+    output: List[Tuple[float, float]] = []
+    prev = polygon[-1]
+    prev_val = eval_point(prev)
+    prev_inside = prev_val <= 0 if keep_leq else prev_val >= 0
+
+    for curr in polygon:
+        curr_val = eval_point(curr)
+        curr_inside = curr_val <= 0 if keep_leq else curr_val >= 0
+
+        if curr_inside:
+            if not prev_inside:
+                denom = curr_val - prev_val
+                if abs(denom) > 1e-9:
+                    ratio = prev_val / (prev_val - curr_val)
+                    ix = prev[0] + (curr[0] - prev[0]) * ratio
+                    iy = prev[1] + (curr[1] - prev[1]) * ratio
+                    output.append((float(ix), float(iy)))
+            output.append((float(curr[0]), float(curr[1])))
+        elif prev_inside:
+            denom = curr_val - prev_val
+            if abs(denom) > 1e-9:
+                ratio = prev_val / (prev_val - curr_val)
+                ix = prev[0] + (curr[0] - prev[0]) * ratio
+                iy = prev[1] + (curr[1] - prev[1]) * ratio
+                output.append((float(ix), float(iy)))
+
+        prev = curr
+        prev_val = curr_val
+        prev_inside = curr_inside
+
+    return output
+
+
+def _compute_decision_boundary_overlay(
+    coords: np.ndarray,
+    logits: np.ndarray,
+    model: Any,
+    projection_meta: Dict[str, Any],
+    probability_margin: float = 0.1,
+) -> Optional[Dict[str, Any]]:
+    if coords.size == 0 or logits.size == 0:
+        return None
+
+    try:
+        weight_full = None
+        intercept_full = None
+        lr_text = getattr(model, "lr_text_base", None)
+        if lr_text is not None and hasattr(lr_text, "coef_"):
+            coef = np.asarray(lr_text.coef_, dtype=float)
+            if coef.ndim == 2:
+                coef = coef.reshape(-1)
+            if coef.size >= coords.shape[1]:
+                weight_full = coef
+                intercept_arr = np.asarray(getattr(lr_text, "intercept_", [0.0]), dtype=float)
+                intercept_full = float(intercept_arr.reshape(-1)[0])
+    except Exception:
+        weight_full = None
+        intercept_full = None
+
+    weight_2d: Optional[np.ndarray] = None
+    intercept_2d: Optional[float] = None
+    projection_kind = (projection_meta or {}).get("kind") if projection_meta else None
+
+    if weight_full is not None and intercept_full is not None:
+        if projection_kind == "pca":
+            components = projection_meta.get("components") if projection_meta else None
+            mean_vec = projection_meta.get("mean") if projection_meta else None
+            if components is not None and mean_vec is not None:
+                components_arr = np.asarray(components, dtype=float)
+                mean_arr = np.asarray(mean_vec, dtype=float)
+                if components_arr.shape[0] >= 2 and components_arr.shape[1] == weight_full.shape[0]:
+                    weight_2d = components_arr @ weight_full
+                    intercept_2d = float(intercept_full + float(weight_full @ mean_arr))
+        elif projection_kind == "raw":
+            weight_2d = np.asarray(weight_full[:2], dtype=float)
+            intercept_2d = float(intercept_full)
+
+    if weight_2d is None or intercept_2d is None:
+        # Approximate using least squares in the 2D space
+        A = np.column_stack([coords, np.ones(coords.shape[0])])
+        try:
+            sol, *_ = np.linalg.lstsq(A, logits, rcond=None)
+            weight_2d = np.asarray(sol[:2], dtype=float)
+            intercept_2d = float(sol[2])
+        except Exception:
+            return None
+
+    if weight_2d is None:
+        return None
+
+    norm = float(np.linalg.norm(weight_2d))
+    if not math.isfinite(norm) or norm < 1e-9:
+        return None
+
+    x_min, x_max = float(coords[:, 0].min()), float(coords[:, 0].max())
+    y_min, y_max = float(coords[:, 1].min()), float(coords[:, 1].max())
+    span = max(x_max - x_min, y_max - y_min)
+    pad = span * 0.08 if span > 0 else 1.0
+    bounds = (x_min - pad, x_max + pad, y_min - pad, y_max + pad)
+
+    line_points = _line_box_intersections(bounds, weight_2d, intercept_2d)
+
+    corner_polygon = [
+        (bounds[0], bounds[2]),
+        (bounds[1], bounds[2]),
+        (bounds[1], bounds[3]),
+        (bounds[0], bounds[3]),
+    ]
+
+    spam_polygon = _clip_polygon_with_halfplane(
+        corner_polygon, weight_2d, intercept_2d, 0.0, keep_leq=False
+    )
+    safe_polygon = _clip_polygon_with_halfplane(
+        corner_polygon, weight_2d, intercept_2d, 0.0, keep_leq=True
+    )
+
+    prob_margin = max(1e-6, min(0.49, float(probability_margin)))
+    logit_margin = math.log((0.5 + prob_margin) / (0.5 - prob_margin))
+    margin_distance = logit_margin / norm
+
+    band_polygon = _clip_polygon_with_halfplane(
+        corner_polygon, weight_2d, intercept_2d, logit_margin, keep_leq=True
+    )
+    band_polygon = _clip_polygon_with_halfplane(
+        band_polygon, weight_2d, intercept_2d, -logit_margin, keep_leq=False
+    )
+
+    line_df = pd.DataFrame(line_points, columns=["x", "y"])
+
+    shading_rows: List[Dict[str, Any]] = []
+    for side, polygon in ("spam", spam_polygon), ("safe", safe_polygon):
+        for order, (x, y) in enumerate(polygon):
+            shading_rows.append({"side": side, "order": order, "x": x, "y": y})
+    shading_df = pd.DataFrame(shading_rows)
+
+    band_rows: List[Dict[str, Any]] = []
+    for order, (x, y) in enumerate(band_polygon):
+        band_rows.append({"order": order, "x": x, "y": y})
+    band_df = pd.DataFrame(band_rows)
+
+    return {
+        "weight": weight_2d,
+        "intercept": intercept_2d,
+        "norm": norm,
+        "line_df": line_df,
+        "shading_df": shading_df,
+        "band_df": band_df,
+        "margin_probability": prob_margin,
+        "margin_logit": logit_margin,
+        "margin_distance": margin_distance,
+        "bounds": bounds,
+    }
 
 
 def _prepare_meaning_map(
@@ -560,7 +784,7 @@ def _prepare_meaning_map(
     if getattr(embeddings, "size", 0) == 0:
         return None, {"error": "Meaning Map unavailable (embeddings missing)."}
 
-    coords = _reduce_embeddings_to_2d(np.asarray(embeddings, dtype=np.float32))
+    coords, projection_meta = _reduce_embeddings_to_2d(np.asarray(embeddings, dtype=np.float32))
     if coords.shape[0] != len(sampled_rows):
         return None, {"error": "Meaning Map unavailable (projection failed)."}
 
@@ -621,6 +845,91 @@ def _prepare_meaning_map(
         }
         break
 
+    boundary_info: Dict[str, Any] | None = None
+    logits: Optional[np.ndarray] = None
+    probs: Optional[np.ndarray] = None
+    if model is not None:
+        try:
+            logits_raw = model.predict_logit(sampled_texts)
+            logits = np.asarray(logits_raw, dtype=float).reshape(-1)
+        except Exception:
+            logits = None
+
+        if logits is None:
+            try:
+                probs_raw = model.predict_proba(sampled_titles, sampled_bodies)
+                probs_raw = np.asarray(probs_raw, dtype=float)
+                if probs_raw.ndim == 2 and probs_raw.shape[1] >= 2:
+                    probs = probs_raw[:, getattr(model, "_i_spam", -1)]
+                elif probs_raw.ndim == 2 and probs_raw.shape[1] == 1:
+                    probs = probs_raw[:, 0]
+                else:
+                    probs = None
+            except Exception:
+                probs = None
+            if probs is not None:
+                probs = np.clip(probs, 1e-6, 1 - 1e-6)
+                logits = np.log(probs / (1 - probs))
+
+        if logits is not None and logits.shape[0] == coords.shape[0]:
+            probs = 1.0 / (1.0 + np.exp(-logits))
+            df["spam_probability"] = probs
+            df["logit"] = logits
+            try:
+                predicted = model.predict(sampled_titles, sampled_bodies)
+                if isinstance(predicted, np.ndarray):
+                    predicted = predicted.tolist()
+            except Exception:
+                predicted = None
+            if isinstance(predicted, Iterable) and len(predicted) == len(sampled_rows):
+                df["predicted_label"] = list(predicted)
+            else:
+                df["predicted_label"] = ["spam" if val >= 0 else "safe" for val in logits]
+
+            boundary_info = _compute_decision_boundary_overlay(
+                coords,
+                logits,
+                model,
+                projection_meta,
+            )
+            if boundary_info:
+                norm_val = float(boundary_info.get("norm", 0.0) or 0.0)
+                if norm_val > 0 and np.all(np.isfinite(logits)):
+                    distances = logits / norm_val
+                    df["distance_to_line"] = distances
+                    df["distance_abs"] = np.abs(distances)
+                else:
+                    df["distance_to_line"] = np.nan
+                    df["distance_abs"] = np.nan
+                logit_margin = float(boundary_info.get("margin_logit", 0.0) or 0.0)
+                if np.all(np.isfinite(logits)):
+                    df["borderline"] = np.abs(logits) <= logit_margin
+                else:
+                    df["borderline"] = False
+        if "distance_to_line" not in df:
+            df["distance_to_line"] = np.nan
+        if "distance_abs" not in df:
+            df["distance_abs"] = np.nan
+        if "borderline" not in df:
+            df["borderline"] = False
+    if "predicted_label" not in df:
+        df["predicted_label"] = df["label"].tolist()
+    df["predicted_label_title"] = [str(lbl).title() for lbl in df["predicted_label"]]
+
+    if "spam_probability" not in df:
+        df["spam_probability"] = np.nan
+    if "logit" not in df:
+        df["logit"] = np.nan
+    if "distance_abs" not in df:
+        df["distance_abs"] = np.nan
+    if "borderline" not in df:
+        df["borderline"] = False
+
+    df["distance_display"] = [
+        f"{abs(val):.2f}" if isinstance(val, (int, float)) and math.isfinite(val) else "–"
+        for val in df["distance_to_line"]
+    ]
+
     meta = {
         "class_counts": class_counts,
         "centroids": centroid_df,
@@ -629,6 +938,8 @@ def _prepare_meaning_map(
         "total": len(rows),
         "shown": len(sampled_rows),
         "sampled": len(sampled_rows) < len(rows),
+        "projection": projection_meta,
+        "boundary": boundary_info,
     }
 
     return df, meta
@@ -641,6 +952,7 @@ def _build_meaning_map_chart(
     *,
     show_examples: bool,
     show_class_centers: bool,
+    highlight_borderline: bool = False,
 ) -> alt.VConcatChart:
     color_scale = alt.Scale(domain=["spam", "safe"], range=["#ef4444", "#3b82f6"])
     hover = alt.selection_point(fields=["plot_index"], on="mouseover", empty="none")
@@ -659,7 +971,10 @@ def _build_meaning_map_chart(
         color=alt.Color("label:N", scale=color_scale, legend=None),
         tooltip=[
             alt.Tooltip("subject_tooltip:N", title="Subject"),
-            alt.Tooltip("label_title:N", title="Label"),
+            alt.Tooltip("label_title:N", title="True label"),
+            alt.Tooltip("predicted_label_title:N", title="Model prediction"),
+            alt.Tooltip("spam_probability:Q", title="Spam probability", format=".2f"),
+            alt.Tooltip("distance_display:N", title="Distance to line"),
         ],
         opacity=alt.condition(select | hover, alt.value(0.95), alt.value(0.45)),
         stroke=alt.condition(select | hover, alt.value("#ffffff"), alt.value("rgba(0,0,0,0)")),
@@ -667,6 +982,63 @@ def _build_meaning_map_chart(
     ).add_params(hover, select)
 
     layers = [scatter]
+
+    boundary = meta.get("boundary") if isinstance(meta, dict) else None
+    if isinstance(boundary, dict):
+        shading_df = boundary.get("shading_df")
+        if isinstance(shading_df, pd.DataFrame) and not shading_df.empty:
+            shading_layer = (
+                alt.Chart(shading_df)
+                .mark_polygon(opacity=0.18)
+                .encode(
+                    x="x:Q",
+                    y="y:Q",
+                    order="order:O",
+                    color=alt.Color(
+                        "side:N",
+                        scale=alt.Scale(
+                            domain=["spam", "safe"],
+                            range=["#fee2e2", "#dbeafe"],
+                        ),
+                        legend=None,
+                    ),
+                )
+            )
+            layers.insert(0, shading_layer)
+
+        band_df = boundary.get("band_df")
+        if isinstance(band_df, pd.DataFrame) and not band_df.empty:
+            band_layer = (
+                alt.Chart(band_df)
+                .mark_polygon(color="#f97316", opacity=0.18)
+                .encode(x="x:Q", y="y:Q", order="order:O")
+            )
+            layers.append(band_layer)
+
+        line_df = boundary.get("line_df")
+        if isinstance(line_df, pd.DataFrame) and not line_df.empty:
+            line_layer = (
+                alt.Chart(line_df)
+                .mark_line(color="#1f2937", strokeWidth=2)
+                .encode(x="x:Q", y="y:Q")
+            )
+            layers.append(line_layer)
+
+    if highlight_borderline:
+        borderline_df = df[df["borderline"] == True]  # noqa: E712
+        if not borderline_df.empty:
+            border_layer = (
+                alt.Chart(borderline_df)
+                .mark_circle(
+                    size=230,
+                    fillOpacity=0.0,
+                    stroke="#1f2937",
+                    strokeDash=[4, 3],
+                    strokeWidth=2,
+                )
+                .encode(x="x:Q", y="y:Q")
+            )
+            layers.append(border_layer)
 
     if show_examples and isinstance(meta.get("pair"), dict):
         pair = meta.get("pair") or {}
@@ -5125,7 +5497,7 @@ def render_train_stage():
                         "- If dots overlap, the emails are look-alikes—that’s where mistakes are more likely."
                     )
 
-                    toggles_col1, toggles_col2 = st.columns(2)
+                    toggles_col1, toggles_col2, toggles_col3 = st.columns(3)
                     show_examples = toggles_col1.checkbox(
                         "Show examples",
                         value=bool(ss.get("meaning_map_show_examples", False)),
@@ -5137,6 +5509,12 @@ def render_train_stage():
                         value=bool(ss.get("meaning_map_show_centers", False)),
                         help="Plot the average spam vs safe position to show how far apart the styles sit.",
                         key="meaning_map_show_centers",
+                    )
+                    highlight_borderline = toggles_col3.checkbox(
+                        "Highlight borderline emails",
+                        value=bool(ss.get("meaning_map_highlight_borderline", False)),
+                        help="Circle dots where the spam probability sits within ±0.10 of the dividing line.",
+                        key="meaning_map_highlight_borderline",
                     )
 
                     if st.button(
@@ -5152,9 +5530,12 @@ def render_train_stage():
                         meaning_map_meta,
                         show_examples=show_examples,
                         show_class_centers=show_centers,
+                        highlight_borderline=highlight_borderline,
                     )
                     st.altair_chart(chart, use_container_width=True)
-                    st.caption("Nearby dots use similar wording. Red = Spam, Blue = Safe.")
+                    st.caption(
+                        "Line shows where the model splits Spam vs Safe. Emails close to the line are hardest to judge."
+                    )
 
                     class_counts_shown = meaning_map_meta.get("class_counts", {})
                     st.caption(
@@ -5187,10 +5568,15 @@ def render_train_stage():
                                 f"• {subjects[1]}"
                             )
 
+                    st.markdown("##### The Model’s Dividing Line")
                     st.markdown(
-                        "How to read this: Clusters of red spam emails reveal common spam styles (e.g., giveaways, urgent finance). "
-                        "Blue safe emails group around everyday work phrases. If you see lots of overlap, expect trickier decisions—"
-                        "add clearer examples in “Prepare data” or let numeric guardrails help for borderline cases."
+                        "The AI draws a simple straight line to separate Spam from Safe.\n"
+                        "- Dots on the red side are predicted as spam.\n"
+                        "- Dots on the blue side are predicted as safe.\n"
+                        "- Emails close to the line are “borderline cases” — the trickiest to get right."
+                    )
+                    st.caption(
+                        "How to read this: The straight line is the model’s “rule of thumb.” Emails far from the line are classified with confidence; emails near the line are uncertain and need more or clearer training examples."
                     )
 
                 # 2) & 3) remain below
