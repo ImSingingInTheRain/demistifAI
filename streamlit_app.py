@@ -1071,58 +1071,58 @@ def _conceptual_meaning_sketch():
     cards = pd.DataFrame(
         [
             {
-                "label": "Meeting emails",
-                "details": "agenda, follow-ups",
-                "tone": "Safe-like",
+                "label": "Marketing blasts",
+                "details": "promos & offers",
+                "tone": "Spam-like",
                 "x1": -3.0,
-                "x2": -1.4,
-                "y1": -2.6,
-                "y2": -1.4,
+                "x2": -1.6,
+                "y1": -2.8,
+                "y2": -1.6,
             },
             {
-                "label": "Project updates",
-                "details": "status summaries",
-                "tone": "Safe-like",
-                "x1": -2.6,
-                "x2": -1.0,
-                "y1": -0.8,
-                "y2": 0.4,
+                "label": "Phishy invoices",
+                "details": "urgent payment",
+                "tone": "Spam-like",
+                "x1": -2.4,
+                "x2": -0.8,
+                "y1": -1.8,
+                "y2": -0.6,
             },
             {
                 "label": "Courier tracking",
                 "details": "delivery notices",
                 "tone": "Borderline",
-                "x1": -0.8,
+                "x1": -0.6,
                 "x2": 0.8,
-                "y1": -0.6,
+                "y1": -0.4,
                 "y2": 0.8,
             },
             {
                 "label": "Account alerts",
                 "details": "password/security",
                 "tone": "Borderline",
-                "x1": 0.4,
-                "x2": 1.8,
-                "y1": -1.6,
-                "y2": -0.4,
+                "x1": 0.2,
+                "x2": 1.6,
+                "y1": -1.4,
+                "y2": -0.2,
             },
             {
-                "label": "Marketing blasts",
-                "details": "promos & offers",
-                "tone": "Spam-like",
+                "label": "Project updates",
+                "details": "status summaries",
+                "tone": "Safe-like",
                 "x1": 1.2,
-                "x2": 3.0,
-                "y1": 1.0,
-                "y2": 2.4,
+                "x2": 2.6,
+                "y1": 0.6,
+                "y2": 1.8,
             },
             {
-                "label": "Phishy invoices",
-                "details": "urgent payment",
-                "tone": "Spam-like",
-                "x1": 0.8,
-                "x2": 2.4,
-                "y1": 2.0,
-                "y2": 3.0,
+                "label": "Meeting emails",
+                "details": "agenda, follow-ups",
+                "tone": "Safe-like",
+                "x1": 1.8,
+                "x2": 3.0,
+                "y1": 1.6,
+                "y2": 2.8,
             },
         ]
     )
@@ -1133,10 +1133,65 @@ def _conceptual_meaning_sketch():
         alt.Chart(pd.DataFrame({"x": domain, "y": domain}))
         .mark_point(opacity=0)
         .encode(
-            x=alt.X("x:Q", scale=alt.Scale(domain=domain), title="Meaning dimension 1"),
-            y=alt.Y("y:Q", scale=alt.Scale(domain=domain), title="Meaning dimension 2"),
+            x=alt.X(
+                "x:Q",
+                scale=alt.Scale(domain=domain, nice=False),
+                title="Meaning dimension 1",
+                axis=alt.Axis(labelFontSize=12, titleFontSize=13, labelColor="#1f2937"),
+            ),
+            y=alt.Y(
+                "y:Q",
+                scale=alt.Scale(domain=domain, nice=False),
+                title="Meaning dimension 2",
+                axis=alt.Axis(labelFontSize=12, titleFontSize=13, labelColor="#1f2937"),
+            ),
         )
         .properties(height=360)
+    )
+
+    background = alt.Chart(
+        pd.DataFrame(
+            [
+                {"x1": domain[0], "x2": 0, "y1": domain[0], "y2": 0, "shade": "spam"},
+                {"x1": 0, "x2": domain[1], "y1": 0, "y2": domain[1], "shade": "safe"},
+                {"x1": domain[0], "x2": 0, "y1": 0, "y2": domain[1], "shade": "mixed"},
+                {"x1": 0, "x2": domain[1], "y1": domain[0], "y2": 0, "shade": "mixed"},
+            ]
+        )
+    ).mark_rect(opacity=0.22).encode(
+        x=alt.X("x1:Q", scale=alt.Scale(domain=domain)),
+        x2="x2:Q",
+        y=alt.Y("y1:Q", scale=alt.Scale(domain=domain)),
+        y2="y2:Q",
+        color=alt.Color(
+            "shade:N",
+            scale=alt.Scale(
+                domain=["safe", "mixed", "spam"],
+                range=["#e0f2fe", "#fef3c7", "#fee2e2"],
+            ),
+            legend=None,
+        ),
+    )
+
+    guard_band = alt.Chart(
+        pd.DataFrame(
+            [
+                {
+                    "x1": -0.5,
+                    "x2": 0.5,
+                    "y1": domain[0],
+                    "y2": domain[1],
+                }
+            ]
+        )
+    ).mark_rect(
+        color="#fde68a",
+        opacity=0.18,
+    ).encode(
+        x=alt.X("x1:Q", scale=alt.Scale(domain=domain)),
+        x2="x2:Q",
+        y=alt.Y("y1:Q", scale=alt.Scale(domain=domain)),
+        y2="y2:Q",
     )
 
     tone_scale = alt.Scale(
@@ -1146,7 +1201,12 @@ def _conceptual_meaning_sketch():
 
     card_rects = (
         alt.Chart(cards)
-        .mark_rect(stroke="#1f2937", strokeWidth=1, opacity=0.85)
+        .mark_rect(
+            stroke="#1e293b",
+            strokeWidth=1.5,
+            cornerRadius=26,
+            opacity=0.92,
+        )
         .encode(
             x=alt.X("x1:Q", scale=alt.Scale(domain=domain)),
             x2="x2:Q",
@@ -1163,30 +1223,42 @@ def _conceptual_meaning_sketch():
 
     card_titles = (
         alt.Chart(cards)
-        .mark_text(fontSize=14, fontWeight=600, color="#0f172a")
+        .mark_text(fontSize=12, fontWeight=700, color="#0f172a", dy=-6)
         .encode(x="xc:Q", y="yc:Q", text="label:N")
     )
 
     card_details = (
         alt.Chart(cards)
-        .mark_text(fontSize=11, color="#334155", baseline="top", dy=14)
+        .mark_text(
+            fontSize=10,
+            color="#475569",
+            baseline="top",
+            dy=10,
+            lineHeight=14,
+        )
         .encode(x="xc:Q", y="yc:Q", text="details:N")
     )
 
     crosshair = (
         alt.Chart(pd.DataFrame({"x": [0], "y": [0]}))
-        .mark_rule(color="#94a3b8", strokeDash=[4, 4])
+        .mark_rule(color="#64748b", strokeDash=[6, 4], strokeWidth=1.5)
         .encode(x="x:Q")
         + alt.Chart(pd.DataFrame({"x": [0], "y": [0]}))
-        .mark_rule(color="#94a3b8", strokeDash=[4, 4])
+        .mark_rule(color="#64748b", strokeDash=[6, 4], strokeWidth=1.5)
         .encode(y="y:Q")
     )
 
+    frame = alt.Chart(
+        pd.DataFrame({"x1": [domain[0]], "x2": [domain[1]], "y1": [domain[0]], "y2": [domain[1]]})
+    ).mark_rect(fillOpacity=0, stroke="#1d4ed8", strokeWidth=1.5, cornerRadius=22)
+    
+
     chart = (
-        (base + card_rects + card_titles + card_details + crosshair)
+        (background + guard_band + base + card_rects + card_titles + card_details + crosshair + frame)
         .properties(title="Conceptual meaning map (before training)")
-        .configure_axis(labelColor="#334155", titleColor="#0f172a")
+        .configure_axis(labelColor="#334155", titleColor="#0f172a", gridColor="#e2e8f0", gridDash=[2, 3])
         .configure_legend(labelColor="#334155", title=None)
+        .configure_title(color="#0f172a", fontSize=16, anchor="start", subtitleColor="#475569")
         .configure_view(strokeOpacity=0)
     )
     return chart
