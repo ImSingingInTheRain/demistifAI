@@ -1562,7 +1562,9 @@ def _build_meaning_map_chart(
         "reason",
     ]
     available_detail_cols = [col for col in detail_columns if col in df.columns]
-    if available_detail_cols and combined_selection is not None:
+    detail_selection = select if select is not None else combined_selection
+
+    if available_detail_cols and detail_selection is not None:
         detail_df = df[["plot_index", *available_detail_cols]].copy()
         detail_df.rename(
             columns={
@@ -1582,31 +1584,32 @@ def _build_meaning_map_chart(
             .encode(
                 y=alt.Y("plot_index:O", title=""),
                 color=alt.Color("plot_index:N", legend=None),
-                opacity=alt.condition(combined_selection, alt.value(0.18), alt.value(0.02)),
+                opacity=alt.condition(detail_selection, alt.value(0.18), alt.value(0.02)),
             )
-            .transform_filter(combined_selection)
+            .transform_filter(detail_selection)
         )
         detail_subject = (
             alt.Chart(detail_df)
             .mark_text(align="left", dx=4, fontWeight=600, fontSize=12)
             .encode(y="plot_index:O", text="Subject:N")
-            .transform_filter(combined_selection)
+            .transform_filter(detail_selection)
         )
         detail_excerpt = (
             alt.Chart(detail_df)
             .mark_text(align="left", dx=4, dy=16, fontSize=11, color="#475569")
             .encode(text="Signals:N")
-            .transform_filter(combined_selection)
+            .transform_filter(detail_selection)
         )
         detail_reason = (
             alt.Chart(detail_df)
             .mark_text(align="left", dx=4, dy=32, fontSize=11, color="#1f2937")
             .encode(text="Distance to line:N")
-            .transform_filter(combined_selection)
+            .transform_filter(detail_selection)
         )
         detail_chart = alt.layer(
             detail_bg, detail_subject, detail_excerpt, detail_reason
         ).properties(height=180)
+        detail_chart = _chart_add_params(detail_chart, detail_selection)
     else:
         detail_chart = None
 
