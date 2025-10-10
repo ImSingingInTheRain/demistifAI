@@ -1344,6 +1344,36 @@ def _build_meaning_map_chart(
     select = _make_selection_point(["plot_index"], on="click", empty="none")
     combined_selection = _combine_selections(select, hover)
 
+    x_series = df["x"].replace([np.inf, -np.inf], np.nan).dropna()
+    y_series = df["y"].replace([np.inf, -np.inf], np.nan).dropna()
+
+    def _dimension_scale(series: pd.Series) -> alt.Scale:
+        if series.empty:
+            return alt.Scale(zero=False)
+        min_val = float(series.min())
+        max_val = float(series.max())
+        span = max_val - min_val
+        padding = max(0.35, span * 0.12) if math.isfinite(span) else 0.35
+        domain = [min_val - padding, max_val + padding]
+        return alt.Scale(domain=domain, nice=False, zero=False)
+
+    x_scale = _dimension_scale(x_series)
+    y_scale = _dimension_scale(y_series)
+
+    axis_kwargs = dict(
+        labelColor="#475569",
+        labelFontSize=11,
+        titleColor="#0f172a",
+        titleFontSize=12,
+        tickCount=5,
+        ticks=False,
+        domain=False,
+        grid=True,
+        gridColor="#e2e8f0",
+        gridDash=[3, 5],
+        gridOpacity=0.55,
+    )
+
     base = alt.Chart(df)
     tooltip_fields: List[Any] = []
     if "subject_tooltip" in df.columns:
@@ -1360,11 +1390,13 @@ def _build_meaning_map_chart(
     scatter = base.mark_circle(size=80).encode(
         x=alt.X(
             "x:Q",
-            axis=alt.Axis(title="Meaning dimension 1", grid=False, ticks=False, labels=False),
+            axis=alt.Axis(title="Meaning dimension 1", **axis_kwargs),
+            scale=x_scale,
         ),
         y=alt.Y(
             "y:Q",
-            axis=alt.Axis(title="Meaning dimension 2", grid=False, ticks=False, labels=False),
+            axis=alt.Axis(title="Meaning dimension 2", **axis_kwargs),
+            scale=y_scale,
         ),
         color=alt.Color("label:N", scale=color_scale, legend=None),
         tooltip=tooltip_fields,
@@ -1387,7 +1419,16 @@ def _build_meaning_map_chart(
     )
     scatter = _chart_add_params(scatter, hover, select)
 
-    layers = [scatter]
+    halo = base.mark_circle(size=420, opacity=0.12).encode(
+        x="x:Q",
+        y="y:Q",
+        color=alt.Color(
+            "label:N",
+            scale=alt.Scale(domain=["spam", "safe"], range=["#fecaca", "#bfdbfe"]),
+            legend=None,
+        ),
+    )
+    layers = [halo, scatter]
 
     boundary = meta.get("boundary") if isinstance(meta, dict) else None
     if isinstance(boundary, dict):
@@ -1397,9 +1438,9 @@ def _build_meaning_map_chart(
                 alt.Chart(shading_df)
                 .mark_line(
                     filled=True,
-                    opacity=0.18,
+                    opacity=0.22,
                     strokeOpacity=0,
-                    fillOpacity=0.18,
+                    fillOpacity=0.22,
                 )
                 .encode(
                     x="x:Q",
@@ -1410,6 +1451,36 @@ def _build_meaning_map_chart(
             )
             layers.append(shading_layer)
 
+            try:
+                label_positions = []
+                for label, group in shading_df.groupby("label"):
+                    if group.empty:
+                        continue
+                    label_positions.append(
+                        {
+                            "label": label,
+                            "label_display": "Spam-leaning zone"
+                            if str(label).lower() == "spam"
+                            else ("Safe-leaning zone" if str(label).lower() == "safe" else str(label)),
+                            "x": float(np.nanmean(group["x"])),
+                            "y": float(np.nanmean(group["y"])),
+                        }
+                    )
+            except Exception:
+                label_positions = []
+
+            if label_positions:
+                label_layer = (
+                    alt.Chart(pd.DataFrame(label_positions))
+                    .mark_text(fontSize=12, fontWeight=600, opacity=0.82, color="#0f172a", dy=-6)
+                    .encode(
+                        x="x:Q",
+                        y="y:Q",
+                        text="label_display:N",
+                    )
+                )
+                layers.append(label_layer)
+
         band_df = boundary.get("band_df")
         if isinstance(band_df, pd.DataFrame) and not band_df.empty:
             band_layer = (
@@ -1417,9 +1488,9 @@ def _build_meaning_map_chart(
                 .mark_line(
                     filled=True,
                     color="#facc15",
-                    opacity=0.18,
+                    opacity=0.24,
                     strokeOpacity=0,
-                    fillOpacity=0.18,
+                    fillOpacity=0.24,
                 )
                 .encode(x="x:Q", y="y:Q", order="order:O", fill=alt.value("#facc15"))
             )
@@ -1429,7 +1500,7 @@ def _build_meaning_map_chart(
         if isinstance(line_df, pd.DataFrame) and not line_df.empty:
             line_layer = (
                 alt.Chart(line_df)
-                .mark_line(color="#1f2937", strokeWidth=2)
+                .mark_line(color="#1f2937", strokeWidth=2.6, strokeDash=[8, 6])
                 .encode(x="x:Q", y="y:Q")
             )
             layers.append(line_layer)
