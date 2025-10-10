@@ -87,6 +87,7 @@ from demistifai.modeling import (
     compute_numeric_features,
     df_confusion,
     encode_texts,
+    embedding_backend_info,
     extract_urls,
     _counts,
     features_matrix,
@@ -1153,6 +1154,7 @@ def _prepare_meaning_map(
         "sampled": len(sampled_rows) < len(rows),
         "projection": projection_meta,
         "boundary": boundary_info,
+        "embedding_backend": embedding_backend_info(),
     }
 
     return df, meta
@@ -5830,6 +5832,18 @@ def render_train_stage():
                         "- Try hovering some dots: “Win a free iPhone!” and “Claim your prize now!” sit near each other, while “Project meeting agenda” lives far away.\n"
                         "- If dots overlap, the emails are look-alikes—that’s where mistakes are more likely."
                     )
+
+                    backend_info = meaning_map_meta.get("embedding_backend", {})
+                    if backend_info.get("kind") == "hashing-vectorizer":
+                        error_hint = backend_info.get("error")
+                        details = (
+                            f" (reason: {error_hint})" if error_hint else ""
+                        )
+                        st.info(
+                            "Using a lightweight hashed embedding fallback because the MiniLM "
+                            f"model isn't available{details}. Meaning Map still works, but "
+                            "cluster shapes are approximate."
+                        )
 
                     toggles_col1, toggles_col2, toggles_col3 = st.columns(3)
                     show_examples = toggles_col1.checkbox(

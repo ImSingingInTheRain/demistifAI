@@ -10,7 +10,13 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import streamlit as st
-from sentence_transformers import SentenceTransformer
+from sklearn.feature_extraction.text import HashingVectorizer
+try:  # sentence-transformers is optional at runtime
+    from sentence_transformers import SentenceTransformer
+    _SENTENCE_TRANSFORMERS_AVAILABLE = True
+except Exception:  # pragma: no cover - optional dependency safeguard
+    SentenceTransformer = None  # type: ignore
+    _SENTENCE_TRANSFORMERS_AVAILABLE = False
 from sklearn.calibration import CalibratedClassifierCV, FrozenEstimator
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import confusion_matrix, precision_recall_fscore_support
@@ -53,6 +59,7 @@ __all__ = [
     "features_matrix",
     "HybridEmbedFeatsLogReg",
     "PlattProbabilityCalibrator",
+    "embedding_backend_info",
 ]
 
 
@@ -287,18 +294,83 @@ def model_kind_string(model_obj: Any) -> str:
     except Exception:
         return name
 
+_HASHING_ENCODER = HashingVectorizer(
+    n_features=512,
+    alternate_sign=False,
+    norm="l2",
+)
+
+
+_EMBEDDING_BACKEND_STATE: dict[str, str | None] = {"kind": "uninitialized", "error": None}
+_SENTENCE_ENCODER_ERROR: str | None = None
+_SENTENCE_ENCODER_ENABLED = True
+
+
+def _record_embedding_backend(kind: str, error: str | None = None) -> None:
+    """Persist the active embedding backend for UI diagnostics."""
+
+    _EMBEDDING_BACKEND_STATE["kind"] = kind
+    _EMBEDDING_BACKEND_STATE["error"] = error
+    try:
+        st.session_state["_embedding_backend"] = _EMBEDDING_BACKEND_STATE.copy()
+    except Exception:  # pragma: no cover - session state unavailable in tests
+        pass
+
+
+def embedding_backend_info() -> dict[str, str | None]:
+    """Return the most recent embedding backend metadata."""
+
+    return _EMBEDDING_BACKEND_STATE.copy()
+
+
+def _encode_with_hashing(texts: list[str]) -> np.ndarray:
+    if not texts:
+        return np.empty((0, 0), dtype=np.float32)
+    matrix = _HASHING_ENCODER.transform(texts)
+    arr = matrix.toarray().astype(np.float32, copy=False)
+    _record_embedding_backend("hashing-vectorizer", _SENTENCE_ENCODER_ERROR)
+    return arr
+
+
 @st.cache_resource(show_spinner=False)
-def get_encoder(model_name: str = "sentence-transformers/all-MiniLM-L6-v2") -> SentenceTransformer:
+def get_encoder(
+    model_name: str = "sentence-transformers/all-MiniLM-L6-v2",
+) -> SentenceTransformer:
+    if not _SENTENCE_TRANSFORMERS_AVAILABLE:
+        raise RuntimeError("sentence_transformers_unavailable")
     # Downloaded once and cached by Streamlit
     return SentenceTransformer(model_name)
 
 
 @st.cache_data(show_spinner=False)
-def encode_texts(texts: list, model_name: str = "sentence-transformers/all-MiniLM-L6-v2") -> np.ndarray:
-    model = get_encoder(model_name)
-    # Normalize embeddings for stability
-    embs = model.encode(texts, batch_size=64, show_progress_bar=False, normalize_embeddings=True)
-    return np.asarray(embs, dtype=np.float32)
+def encode_texts(
+    texts: list,
+    model_name: str = "sentence-transformers/all-MiniLM-L6-v2",
+) -> np.ndarray:
+    if not texts:
+        return np.empty((0, 0), dtype=np.float32)
+
+    global _SENTENCE_ENCODER_ENABLED, _SENTENCE_ENCODER_ERROR
+
+    if _SENTENCE_ENCODER_ENABLED and _SENTENCE_TRANSFORMERS_AVAILABLE:
+        try:
+            model = get_encoder(model_name)
+            embs = model.encode(
+                texts,
+                batch_size=64,
+                show_progress_bar=False,
+                normalize_embeddings=True,
+            )
+            arr = np.asarray(embs, dtype=np.float32)
+        except Exception as exc:  # pragma: no cover - external dependency failure
+            _SENTENCE_ENCODER_ENABLED = False
+            _SENTENCE_ENCODER_ERROR = str(exc) or exc.__class__.__name__
+        else:
+            _SENTENCE_ENCODER_ERROR = None
+            _record_embedding_backend("sentence-transformer", None)
+            return arr
+
+    return _encode_with_hashing([str(t) for t in texts])
 
 
 @st.cache_data(show_spinner=False)
