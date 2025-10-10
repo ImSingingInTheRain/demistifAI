@@ -5285,23 +5285,24 @@ def render_train_stage():
                             <h4 class="train-intro-card__title">{title}</h4>
                         </div>
                     </div>
-                    <p class="train-intro-card__body">
-                        {desc} It now learns how to separate spam from safe emails using the examples you curated.
-                    </p>
-                    <div class="train-intro-card__steps">
-                        <div class="train-intro-card__step">
-                            <span class="train-intro-card__step-index">1</span>
-                            <div class="train-intro-card__step-body"><strong>Start from labeled history.</strong> The dataset built in <em>Prepare data</em> anchors what "Spam" and "Safe" mean.</div>
+                    <div class="train-how-card__header">
+                            <div>
+                                <h5 class="train-how-card__title">🎯 Now your AI system will learn how to achieve an objective</h5>
+                                <p class="train-how-card__body">Think of this as teaching your AI assistant how to tell the difference between spam and safe emails.</p>
+                            </div>
                         </div>
-                        <div class="train-intro-card__step">
-                            <span class="train-intro-card__step-index">2</span>
-                            <div class="train-intro-card__step-body"><strong>Spot the patterns.</strong> MiniLM encodes each email; the classifier learns a direction that pulls spam and safe apart.</div>
+                        <div class="train-how-card__grid">
+                            <div class="train-how-card__panel">
+                                <div class="train-how-card__panel-icon">🫶</div>
+                                <h6 class="train-how-card__panel-title">Your part</h6>
+                                <p class="train-how-card__panel-body">Provide examples with clear labels (“This one is spam, that one is safe”).</p>
+                            </div>
+                            <div class="train-how-card__panel">
+                                <div class="train-how-card__panel-icon">🤖</div>
+                                <h6 class="train-how-card__panel-title">The system’s part</h6>
+                                <p class="train-how-card__panel-body">Spot patterns that generalize to emails it hasn’t seen yet.</p>
+                            </div>
                         </div>
-                        <div class="train-intro-card__step">
-                            <span class="train-intro-card__step-index">3</span>
-                            <div class="train-intro-card__step-body"><strong>Generalize forward.</strong> With the patterns in hand, the model can infer outcomes for new emails it has never seen.</div>
-                        </div>
-                    </div>
                 </div>
                 """.format(
                     icon=stage_icon_html,
@@ -5317,7 +5318,6 @@ def render_train_stage():
                     """
                     <div class="train-how-card">
                         <div class="train-how-card__header">
-                            <div class="train-how-card__icon">🧩</div>
                             <div>
                                 <h5 class="train-how-card__title">🎯 Now your AI system will learn how to achieve an objective</h5>
                                 <p class="train-how-card__body">Think of this as teaching your AI assistant how to tell the difference between spam and safe emails.</p>
