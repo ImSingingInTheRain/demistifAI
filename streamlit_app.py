@@ -6658,81 +6658,8 @@ def render_train_stage():
                                     "We remove phrases and see how the score drops; bigger drops = more influence."
                                 )
 
-                st.markdown("#### Plain-language explanations & manual tweaks")
-                for row in coef_details.itertuples():
-                    feat = row.feature
-                    friendly = FEATURE_DISPLAY_NAMES.get(feat, feat)
-                    explanation = FEATURE_PLAIN_LANGUAGE.get(feat, "")
-                    st.markdown(f"**{friendly}** — {explanation}")
-                    slider_key = f"adj_slider_{feat}"
-                    current_setting = ss["numeric_adjustments"][feat]
-                    if slider_key in st.session_state and st.session_state[slider_key] != current_setting:
-                        st.session_state[slider_key] = current_setting
-                    new_adj = st.slider(
-                        f"Adjustment for {friendly} (log-odds per +1σ)",
-                        min_value=-1.5,
-                        max_value=1.5,
-                        value=float(current_setting),
-                        step=0.1,
-                        key=slider_key,
-                    )
-                    if new_adj != ss["numeric_adjustments"][feat]:
-                        ss["numeric_adjustments"][feat] = new_adj
-                        if ss.get("model"):
-                            ss["model"].apply_numeric_adjustments(ss["numeric_adjustments"])
             except Exception as e:
                 st.caption(f"Coefficients unavailable: {e}")
-
-            st.markdown("#### Embedding prototypes & nearest neighbors")
-            try:
-                if X_tr_t and X_tr_b:
-                    X_train_texts = train_texts_combined or [
-                        combine_text(t, b) for t, b in zip(X_tr_t, X_tr_b)
-                    ]
-                    X_train_emb = train_embeddings
-                    if X_train_emb is None or getattr(X_train_emb, "size", 0) == 0:
-                        X_train_emb = encode_texts(X_train_texts)
-                    y_train_arr = np.array(y_tr_labels)
-
-                    def prototype_for(cls):
-                        mask = y_train_arr == cls
-                        if not np.any(mask):
-                            return None
-                        return X_train_emb[mask].mean(axis=0, keepdims=True)
-
-                    def top_nearest(query_vec, k=5):
-                        if query_vec is None:
-                            return np.array([]), np.array([])
-                        sims = (X_train_emb @ query_vec.T).ravel()
-                        order = np.argsort(-sims)
-                        top_k = order[: min(k, len(order))]
-                        return top_k, sims[top_k]
-
-                    rendered_prototypes = False
-                    for cls in CLASSES:
-                        proto = prototype_for(cls)
-                        if proto is None:
-                            st.write(f"No training emails for {cls} yet.")
-                            continue
-                        rendered_prototypes = True
-                        idx, sims = top_nearest(proto, k=5)
-                        st.markdown(f"**{cls.capitalize()} prototype — most similar training emails**")
-                        for i, (ix, sc) in enumerate(zip(idx, sims), 1):
-                            text_full = X_train_texts[ix]
-                            parts = text_full.split("\n", 1)
-                            title_i = parts[0]
-                            body_i = parts[1] if len(parts) > 1 else ""
-                            st.write(f"{i}. *{title_i}*  — sim={sc:.2f}")
-                            preview = body_i[:200]
-                            st.caption(preview + ("..." if len(body_i) > 200 else ""))
-                    if rendered_prototypes:
-                        st.caption(
-                            "We average each class’s meaning; these are the emails closest to that average."
-                        )
-                else:
-                    st.caption("Embedding details unavailable (no training texts).")
-            except Exception as e:
-                st.caption(f"Interpretability view unavailable: {e}")
 
 
 
