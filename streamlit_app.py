@@ -1169,8 +1169,8 @@ def _conceptual_meaning_sketch():
 
     card_details = (
         alt.Chart(cards)
-        .mark_text(fontSize=11, color="#334155", baseline="top")
-        .encode(x="xc:Q", y="yc:Q", text="details:N", dy=alt.value(14))
+        .mark_text(fontSize=11, color="#334155", baseline="top", dy=14)
+        .encode(x="xc:Q", y="yc:Q", text="details:N")
     )
 
     crosshair = (
