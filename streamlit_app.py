@@ -114,6 +114,7 @@ def callable_or_attr(target: Any, attr: str | None = None) -> bool:
     return callable(value)
 
 
+from sklearn.decomposition import PCA
 from sklearn.metrics import accuracy_score, confusion_matrix, precision_recall_fscore_support
 from sklearn.model_selection import train_test_split
 
@@ -419,6 +420,361 @@ def _safe_subject(row: dict) -> str:
 def _excerpt(text: str, n: int = 120) -> str:
     text = (text or "").replace("\\n", " ").strip()
     return text[:n] + ("…" if len(text) > n else "")
+
+
+def _join_phrases(parts: List[str]) -> str:
+    cleaned = [p.strip().rstrip(".") for p in parts if p]
+    if not cleaned:
+        return ""
+    if len(cleaned) == 1:
+        return f"{cleaned[0]}."
+    if len(cleaned) == 2:
+        return f"{cleaned[0]} and {cleaned[1]}."
+    return f"{', '.join(cleaned[:-1])}, and {cleaned[-1]}."
+
+
+FEATURE_REASON_SPAM = {
+    "num_links_external": "Contains multiple external links",
+    "has_suspicious_tld": "Links point to risky domains",
+    "punct_burst_ratio": "Uses lots of !!! or $$$",
+    "money_symbol_count": "Mentions money terms",
+    "urgency_terms_count": "Pushes urgent wording",
+}
+
+FEATURE_REASON_SAFE = {
+    "num_links_external": "Few links to distract",
+    "has_suspicious_tld": "No risky domains detected",
+    "punct_burst_ratio": "Calm punctuation",
+    "money_symbol_count": "No money-talk cues",
+    "urgency_terms_count": "Neutral tone without urgency",
+}
+
+
+def _reason_from_contributions(label: str, contributions: List[Tuple[str, float, float]]) -> str:
+    if not contributions:
+        return "Mostly positioned by wording similarity."
+
+    threshold = 0.08
+    phrases: List[str] = []
+    if label == "spam":
+        for feat, _z, contrib in contributions:
+            if contrib > threshold:
+                phrases.append(FEATURE_REASON_SPAM.get(feat, FEATURE_DISPLAY_NAMES.get(feat, feat)))
+    else:
+        for feat, _z, contrib in contributions:
+            if contrib < -threshold:
+                phrases.append(FEATURE_REASON_SAFE.get(feat, FEATURE_DISPLAY_NAMES.get(feat, feat)))
+
+    phrases = [p for p in phrases if p]
+    if not phrases:
+        return "Mostly positioned by wording similarity."
+    summary = _join_phrases(phrases[:3])
+    if not summary:
+        return "Mostly positioned by wording similarity."
+    return f"Signals: {summary}"
+
+
+def _sample_indices_by_label(labels: List[str], limit: int) -> List[int]:
+    n = len(labels)
+    if n <= limit:
+        return list(range(n))
+
+    rng = np.random.default_rng(42)
+    per_label: Dict[str, List[int]] = {}
+    for idx, label in enumerate(labels):
+        per_label.setdefault(label, []).append(idx)
+
+    sampled: List[int] = []
+    total = float(n)
+    for label, idxs in per_label.items():
+        if not idxs:
+            continue
+        target = max(1, round(limit * (len(idxs) / total)))
+        target = min(target, len(idxs))
+        picked = rng.choice(idxs, size=target, replace=False)
+        sampled.extend(int(i) for i in picked)
+
+    if len(sampled) > limit:
+        sampled = rng.choice(sampled, size=limit, replace=False).tolist()
+
+    return sorted(sampled)
+
+
+def _reduce_embeddings_to_2d(embeddings: np.ndarray) -> np.ndarray:
+    if embeddings.ndim != 2 or embeddings.shape[1] <= 2:
+        return embeddings[:, :2] if embeddings.ndim == 2 else np.empty((0, 2))
+
+    try:
+        import umap  # type: ignore
+
+        reducer = umap.UMAP(n_components=2, random_state=42, metric="cosine")
+        return reducer.fit_transform(embeddings)
+    except Exception:
+        pass
+
+    try:
+        reducer = PCA(n_components=2, random_state=42)
+        return reducer.fit_transform(embeddings)
+    except Exception:
+        return np.empty((0, 2))
+
+
+def _prepare_meaning_map(
+    titles: List[str],
+    bodies: List[str],
+    labels: List[str],
+    model: Any | None,
+    *,
+    max_points: int = 500,
+) -> tuple[Optional[pd.DataFrame], Dict[str, Any]]:
+    rows: List[Tuple[int, str, str, str]] = []
+    for idx, (title, body, label) in enumerate(zip(titles, bodies, labels)):
+        if label not in {"spam", "safe"}:
+            continue
+        rows.append((idx, title or "", body or "", label))
+
+    if not rows:
+        return None, {"error": "Meaning Map is unavailable—no labeled emails to display."}
+
+    labels_present = {row[3] for row in rows}
+    if len(labels_present) < 2:
+        return None, {"error": "Need both Spam and Safe examples to draw the map."}
+
+    base_indices = list(range(len(rows)))
+    if len(rows) > max_points:
+        sampled_indices = _sample_indices_by_label([row[3] for row in rows], max_points)
+    else:
+        sampled_indices = base_indices
+
+    sampled_rows = [rows[i] for i in sampled_indices]
+    sampled_labels = [row[3] for row in sampled_rows]
+    sampled_titles = [row[1] for row in sampled_rows]
+    sampled_bodies = [row[2] for row in sampled_rows]
+    sampled_texts = [combine_text(t, b) for t, b in zip(sampled_titles, sampled_bodies)]
+
+    try:
+        embeddings = cache_train_embeddings(sampled_texts)
+    except Exception as exc:
+        return None, {"error": f"Meaning Map unavailable ({exc})."}
+
+    if getattr(embeddings, "size", 0) == 0:
+        return None, {"error": "Meaning Map unavailable (embeddings missing)."}
+
+    coords = _reduce_embeddings_to_2d(np.asarray(embeddings, dtype=np.float32))
+    if coords.shape[0] != len(sampled_rows):
+        return None, {"error": "Meaning Map unavailable (projection failed)."}
+
+    df = pd.DataFrame(
+        {
+            "plot_index": range(len(sampled_rows)),
+            "x": coords[:, 0],
+            "y": coords[:, 1],
+            "label": sampled_labels,
+            "label_title": [label.title() for label in sampled_labels],
+            "subject_full": sampled_titles,
+            "subject_tooltip": [
+                (title[:80] + "…") if len(title) > 80 else title for title in sampled_titles
+            ],
+            "body_excerpt": [
+                _excerpt(body, n=180) if body else "(no body text)" for body in sampled_bodies
+            ],
+        }
+    )
+
+    reasons: List[str] = []
+    for title, body, label in zip(sampled_titles, sampled_bodies, sampled_labels):
+        contribs = numeric_feature_contributions(model, title, body) if model else []
+        reasons.append(_reason_from_contributions(label, contribs))
+    df["reason"] = reasons
+
+    class_counts = df["label"].value_counts().to_dict()
+
+    centroid_df = (
+        df.groupby("label", as_index=False)[["x", "y"]].mean().assign(kind="centroid")
+    )
+
+    centroid_distance = None
+    if len(centroid_df) == 2:
+        pts = centroid_df[["x", "y"]].to_numpy()
+        centroid_distance = float(np.linalg.norm(pts[0] - pts[1]))
+
+    pair_info: Optional[Dict[str, Any]] = None
+    emb_array = np.asarray(embeddings, dtype=np.float32)
+    for target_label in ("spam", "safe"):
+        idxs = [i for i, lbl in enumerate(sampled_labels) if lbl == target_label]
+        if len(idxs) < 2:
+            continue
+        subset = emb_array[idxs]
+        sims = subset @ subset.T
+        np.fill_diagonal(sims, -np.inf)
+        flat = sims.argmax()
+        if not np.isfinite(sims.flat[flat]):
+            continue
+        a, b = divmod(flat, sims.shape[1])
+        idx_a = idxs[a]
+        idx_b = idxs[b]
+        pair_info = {
+            "indices": [idx_a, idx_b],
+            "label": target_label,
+            "subjects": [sampled_titles[idx_a], sampled_titles[idx_b]],
+            "coords": coords[[idx_a, idx_b]].tolist(),
+        }
+        break
+
+    meta = {
+        "class_counts": class_counts,
+        "centroids": centroid_df,
+        "centroid_distance": centroid_distance,
+        "pair": pair_info,
+        "total": len(rows),
+        "shown": len(sampled_rows),
+        "sampled": len(sampled_rows) < len(rows),
+    }
+
+    return df, meta
+
+
+
+def _build_meaning_map_chart(
+    df: pd.DataFrame,
+    meta: Dict[str, Any],
+    *,
+    show_examples: bool,
+    show_class_centers: bool,
+) -> alt.VConcatChart:
+    color_scale = alt.Scale(domain=["spam", "safe"], range=["#ef4444", "#3b82f6"])
+    hover = alt.selection_point(fields=["plot_index"], on="mouseover", empty="none")
+    select = alt.selection_point(fields=["plot_index"], on="click", empty="none")
+
+    base = alt.Chart(df)
+    scatter = base.mark_circle(size=80).encode(
+        x=alt.X(
+            "x:Q",
+            axis=alt.Axis(title="Meaning dimension 1", grid=False, ticks=False, labels=False),
+        ),
+        y=alt.Y(
+            "y:Q",
+            axis=alt.Axis(title="Meaning dimension 2", grid=False, ticks=False, labels=False),
+        ),
+        color=alt.Color("label:N", scale=color_scale, legend=None),
+        tooltip=[
+            alt.Tooltip("subject_tooltip:N", title="Subject"),
+            alt.Tooltip("label_title:N", title="Label"),
+        ],
+        opacity=alt.condition(select | hover, alt.value(0.95), alt.value(0.45)),
+        stroke=alt.condition(select | hover, alt.value("#ffffff"), alt.value("rgba(0,0,0,0)")),
+        strokeWidth=alt.condition(select | hover, alt.value(2), alt.value(0)),
+    ).add_params(hover, select)
+
+    layers = [scatter]
+
+    if show_examples and isinstance(meta.get("pair"), dict):
+        pair = meta.get("pair") or {}
+        indices = pair.get("indices") or []
+        coords = pair.get("coords") or []
+        if indices:
+            highlight_df = df[df["plot_index"].isin(indices)]
+            if not highlight_df.empty:
+                highlight = alt.Chart(highlight_df).mark_circle(
+                    size=180,
+                    fillOpacity=0.15,
+                    stroke="#f97316",
+                    strokeWidth=2,
+                ).encode(x="x:Q", y="y:Q")
+                layers.append(highlight)
+        if coords and len(coords) == 2:
+            pair_df = pd.DataFrame(coords, columns=["x", "y"])
+            link = alt.Chart(pair_df).mark_line(
+                color="#f97316",
+                strokeDash=[4, 3],
+                strokeWidth=2,
+                opacity=0.9,
+            ).encode(x="x:Q", y="y:Q")
+            layers.append(link)
+
+    centroid_df = meta.get("centroids")
+    if show_class_centers and isinstance(centroid_df, pd.DataFrame) and not centroid_df.empty:
+        centers = alt.Chart(centroid_df).mark_circle(
+            size=230,
+            opacity=0.95,
+            stroke="#ffffff",
+            strokeWidth=1.5,
+        ).encode(
+            x="x:Q",
+            y="y:Q",
+            color=alt.Color("label:N", scale=color_scale, legend=None),
+        )
+        layers.append(centers)
+        if len(centroid_df) == 2:
+            line_df = centroid_df.sort_values("label")[["x", "y"]]
+            line = alt.Chart(line_df).mark_line(color="#6366f1", strokeDash=[3, 3], opacity=0.7).encode(
+                x="x:Q",
+                y="y:Q",
+            )
+            layers.append(line)
+
+    scatter_layer = alt.layer(*layers).properties(height=320)
+
+    detail_bg = (
+        alt.Chart(df)
+        .transform_filter(select)
+        .mark_rect(
+            color="rgba(226,232,240,0.65)",
+            stroke="#94a3b8",
+            strokeWidth=1,
+            cornerRadius=10,
+        )
+        .encode(
+            x=alt.value(0),
+            x2=alt.value(400),
+            y=alt.value(0),
+            y2=alt.value(110),
+        )
+    )
+    detail_subject = (
+        alt.Chart(df)
+        .transform_filter(select)
+        .mark_text(
+            align="left",
+            baseline="top",
+            dx=16,
+            dy=16,
+            fontSize=14,
+            fontWeight="bold",
+            color="#1f2937",
+        )
+        .encode(text="subject_full:N")
+    )
+    detail_excerpt = (
+        alt.Chart(df)
+        .transform_filter(select)
+        .mark_text(
+            align="left",
+            baseline="top",
+            dx=16,
+            dy=46,
+            fontSize=12,
+            color="#374151",
+        )
+        .encode(text="body_excerpt:N")
+    )
+    detail_reason = (
+        alt.Chart(df)
+        .transform_filter(select)
+        .mark_text(
+            align="left",
+            baseline="top",
+            dx=16,
+            dy=78,
+            fontSize=11,
+            color="#1d4ed8",
+        )
+        .encode(text="reason:N")
+    )
+
+    detail_layer = alt.layer(detail_bg, detail_subject, detail_excerpt, detail_reason).properties(height=110)
+
+    return alt.vconcat(scatter_layer, detail_layer, spacing=12).configure_view(strokeWidth=0)
 
 
 def pii_chip_row_html(counts: Dict[str, int], extra_class: str = "") -> str:
@@ -4718,14 +5074,131 @@ def render_train_stage():
             with section_surface():
                 st.markdown("### Training story — what just happened")
 
-                # 1) What data was used
+                # 1) What data was used + Meaning Map
                 ct = _counts(list(y_tr_labels))
+                total_train = len(y_tr_labels)
+                train_titles_story = list(X_tr_t) if X_tr_t is not None else []
+                train_bodies_story = list(X_tr_b) if X_tr_b is not None else []
+                train_labels_story = list(y_tr_labels) if y_tr_labels is not None else []
+
                 st.markdown(
-                    f"- The system trained on **{len(y_tr_labels)} emails** "
-                    f"(Spam: {ct['spam']}, Safe: {ct['safe']}).\n"
-                    "- It looked for patterns that distinguish **Spam** from **Safe**.\n"
-                    "- It saved these patterns as simple rules (weights) it can use later to decide."
+                    f"- **Turning emails into “meaning points”.** MiniLM read **{total_train} training emails** "
+                    f"(Spam: {ct['spam']}, Safe: {ct['safe']}) and places each one as a dot so similar wording sits close together."
                 )
+
+                meaning_map_df: Optional[pd.DataFrame] = None
+                meaning_map_meta: Dict[str, Any] = {}
+                meaning_map_error: Optional[str] = None
+                model_for_story = ss.get("model")
+
+                if not has_embed:
+                    meaning_map_error = (
+                        "Meaning Map is unavailable—text encoder is off. You can still review examples below."
+                    )
+                else:
+                    try:
+                        meaning_map_df, meaning_map_meta = _prepare_meaning_map(
+                            train_titles_story,
+                            train_bodies_story,
+                            train_labels_story,
+                            model_for_story,
+                        )
+                    except Exception as exc:
+                        meaning_map_df = None
+                        meaning_map_meta = {}
+                        meaning_map_error = f"Meaning Map unavailable ({exc})."
+                    else:
+                        if meaning_map_df is None:
+                            meaning_map_error = meaning_map_meta.get("error")
+
+                if meaning_map_error:
+                    st.info(meaning_map_error)
+                    st.caption(
+                        f"Training emails shown: {total_train} (Spam: {ct['spam']}, Safe: {ct['safe']})."
+                    )
+                elif meaning_map_df is not None:
+                    st.markdown("#### Meaning Map (what the model “sees”)")
+                    st.markdown(
+                        "Each dot is one training email. Dots that sit close together use similar wording.\n"
+                        "- Red = Spam style, Blue = Safe style\n"
+                        "- Try hovering some dots: “Win a free iPhone!” and “Claim your prize now!” sit near each other, while “Project meeting agenda” lives far away.\n"
+                        "- If dots overlap, the emails are look-alikes—that’s where mistakes are more likely."
+                    )
+
+                    toggles_col1, toggles_col2 = st.columns(2)
+                    show_examples = toggles_col1.checkbox(
+                        "Show examples",
+                        value=bool(ss.get("meaning_map_show_examples", False)),
+                        help="Highlight a look-alike pair the model sees as very similar.",
+                        key="meaning_map_show_examples",
+                    )
+                    show_centers = toggles_col2.checkbox(
+                        "Show class centers",
+                        value=bool(ss.get("meaning_map_show_centers", False)),
+                        help="Plot the average spam vs safe position to show how far apart the styles sit.",
+                        key="meaning_map_show_centers",
+                    )
+
+                    if st.button(
+                        "Show similar pair",
+                        help="Highlight the closest spam look-alikes on the map.",
+                        key="meaning_map_show_pair_button",
+                    ):
+                        st.session_state["meaning_map_show_examples"] = True
+                        show_examples = True
+
+                    chart = _build_meaning_map_chart(
+                        meaning_map_df,
+                        meaning_map_meta,
+                        show_examples=show_examples,
+                        show_class_centers=show_centers,
+                    )
+                    st.altair_chart(chart, use_container_width=True)
+                    st.caption("Nearby dots use similar wording. Red = Spam, Blue = Safe.")
+
+                    class_counts_shown = meaning_map_meta.get("class_counts", {})
+                    st.caption(
+                        f"Training emails shown: {meaning_map_meta.get('shown', len(meaning_map_df))} "
+                        f"(Spam: {class_counts_shown.get('spam', 0)}, Safe: {class_counts_shown.get('safe', 0)})."
+                    )
+
+                    if meaning_map_meta.get("sampled"):
+                        st.caption("Showing 500 training emails for clarity.")
+
+                    if show_centers:
+                        distance = meaning_map_meta.get("centroid_distance")
+                        if isinstance(distance, (int, float)) and math.isfinite(distance):
+                            st.caption(
+                                f"Distance between centers ≈ {distance:.2f}. More distance = easier to classify."
+                            )
+                        else:
+                            st.caption(
+                                "Distance between centers ≈ how separate the styles are. More distance = easier to classify."
+                            )
+
+                    if show_examples and isinstance(meaning_map_meta.get("pair"), dict):
+                        pair_info = meaning_map_meta["pair"]
+                        subjects = pair_info.get("subjects", [])
+                        if len(subjects) >= 2:
+                            label_pair = str(pair_info.get("label", "spam")).title()
+                            st.markdown(
+                                f"_{label_pair} look-alikes the model clusters together:_\n"
+                                f"• {subjects[0]}\n"
+                                f"• {subjects[1]}"
+                            )
+
+                    st.markdown(
+                        "How to read this: Clusters of red spam emails reveal common spam styles (e.g., giveaways, urgent finance). "
+                        "Blue safe emails group around everyday work phrases. If you see lots of overlap, expect trickier decisions—"
+                        "add clearer examples in “Prepare data” or let numeric guardrails help for borderline cases."
+                    )
+
+                # 2) & 3) remain below
+                st.markdown(
+                    "- **Drawing a dividing line.** A simple linear classifier draws the straight line that separates spam from safe.\n"
+                    "- **Using extra clues when uncertain.** Numeric guardrails step in when the text score is borderline."
+                )
+
                 st.markdown(
                     "Your labels define the explicit objective: ‘Spam vs Safe’. "
                     "MiniLM + the classifier discover an implicit strategy: a direction in meaning space that "
@@ -4769,18 +5242,6 @@ def render_train_stage():
                     )
 
                 st.caption(guard_caption)
-
-                # Mini class-balance chart
-                try:
-                    bal_df = pd.DataFrame(
-                        {"class": ["spam", "safe"], "count": [ct["spam"], ct["safe"]]}
-                    ).set_index("class")
-                    st.caption("Training set balance")
-                    st.bar_chart(bal_df, width="stretch")
-                except Exception:
-                    pass
-
-                model_for_story = ss.get("model")
                 labeled_rows_story = ss.get("labeled") or []
                 if model_for_story and labeled_rows_story:
                     def _select_story_examples(rows: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
