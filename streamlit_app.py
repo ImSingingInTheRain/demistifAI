@@ -1543,14 +1543,22 @@ def _render_unified_training_storyboard():
                     key=f"ghost_live_map2_{story_run_id}",
                 )
 
+        guard_params = ss.get("guard_params", {}) if hasattr(ss, "get") else {}
+        try:
+            assist_center = float(guard_params.get("assist_center", ss.get("threshold", 0.6)))
+        except Exception:
+            assist_center = float(ss.get("threshold", 0.6))
+        try:
+            uncertainty_band = float(guard_params.get("uncertainty_band", 0.08))
+        except Exception:
+            uncertainty_band = 0.08
+
         left3, right3 = st.columns([0.48, 0.52], gap="large")
         with left3:
             st.markdown("**3) Extra clues when unsure**")
-            c = float(ss["guard_params"].get("assist_center", ss.get("threshold", 0.6)))
-            b = float(ss["guard_params"].get("uncertainty_band", 0.08))
             st.markdown(
-                f"When the text score is near **τ≈{c:.2f}**, numeric guardrails help out within a small window "
-                f"(**±{b:.2f}**) — we look at links, ALL-CAPS, money or urgency hints."
+                f"When the text score is near **τ≈{assist_center:.2f}**, numeric guardrails help out within a small window "
+                f"(**±{uncertainty_band:.2f}**) — we look at links, ALL-CAPS, money or urgency hints."
             )
             guard_low = None
             guard_high = None
@@ -1576,7 +1584,7 @@ def _render_unified_training_storyboard():
             elif chart_ready:
                 _render_numeric_clue_cards(meaning_map_df)
             else:
-                st.info("After training, this panel will list emails that needed extra numeric clues.")
+                _render_numeric_clue_preview(assist_center, uncertainty_band)
 
         st.caption(_numeric_guardrails_caption_text())
 
@@ -2206,6 +2214,79 @@ def _build_meaning_map_chart(
         )
 
     return alt.vconcat(scatter_layer, detail_layer, spacing=12).configure_view(strokeWidth=0)
+
+
+def _render_numeric_clue_preview(
+    assist_center: float | None,
+    uncertainty_band: float | None,
+) -> None:
+    """Show the numeric guardrail cues that activate inside the assist window."""
+
+    chip_features = [
+        "money_symbol_count",
+        "num_links_external",
+        "has_suspicious_tld",
+        "punct_burst_ratio",
+        "urgency_terms_count",
+    ]
+
+    chip_html_parts: list[str] = []
+    for feature in chip_features:
+        mapping = FEATURE_CLUE_CHIPS.get(feature, {}) if isinstance(feature, str) else {}
+        label = mapping.get("spam") or FEATURE_DISPLAY_NAMES.get(feature, feature)
+        if not label:
+            continue
+        chip_html_parts.append(
+            f"<span class='numeric-clue-preview__chip'>{html.escape(str(label))}</span>"
+        )
+
+    if not chip_html_parts:
+        st.info("Numeric guardrail details are unavailable.")
+        return
+
+    center_text = "τ"
+    if isinstance(assist_center, (int, float)) and math.isfinite(assist_center):
+        center_text = f"τ ≈ {assist_center:.2f}"
+
+    band_amount: str | None = None
+    if isinstance(uncertainty_band, (int, float)) and math.isfinite(uncertainty_band):
+        band_amount = f"{uncertainty_band:.2f}"
+
+    band_label = "Assist window"
+    low_label = "τ − band"
+    high_label = "τ + band"
+    if band_amount is not None:
+        band_label = f"Assist window ±{band_amount}"
+        low_label = f"τ − {band_amount}"
+        high_label = f"τ + {band_amount}"
+
+    preview_html = """
+<div class='numeric-clue-preview'>
+  <div class='numeric-clue-preview__header'>
+    <span class='numeric-clue-preview__center'>{center}</span>
+    <span class='numeric-clue-preview__band-label'>{band}</span>
+  </div>
+  <div class='numeric-clue-preview__band'>
+    <div class='numeric-clue-preview__ticks'>
+      <span>{low}</span>
+      <span>Inside band</span>
+      <span>{high}</span>
+    </div>
+    <div class='numeric-clue-preview__chips'>
+      {chips}
+    </div>
+  </div>
+  <p class='numeric-clue-preview__note'>Numeric guardrails watch for these structured cues before overriding the text score.</p>
+</div>
+""".format(
+        center=html.escape(center_text),
+        band=html.escape(band_label),
+        low=html.escape(low_label),
+        high=html.escape(high_label),
+        chips="".join(chip_html_parts),
+    )
+
+    st.markdown(preview_html, unsafe_allow_html=True)
 
 
 def _render_numeric_clue_cards(df: Optional[pd.DataFrame]) -> None:
@@ -6092,6 +6173,58 @@ def render_train_stage():
             margin-top: 0.45rem;
             font-size: 0.72rem;
             color: rgba(15, 23, 42, 0.62);
+        }
+        .numeric-clue-preview {
+            border-radius: 1rem;
+            border: 1px dashed rgba(37, 99, 235, 0.35);
+            background: rgba(191, 219, 254, 0.28);
+            padding: 1rem 1.1rem;
+            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.4);
+        }
+        .numeric-clue-preview__header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            gap: 0.5rem;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: rgba(30, 64, 175, 0.85);
+            margin-bottom: 0.6rem;
+        }
+        .numeric-clue-preview__band {
+            border-radius: 0.85rem;
+            background: linear-gradient(90deg, rgba(59, 130, 246, 0.14), rgba(14, 165, 233, 0.16));
+            border: 1px dashed rgba(37, 99, 235, 0.45);
+            padding: 0.9rem 0.9rem 0.95rem;
+        }
+        .numeric-clue-preview__ticks {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.75rem;
+            color: rgba(30, 58, 138, 0.78);
+            margin-bottom: 0.7rem;
+        }
+        .numeric-clue-preview__chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.45rem;
+        }
+        .numeric-clue-preview__chip {
+            display: inline-flex;
+            align-items: center;
+            border-radius: 999px;
+            padding: 0.3rem 0.7rem;
+            font-size: 0.78rem;
+            font-weight: 600;
+            background: rgba(255, 255, 255, 0.78);
+            color: rgba(30, 41, 59, 0.8);
+            box-shadow: 0 6px 16px rgba(37, 99, 235, 0.18);
+        }
+        .numeric-clue-preview__note {
+            margin: 0.8rem 0 0 0;
+            font-size: 0.78rem;
+            color: rgba(30, 41, 59, 0.72);
+            line-height: 1.4;
         }
         .train-inline-note {
             margin-top: 0.35rem;
