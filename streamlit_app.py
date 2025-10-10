@@ -5418,73 +5418,73 @@ def render_train_stage():
             )
 
             st.markdown(
-            """
-            <div style="display:flex;flex-direction:column;gap:0.35rem;margin-bottom:0.75rem;">
-                <div style="font-size:1.05rem;font-weight:600;color:#111827;">A peek at your training data</div>
-                <div style="font-size:0.9rem;color:#4B5563;">Here are a few examples from your labeled set. The model studies these to learn the difference.</div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
+                """
+                    <div style="display:flex;flex-direction:column;gap:0.35rem;margin-bottom:0.75rem;">
+                        <div style="font-size:1.05rem;font-weight:600;color:#111827;">A peek at your training data</div>
+                        <div style="font-size:0.9rem;color:#4B5563;">Here are a few examples from your labeled set. The model studies these to learn the difference.</div>
+                    </div>
+                """,
+                unsafe_allow_html=True,
+             )
 
-        labeled_rows = ss.get("labeled") or []
-        spam_examples: List[Dict[str, Any]] = []
-        safe_examples: List[Dict[str, Any]] = []
-        if isinstance(labeled_rows, list):
-            for row in labeled_rows:
-                if not isinstance(row, dict):
+            labeled_rows = ss.get("labeled") or []
+            spam_examples: List[Dict[str, Any]] = []
+            safe_examples: List[Dict[str, Any]] = []
+            if isinstance(labeled_rows, list):
+                for row in labeled_rows:
+                    if not isinstance(row, dict):
                     continue
-                label_value = (row.get("label", "") or "").strip().lower()
-                if label_value == "spam" and len(spam_examples) < 2:
-                    spam_examples.append(row)
-                elif label_value == "safe" and len(safe_examples) < 2:
+                    label_value = (row.get("label", "") or "").strip().lower()
+                    if label_value == "spam" and len(spam_examples) < 2:
+                        spam_examples.append(row)
+                    elif label_value == "safe" and len(safe_examples) < 2:
                     safe_examples.append(row)
-                if len(spam_examples) >= 2 and len(safe_examples) >= 2:
-                    break
+                    if len(spam_examples) >= 2 and len(safe_examples) >= 2:
+                        break
 
-        cards_html_parts: List[str] = []
-        for card in spam_examples + safe_examples:
-            label_value = (card.get("label", "") or "").strip().lower()
-            icon = "🚩" if label_value == "spam" else "📥"
-            subject = html.escape(_safe_subject(card))
-            excerpt = html.escape(_excerpt(card.get("body")))
-            cards_html_parts.append(
-                textwrap.dedent(
-                    f"""
-                    <div style="border:1px solid #E5E7EB;border-radius:10px;padding:0.65rem;background-color:#FFFFFF;display:flex;flex-direction:column;gap:0.4rem;">
-                        <div style=\"font-size:0.85rem;color:#4B5563;display:flex;align-items:center;gap:0.4rem;\">{icon}<span style=\"font-weight:600;color:#111827;\">{html.escape(label_value.title() or 'Unlabeled')}</span></div>
-                        <div style="font-weight:600;color:#111827;font-size:0.95rem;line-height:1.3;">{subject}</div>
-                        <div style="font-size:0.85rem;color:#374151;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{excerpt}</div>
-                    </div>
-                    """
-                ).strip()
+            cards_html_parts: List[str] = []
+            for card in spam_examples + safe_examples:
+                label_value = (card.get("label", "") or "").strip().lower()
+                icon = "🚩" if label_value == "spam" else "📥"
+                subject = html.escape(_safe_subject(card))
+                excerpt = html.escape(_excerpt(card.get("body")))
+                cards_html_parts.append(
+                    textwrap.dedent(
+                        f"""
+                        <div style="border:1px solid #E5E7EB;border-radius:10px;padding:0.65rem;background-color:#FFFFFF;display:flex;flex-direction:column;gap:0.4rem;">
+                            <div style=\"font-size:0.85rem;color:#4B5563;display:flex;align-items:center;gap:0.4rem;\">{icon}<span style=\"font-weight:600;color:#111827;\">{html.escape(label_value.title() or 'Unlabeled')}</span></div>
+                            <div style="font-weight:600;color:#111827;font-size:0.95rem;line-height:1.3;">{subject}</div>
+                            <div style="font-size:0.85rem;color:#374151;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{excerpt}</div>
+                        </div>
+                        """
+                    ).strip()
+                )
+
+            if cards_html_parts:
+                cards_html = "".join(cards_html_parts)
+                st.markdown(
+                    textwrap.dedent(
+                        f"""
+                        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:0.75rem;">
+                            {cards_html}
+                        </div>
+                        """
+                    ).strip(),
+                    unsafe_allow_html=True,
+                )
+            else:
+                st.info("Label a few emails in Prepare data to see examples here.")
+
+            chip_labels = ["Suspicious links", "SHOUTY caps", "Money/urgency terms"]
+            chip_html = "".join(
+                f"<span style='display:inline-block;border:1px solid #D1D5DB;border-radius:999px;padding:0.25rem 0.6rem;font-size:0.75rem;color:#1F2937;background-color:#F9FAFB;margin-right:0.35rem;margin-bottom:0.35rem;'>{html.escape(label)}</span>"
+                for label in chip_labels
             )
-
-        if cards_html_parts:
-            cards_html = "".join(cards_html_parts)
             st.markdown(
-                textwrap.dedent(
-                    f"""
-                    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:0.75rem;">
-                        {cards_html}
-                    </div>
-                    """
-                ).strip(),
+                f"<div style='margin-top:0.85rem;'>{chip_html}</div>",
                 unsafe_allow_html=True,
             )
-        else:
-            st.info("Label a few emails in Prepare data to see examples here.")
-
-        chip_labels = ["Suspicious links", "SHOUTY caps", "Money/urgency terms"]
-        chip_html = "".join(
-            f"<span style='display:inline-block;border:1px solid #D1D5DB;border-radius:999px;padding:0.25rem 0.6rem;font-size:0.75rem;color:#1F2937;background-color:#F9FAFB;margin-right:0.35rem;margin-bottom:0.35rem;'>{html.escape(label)}</span>"
-            for label in chip_labels
-        )
-        st.markdown(
-            f"<div style='margin-top:0.85rem;'>{chip_html}</div>",
-            unsafe_allow_html=True,
-        )
-        st.caption("These are the kinds of cues the model is likely to notice. You tuned their presence in Prepare.")
+            st.caption("These are the kinds of cues the model is likely to notice. You tuned their presence in Prepare.")
             
             st.markdown(
                 """
