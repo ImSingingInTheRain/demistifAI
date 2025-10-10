@@ -1260,6 +1260,36 @@ def _render_unified_training_storyboard():
 
         st.caption(_numeric_guardrails_caption_text())
 
+def _parse_split_cache(cache):
+    if cache is None:
+        raise ValueError("Missing split cache.")
+    if len(cache) == 4:
+        X_tr, X_te, y_tr, y_te = cache
+        train_bodies = ["" for _ in range(len(X_tr))]
+        test_bodies = ["" for _ in range(len(X_te))]
+        return (
+            list(X_tr),
+            list(X_te),
+            train_bodies,
+            test_bodies,
+            list(y_tr),
+            list(y_te),
+        )
+    if len(cache) == 6:
+        X_tr_t, X_te_t, X_tr_b, X_te_b, y_tr, y_te = cache
+        return (
+            list(X_tr_t),
+            list(X_te_t),
+            list(X_tr_b),
+            list(X_te_b),
+            list(y_tr),
+            list(y_te),
+        )
+    y_tr = list(cache[-2]) if len(cache) >= 2 else []
+    y_te = list(cache[-1]) if len(cache) >= 1 else []
+    return [], [], [], [], y_tr, y_te
+
+
 def _prepare_meaning_map(
     titles: List[str],
     bodies: List[str],
@@ -5824,35 +5854,6 @@ def render_train_stage():
                 description="Tweak the train/test split, solver iterations, and regularization strength.",
                 icon="🔬",
             )
-
-    def _parse_split_cache(cache):
-        if cache is None:
-            raise ValueError("Missing split cache.")
-        if len(cache) == 4:
-            X_tr, X_te, y_tr, y_te = cache
-            train_bodies = ["" for _ in range(len(X_tr))]
-            test_bodies = ["" for _ in range(len(X_te))]
-            return (
-                list(X_tr),
-                list(X_te),
-                train_bodies,
-                test_bodies,
-                list(y_tr),
-                list(y_te),
-            )
-        if len(cache) == 6:
-            X_tr_t, X_te_t, X_tr_b, X_te_b, y_tr, y_te = cache
-            return (
-                list(X_tr_t),
-                list(X_te_t),
-                list(X_tr_b),
-                list(X_te_b),
-                list(y_tr),
-                list(y_te),
-            )
-        y_tr = list(cache[-2]) if len(cache) >= 2 else []
-        y_te = list(cache[-1]) if len(cache) >= 1 else []
-        return [], [], [], [], y_tr, y_te
 
     if nerd_mode_train_enabled:
         with section_surface():
