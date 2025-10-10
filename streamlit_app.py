@@ -5915,6 +5915,10 @@ def render_train_stage():
                             "cluster shapes are approximate."
                         )
 
+                    if ss.get("meaning_map_show_pair_trigger"):
+                        ss["meaning_map_show_examples"] = True
+                        ss.pop("meaning_map_show_pair_trigger", None)
+
                     toggles_col1, toggles_col2, toggles_col3 = st.columns(3)
                     show_examples = toggles_col1.checkbox(
                         "Show examples",
@@ -5940,7 +5944,7 @@ def render_train_stage():
                         help="Highlight the closest spam look-alikes on the map.",
                         key="meaning_map_show_pair_button",
                     ):
-                        st.session_state["meaning_map_show_examples"] = True
+                        ss["meaning_map_show_pair_trigger"] = True
                         show_examples = True
 
                     chart = _build_meaning_map_chart(
