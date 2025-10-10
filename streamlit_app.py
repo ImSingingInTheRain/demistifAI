@@ -1205,6 +1205,20 @@ def _ghost_meaning_map_enhanced(
     return alt.layer(*layers)
 
 
+def _request_meaning_map_refresh(section_key: str | None) -> None:
+    """Trigger a rerun so the training meaning maps refresh on demand."""
+
+    new_run_id = uuid4().hex
+    if section_key:
+        new_run_id = f"{section_key}_{new_run_id}"
+    ss["train_story_run_id"] = new_run_id
+    ss["train_refresh_expected"] = True
+    attempts = int(ss.get("train_refresh_attempts", 0) or 0)
+    ss["train_refresh_attempts"] = max(1, attempts)
+    ss["train_storyboard_payload"] = {}
+    _streamlit_rerun()
+
+
 def _render_unified_training_storyboard():
     """
     One dynamic section that:
@@ -1294,19 +1308,12 @@ def _render_unified_training_storyboard():
                     "These two axes are the first two directions of that meaning space — "
                     "_meaning dimension 1_ and _meaning dimension 2_."
                 )
-
-                toggle_placeholder = st.empty()
-                if st.button(
-                    "Show similar pair",
-                    key=f"meaning_map_show_pair_button_live_{story_run_id}",
-                ):
-                    ss["meaning_map_show_examples"] = True
-
-                show_examples = toggle_placeholder.toggle(
-                    "Show examples",
-                    value=bool(ss.get("meaning_map_show_examples", False)),
-                    key="meaning_map_show_examples",
-                )
+                if has_model and has_split:
+                    if st.button(
+                        "Refresh chart",
+                        key=f"refresh_meaning_map_section1_{story_run_id}",
+                    ):
+                        _request_meaning_map_refresh("section1")
 
         with right1:
             pre_training = not (has_model and has_split)
@@ -1362,11 +1369,13 @@ def _render_unified_training_storyboard():
                 "would place that dividing line conceptually. After training, you’ll see the actual learned boundary in a "
                 "zoomed-in view that spotlights borderline emails and those closest to each class center."
             )
-            show_centers = st.toggle(
-                "Show class centers",
-                value=bool(ss.get("meaning_map_show_centers", False)),
-                key="meaning_map_show_centers",
-            )
+            show_centers = bool(has_model and has_split)
+            if has_model and has_split:
+                if st.button(
+                    "Refresh chart",
+                    key=f"refresh_meaning_map_section2_{story_run_id}",
+                ):
+                    _request_meaning_map_refresh("section2")
 
         with right2:
             if meaning_map_error:
@@ -1419,6 +1428,12 @@ def _render_unified_training_storyboard():
                 )
             else:
                 st.caption("Train the model to see which emails triggered these numeric clues.")
+            if has_model and has_split:
+                if st.button(
+                    "Refresh chart",
+                    key=f"refresh_meaning_map_section3_{story_run_id}",
+                ):
+                    _request_meaning_map_refresh("section3")
 
         with right3:
             if meaning_map_error:
