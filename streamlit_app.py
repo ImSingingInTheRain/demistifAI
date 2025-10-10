@@ -121,7 +121,7 @@ def callable_or_attr(target: Any, attr: str | None = None) -> bool:
 
 
 from sklearn.decomposition import PCA
-from sklearn.metrics import accuracy_score, confusion_matrix, precision_recall_fscore_support
+from sklearn.metrics import accuracy_score, confusion_matrix, f1_score, precision_recall_fscore_support
 from sklearn.model_selection import train_test_split
 
 
@@ -4802,10 +4802,53 @@ def _discard_preview() -> None:
     ss["last_dataset_delta_story"] = explain_config_change(ss.get("dataset_config", DEFAULT_DATASET_CONFIG))
 
 
+def _label_balance_status(labeled: list[dict] | None) -> dict:
+    """Return counts, total, ratio, and OK flag for balance."""
+
+    labeled = labeled or []
+    counts = _counts(
+        [
+            (r.get("label") or "").strip().lower()
+            for r in labeled
+            if isinstance(r, dict)
+        ]
+    )
+    total = counts["spam"] + counts["safe"]
+    big = max(counts["spam"], counts["safe"])
+    small = min(counts["spam"], counts["safe"])
+    ratio = (small / big) if big else 0.0
+    ok = (total >= 12) and (counts["spam"] >= 6) and (counts["safe"] >= 6) and (ratio >= 0.60)
+    return {"counts": counts, "total": total, "ratio": ratio, "ok": ok}
+
+
+def _pii_status() -> dict:
+    """Read PII scan summary saved during Prepare (if any)."""
+
+    # expected shape: {"status": "clean"|"found"|"unknown", "counts": {"emails":..,"phones":..,"names":..}}
+    pii = ss.get("pii_scan") or {}
+    status = pii.get("status", "unknown")
+    counts = pii.get("counts", {})
+    return {"status": status, "counts": counts}
+
+
+def _go_to_prepare():
+    """Jump to Prepare stage (match your stage switching mechanism)."""
+
+    ss["stage"] = "prepare"
+    st.experimental_rerun()
+
+
 def render_train_stage():
 
     stage = STAGE_BY_KEY["train"]
     ss.setdefault("token_budget_cache", {})
+    ss.setdefault("guard_params", {})
+    ss["guard_params"].setdefault("assist_center_mode", "manual")  # "manual" | "auto"
+    ss["guard_params"].setdefault("assist_center", float(ss.get("threshold", 0.6)))
+    ss["guard_params"].setdefault("uncertainty_band", 0.08)
+    ss["guard_params"].setdefault("numeric_scale", 0.5)
+    ss["guard_params"].setdefault("numeric_logit_cap", 1.0)
+    ss["guard_params"].setdefault("combine_strategy", "blend")
 
     st.markdown(
         """
