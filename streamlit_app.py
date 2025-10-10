@@ -5417,7 +5417,7 @@ def render_train_stage():
                 unsafe_allow_html=True,
             )
 
-             st.markdown(
+        st.markdown(
             """
             <div style="display:flex;flex-direction:column;gap:0.35rem;margin-bottom:0.75rem;">
                 <div style="font-size:1.05rem;font-weight:600;color:#111827;">A peek at your training data</div>
