@@ -5355,109 +5355,103 @@ def render_train_stage():
                 ),
                 unsafe_allow_html=True,
             )
-            
-            if not ss.get("nerd_mode_train"):
-                st.markdown(
-                    """
-                    <div class="train-how-card">
-                        <p class="train-how-card__body train-how-card__body--muted">We can break it down into three simple steps:</p>
-                        <div class="train-how-card__step-grid">
-                            <div class="train-how-card__step-box">
-                                <div class="train-how-card__step-label">
-                                    <span class="train-how-card__step-number">1</span>
-                                    <span class="train-how-card__step-icon">🗺️</span>
-                                    <span class="train-how-card__step-title">Turning emails into “meaning points”</span>
-                                </div>
-                                <ul class="train-how-card__step-list">
-                                    <li>Imagine every email as a dot on a map.</li>
-                                    <li>A small language model called MiniLM reads the words and places each email on this map so that similar messages land near each other.</li>
-                                </ul>
-                                <div class="train-how-card__step-example"><strong>Example:</strong> “Win a free iPhone!” and “Claim your prize now!” sit close together, while “Project meeting agenda” lands far away.</div>
-                            </div>
-                            <div class="train-how-card__step-box">
-                                <div class="train-how-card__step-label">
-                                    <span class="train-how-card__step-number">2</span>
-                                    <span class="train-how-card__step-icon">📏</span>
-                                    <span class="train-how-card__step-title">Drawing a dividing line</span>
-                                </div>
-                                <ul class="train-how-card__step-list">
-                                    <li>Once emails are mapped, a simple linear classifier draws the straight line that best separates Spam from Safe.</li>
-                                    <li>Everything on one side is predicted as spam; everything on the other is tagged safe.</li>
-                                </ul>
-                                <div class="train-how-card__step-example"><strong>Example:</strong> Marketing scams cluster on the spam side, while project updates stay on the safe side.</div>
-                            </div>
-                            <div class="train-how-card__step-box">
-                                <div class="train-how-card__step-label">
-                                    <span class="train-how-card__step-number">3</span>
-                                    <span class="train-how-card__step-icon">🛡️</span>
-                                    <span class="train-how-card__step-title">Using extra clues when uncertain</span>
-                                </div>
-                                <ul class="train-how-card__step-list">
-                                    <li>Borderline emails land near the dividing line.</li>
-                                    <li>Here, the system checks extra guardrails for hints when the text alone is unsure.</li>
-                                </ul>
-                                <ul class="train-how-card__step-sublist">
-                                    <li>Does it hide suspicious links?</li>
-                                    <li>Is it shouting in ALL CAPS?</li>
-                                    <li>Does it push urgency or “$$$” language?</li>
-                                </ul>
-                                <div class="train-how-card__step-example"><strong>Example:</strong> “Your invoice is ready” stays safe, while “URGENT! CLICK NOW TO CLAIM $$$” trips multiple guardrails.</div>
-                            </div>
-                        </div>
-                    </div>
-                    """,
-                    unsafe_allow_html=True,
-                )
         with sidebar_col:
             st.markdown(
                 """
                 <div class="train-sidebar-card">
-                    <div class="train-sidebar-card__title">🚦 Training readiness checklist</div>
-                    <div class="train-sidebar-card__grid">
-                        <div class="train-sidebar-card__item">
-                            <div class="train-sidebar-card__badge">
-                                <span class="train-sidebar-card__badge-num">1</span>
-                                <span class="train-sidebar-card__badge-icon">📊</span>
-                            </div>
-                            <div>
-                                <p class="train-sidebar-card__item-title">Balanced labels</p>
-                                <p class="train-sidebar-card__item-body">Mix of labeled spam and safe emails (aim for balance).</p>
-                            </div>
-                        </div>
-                        <div class="train-sidebar-card__item">
-                            <div class="train-sidebar-card__badge">
-                                <span class="train-sidebar-card__badge-num">2</span>
-                                <span class="train-sidebar-card__badge-icon">🧪</span>
-                            </div>
-                            <div>
-                                <p class="train-sidebar-card__item-title">Honest evaluation slice</p>
-                                <p class="train-sidebar-card__item-body">Keep a hold-out split ready so we can grade the model without leakage.</p>
-                            </div>
-                        </div>
-                        <div class="train-sidebar-card__item">
-                            <div class="train-sidebar-card__badge">
-                                <span class="train-sidebar-card__badge-num">3</span>
-                                <span class="train-sidebar-card__badge-icon">🧹</span>
-                            </div>
-                            <div>
-                                <p class="train-sidebar-card__item-title">Data hygiene</p>
-                                <p class="train-sidebar-card__item-body">Scrub or minimise personal data in the dataset preview.</p>
-                            </div>
-                        </div>
-                        <div class="train-sidebar-card__item">
-                            <div class="train-sidebar-card__badge">
-                                <span class="train-sidebar-card__badge-num">4</span>
-                                <span class="train-sidebar-card__badge-icon">📝</span>
-                            </div>
-                            <div>
-                                <p class="train-sidebar-card__item-title">Document assumptions</p>
-                                <p class="train-sidebar-card__item-body">Write down any assumptions before you ship the model.</p>
-                            </div>
-                        </div>
-                    </div>
+                  <div class="train-sidebar-card__title">🧭 Training Launchpad — readiness & controls</div>
                 </div>
                 """,
                 unsafe_allow_html=True,
+            )
+
+            bal = _label_balance_status(ss.get("labeled"))
+            bal_ok = bal["ok"]
+            bal_chip = "✅ OK" if bal_ok else "⚠️ Need work"
+            chip_style = (
+                "display:inline-block;background:rgba(14,165,233,0.12);color:#0369a1;"
+                "border-radius:999px;padding:0.1rem 0.5rem;font-size:0.75rem;font-weight:600;"
+            )
+            st.markdown(
+                f"""
+                <div class="train-sidebar-card__item">
+                  <p class="train-sidebar-card__item-title">Balanced labels <span style=\"{chip_style}\">{bal_chip}</span></p>
+                  <p class="train-sidebar-card__item-body">Spam: {bal['counts']['spam']} • Safe: {bal['counts']['safe']} (ratio ~{bal['ratio']:.2f})</p>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+            if not bal_ok:
+                if st.button("Fix in Prepare", key="launchpad_fix_balance", use_container_width=True):
+                    _go_to_prepare()
+
+            pii = _pii_status()
+            tag = {
+                "clean": "✅ OK",
+                "found": "⚠️ Need work",
+                "unknown": "ⓘ Not scanned",
+            }.get(pii["status"], "ⓘ Not scanned")
+            counts_str = ", ".join(f"{k} {v}" for k, v in (pii["counts"] or {}).items()) or "—"
+            st.markdown(
+                f"""
+                <div class="train-sidebar-card__item">
+                  <p class="train-sidebar-card__item-title">Data hygiene <span style=\"{chip_style}\">{tag}</span></p>
+                  <p class="train-sidebar-card__item-body">PII in preview: {counts_str}</p>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+            if pii["status"] in {"found", "unknown"}:
+                if st.button("Review in Prepare", key="launchpad_fix_pii", use_container_width=True):
+                    _go_to_prepare()
+
+            ss["train_params"]["test_size"] = (
+                st.slider(
+                    "Hold-out for honest test (%)",
+                    min_value=10,
+                    max_value=50,
+                    step=5,
+                    value=int(float(ss["train_params"].get("test_size", 0.30)) * 100),
+                    help="Set aside some labeled emails for a fair check. More hold-out = fairer exam, fewer examples to learn from.",
+                )
+                / 100.0
+            )
+            if ss["train_params"]["test_size"] < 0.15 or ss["train_params"]["test_size"] > 0.40:
+                st.caption("Tip: 20–30% is a good range for most datasets.")
+
+            gp = ss["guard_params"]
+            auto_mode = st.toggle(
+                "Implicit strategy mode (Auto)",
+                value=(gp.get("assist_center_mode") == "auto"),
+                key="launchpad_auto_mode",
+            )
+            gp["assist_center_mode"] = "auto" if auto_mode else "manual"
+            if gp["assist_center_mode"] == "manual":
+                gp["assist_center"] = st.slider(
+                    "Where ‘borderline’ lives (0–1)",
+                    0.30,
+                    0.90,
+                    float(gp.get("assist_center", ss.get("threshold", 0.6))),
+                    0.01,
+                )
+                gp["uncertainty_band"] = st.slider(
+                    "Uncertainty band (±)",
+                    0.0,
+                    0.20,
+                    float(gp.get("uncertainty_band", 0.08)),
+                    0.01,
+                )
+            else:
+                st.caption(
+                    "We’ll pick the center from the hold-out set after training so numeric clues trigger where they help most."
+                )
+            ss["guard_params"] = gp
+
+            nerd_mode_train_enabled = render_nerd_mode_toggle(
+                key="nerd_mode_train",
+                title="Nerd Mode — advanced controls",
+                description="Tweak the train/test split, solver iterations, and regularization strength.",
+                icon="🔬",
             )
 
             st.markdown(
@@ -5528,22 +5522,6 @@ def render_train_stage():
                 unsafe_allow_html=True,
             )
             st.caption("These are the kinds of cues the model is likely to notice. You tuned their presence in Prepare.")
-            
-            st.markdown(
-                """
-                <div class="train-sidebar-card train-sidebar-card--secondary">
-                    <div class="train-sidebar-card__title">Need precise control?</div>
-                    <p style="margin:0; font-size:0.88rem; color:rgba(30,64,175,0.82);">Toggle Nerd Mode to tune the train/test split and numeric guardrails before you launch training.</p>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
-            nerd_mode_train_enabled = render_nerd_mode_toggle(
-                key="nerd_mode_train",
-                title="Nerd Mode — advanced controls",
-                description="Tweak the train/test split, solver iterations, and regularization strength.",
-                icon="🔬",
-            )
 
     def _parse_split_cache(cache):
         if cache is None:
