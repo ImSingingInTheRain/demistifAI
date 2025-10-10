@@ -5269,6 +5269,8 @@ def render_train_stage():
     stage_icon_html = html.escape(stage.icon)
 
     with section_surface():
+        with section_surface():
+        render_eu_ai_quote("An AI system “infers, from the input it receives…”.")
         intro_col, sidebar_col = st.columns([0.58, 0.42], gap="large")
         with intro_col:
             st.markdown(
