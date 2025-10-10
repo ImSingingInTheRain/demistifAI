@@ -5486,7 +5486,7 @@ def render_train_stage():
         )
         st.caption("These are the kinds of cues the model is likely to notice. You tuned their presence in Prepare.")
             
-        st.markdown(
+            st.markdown(
                 """
                 <div class="train-sidebar-card train-sidebar-card--secondary">
                     <div class="train-sidebar-card__title">Need precise control?</div>
