@@ -4,6 +4,7 @@ import base64
 import html
 import math
 import json
+import logging
 import random
 import string
 import textwrap
@@ -104,6 +105,9 @@ from demistifai.modeling import (
     top_token_importances,
     verdict_label,
 )
+
+
+logger = logging.getLogger(__name__)
 
 
 def callable_or_attr(target: Any, attr: str | None = None) -> bool:
@@ -971,11 +975,11 @@ def _prepare_meaning_map(
         rows.append((idx, title or "", body or "", label))
 
     if not rows:
-        return None, {"error": "Meaning Map is unavailable—no labeled emails to display."}
+        raise RuntimeError("Meaning Map is unavailable—no labeled emails to display.")
 
     labels_present = {row[3] for row in rows}
     if len(labels_present) < 2:
-        return None, {"error": "Need both Spam and Safe examples to draw the map."}
+        raise RuntimeError("Need both Spam and Safe examples to draw the map.")
 
     base_indices = list(range(len(rows)))
     if len(rows) > max_points:
@@ -992,14 +996,14 @@ def _prepare_meaning_map(
     try:
         embeddings = cache_train_embeddings(sampled_texts)
     except Exception as exc:
-        return None, {"error": f"Meaning Map unavailable ({exc})."}
+        raise RuntimeError(f"Meaning Map unavailable ({exc}).") from exc
 
     if getattr(embeddings, "size", 0) == 0:
-        return None, {"error": "Meaning Map unavailable (embeddings missing)."}
+        raise RuntimeError("Meaning Map unavailable (embeddings missing).")
 
     coords, projection_meta = _reduce_embeddings_to_2d(np.asarray(embeddings, dtype=np.float32))
     if coords.shape[0] != len(sampled_rows):
-        return None, {"error": "Meaning Map unavailable (projection failed)."}
+        raise RuntimeError("Meaning Map unavailable (projection failed).")
 
     df = pd.DataFrame(
         {
@@ -1168,13 +1172,48 @@ def _build_meaning_map_chart(
     show_examples: bool,
     show_class_centers: bool,
     highlight_borderline: bool = False,
-) -> alt.VConcatChart:
+) -> Optional[alt.VConcatChart]:
+    if df is None or df.empty:
+        return None
+
+    required_cols = {"x", "y", "label", "plot_index"}
+    if not required_cols.issubset(df.columns):
+        return None
+
+    df = df.copy()
+    defaults: Dict[str, Any] = {
+        "label_title": "",
+        "predicted_label_title": "",
+        "spam_probability": np.nan,
+        "distance_display": "–",
+        "subject_tooltip": "",
+        "subject_full": "",
+        "body_excerpt": "",
+        "reason": "",
+        "borderline": False,
+    }
+    for column, default in defaults.items():
+        if column not in df.columns:
+            df[column] = default
+
     color_scale = alt.Scale(domain=["spam", "safe"], range=["#ef4444", "#3b82f6"])
     hover = _make_selection_point(["plot_index"], on="mouseover", empty="none")
     select = _make_selection_point(["plot_index"], on="click", empty="none")
     combined_selection = _combine_selections(select, hover)
 
     base = alt.Chart(df)
+    tooltip_fields: List[Any] = []
+    if "subject_tooltip" in df.columns:
+        tooltip_fields.append(alt.Tooltip("subject_tooltip:N", title="Subject"))
+    if "label_title" in df.columns:
+        tooltip_fields.append(alt.Tooltip("label_title:N", title="True label"))
+    if "predicted_label_title" in df.columns:
+        tooltip_fields.append(alt.Tooltip("predicted_label_title:N", title="Model prediction"))
+    if "spam_probability" in df.columns:
+        tooltip_fields.append(alt.Tooltip("spam_probability:Q", title="Spam probability", format=".2f"))
+    if "distance_display" in df.columns:
+        tooltip_fields.append(alt.Tooltip("distance_display:N", title="Distance to line"))
+
     scatter = base.mark_circle(size=80).encode(
         x=alt.X(
             "x:Q",
@@ -1185,13 +1224,7 @@ def _build_meaning_map_chart(
             axis=alt.Axis(title="Meaning dimension 2", grid=False, ticks=False, labels=False),
         ),
         color=alt.Color("label:N", scale=color_scale, legend=None),
-        tooltip=[
-            alt.Tooltip("subject_tooltip:N", title="Subject"),
-            alt.Tooltip("label_title:N", title="True label"),
-            alt.Tooltip("predicted_label_title:N", title="Model prediction"),
-            alt.Tooltip("spam_probability:Q", title="Spam probability", format=".2f"),
-            alt.Tooltip("distance_display:N", title="Distance to line"),
-        ],
+        tooltip=tooltip_fields,
         opacity=
             alt.condition(combined_selection, alt.value(0.95), alt.value(0.45))
             if combined_selection is not None
@@ -1254,8 +1287,8 @@ def _build_meaning_map_chart(
             )
             layers.append(line_layer)
 
-    if highlight_borderline:
-        borderline_df = df[df["borderline"] == True]  # noqa: E712
+    if highlight_borderline and "borderline" in df.columns:
+        borderline_df = df.loc[df["borderline"] == True]  # noqa: E712
         if not borderline_df.empty:
             border_layer = (
                 alt.Chart(borderline_df)
@@ -1270,12 +1303,12 @@ def _build_meaning_map_chart(
             )
             layers.append(border_layer)
 
-    if show_examples and isinstance(meta.get("pair"), dict):
+    if show_examples and isinstance(meta.get("pair"), dict) and "plot_index" in df.columns:
         pair = meta.get("pair") or {}
         indices = pair.get("indices") or []
         coords = pair.get("coords") or []
         if indices:
-            highlight_df = df[df["plot_index"].isin(indices)]
+            highlight_df = df.loc[df["plot_index"].isin(indices)]
             if not highlight_df.empty:
                 highlight = alt.Chart(highlight_df).mark_circle(
                     size=180,
@@ -1309,7 +1342,11 @@ def _build_meaning_map_chart(
         layers.append(centers)
         if len(centroid_df) == 2:
             line_df = centroid_df.sort_values("label")[["x", "y"]]
-            line = alt.Chart(line_df).mark_line(color="#6366f1", strokeDash=[3, 3], opacity=0.7).encode(
+            line = alt.Chart(line_df).mark_line(
+                color="#6366f1",
+                strokeDash=[3, 3],
+                opacity=0.7,
+            ).encode(
                 x="x:Q",
                 y="y:Q",
             )
@@ -1394,22 +1431,45 @@ def _build_borderline_guardrail_chart(
     if df is None or df.empty:
         return None
 
-    borderline_df = df[df["borderline"] == True]  # noqa: E712
+    required_cols = {"x", "y", "label"}
+    if not required_cols.issubset(df.columns):
+        return None
+
+    if "borderline" not in df.columns:
+        return None
+
+    df = df.copy()
+    defaults: Dict[str, Any] = {
+        "label_title": "",
+        "predicted_label_title": "",
+        "spam_probability": np.nan,
+        "distance_display": "–",
+        "subject_tooltip": "",
+    }
+    for column, default in defaults.items():
+        if column not in df.columns:
+            df[column] = default
+
+    borderline_df = df.loc[df["borderline"] == True]  # noqa: E712
     if borderline_df.empty:
         return None
 
     color_scale = alt.Scale(domain=["spam", "safe"], range=["#ef4444", "#3b82f6"])
-    tooltip_fields = [
-        alt.Tooltip("subject_tooltip:N", title="Subject"),
-        alt.Tooltip("label_title:N", title="True label"),
-        alt.Tooltip("predicted_label_title:N", title="Model prediction"),
-        alt.Tooltip("spam_probability:Q", title="Spam probability", format=".2f"),
-        alt.Tooltip("distance_display:N", title="Distance to line"),
-    ]
+    tooltip_fields: List[Any] = []
+    if "subject_tooltip" in df.columns:
+        tooltip_fields.append(alt.Tooltip("subject_tooltip:N", title="Subject"))
+    if "label_title" in df.columns:
+        tooltip_fields.append(alt.Tooltip("label_title:N", title="True label"))
+    if "predicted_label_title" in df.columns:
+        tooltip_fields.append(alt.Tooltip("predicted_label_title:N", title="Model prediction"))
+    if "spam_probability" in df.columns:
+        tooltip_fields.append(alt.Tooltip("spam_probability:Q", title="Spam probability", format=".2f"))
+    if "distance_display" in df.columns:
+        tooltip_fields.append(alt.Tooltip("distance_display:N", title="Distance to line"))
 
     layers: List[alt.Chart] = []
 
-    non_borderline_df = df[df["borderline"] == False]  # noqa: E712
+    non_borderline_df = df.loc[df["borderline"] == False]  # noqa: E712
     if not non_borderline_df.empty:
         background = (
             alt.Chart(non_borderline_df)
@@ -5799,32 +5859,20 @@ def render_train_stage():
                 meaning_map_error: Optional[str] = None
                 model_for_story = ss.get("model")
 
-                if not has_embed:
-                    meaning_map_error = (
-                        "Meaning Map is unavailable—text encoder is off. You can still review examples below."
+                try:
+                    meaning_map_df, meaning_map_meta = _prepare_meaning_map(
+                        list(X_tr_t) if X_tr_t is not None else [],
+                        list(X_tr_b) if X_tr_b is not None else [],
+                        list(y_tr_labels) if y_tr_labels is not None else [],
+                        model_for_story,
                     )
-                else:
-                    try:
-                        meaning_map_df, meaning_map_meta = _prepare_meaning_map(
-                            train_titles_story,
-                            train_bodies_story,
-                            train_labels_story,
-                            model_for_story,
-                        )
-                    except Exception as exc:
-                        meaning_map_df = None
-                        meaning_map_meta = {}
-                        meaning_map_error = f"Meaning Map unavailable ({exc})."
-                    else:
-                        if meaning_map_df is None:
-                            meaning_map_error = meaning_map_meta.get("error")
+                except Exception as exc:
+                    meaning_map_error = f"Meaning Map unavailable ({exc})."
+                    logger.exception("Meaning Map failed")
 
                 if meaning_map_error:
                     st.info(meaning_map_error)
-                    st.caption(
-                        f"Training emails shown: {total_train} (Spam: {ct['spam']}, Safe: {ct['safe']})."
-                    )
-                elif meaning_map_df is not None:
+                elif meaning_map_df is not None and not meaning_map_df.empty:
                     st.markdown("#### Meaning Map (what the model “sees”)")
                     st.markdown(
                         "Each dot is one training email. Dots that sit close together use similar wording.\n"
@@ -5880,10 +5928,13 @@ def render_train_stage():
                         show_class_centers=show_centers,
                         highlight_borderline=highlight_borderline,
                     )
-                    st.altair_chart(chart, use_container_width=True)
-                    st.caption(
-                        "Line shows where the model splits Spam vs Safe. Emails close to the line are hardest to judge."
-                    )
+                    if chart is not None:
+                        st.altair_chart(chart, use_container_width=True)
+                        st.caption(
+                            "Line shows where the model splits Spam vs Safe. Emails close to the line are hardest to judge."
+                        )
+                    else:
+                        st.info("Couldn’t render the map (empty or invalid chart data).")
 
                     class_counts_shown = meaning_map_meta.get("class_counts", {})
                     st.caption(
@@ -5894,16 +5945,11 @@ def render_train_stage():
                     if meaning_map_meta.get("sampled"):
                         st.caption("Showing 500 training emails for clarity.")
 
-                    if show_centers:
-                        distance = meaning_map_meta.get("centroid_distance")
-                        if isinstance(distance, (int, float)) and math.isfinite(distance):
-                            st.caption(
-                                f"Distance between centers ≈ {distance:.2f}. More distance = easier to classify."
-                            )
-                        else:
-                            st.caption(
-                                "Distance between centers ≈ how separate the styles are. More distance = easier to classify."
-                            )
+                    distance = meaning_map_meta.get("centroid_distance")
+                    if isinstance(distance, (int, float)) and math.isfinite(distance):
+                        st.caption(
+                            f"Distance between centers ≈ {float(distance):.2f}. More distance = easier to classify."
+                        )
 
                     if show_examples and isinstance(meaning_map_meta.get("pair"), dict):
                         pair_info = meaning_map_meta["pair"]
@@ -5926,6 +5972,8 @@ def render_train_stage():
                     st.caption(
                         "How to read this: The straight line is the model’s “rule of thumb.” Emails far from the line are classified with confidence; emails near the line are uncertain and need more or clearer training examples."
                     )
+                else:
+                    st.info("Meaning Map not available for this run.")
 
                 # 2) & 3) remain below
                 st.markdown(
@@ -5997,80 +6045,100 @@ def render_train_stage():
                     unsafe_allow_html=True,
                 )
 
-                guardrail_chart = _build_borderline_guardrail_chart(
-                    meaning_map_df,
-                    meaning_map_meta,
-                )
-                borderline_df = meaning_map_df[meaning_map_df["borderline"] == True]  # noqa: E712
-                cards_html_parts: List[str] = []
-                if not borderline_df.empty:
-                    sorted_borderline = borderline_df.sort_values(
-                        "distance_abs",
-                        ascending=True,
-                        na_position="last",
-                    )
-                    max_cards = 20
-                    for row in sorted_borderline.head(max_cards).itertuples():
-                        subject_text = str(getattr(row, "subject_full", "")).strip()
-                        if not subject_text:
-                            subject_text = "(no subject)"
-                        body_raw = getattr(row, "body_full", "")
-                        body_text = body_raw if isinstance(body_raw, str) else ""
-                        label_value = str(getattr(row, "label", ""))
-                        label_title = label_value.title() if label_value else "Unknown"
-                        label_icon = GUARDRAIL_LABEL_ICONS.get(label_value, "✉️")
-                        spam_prob = getattr(row, "spam_probability", float("nan"))
-                        if isinstance(spam_prob, (int, float)) and math.isfinite(spam_prob):
-                            score_text = f"p(spam) {spam_prob:.2f}"
-                        else:
-                            score_text = "Near the line"
-                        signals = _guardrail_signals(subject_text, body_text)
-                        badges_html = _guardrail_badges_html(signals)
-                        card_html = """
-                        <div class='guardrail-card'>
-                            <div class='guardrail-card__subject'>{subject}</div>
-                            <div class='guardrail-card__meta'>
-                                <span class='guardrail-card__label guardrail-card__label--{label_cls}'>{icon} {label}</span>
-                                <span>{score}</span>
-                            </div>
-                            <div class='guardrail-card__badges'>{badges}</div>
-                        </div>
-                        """.format(
-                            subject=html.escape(subject_text),
-                            label_cls=html.escape(label_value or ""),
-                            icon=label_icon,
-                            label=html.escape(label_title),
-                            score=html.escape(score_text),
-                            badges=badges_html,
+                try:
+                    if meaning_map_df is not None and "borderline" in meaning_map_df.columns:
+                        guardrail_chart = _build_borderline_guardrail_chart(
+                            meaning_map_df,
+                            meaning_map_meta,
                         )
-                        cards_html_parts.append(card_html)
+                        left_col, right_col = st.columns([0.58, 0.42], gap="large")
+                        with left_col:
+                            st.markdown("<div class='guardrail-panel__chart'>", unsafe_allow_html=True)
+                            if guardrail_chart is not None:
+                                st.altair_chart(guardrail_chart, use_container_width=True)
+                            else:
+                                st.info(
+                                    "Label more emails near the decision boundary to see guardrails in action."
+                                )
+                            st.markdown("</div>", unsafe_allow_html=True)
 
-                layout_cols = st.columns([0.58, 0.42], gap="large")
-                with layout_cols[0]:
-                    st.markdown("<div class='guardrail-panel__chart'>", unsafe_allow_html=True)
-                    if guardrail_chart is not None:
-                        st.altair_chart(guardrail_chart, use_container_width=True)
+                        with right_col:
+                            has_distance = "distance_abs" in meaning_map_df.columns
+                            borderline_df = (
+                                meaning_map_df.loc[meaning_map_df["borderline"] == True]
+                                if "borderline" in meaning_map_df.columns
+                                else pd.DataFrame()
+                            )
+                            cards_html_parts: List[str] = []
+                            if not borderline_df.empty and has_distance:
+                                sorted_borderline = borderline_df.sort_values(
+                                    "distance_abs",
+                                    ascending=True,
+                                    na_position="last",
+                                ).head(20)
+                                for row in sorted_borderline.itertuples():
+                                    subject_value = getattr(row, "subject_full", "")
+                                    subject_text = str(subject_value).strip()
+                                    if not subject_text:
+                                        subject_text = "(no subject)"
+                                    body_raw = getattr(row, "body_full", "")
+                                    body_text = body_raw if isinstance(body_raw, str) else ""
+                                    label_value = str(getattr(row, "label", "") or "")
+                                    label_title = label_value.title() if label_value else "Unknown"
+                                    label_icon = GUARDRAIL_LABEL_ICONS.get(label_value, "✉️")
+                                    spam_prob = getattr(row, "spam_probability", float("nan"))
+                                    if isinstance(spam_prob, (int, float)) and math.isfinite(spam_prob):
+                                        score_text = f"p(spam) {spam_prob:.2f}"
+                                    else:
+                                        score_text = "Near the line"
+                                    signals = _guardrail_signals(subject_text, body_text)
+                                    badges_html = _guardrail_badges_html(signals)
+                                    card_html = """
+                                    <div class='guardrail-card'>
+                                        <div class='guardrail-card__subject'>{subject}</div>
+                                        <div class='guardrail-card__meta'>
+                                            <span class='guardrail-card__label guardrail-card__label--{label_cls}'>{icon} {label}</span>
+                                            <span>{score}</span>
+                                        </div>
+                                        <div class='guardrail-card__badges'>{badges}</div>
+                                    </div>
+                                    """.format(
+                                        subject=html.escape(subject_text),
+                                        label_cls=html.escape(label_value or ""),
+                                        icon=label_icon,
+                                        label=html.escape(label_title),
+                                        score=html.escape(score_text),
+                                        badges=badges_html,
+                                    )
+                                    cards_html_parts.append(card_html)
+
+                            if cards_html_parts:
+                                cards_html = "".join(cards_html_parts)
+                                st.markdown(
+                                    f"<div class='guardrail-card-list'>{cards_html}</div>",
+                                    unsafe_allow_html=True,
+                                )
+                            else:
+                                st.info("No borderline emails yet.")
                     else:
-                        st.info(
-                            "Label more emails near the decision boundary to see guardrails in action."
-                        )
-                    st.markdown("</div>", unsafe_allow_html=True)
-                with layout_cols[1]:
-                    if cards_html_parts:
-                        cards_html = "".join(cards_html_parts)
-                        st.markdown(
-                            f"<div class='guardrail-card-list'>{cards_html}</div>",
-                            unsafe_allow_html=True,
-                        )
-                    else:
-                        st.info(
-                            "No borderline emails yet. As you label more tricky examples, guardrail details will appear here."
-                        )
+                        st.info("Guardrails appear when borderline emails are present.")
+                except Exception as exc:
+                    st.warning(f"Guardrail view failed: {exc}")
+                    logger.exception("Guardrail view failed")
 
                 st.caption(
                     "How to read this: Guardrails don’t matter for clear-cut emails. But for borderline cases near the line, they add extra weight. More guardrails = higher chance of spam classification."
                 )
                 st.markdown("</div>", unsafe_allow_html=True)
+                with st.expander("Debug (Meaning Map)"):
+                    backend_info = (meaning_map_meta or {}).get("embedding_backend", {})
+                    st.write(
+                        {
+                            "backend": backend_info,
+                            "df_shape": None if meaning_map_df is None else meaning_map_df.shape,
+                            "df_cols": [] if meaning_map_df is None else list(meaning_map_df.columns),
+                        }
+                    )
                 labeled_rows_story = ss.get("labeled") or []
                 if model_for_story and labeled_rows_story:
                     def _select_story_examples(rows: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
@@ -6306,9 +6374,10 @@ def render_train_stage():
 
                 # 3) A couple of concrete examples the model saw (subjects only)
                 paraphrase_demo: Optional[Tuple[str, str, float]] = None
-                paraphrase_ready = bool(has_embed and X_tr_t and X_tr_b and y_tr_labels)
-                if paraphrase_ready:
-                    try:
+                paraphrase_ready = bool(X_tr_t and X_tr_b and y_tr_labels)
+                paraphrase_error: Optional[str] = None
+                try:
+                    if paraphrase_ready:
                         train_subjects = list(X_tr_t)
                         y_arr = list(y_tr_labels)
                         # pick first spam + first safe subject line available
@@ -6334,9 +6403,13 @@ def render_train_stage():
                             limited_subjects = spam_subjects[:100]
                             try:
                                 subject_embeddings = encode_texts(limited_subjects)
-                            except Exception:
+                            except Exception as exc:
                                 subject_embeddings = None
                                 paraphrase_ready = False
+                                paraphrase_error = (
+                                    str(exc) or exc.__class__.__name__
+                                )
+                                logger.exception("Paraphrase embedding encoding failed")
                             if subject_embeddings is not None:
                                 subject_embeddings = np.asarray(subject_embeddings)
                                 if subject_embeddings.ndim == 2 and subject_embeddings.shape[0] >= 2:
@@ -6371,11 +6444,11 @@ def render_train_stage():
                                             limited_subjects[best_pair[1]],
                                             best_score,
                                         )
-                    except Exception:
-                        paraphrase_demo = None
-                        paraphrase_ready = False
-                else:
+                except Exception as exc:
+                    paraphrase_demo = None
                     paraphrase_ready = False
+                    paraphrase_error = str(exc) or exc.__class__.__name__
+                    logger.exception("Paraphrase demo failed")
 
                 # 4) What this means / next step
                 st.markdown(
@@ -6400,7 +6473,10 @@ def render_train_stage():
                         unsafe_allow_html=True,
                     )
                 else:
-                    st.caption("Unavailable")
+                    if paraphrase_error:
+                        st.caption(f"Paraphrase demo unavailable ({paraphrase_error}).")
+                    else:
+                        st.caption("Paraphrase demo unavailable.")
                 if not ss.get("nerd_mode_train"):
                     st.markdown(
                         """
@@ -6430,11 +6506,9 @@ def render_train_stage():
                     )
                 st.info("Go to **3) Evaluate** to test performance and choose a spam threshold.")
 
-        except Exception:
-            st.caption("Unavailable")
-            parsed_split = None
-            y_tr_labels = None
-            y_te_labels = None
+        except Exception as exc:
+            st.caption(f"Training storyboard unavailable ({exc}).")
+            logger.exception("Training storyboard failed")
     elif has_model or has_split_cache:
         st.caption("Unavailable")
 
