@@ -844,6 +844,7 @@ def _compute_decision_boundary_overlay(
     logits: np.ndarray,
     model: Any,
     projection_meta: Dict[str, Any],
+    probability_center: float = 0.5,
     probability_margin: float = 0.1,
 ) -> Optional[Dict[str, Any]]:
     if coords.size == 0 or logits.size == 0:
@@ -906,7 +907,32 @@ def _compute_decision_boundary_overlay(
     pad = span * 0.08 if span > 0 else 1.0
     bounds = (x_min - pad, x_max + pad, y_min - pad, y_max + pad)
 
-    line_points = _line_box_intersections(bounds, weight_2d, intercept_2d)
+    center_prob = float(probability_center)
+    center_prob = max(1e-4, min(1.0 - 1e-4, center_prob))
+
+    max_margin = min(center_prob - 1e-4, 1.0 - center_prob - 1e-4)
+    if max_margin < 0:
+        max_margin = 0.0
+    requested_margin = max(0.0, float(probability_margin))
+    prob_margin = min(max_margin, requested_margin)
+
+    low_prob = max(1e-4, center_prob - prob_margin)
+    high_prob = min(1.0 - 1e-4, center_prob + prob_margin)
+
+    center_logit = math.log(center_prob / (1.0 - center_prob))
+    low_logit = math.log(low_prob / (1.0 - low_prob))
+    high_logit = math.log(high_prob / (1.0 - high_prob))
+
+    margin_logit_upper = max(0.0, high_logit - center_logit)
+    margin_logit_lower = max(0.0, center_logit - low_logit)
+    margin_logit = max(margin_logit_upper, margin_logit_lower)
+    margin_distance_upper = margin_logit_upper / norm if margin_logit_upper > 0 else 0.0
+    margin_distance_lower = margin_logit_lower / norm if margin_logit_lower > 0 else 0.0
+    margin_distance = max(margin_distance_upper, margin_distance_lower)
+
+    intercept_centered = float(intercept_2d - center_logit)
+
+    line_points = _line_box_intersections(bounds, weight_2d, intercept_centered)
 
     corner_polygon = [
         (bounds[0], bounds[2]),
@@ -916,22 +942,22 @@ def _compute_decision_boundary_overlay(
     ]
 
     spam_polygon = _clip_polygon_with_halfplane(
-        corner_polygon, weight_2d, intercept_2d, 0.0, keep_leq=False
+        corner_polygon, weight_2d, intercept_2d, center_logit, keep_leq=False
     )
     safe_polygon = _clip_polygon_with_halfplane(
-        corner_polygon, weight_2d, intercept_2d, 0.0, keep_leq=True
+        corner_polygon, weight_2d, intercept_2d, center_logit, keep_leq=True
     )
 
-    prob_margin = max(1e-6, min(0.49, float(probability_margin)))
-    logit_margin = math.log((0.5 + prob_margin) / (0.5 - prob_margin))
-    margin_distance = logit_margin / norm
-
-    band_polygon = _clip_polygon_with_halfplane(
-        corner_polygon, weight_2d, intercept_2d, logit_margin, keep_leq=True
-    )
-    band_polygon = _clip_polygon_with_halfplane(
-        band_polygon, weight_2d, intercept_2d, -logit_margin, keep_leq=False
-    )
+    band_polygon = corner_polygon
+    if high_logit > low_logit:
+        band_polygon = _clip_polygon_with_halfplane(
+            band_polygon, weight_2d, intercept_2d, high_logit, keep_leq=True
+        )
+        band_polygon = _clip_polygon_with_halfplane(
+            band_polygon, weight_2d, intercept_2d, low_logit, keep_leq=False
+        )
+    else:
+        band_polygon = []
 
     line_df = pd.DataFrame(line_points, columns=["x", "y"])
 
@@ -953,9 +979,21 @@ def _compute_decision_boundary_overlay(
         "line_df": line_df,
         "shading_df": shading_df,
         "band_df": band_df,
+        "center_probability": center_prob,
+        "center_logit": center_logit,
         "margin_probability": prob_margin,
-        "margin_logit": logit_margin,
+        "margin_probability_requested": requested_margin,
+        "margin_probability_low": low_prob,
+        "margin_probability_high": high_prob,
+        "low_logit": low_logit,
+        "high_logit": high_logit,
+        "margin_logit": margin_logit,
+        "margin_logit_upper": margin_logit_upper,
+        "margin_logit_lower": margin_logit_lower,
         "margin_distance": margin_distance,
+        "margin_distance_upper": margin_distance_upper,
+        "margin_distance_lower": margin_distance_lower,
+        "intercept_centered": intercept_centered,
         "bounds": bounds,
     }
 
@@ -1066,6 +1104,19 @@ def _prepare_meaning_map(
     boundary_info: Dict[str, Any] | None = None
     logits: Optional[np.ndarray] = None
     probs: Optional[np.ndarray] = None
+    guard_center = 0.5
+    guard_band = 0.1
+    if model is not None:
+        try:
+            guard_center = float(getattr(model, "numeric_assist_center", guard_center))
+        except Exception:
+            guard_center = 0.5
+        try:
+            guard_band = float(getattr(model, "uncertainty_band", guard_band))
+        except Exception:
+            guard_band = 0.1
+    guard_center = max(1e-4, min(1.0 - 1e-4, guard_center))
+    guard_band = max(0.0, guard_band)
     if model is not None:
         try:
             logits_raw = model.predict_logit(sampled_texts)
@@ -1109,19 +1160,25 @@ def _prepare_meaning_map(
                 logits,
                 model,
                 projection_meta,
+                probability_center=guard_center,
+                probability_margin=guard_band,
             )
             if boundary_info:
                 norm_val = float(boundary_info.get("norm", 0.0) or 0.0)
+                center_logit = float(boundary_info.get("center_logit", 0.0) or 0.0)
+                low_logit_val = float(boundary_info.get("low_logit", center_logit))
+                high_logit_val = float(boundary_info.get("high_logit", center_logit))
                 if norm_val > 0 and np.all(np.isfinite(logits)):
-                    distances = logits / norm_val
+                    distances = (logits - center_logit) / norm_val
                     df["distance_to_line"] = distances
                     df["distance_abs"] = np.abs(distances)
                 else:
                     df["distance_to_line"] = np.nan
                     df["distance_abs"] = np.nan
-                logit_margin = float(boundary_info.get("margin_logit", 0.0) or 0.0)
                 if np.all(np.isfinite(logits)):
-                    df["borderline"] = np.abs(logits) <= logit_margin
+                    lo = min(low_logit_val, high_logit_val)
+                    hi = max(low_logit_val, high_logit_val)
+                    df["borderline"] = (logits >= lo) & (logits <= hi)
                 else:
                     df["borderline"] = False
         if "distance_to_line" not in df:
@@ -1148,6 +1205,25 @@ def _prepare_meaning_map(
         for val in df["distance_to_line"]
     ]
 
+    guard_center_effective = guard_center
+    guard_margin_requested = guard_band
+    guard_margin_effective = guard_band
+    guard_low = max(0.0, guard_center_effective - guard_margin_effective)
+    guard_high = min(1.0, guard_center_effective + guard_margin_effective)
+    if isinstance(boundary_info, dict):
+        guard_center_effective = float(
+            boundary_info.get("center_probability", guard_center_effective)
+        )
+        guard_margin_effective = float(
+            boundary_info.get("margin_probability", guard_margin_effective)
+        )
+        guard_low = float(boundary_info.get("margin_probability_low", guard_low))
+        guard_high = float(boundary_info.get("margin_probability_high", guard_high))
+    guard_center_effective = max(0.0, min(1.0, guard_center_effective))
+    guard_margin_effective = max(0.0, guard_margin_effective)
+    guard_low = max(0.0, min(1.0, guard_low))
+    guard_high = max(0.0, min(1.0, guard_high))
+
     meta = {
         "class_counts": class_counts,
         "centroids": centroid_df,
@@ -1159,6 +1235,11 @@ def _prepare_meaning_map(
         "projection": projection_meta,
         "boundary": boundary_info,
         "embedding_backend": embedding_backend_info(),
+        "guard_center_probability": guard_center_effective,
+        "guard_margin_probability": guard_margin_effective,
+        "guard_margin_requested": guard_margin_requested,
+        "guard_window_low": guard_low,
+        "guard_window_high": guard_high,
     }
 
     return df, meta
@@ -2038,6 +2119,7 @@ ss.setdefault(
     },
 )
 ss.setdefault("use_high_autonomy", ss.get("autonomy", AUTONOMY_LEVELS[0]).startswith("High"))
+ss.setdefault("train_story_run_id", None)
 ss.setdefault("use_batch_results", [])
 ss.setdefault("use_adaptiveness", bool(ss.get("adaptive", True)))
 ss.setdefault("use_audit_log", [])
@@ -5811,6 +5893,14 @@ def render_train_stage():
                 ss["split_cache"] = (X_tr_t, X_te_t, X_tr_b, X_te_b, y_tr, y_te)
                 ss["eval_timestamp"] = datetime.now().isoformat(timespec="seconds")
                 ss["eval_temp_threshold"] = float(ss.get("threshold", 0.6))
+                ss["train_story_run_id"] = uuid4().hex
+                for key in (
+                    "meaning_map_show_examples",
+                    "meaning_map_show_centers",
+                    "meaning_map_highlight_borderline",
+                    "meaning_map_show_pair_trigger",
+                ):
+                    ss.pop(key, None)
                 if has_embed:
                     try:
                         train_texts_cache = [
@@ -5880,6 +5970,7 @@ def render_train_stage():
                 meaning_map_meta: Dict[str, Any] = {}
                 meaning_map_error: Optional[str] = None
                 model_for_story = ss.get("model")
+                story_run_id = ss.get("train_story_run_id") or "initial"
 
                 try:
                     meaning_map_df, meaning_map_meta = _prepare_meaning_map(
@@ -5891,6 +5982,18 @@ def render_train_stage():
                 except Exception as exc:
                     meaning_map_error = f"Meaning Map unavailable ({exc})."
                     logger.exception("Meaning Map failed")
+
+                guard_center_display = None
+                guard_low_display = None
+                guard_high_display = None
+                guard_margin_display = None
+                if meaning_map_meta:
+                    guard_center_display = meaning_map_meta.get(
+                        "guard_center_probability"
+                    )
+                    guard_low_display = meaning_map_meta.get("guard_window_low")
+                    guard_high_display = meaning_map_meta.get("guard_window_high")
+                    guard_margin_display = meaning_map_meta.get("guard_margin_probability")
 
                 if meaning_map_error:
                     st.info(meaning_map_error)
@@ -5919,6 +6022,18 @@ def render_train_stage():
                         ss["meaning_map_show_examples"] = True
                         ss.pop("meaning_map_show_pair_trigger", None)
 
+                    borderline_help = "Circle dots where the spam probability sits within the numeric assist window."
+                    if (
+                        isinstance(guard_low_display, (int, float))
+                        and isinstance(guard_high_display, (int, float))
+                        and isinstance(guard_center_display, (int, float))
+                    ):
+                        borderline_help = (
+                            "Highlight emails whose text-only spam score falls between "
+                            f"{guard_low_display:.2f} and {guard_high_display:.2f} "
+                            f"(center τ≈{guard_center_display:.2f})."
+                        )
+
                     toggles_col1, toggles_col2, toggles_col3 = st.columns(3)
                     show_examples = toggles_col1.checkbox(
                         "Show examples",
@@ -5935,7 +6050,7 @@ def render_train_stage():
                     highlight_borderline = toggles_col3.checkbox(
                         "Highlight borderline emails",
                         value=bool(ss.get("meaning_map_highlight_borderline", False)),
-                        help="Circle dots where the spam probability sits within ±0.10 of the dividing line.",
+                        help=borderline_help,
                         key="meaning_map_highlight_borderline",
                     )
 
@@ -5955,10 +6070,23 @@ def render_train_stage():
                         highlight_borderline=highlight_borderline,
                     )
                     if chart is not None:
-                        st.altair_chart(chart, use_container_width=True)
+                        st.altair_chart(
+                            chart,
+                            use_container_width=True,
+                            key=f"meaning_map_chart_{story_run_id}",
+                        )
                         st.caption(
                             "Line shows where the model splits Spam vs Safe. Emails close to the line are hardest to judge."
                         )
+                        if (
+                            isinstance(guard_center_display, (int, float))
+                            and isinstance(guard_low_display, (int, float))
+                            and isinstance(guard_high_display, (int, float))
+                        ):
+                            st.caption(
+                                "Numeric guardrails watch emails when the text score is near "
+                                f"τ≈{guard_center_display:.2f} (window {guard_low_display:.2f}–{guard_high_display:.2f})."
+                            )
                     else:
                         st.info("Couldn’t render the map (empty or invalid chart data).")
 
@@ -6002,9 +6130,27 @@ def render_train_stage():
                     st.info("Meaning Map not available for this run.")
 
                 # 2) & 3) remain below
+                guard_window_phrase = ""
+                if (
+                    isinstance(guard_center_display, (int, float))
+                    and isinstance(guard_margin_display, (int, float))
+                ):
+                    guard_window_phrase = (
+                        f" (τ≈{guard_center_display:.2f} ± {guard_margin_display:.2f})"
+                    )
+                elif (
+                    isinstance(guard_center_display, (int, float))
+                    and isinstance(guard_low_display, (int, float))
+                    and isinstance(guard_high_display, (int, float))
+                ):
+                    guard_window_phrase = (
+                        f" (τ≈{guard_center_display:.2f}, window {guard_low_display:.2f}–{guard_high_display:.2f})"
+                    )
+
                 st.markdown(
                     "- **Drawing a dividing line.** A simple linear classifier draws the straight line that separates spam from safe.\n"
-                    "- **Using extra clues when uncertain.** Numeric guardrails step in when the text score is borderline."
+                    "- **Using extra clues when uncertain.** Numeric guardrails step in when the text score is borderline"
+                    f"{guard_window_phrase}."
                 )
 
                 st.markdown(
@@ -6048,6 +6194,15 @@ def render_train_stage():
                         "Numeric guardrails kick in when text scores are borderline,"
                         " lending numeric cues before final decisions."
                     )
+                if (
+                    isinstance(guard_center_display, (int, float))
+                    and isinstance(guard_low_display, (int, float))
+                    and isinstance(guard_high_display, (int, float))
+                ):
+                    guard_caption = (
+                        f"{guard_caption.rstrip()} Window: τ≈{guard_center_display:.2f} "
+                        f"({guard_low_display:.2f}–{guard_high_display:.2f})."
+                    )
 
                 st.caption(guard_caption)
                 st.markdown(GUARDRAIL_PANEL_STYLE, unsafe_allow_html=True)
@@ -6081,7 +6236,11 @@ def render_train_stage():
                         with left_col:
                             st.markdown("<div class='guardrail-panel__chart'>", unsafe_allow_html=True)
                             if guardrail_chart is not None:
-                                st.altair_chart(guardrail_chart, use_container_width=True)
+                                st.altair_chart(
+                                    guardrail_chart,
+                                    use_container_width=True,
+                                    key=f"guardrail_chart_{story_run_id}",
+                                )
                             else:
                                 st.info(
                                     "Label more emails near the decision boundary to see guardrails in action."
@@ -7810,6 +7969,14 @@ def render_classify_stage():
                 ss["split_cache"] = (X_tr_t, X_te_t, X_tr_b, X_te_b, y_tr, y_te)
                 ss["eval_timestamp"] = datetime.now().isoformat(timespec="seconds")
                 ss["eval_temp_threshold"] = float(ss.get("threshold", 0.6))
+                ss["train_story_run_id"] = uuid4().hex
+                for key in (
+                    "meaning_map_show_examples",
+                    "meaning_map_show_centers",
+                    "meaning_map_highlight_borderline",
+                    "meaning_map_show_pair_trigger",
+                ):
+                    ss.pop(key, None)
                 st.success("Adaptive learning: model retrained with your feedback.")
                 _append_audit("retrain_feedback", {"n_labeled": len(df_all)})
             else:
