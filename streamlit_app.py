@@ -5271,6 +5271,7 @@ def render_train_stage():
     with section_surface():
         
         render_eu_ai_quote("An AI system “infers, from the input it receives…”.")
+        
         intro_col, sidebar_col = st.columns([0.58, 0.42], gap="large")
         
         with intro_col:
@@ -5310,7 +5311,7 @@ def render_train_stage():
                 ),
                 unsafe_allow_html=True,
             )
-            render_eu_ai_quote("The EU AI Act says: “An AI system infers from the input it receives…”")
+            
             if not ss.get("nerd_mode_train"):
                 st.markdown(
                     """
