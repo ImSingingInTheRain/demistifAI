@@ -1235,17 +1235,19 @@ def _render_unified_training_storyboard():
                     "These two axes are the first two directions of that meaning space — "
                     "_meaning dimension 1_ and _meaning dimension 2_."
                 )
-                show_examples = st.toggle(
-                    "Show examples",
-                    value=bool(ss.get("meaning_map_show_examples", False)),
-                    key="meaning_map_show_examples",
-                )
+
+                toggle_placeholder = st.empty()
                 if st.button(
                     "Show similar pair",
                     key=f"meaning_map_show_pair_button_live_{story_run_id}",
                 ):
-                    st.session_state["meaning_map_show_examples"] = True
-                    show_examples = True
+                    ss["meaning_map_show_examples"] = True
+
+                show_examples = toggle_placeholder.toggle(
+                    "Show examples",
+                    value=bool(ss.get("meaning_map_show_examples", False)),
+                    key="meaning_map_show_examples",
+                )
 
         with right1:
             pre_training = not (has_model and has_split)
