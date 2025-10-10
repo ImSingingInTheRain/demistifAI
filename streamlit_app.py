@@ -6005,6 +6005,8 @@ def render_train_stage():
             unsafe_allow_html=True,
         )
 
+    should_rerun_after_training = False
+
     with section_surface():
         action_col, context_col = st.columns([0.55, 0.45], gap="large")
         with action_col:
@@ -6114,6 +6116,7 @@ def render_train_stage():
                 ss["eval_temp_threshold"] = float(ss.get("threshold", 0.6))
                 ss["train_story_run_id"] = uuid4().hex
                 ss["train_flash_finished"] = True
+                should_rerun_after_training = True
                 for key in (
                     "meaning_map_show_examples",
                     "meaning_map_show_centers",
@@ -6129,6 +6132,10 @@ def render_train_stage():
                         cache_train_embeddings(train_texts_cache)
                     except Exception:
                         pass
+
+    if should_rerun_after_training:
+        _streamlit_rerun()
+        return
 
     parsed_split = None
     y_tr_labels = None
