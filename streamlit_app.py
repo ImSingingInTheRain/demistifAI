@@ -6024,62 +6024,6 @@ def render_train_stage():
                 ss["train_flash_finished"] = False
         with context_col:
             
-            chip_texts: List[str] = []
-
-            params = ss.get("train_params") or {}
-            try:
-                raw_test_size = params.get("test_size", 0.0)
-                test_size = float(raw_test_size)
-            except (TypeError, ValueError):
-                test_size = None
-            if test_size is not None and math.isfinite(test_size):
-                holdout_pct = int(max(0.0, min(1.0, test_size)) * 100)
-                chip_texts.append(f"Hold-out: {holdout_pct}%")
-
-            language_chip: Optional[str] = None
-            if has_langdetect:
-                labeled_for_lang = []
-                labeled_rows = ss.get("labeled") or []
-                if isinstance(labeled_rows, list):
-                    for row in labeled_rows:
-                        if not isinstance(row, dict):
-                            continue
-                        title = str(row.get("title", ""))
-                        body = str(row.get("body", ""))
-                        if title or body:
-                            labeled_for_lang.append(combine_text(title, body))
-                if labeled_for_lang:
-                    try:
-                        mix_preview = summarize_language_mix(
-                            labeled_for_lang, top_k=2
-                        )
-                    except Exception:
-                        mix_preview = None
-                    if (
-                        mix_preview
-                        and mix_preview.get("available")
-                        and int(mix_preview.get("total", 0)) > 0
-                    ):
-                        top_pairs = list(mix_preview.get("top", []))[:2]
-                        if top_pairs:
-                            top_codes = [str(lang).upper() for lang, _ in top_pairs]
-                            language_chip = f"Languages: {' + '.join(top_codes)}"
-            if language_chip:
-                chip_texts.append(language_chip)
-
-            if not show_trunc_tip and avg_tokens_estimate and math.isfinite(avg_tokens_estimate):
-                chip_texts.append(f"Avg tokens: ~{avg_tokens_estimate:.0f}")
-
-            if chip_texts:
-                chips_html = "".join(
-                    f"<div class='train-token-chip'>{html.escape(text)}</div>"
-                    for text in chip_texts
-                )
-                st.markdown(
-                    f"<div style='display:flex;flex-wrap:wrap;gap:0.4rem;margin-top:0.75rem;'>{chips_html}</div>",
-                    unsafe_allow_html=True,
-                )
-
             if not ss.get("nerd_mode_train"):
                 center, band, low, high = _guardrail_window_values()
                 low_pct = low * 100.0
