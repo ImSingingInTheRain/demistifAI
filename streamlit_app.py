@@ -6278,16 +6278,19 @@ def render_train_stage():
                                         score_text = "Near the line"
                                     signals = _guardrail_signals(subject_text, body_text)
                                     badges_html = _guardrail_badges_html(signals)
-                                    card_html = """
-                                    <div class='guardrail-card'>
-                                        <div class='guardrail-card__subject'>{subject}</div>
-                                        <div class='guardrail-card__meta'>
-                                            <span class='guardrail-card__label guardrail-card__label--{label_cls}'>{icon} {label}</span>
-                                            <span>{score}</span>
+                                    card_template = textwrap.dedent(
+                                        """
+                                        <div class='guardrail-card'>
+                                            <div class='guardrail-card__subject'>{subject}</div>
+                                            <div class='guardrail-card__meta'>
+                                                <span class='guardrail-card__label guardrail-card__label--{label_cls}'>{icon} {label}</span>
+                                                <span>{score}</span>
+                                            </div>
+                                            <div class='guardrail-card__badges'>{badges}</div>
                                         </div>
-                                        <div class='guardrail-card__badges'>{badges}</div>
-                                    </div>
-                                    """.format(
+                                        """
+                                    ).strip()
+                                    card_html = card_template.format(
                                         subject=html.escape(subject_text),
                                         label_cls=html.escape(label_value or ""),
                                         icon=label_icon,
@@ -6298,9 +6301,9 @@ def render_train_stage():
                                     cards_html_parts.append(card_html)
 
                             if cards_html_parts:
-                                cards_html = "".join(cards_html_parts)
+                                cards_html = "\n".join(cards_html_parts)
                                 st.markdown(
-                                    f"<div class='guardrail-card-list'>{cards_html}</div>",
+                                    f"<div class='guardrail-card-list'>\n{cards_html}\n</div>",
                                     unsafe_allow_html=True,
                                 )
                             else:
