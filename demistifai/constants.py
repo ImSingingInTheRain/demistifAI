@@ -37,12 +37,14 @@ APP_THEME_CSS = """
 }
 
 .section-surface {
-    display: contents;
+    display: block;
+    width: 100%;
 }
 
 .section-surface > div[data-testid="stVerticalBlock"],
 .section-surface-block {
     position: relative;
+    z-index: 0;
     margin-bottom: clamp(1.2rem, 1.2vw + 0.8rem, 1.8rem);
     border-radius: var(--surface-radius);
     border: 1px solid var(--surface-border);
@@ -62,11 +64,18 @@ APP_THEME_CSS = """
     opacity: 0;
     transition: opacity 0.3s ease;
     pointer-events: none;
+    z-index: 0;
 }
 
 .section-surface > div[data-testid="stVerticalBlock"]:hover::before,
 .section-surface-block:hover::before {
     opacity: 1;
+}
+
+.section-surface > div[data-testid="stVerticalBlock"] > *,
+.section-surface-block > * {
+    position: relative;
+    z-index: 1;
 }
 
 .section-surface > div[data-testid="stVerticalBlock"] > [data-testid="stElementContainer"],
