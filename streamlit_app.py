@@ -3729,22 +3729,148 @@ def render_train_stage():
         }
         .train-how-card__grid {
             display: grid;
-            gap: 0.75rem;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 0.9rem;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            margin-bottom: 0.6rem;
         }
-        .train-how-card__grid h6 {
-            margin: 0 0 0.4rem 0;
-            font-size: 0.82rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.04em;
-            color: rgba(15, 23, 42, 0.65);
+        .train-how-card__panel {
+            position: relative;
+            border-radius: 1rem;
+            border: 1px solid rgba(79, 70, 229, 0.16);
+            background: rgba(79, 70, 229, 0.06);
+            padding: 0.85rem 1rem;
+            display: grid;
+            gap: 0.35rem;
         }
-        .train-how-card__grid ul {
+        .train-how-card__panel-icon {
+            font-size: 1.1rem;
+        }
+        .train-how-card__panel-title {
             margin: 0;
-            padding-left: 1.1rem;
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: rgba(30, 64, 175, 0.95);
+        }
+        .train-how-card__panel-body {
+            margin: 0;
             font-size: 0.85rem;
             color: rgba(15, 23, 42, 0.75);
+            line-height: 1.5;
+        }
+        .train-how-card__divider {
+            height: 1px;
+            background: linear-gradient(90deg, rgba(15, 23, 42, 0), rgba(15, 23, 42, 0.25), rgba(15, 23, 42, 0));
+            margin: 0.75rem 0 0.9rem 0;
+        }
+        .train-how-card__body--muted {
+            color: rgba(15, 23, 42, 0.6);
+            font-size: 0.88rem;
+            margin-bottom: 0.65rem;
+        }
+        .train-how-card__step-grid {
+            display: grid;
+            gap: 0.75rem;
+        }
+        .train-how-card__step-box {
+            border-radius: 1rem;
+            border: 1px solid rgba(15, 23, 42, 0.08);
+            background: linear-gradient(135deg, rgba(14, 116, 144, 0.08), rgba(59, 130, 246, 0.08));
+            padding: 0.95rem 1.1rem;
+            display: grid;
+            gap: 0.5rem;
+        }
+        .train-how-card__step-label {
+            display: flex;
+            align-items: center;
+            gap: 0.55rem;
+        }
+        .train-how-card__step-number {
+            width: 2rem;
+            height: 2rem;
+            border-radius: 999px;
+            background: rgba(14, 116, 144, 0.18);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.95rem;
+            color: rgba(12, 74, 110, 0.95);
+        }
+        .train-how-card__step-icon {
+            font-size: 1.25rem;
+        }
+        .train-how-card__step-title {
+            font-weight: 700;
+            font-size: 0.95rem;
+            color: rgba(15, 23, 42, 0.9);
+        }
+        .train-how-card__step-list {
+            margin: 0;
+            padding-left: 1.2rem;
+            font-size: 0.88rem;
+            color: rgba(15, 23, 42, 0.78);
+            line-height: 1.55;
+        }
+        .train-how-card__step-sublist {
+            margin: 0.45rem 0 0 1.1rem;
+            padding-left: 1rem;
+            font-size: 0.85rem;
+            color: rgba(15, 23, 42, 0.75);
+            line-height: 1.5;
+        }
+        .train-how-card__step-example {
+            margin: 0;
+            font-size: 0.82rem;
+            color: rgba(15, 23, 42, 0.68);
+            background: rgba(255, 255, 255, 0.6);
+            border-radius: 0.75rem;
+            padding: 0.55rem 0.75rem;
+            border: 1px dashed rgba(12, 74, 110, 0.25);
+        }
+        .train-sidebar-card__grid {
+            display: grid;
+            gap: 0.65rem;
+        }
+        .train-sidebar-card__item {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            gap: 0.6rem;
+            padding: 0.6rem 0.75rem;
+            border-radius: 0.85rem;
+            background: rgba(15, 23, 42, 0.04);
+            align-items: flex-start;
+        }
+        .train-sidebar-card__badge {
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+        }
+        .train-sidebar-card__badge-num {
+            width: 1.8rem;
+            height: 1.8rem;
+            border-radius: 999px;
+            background: rgba(79, 70, 229, 0.16);
+            color: rgba(30, 64, 175, 0.92);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.85rem;
+        }
+        .train-sidebar-card__badge-icon {
+            font-size: 1.05rem;
+        }
+        .train-sidebar-card__item-title {
+            margin: 0;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #0f172a;
+        }
+        .train-sidebar-card__item-body {
+            margin: 0.2rem 0 0 0;
+            font-size: 0.83rem;
+            color: rgba(15, 23, 42, 0.75);
+            line-height: 1.45;
         }
         .train-token-chip {
             display: inline-flex;
@@ -3961,33 +4087,65 @@ def render_train_stage():
                         <div class="train-how-card__header">
                             <div class="train-how-card__icon">🧩</div>
                             <div>
-                                <h5 class="train-how-card__title">🎯 How this training run behaves</h5>
-                                <p class="train-how-card__body">Plain-language view of the mechanics so your team can follow along.</p>
+                                <h5 class="train-how-card__title">🎯 Now your AI system will learn how to achieve an objective</h5>
+                                <p class="train-how-card__body">Think of this as teaching your AI assistant how to tell the difference between spam and safe emails.</p>
                             </div>
                         </div>
-                        <p class="train-how-card__body">Your labels define the explicit objective: “Spam vs Safe”. MiniLM and the classifier uncover an implicit strategy&mdash;a weighted direction in meaning space. Numeric guardrails only step in when the text score is borderline.</p>
-                        <ol class="train-how-card__steps">
-                            <li>A compact transformer (MiniLM) turns each email into an embedding; paraphrases end up nearby.</li>
-                            <li>A linear classifier learns the separating direction that best splits Spam from Safe.</li>
-                            <li>When the text score is uncertain, numeric cues (links, TLDs, caps, $$) lend assistance.</li>
-                        </ol>
                         <div class="train-how-card__grid">
-                            <div>
-                                <h6>Good at</h6>
-                                <ul>
-                                    <li>English paraphrases</li>
-                                    <li>Short to medium emails</li>
-                                    <li>Phishing phrasing</li>
-                                    <li>Promo vs alert tone</li>
-                                </ul>
+                            <div class="train-how-card__panel">
+                                <div class="train-how-card__panel-icon">🫶</div>
+                                <h6 class="train-how-card__panel-title">Your part</h6>
+                                <p class="train-how-card__panel-body">Provide examples with clear labels (“This one is spam, that one is safe”).</p>
                             </div>
-                            <div>
-                                <h6>Watch-outs</h6>
-                                <ul>
-                                    <li>Very long emails (truncation)</li>
-                                    <li>Non-English content</li>
-                                    <li>Ultra-short “hi” notes</li>
+                            <div class="train-how-card__panel">
+                                <div class="train-how-card__panel-icon">🤖</div>
+                                <h6 class="train-how-card__panel-title">The system’s part</h6>
+                                <p class="train-how-card__panel-body">Spot patterns that generalize to emails it hasn’t seen yet.</p>
+                            </div>
+                        </div>
+                        <div class="train-how-card__divider"></div>
+                        <p class="train-how-card__body train-how-card__body--muted">We can break it down into three simple steps:</p>
+                        <div class="train-how-card__step-grid">
+                            <div class="train-how-card__step-box">
+                                <div class="train-how-card__step-label">
+                                    <span class="train-how-card__step-number">1</span>
+                                    <span class="train-how-card__step-icon">🗺️</span>
+                                    <span class="train-how-card__step-title">Turning emails into “meaning points”</span>
+                                </div>
+                                <ul class="train-how-card__step-list">
+                                    <li>Imagine every email as a dot on a map.</li>
+                                    <li>A small language model called MiniLM reads the words and places each email on this map so that similar messages land near each other.</li>
                                 </ul>
+                                <div class="train-how-card__step-example"><strong>Example:</strong> “Win a free iPhone!” and “Claim your prize now!” sit close together, while “Project meeting agenda” lands far away.</div>
+                            </div>
+                            <div class="train-how-card__step-box">
+                                <div class="train-how-card__step-label">
+                                    <span class="train-how-card__step-number">2</span>
+                                    <span class="train-how-card__step-icon">📏</span>
+                                    <span class="train-how-card__step-title">Drawing a dividing line</span>
+                                </div>
+                                <ul class="train-how-card__step-list">
+                                    <li>Once emails are mapped, a simple linear classifier draws the straight line that best separates Spam from Safe.</li>
+                                    <li>Everything on one side is predicted as spam; everything on the other is tagged safe.</li>
+                                </ul>
+                                <div class="train-how-card__step-example"><strong>Example:</strong> Marketing scams cluster on the spam side, while project updates stay on the safe side.</div>
+                            </div>
+                            <div class="train-how-card__step-box">
+                                <div class="train-how-card__step-label">
+                                    <span class="train-how-card__step-number">3</span>
+                                    <span class="train-how-card__step-icon">🛡️</span>
+                                    <span class="train-how-card__step-title">Using extra clues when uncertain</span>
+                                </div>
+                                <ul class="train-how-card__step-list">
+                                    <li>Borderline emails land near the dividing line.</li>
+                                    <li>Here, the system checks extra guardrails for hints when the text alone is unsure.</li>
+                                </ul>
+                                <ul class="train-how-card__step-sublist">
+                                    <li>Does it hide suspicious links?</li>
+                                    <li>Is it shouting in ALL CAPS?</li>
+                                    <li>Does it push urgency or “$$$” language?</li>
+                                </ul>
+                                <div class="train-how-card__step-example"><strong>Example:</strong> “Your invoice is ready” stays safe, while “URGENT! CLICK NOW TO CLAIM $$$” trips multiple guardrails.</div>
                             </div>
                         </div>
                     </div>
@@ -3998,13 +4156,49 @@ def render_train_stage():
             st.markdown(
                 """
                 <div class="train-sidebar-card">
-                    <div class="train-sidebar-card__title">🎯 Training readiness checklist</div>
-                    <ul class="train-sidebar-card__list">
-                        <li><span class="train-sidebar-card__bullet">📊</span><span>Mix of labeled spam and safe emails (aim for balance).</span></li>
-                        <li><span class="train-sidebar-card__bullet">🧪</span><span>Hold-out split ready so we can grade the model honestly.</span></li>
-                        <li><span class="train-sidebar-card__bullet">🧹</span><span>Personal data scrubbed or minimised in the dataset preview.</span></li>
-                        <li><span class="train-sidebar-card__bullet">📝</span><span>Document any assumptions you make before you ship the model.</span></li>
-                    </ul>
+                    <div class="train-sidebar-card__title">🚦 Training readiness checklist</div>
+                    <div class="train-sidebar-card__grid">
+                        <div class="train-sidebar-card__item">
+                            <div class="train-sidebar-card__badge">
+                                <span class="train-sidebar-card__badge-num">1</span>
+                                <span class="train-sidebar-card__badge-icon">📊</span>
+                            </div>
+                            <div>
+                                <p class="train-sidebar-card__item-title">Balanced labels</p>
+                                <p class="train-sidebar-card__item-body">Mix of labeled spam and safe emails (aim for balance).</p>
+                            </div>
+                        </div>
+                        <div class="train-sidebar-card__item">
+                            <div class="train-sidebar-card__badge">
+                                <span class="train-sidebar-card__badge-num">2</span>
+                                <span class="train-sidebar-card__badge-icon">🧪</span>
+                            </div>
+                            <div>
+                                <p class="train-sidebar-card__item-title">Honest evaluation slice</p>
+                                <p class="train-sidebar-card__item-body">Keep a hold-out split ready so we can grade the model without leakage.</p>
+                            </div>
+                        </div>
+                        <div class="train-sidebar-card__item">
+                            <div class="train-sidebar-card__badge">
+                                <span class="train-sidebar-card__badge-num">3</span>
+                                <span class="train-sidebar-card__badge-icon">🧹</span>
+                            </div>
+                            <div>
+                                <p class="train-sidebar-card__item-title">Data hygiene</p>
+                                <p class="train-sidebar-card__item-body">Scrub or minimise personal data in the dataset preview.</p>
+                            </div>
+                        </div>
+                        <div class="train-sidebar-card__item">
+                            <div class="train-sidebar-card__badge">
+                                <span class="train-sidebar-card__badge-num">4</span>
+                                <span class="train-sidebar-card__badge-icon">📝</span>
+                            </div>
+                            <div>
+                                <p class="train-sidebar-card__item-title">Document assumptions</p>
+                                <p class="train-sidebar-card__item-body">Write down any assumptions before you ship the model.</p>
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 """,
                 unsafe_allow_html=True,
