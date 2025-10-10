@@ -4671,11 +4671,25 @@ def render_stage_navigation_controls(active_stage_key: str) -> None:
             )
 
 
+def _render_train_stage_wrapper() -> None:
+    render_train_stage(
+        ss,
+        streamlit_rerun=_streamlit_rerun,
+        has_embed=has_embed,
+        has_langdetect=has_langdetect,
+        render_eu_ai_quote=render_eu_ai_quote,
+        render_language_mix_chip_rows=render_language_mix_chip_rows,
+        render_nerd_mode_toggle=render_nerd_mode_toggle,
+        section_surface=section_surface,
+        summarize_language_mix=summarize_language_mix,
+    )
+
+
 STAGE_RENDERERS = {
     'intro': render_intro_stage,
     'overview': render_overview_stage,
     'data': render_data_stage,
-    'train': render_train_stage,
+    'train': _render_train_stage_wrapper,
     'evaluate': render_evaluate_stage,
     'classify': render_classify_stage,
     'model_card': render_model_card_stage,
@@ -4703,10 +4717,7 @@ if ss.pop("stage_scroll_to_top", False):
         height=0,
     )
 
-if renderer is render_train_stage:
-    renderer(ss)
-else:
-    renderer()
+renderer()
 render_stage_navigation_controls(active_stage)
 
 st.markdown("---")
