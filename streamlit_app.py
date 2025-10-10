@@ -5438,7 +5438,7 @@ def render_train_stage():
                     if label_value == "spam" and len(spam_examples) < 2:
                         spam_examples.append(row)
                     elif label_value == "safe" and len(safe_examples) < 2:
-                    safe_examples.append(row)
+                        safe_examples.append(row)
                     if len(spam_examples) >= 2 and len(safe_examples) >= 2:
                         break
 
