@@ -5169,6 +5169,7 @@ def render_train_stage():
     stage = STAGE_BY_KEY["train"]
     ss.setdefault("token_budget_cache", {})
     ss.setdefault("guard_params", {})
+    ss.setdefault("train_in_progress", False)
     ss["guard_params"].setdefault("assist_center_mode", "manual")  # "manual" | "auto"
     ss["guard_params"].setdefault("assist_center", float(ss.get("threshold", 0.6)))
     ss["guard_params"].setdefault("uncertainty_band", 0.08)
@@ -6006,6 +6007,7 @@ def render_train_stage():
         )
 
     should_rerun_after_training = False
+    training_successful = False
 
     with section_surface():
         action_col, context_col = st.columns([0.55, 0.45], gap="large")
@@ -6020,7 +6022,15 @@ def render_train_stage():
                 """,
                 unsafe_allow_html=True,
             )
-            trigger_train = st.button("🚀 Train model", type="primary", use_container_width=True)
+            train_disabled = bool(ss.get("train_in_progress"))
+            trigger_train = st.button(
+                "🚀 Train model",
+                type="primary",
+                use_container_width=True,
+                disabled=train_disabled,
+            )
+            if train_disabled:
+                st.caption("Training in progress… hang tight while we refresh the charts.")
             if ss.get("train_flash_finished"):
                 st.success("Training finished.")
                 ss["train_flash_finished"] = False
@@ -6055,85 +6065,99 @@ def render_train_stage():
                 titles = df["title"].fillna("").tolist()
                 bodies = df["body"].fillna("").tolist()
                 y = df["label"].tolist()
-                X_tr_t, X_te_t, X_tr_b, X_te_b, y_tr, y_te = train_test_split(
-                    titles,
-                    bodies,
-                    y,
-                    test_size=test_size,
-                    random_state=random_state,
-                    stratify=y,
-                )
-
-                gp = ss.get("guard_params", {})
-                model = HybridEmbedFeatsLogReg(
-                    max_iter=max_iter,
-                    C=C_value,
-                    random_state=random_state,
-                    numeric_assist_center=float(
-                        gp.get("assist_center", float(ss.get("threshold", 0.6)))
-                    ),
-                    uncertainty_band=float(gp.get("uncertainty_band", 0.08)),
-                    numeric_scale=float(gp.get("numeric_scale", 0.5)),
-                    numeric_logit_cap=float(gp.get("numeric_logit_cap", 1.0)),
-                    combine_strategy=str(gp.get("combine_strategy", "blend")),
-                    shift_suspicious_tld=float(gp.get("shift_suspicious_tld", -0.04)),
-                    shift_many_links=float(gp.get("shift_many_links", -0.03)),
-                    shift_calm_text=float(gp.get("shift_calm_text", +0.02)),
-                )
-                model = model.fit(X_tr_t, X_tr_b, y_tr)
-                model.apply_numeric_adjustments(ss["numeric_adjustments"])
-                ss["model"] = model
-                ss["split_cache"] = (X_tr_t, X_te_t, X_tr_b, X_te_b, y_tr, y_te)
+                ss["train_in_progress"] = True
                 try:
-                    gp = ss.get("guard_params", {}) or {}
-                    if gp.get("assist_center_mode") == "auto" and len(X_te_t) and len(X_te_b):
-                        probs_te_raw = model.predict_proba(X_te_t, X_te_b)
-                        probs_te = np.asarray(probs_te_raw, dtype=float)
-                        if probs_te.ndim != 2 or probs_te.shape[1] < 2:
-                            raise ValueError(
-                                "predict_proba must return a 2D array with at least two columns"
-                            )
-                        spam_idx = int(getattr(model, "_i_spam", 1))
-                        if spam_idx < 0 or spam_idx >= probs_te.shape[1]:
-                            raise IndexError("Spam index is out of bounds for predict_proba output")
-                        p_spam_te = np.clip(probs_te[:, spam_idx], 1e-6, 1 - 1e-6)
-                        y_true = np.asarray(y_te) == "spam"
-                        fallback_center = float(
-                            gp.get("assist_center", float(ss.get("threshold", 0.6)))
+                    with st.spinner("Training the model and refreshing charts…"):
+                        X_tr_t, X_te_t, X_tr_b, X_te_b, y_tr, y_te = train_test_split(
+                            titles,
+                            bodies,
+                            y,
+                            test_size=test_size,
+                            random_state=random_state,
+                            stratify=y,
                         )
-                        best_tau, best_f1 = fallback_center, -1.0
-                        if y_true.size:
-                            for tau in np.linspace(0.30, 0.90, 61):
-                                y_pred = p_spam_te >= tau
-                                f1 = f1_score(y_true, y_pred)
-                                if f1 > best_f1:
-                                    best_f1, best_tau = float(f1), float(tau)
-                        gp["assist_center"] = float(best_tau)
-                        ss["guard_params"] = gp
-                except Exception:
-                    logger.exception("Failed to auto-select assist center from hold-out set")
-                ss["eval_timestamp"] = datetime.now().isoformat(timespec="seconds")
-                ss["eval_temp_threshold"] = float(ss.get("threshold", 0.6))
-                ss["train_story_run_id"] = uuid4().hex
-                ss["train_flash_finished"] = True
-                should_rerun_after_training = True
-                for key in (
-                    "meaning_map_show_examples",
-                    "meaning_map_show_centers",
-                    "meaning_map_highlight_borderline",
-                    "meaning_map_show_pair_trigger",
-                ):
-                    ss.pop(key, None)
-                if has_embed:
-                    try:
-                        train_texts_cache = [
-                            combine_text(t, b) for t, b in zip(X_tr_t, X_tr_b)
-                        ]
-                        cache_train_embeddings(train_texts_cache)
-                    except Exception:
-                        pass
 
-    if should_rerun_after_training:
+                        gp = ss.get("guard_params", {})
+                        model = HybridEmbedFeatsLogReg(
+                            max_iter=max_iter,
+                            C=C_value,
+                            random_state=random_state,
+                            numeric_assist_center=float(
+                                gp.get("assist_center", float(ss.get("threshold", 0.6)))
+                            ),
+                            uncertainty_band=float(gp.get("uncertainty_band", 0.08)),
+                            numeric_scale=float(gp.get("numeric_scale", 0.5)),
+                            numeric_logit_cap=float(gp.get("numeric_logit_cap", 1.0)),
+                            combine_strategy=str(gp.get("combine_strategy", "blend")),
+                            shift_suspicious_tld=float(gp.get("shift_suspicious_tld", -0.04)),
+                            shift_many_links=float(gp.get("shift_many_links", -0.03)),
+                            shift_calm_text=float(gp.get("shift_calm_text", +0.02)),
+                        )
+                        model = model.fit(X_tr_t, X_tr_b, y_tr)
+                        model.apply_numeric_adjustments(ss["numeric_adjustments"])
+                        ss["model"] = model
+                        ss["split_cache"] = (X_tr_t, X_te_t, X_tr_b, X_te_b, y_tr, y_te)
+                        try:
+                            gp = ss.get("guard_params", {}) or {}
+                            if (
+                                gp.get("assist_center_mode") == "auto"
+                                and len(X_te_t)
+                                and len(X_te_b)
+                            ):
+                                probs_te_raw = model.predict_proba(X_te_t, X_te_b)
+                                probs_te = np.asarray(probs_te_raw, dtype=float)
+                                if probs_te.ndim != 2 or probs_te.shape[1] < 2:
+                                    raise ValueError(
+                                        "predict_proba must return a 2D array with at least two columns"
+                                    )
+                                spam_idx = int(getattr(model, "_i_spam", 1))
+                                if spam_idx < 0 or spam_idx >= probs_te.shape[1]:
+                                    raise IndexError(
+                                        "Spam index is out of bounds for predict_proba output"
+                                    )
+                                p_spam_te = np.clip(probs_te[:, spam_idx], 1e-6, 1 - 1e-6)
+                                y_true = np.asarray(y_te) == "spam"
+                                fallback_center = float(
+                                    gp.get("assist_center", float(ss.get("threshold", 0.6)))
+                                )
+                                best_tau, best_f1 = fallback_center, -1.0
+                                if y_true.size:
+                                    for tau in np.linspace(0.30, 0.90, 61):
+                                        y_pred = p_spam_te >= tau
+                                        f1 = f1_score(y_true, y_pred)
+                                        if f1 > best_f1:
+                                            best_f1, best_tau = float(f1), float(tau)
+                                gp["assist_center"] = float(best_tau)
+                                ss["guard_params"] = gp
+                        except Exception:
+                            logger.exception(
+                                "Failed to auto-select assist center from hold-out set"
+                            )
+                        ss["eval_timestamp"] = datetime.now().isoformat(timespec="seconds")
+                        ss["eval_temp_threshold"] = float(ss.get("threshold", 0.6))
+                        ss["train_story_run_id"] = uuid4().hex
+                        ss["train_flash_finished"] = True
+                        should_rerun_after_training = True
+                        training_successful = True
+                        for key in (
+                            "meaning_map_show_examples",
+                            "meaning_map_show_centers",
+                            "meaning_map_highlight_borderline",
+                            "meaning_map_show_pair_trigger",
+                        ):
+                            ss.pop(key, None)
+                        if has_embed:
+                            try:
+                                train_texts_cache = [
+                                    combine_text(t, b) for t, b in zip(X_tr_t, X_tr_b)
+                                ]
+                                cache_train_embeddings(train_texts_cache)
+                            except Exception:
+                                pass
+                finally:
+                    ss["train_in_progress"] = False
+
+    if should_rerun_after_training and training_successful:
         _streamlit_rerun()
         return
 
