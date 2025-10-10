@@ -999,6 +999,79 @@ def _compute_decision_boundary_overlay(
     }
 
 
+def _conceptual_meaning_sketch():
+    """
+    Pre-training illustrative map:
+    - Two loose clusters (Safe-like vs Spam-like)
+    - A few borderline points in the middle
+    - A simple dividing line (educational only)
+    """
+    import numpy as np
+    import pandas as pd
+    import altair as alt
+
+    rng = np.random.default_rng(42)
+
+    # Safe-like cluster (bottom-left)
+    safe = pd.DataFrame({
+        "x": rng.normal(-2.0, 0.45, 36),
+        "y": rng.normal(-2.0, 0.45, 36),
+        "label": "Safe-like"
+    })
+
+    # Spam-like cluster (top-right)
+    spam = pd.DataFrame({
+        "x": rng.normal(2.0, 0.45, 36),
+        "y": rng.normal(2.0, 0.45, 36),
+        "label": "Spam-like"
+    })
+
+    # Borderline points (center-ish)
+    mid = pd.DataFrame({
+        "x": rng.normal(0.0, 0.55, 12),
+        "y": rng.normal(0.0, 0.55, 12),
+        "label": "Borderline"
+    })
+
+    df = pd.concat([safe, spam, mid], ignore_index=True)
+
+    # Base scatter
+    points = (
+        alt.Chart(df)
+        .mark_circle(size=80, opacity=0.9)
+        .encode(
+            x=alt.X("x:Q", title="Meaning dimension 1"),
+            y=alt.Y("y:Q", title="Meaning dimension 2"),
+            color=alt.Color(
+                "label:N",
+                title="",
+                scale=alt.Scale(
+                    domain=["Safe-like", "Spam-like", "Borderline"],
+                    range=["#3b82f6", "#ef4444", "#f59e0b"]
+                )
+            ),
+            tooltip=["label:N"]
+        )
+    )
+
+    # Simple dividing line (educational, not data-driven)
+    # Diagonal from bottom-left to top-right center
+    line_df = pd.DataFrame({"x": [-3.2, 3.2], "y": [-2.2, 4.2]})
+    divider = (
+        alt.Chart(line_df)
+        .mark_line(strokeDash=[6, 4], opacity=0.9)
+        .encode(x="x:Q", y="y:Q")
+    )
+
+    chart = (
+        (points + divider)
+        .properties(title="Conceptual meaning sketch (before training)")
+        .configure_axis(labelColor="#334155", titleColor="#0f172a")
+        .configure_legend(labelColor="#334155", title=None)
+    )
+    return chart
+
+
 def _ghost_meaning_map(height: int = 220):
     import altair as alt, pandas as pd
 
@@ -1084,6 +1157,7 @@ def _render_unified_training_storyboard():
     import altair as alt, pandas as pd, numpy as np
 
     story_run_id = ss.get("train_story_run_id") or "initial"
+    story_run_id_default = story_run_id or "default"
     has_model = ss.get("model") is not None
     has_split = ss.get("split_cache") is not None
 
@@ -1142,27 +1216,54 @@ def _render_unified_training_storyboard():
 
         left1, right1 = st.columns([0.48, 0.52], gap="large")
         with left1:
-            st.markdown("**1) Meaning points**")
-            st.markdown(
-                "MiniLM places each email so **similar wording lands close**. "
-                "These two axes are the first two directions of that meaning space — "
-                "_meaning dimension 1_ and _meaning dimension 2_."
-            )
-            show_examples = st.toggle(
-                "Show examples",
-                value=bool(ss.get("meaning_map_show_examples", False)),
-                key="meaning_map_show_examples",
-            )
-            if st.button(
-                "Show similar pair",
-                key=f"meaning_map_show_pair_button_live_{story_run_id}",
-            ):
-                st.session_state["meaning_map_show_examples"] = True
-                show_examples = True
+            pre_training = not (has_model and has_split)
+            show_examples = False
+            if pre_training:
+                st.markdown(
+                    "**1) Meaning points**  \n"
+                    "Think of each email as a dot placed by MiniLM in a 2-D meaning space:\n\n"
+                    "- **Meaning dimension 1**: a blend of traits such as *formality ↔ salesy tone*, *generic phrasing ↔ brand-specific details*, or *routine biz-speak ↔ promotional language*.\n"
+                    "- **Meaning dimension 2**: a complementary blend such as *calm, factual ↔ urgent, persuasive*, *low CTA ↔ strong CTA*, or *neutral ↔ attention-grabbing*.\n\n"
+                    "Below is a **conceptual meaning sketch** (an illustrative example shown *before* training). "
+                    "It shows how safe-like emails tend to cluster together, spam-like emails cluster elsewhere, and a few **borderline** cases sit in between. "
+                    "After you train on your labeled emails, this sketch will be replaced by the **real** map built from your data."
+                )
+            else:
+                st.markdown("**1) Meaning points**")
+                st.markdown(
+                    "MiniLM places each email so **similar wording lands close**. "
+                    "These two axes are the first two directions of that meaning space — "
+                    "_meaning dimension 1_ and _meaning dimension 2_."
+                )
+                show_examples = st.toggle(
+                    "Show examples",
+                    value=bool(ss.get("meaning_map_show_examples", False)),
+                    key="meaning_map_show_examples",
+                )
+                if st.button(
+                    "Show similar pair",
+                    key=f"meaning_map_show_pair_button_live_{story_run_id}",
+                ):
+                    st.session_state["meaning_map_show_examples"] = True
+                    show_examples = True
 
         with right1:
-            if meaning_map_error:
+            pre_training = not (has_model and has_split)
+            if pre_training:
+                try:
+                    chart = _conceptual_meaning_sketch()
+                except Exception:
+                    st.info("Illustrative map unavailable (Altair missing)")
+                else:
+                    st.altair_chart(
+                        chart,
+                        use_container_width=True,
+                        key=f"conceptual_meaning_sketch_{story_run_id_default}",
+                    )
+                _render_training_examples_preview()
+            elif meaning_map_error:
                 st.info(meaning_map_error)
+                _render_training_examples_preview()
             elif chart_ready:
                 chart1 = _build_meaning_map_chart(
                     meaning_map_df,
@@ -1179,6 +1280,7 @@ def _render_unified_training_storyboard():
                     )
                 else:
                     st.info("Meaning Map unavailable for this run.")
+                _render_training_examples_preview()
             else:
                 st.altair_chart(
                     _ghost_meaning_map_enhanced(
@@ -1189,7 +1291,7 @@ def _render_unified_training_storyboard():
                     use_container_width=True,
                     key=f"ghost_live_map1_{story_run_id}",
                 )
-            _render_training_examples_preview()
+                _render_training_examples_preview()
 
         left2, right2 = st.columns([0.48, 0.52], gap="large")
         with left2:
