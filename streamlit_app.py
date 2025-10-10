@@ -24,6 +24,7 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 import streamlit.components.v1 as components
+from streamlit.errors import StreamlitAPIException
 
 from demistifai.constants import (
     APP_THEME_CSS,
@@ -985,7 +986,35 @@ def _set_advanced_knob_state(config: Dict[str, Any] | DatasetConfig, *, force: b
 
     for key, value in adv_state.items():
         if force or key not in st.session_state:
-            st.session_state[key] = value
+            try:
+                st.session_state[key] = value
+            except StreamlitAPIException:
+                pending = st.session_state.setdefault("_pending_advanced_knob_state", {})
+                pending[key] = value
+                st.session_state["_needs_advanced_knob_rerun"] = True
+
+
+def _apply_pending_advanced_knob_state() -> None:
+    """Apply any queued advanced knob updates before widgets instantiate."""
+
+    pending = st.session_state.pop("_pending_advanced_knob_state", None)
+    if not pending:
+        return
+
+    for key, value in pending.items():
+        st.session_state[key] = value
+
+    st.session_state.pop("_needs_advanced_knob_rerun", None)
+
+
+def _push_data_stage_flash(level: str, message: str) -> None:
+    """Queue a flash message to render at the top of the data stage."""
+
+    if not message:
+        return
+
+    queue = st.session_state.setdefault("data_stage_flash_queue", [])
+    queue.append({"level": level, "message": message})
 
 
 @st.cache_data(show_spinner=False)
@@ -996,6 +1025,7 @@ def _compute_cached_embeddings(dataset_hash: str, texts: tuple[str, ...]) -> np.
 
 
 ss = st.session_state
+_apply_pending_advanced_knob_state()
 requested_stage_values = st.query_params.get_all("stage")
 requested_stage = requested_stage_values[0] if requested_stage_values else None
 default_stage = STAGES[0].key
@@ -2036,6 +2066,23 @@ def render_data_stage():
     current_summary = compute_dataset_summary(ss["labeled"])
     ss["dataset_summary"] = current_summary
 
+    flash_queue = ss.pop("data_stage_flash_queue", [])
+    for flash in flash_queue:
+        if not isinstance(flash, dict):
+            continue
+        message = str(flash.get("message", "")).strip()
+        if not message:
+            continue
+        level = flash.get("level", "info")
+        if level == "success":
+            st.success(message)
+        elif level == "warning":
+            st.warning(message)
+        elif level == "error":
+            st.error(message)
+        else:
+            st.info(message)
+
     with section_surface():
         render_eu_ai_quote("An AI system “infers, from the input it receives…”.")
 
@@ -2636,8 +2683,12 @@ def render_data_stage():
                 ss["dataset_preview_lint"] = None
                 ss["dataset_manual_queue"] = None
                 ss["dataset_controls_open"] = False
+                _push_data_stage_flash(
+                    "success", f"Dataset reset to starter baseline ({len(STARTER_LABELED)} rows)."
+                )
                 _set_advanced_knob_state(ss["dataset_config"], force=True)
-                st.success(f"Dataset reset to starter baseline ({len(STARTER_LABELED)} rows).")
+                if ss.get("_needs_advanced_knob_rerun"):
+                    _streamlit_rerun()
                 current_summary = baseline_summary
                 delta_summary = ss.get("dataset_compare_delta")
                 delta_text = explain_config_change(ss.get("dataset_config", DEFAULT_DATASET_CONFIG))
@@ -3205,7 +3256,6 @@ def render_data_stage():
                         ss["previous_dataset_summary"] = previous_summary
                         ss["dataset_summary"] = new_summary
                         ss["dataset_config"] = config
-                        _set_advanced_knob_state(config, force=True)
                         ss["dataset_compare_delta"] = delta
                         ss["last_dataset_delta_story"] = dataset_delta_story(delta)
                         ss["labeled"] = final_rows
@@ -3243,13 +3293,18 @@ def render_data_stage():
                         else:
                             hint_line = "Mix steady; train to refresh the model, then tune the threshold in Evaluate."
 
-                        st.success(f"{summary_line}\n{hint_line}")
+                        _push_data_stage_flash("success", f"{summary_line}\n{hint_line}")
                         if any(lint_counts_commit.values()):
-                            st.warning(
+                            _push_data_stage_flash(
+                                "warning",
                                 "Lint warnings persist after commit ({}).".format(
                                     format_pii_summary(lint_counts_commit)
-                                )
+                                ),
                             )
+
+                        _set_advanced_knob_state(config, force=True)
+                        if ss.get("_needs_advanced_knob_rerun"):
+                            _streamlit_rerun()
 
             if discard_col.button("Discard preview", type="secondary", use_container_width=True):
                 _discard_preview()
@@ -3431,7 +3486,6 @@ def render_data_stage():
                             lint_counts = lint_dataset(dataset_rows) or {}
                             ss["labeled"] = dataset_rows
                             ss["dataset_config"] = config
-                            _set_advanced_knob_state(config, force=True)
                             ss["dataset_summary"] = summary
                             ss["previous_dataset_summary"] = None
                             ss["dataset_compare_delta"] = None
@@ -3440,15 +3494,20 @@ def render_data_stage():
                             ss["active_dataset_snapshot"] = snap.get("id")
                             ss["dataset_last_built_at"] = datetime.now().isoformat(timespec="seconds")
                             _clear_dataset_preview_state()
-                            st.success(
-                                f"Snapshot '{snap.get('name', 'snapshot')}' activated. Dataset rebuilt with {len(dataset_rows)} rows."
+                            _push_data_stage_flash(
+                                "success",
+                                f"Snapshot '{snap.get('name', 'snapshot')}' activated. Dataset rebuilt with {len(dataset_rows)} rows.",
                             )
                             if any(lint_counts.values()):
-                                st.warning(
+                                _push_data_stage_flash(
+                                    "warning",
                                     "Lint warnings present in restored snapshot ({}).".format(
                                         format_pii_summary(lint_counts)
-                                    )
+                                    ),
                                 )
+                            _set_advanced_knob_state(config, force=True)
+                            if ss.get("_needs_advanced_knob_rerun"):
+                                _streamlit_rerun()
             else:
                 st.caption("No snapshots yet. Save one after curating your first dataset.")
     
