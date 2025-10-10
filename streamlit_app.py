@@ -5433,7 +5433,7 @@ def render_train_stage():
             if isinstance(labeled_rows, list):
                 for row in labeled_rows:
                     if not isinstance(row, dict):
-                    continue
+                        continue
                     label_value = (row.get("label", "") or "").strip().lower()
                     if label_value == "spam" and len(spam_examples) < 2:
                         spam_examples.append(row)
