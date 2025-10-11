@@ -1245,14 +1245,45 @@ def render_intro_stage():
         next_stage_key = STAGES[intro_index + 1].key
 
     hero_copy_html = """
-        <div class="hero-copy" role="presentation">
+        <div class="hero-copy hero-surface" role="presentation">
+            <div class="hero-surface__header">
+                <span class="hero-stage-chip">Stage 0 · Welcome</span>
+                <h2 class="hero-heading">Chart your responsible AI build</h2>
+            </div>
             <p class="hero-lead">
                 demAI is an interactive experience where you will build and operate an AI system—while discovering and applying key concepts from the EU AI Act.
             </p>
-            <div class="hero-what-card" role="group" aria-labelledby="hero-what-title">
-                <div class="hero-what-card__badge" aria-hidden="true">🛠️&nbsp; Your build path</div>
-                <h3 id="hero-what-title">What you’ll do</h3>
-                <p class="hero-what-card__body">Build an AI email spam detector, teaching it how to recognize safe and malicious messages.</p>
+            <div class="hero-feature-grid" role="list">
+                <article class="hero-feature-card" role="listitem" aria-labelledby="hero-feature-build-title">
+                    <div class="hero-feature-card__header">
+                        <span class="hero-feature-card__icon" aria-hidden="true">🛠️</span>
+                        <div class="hero-feature-card__meta">
+                            <p class="hero-feature-card__eyebrow">Your build path</p>
+                            <h3 id="hero-feature-build-title" class="hero-feature-card__title">What you’ll do</h3>
+                        </div>
+                    </div>
+                    <p class="hero-feature-card__body">Build an AI email spam detector, teaching it how to recognize safe and malicious messages.</p>
+                </article>
+                <article class="hero-feature-card" role="listitem" aria-labelledby="hero-feature-guardrails-title">
+                    <div class="hero-feature-card__header">
+                        <span class="hero-feature-card__icon" aria-hidden="true">🧭</span>
+                        <div class="hero-feature-card__meta">
+                            <p class="hero-feature-card__eyebrow">EU AI Act pillars</p>
+                            <h3 id="hero-feature-guardrails-title" class="hero-feature-card__title">Navigate the guardrails</h3>
+                        </div>
+                    </div>
+                    <p class="hero-feature-card__body">Trace how obligations, evidence, and governance map onto each stage of the lifecycle.</p>
+                </article>
+                <article class="hero-feature-card" role="listitem" aria-labelledby="hero-feature-experiment-title">
+                    <div class="hero-feature-card__header">
+                        <span class="hero-feature-card__icon" aria-hidden="true">🧪</span>
+                        <div class="hero-feature-card__meta">
+                            <p class="hero-feature-card__eyebrow">Hands-on practice</p>
+                            <h3 id="hero-feature-experiment-title" class="hero-feature-card__title">Experiment safely</h3>
+                        </div>
+                    </div>
+                    <p class="hero-feature-card__body">Use synthetic data, adjustable guardrails, and explainability panels to test decisions before deployment.</p>
+                </article>
             </div>
         </div>
     """
@@ -1261,43 +1292,59 @@ def render_intro_stage():
         <style>
             #hero-why-demai-slider {
                 position: relative;
-                border-radius: 1.25rem;
-                padding: clamp(1rem, 2.4vw, 1.45rem);
-                background: linear-gradient(140deg, rgba(15, 118, 110, 0.16), rgba(8, 47, 73, 0.08));
-                border: 1px solid rgba(12, 74, 110, 0.22);
-                box-shadow: 0 16px 34px rgba(12, 74, 110, 0.22);
+                border-radius: 1.5rem;
+                padding: clamp(1.1rem, 2.6vw, 1.6rem);
+                background: linear-gradient(135deg, rgba(59, 130, 246, 0.16), rgba(236, 72, 153, 0.12));
+                border: 1px solid rgba(37, 99, 235, 0.2);
+                box-shadow: 0 22px 46px rgba(30, 64, 175, 0.22);
                 font-family: "Inter", "Segoe UI", sans-serif;
                 color: #0f172a;
+                overflow: hidden;
+            }
+
+            #hero-why-demai-slider::before {
+                content: "";
+                position: absolute;
+                inset: 0;
+                background: radial-gradient(circle at top right, rgba(59, 130, 246, 0.22), transparent 55%),
+                    radial-gradient(circle at bottom left, rgba(236, 72, 153, 0.22), transparent 60%);
+                opacity: 0.85;
+                pointer-events: none;
+            }
+
+            #hero-why-demai-slider > * {
+                position: relative;
+                z-index: 1;
             }
 
             #hero-why-demai-slider .why-demai-slider__header {
                 display: flex;
                 flex-direction: column;
-                gap: 0.25rem;
-                margin-bottom: clamp(0.75rem, 2vw, 1.1rem);
+                gap: 0.35rem;
+                margin-bottom: clamp(0.85rem, 2vw, 1.2rem);
             }
 
             #hero-why-demai-slider .why-demai-slider__header h3 {
                 margin: 0;
-                font-size: clamp(1.2rem, 2.1vw, 1.4rem);
-                color: rgba(8, 47, 73, 0.94);
+                font-size: clamp(1.25rem, 2.2vw, 1.5rem);
+                color: rgba(15, 23, 42, 0.92);
                 font-weight: 700;
             }
 
             #hero-why-demai-slider .why-demai-slider__header p {
                 margin: 0;
-                font-size: 0.9rem;
-                color: rgba(15, 23, 42, 0.75);
-                line-height: 1.5;
+                font-size: 0.92rem;
+                color: rgba(15, 23, 42, 0.78);
+                line-height: 1.55;
             }
 
             #hero-why-demai-slider .why-demai-slider__viewport {
                 position: relative;
                 overflow: hidden;
-                border-radius: 1rem;
-                background: rgba(255, 255, 255, 0.82);
-                border: 1px solid rgba(148, 163, 184, 0.22);
-                box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3);
+                border-radius: 1.1rem;
+                background: rgba(255, 255, 255, 0.92);
+                border: 1px solid rgba(15, 23, 42, 0.08);
+                box-shadow: 0 18px 38px rgba(15, 23, 42, 0.12);
                 touch-action: pan-y;
             }
 
@@ -1309,41 +1356,41 @@ def render_intro_stage():
 
             #hero-why-demai-slider .why-demai-card {
                 flex: 0 0 100%;
-                padding: clamp(1rem, 2vw, 1.25rem);
-                min-height: clamp(180px, 25vw, 220px);
+                padding: clamp(1.05rem, 2.1vw, 1.3rem);
+                min-height: clamp(190px, 26vw, 230px);
                 display: flex;
                 flex-direction: column;
-                gap: 0.55rem;
-                background: linear-gradient(150deg, rgba(255, 255, 255, 0.96), rgba(224, 242, 254, 0.72));
-                border-radius: 1rem;
-                border: 1px solid rgba(148, 163, 184, 0.2);
-                box-shadow: 0 14px 32px rgba(12, 74, 110, 0.12);
+                gap: 0.65rem;
+                background: linear-gradient(150deg, rgba(255, 255, 255, 0.96), rgba(219, 234, 254, 0.82));
+                border-radius: 1.1rem;
+                border: 1px solid rgba(37, 99, 235, 0.18);
+                box-shadow: 0 18px 36px rgba(30, 64, 175, 0.18);
             }
 
             #hero-why-demai-slider .why-demai-card h4 {
                 margin: 0;
-                font-size: clamp(1.05rem, 2vw, 1.2rem);
-                color: rgba(8, 47, 73, 0.95);
+                font-size: clamp(1.08rem, 2vw, 1.25rem);
+                color: rgba(15, 23, 42, 0.92);
             }
 
             #hero-why-demai-slider .why-demai-card p {
                 margin: 0;
-                font-size: 0.92rem;
-                line-height: 1.6;
-                color: rgba(15, 23, 42, 0.8);
+                font-size: 0.94rem;
+                line-height: 1.65;
+                color: rgba(15, 23, 42, 0.78);
             }
 
             #hero-why-demai-slider .why-demai-slider__nav {
                 position: absolute;
                 top: 50%;
                 transform: translateY(-50%);
-                width: 2.35rem;
-                height: 2.35rem;
-                border-radius: 999px;
-                border: 1px solid rgba(12, 74, 110, 0.25);
-                background: linear-gradient(145deg, rgba(255, 255, 255, 0.95), rgba(191, 219, 254, 0.4));
-                box-shadow: 0 12px 26px rgba(8, 47, 73, 0.18);
-                color: rgba(8, 47, 73, 0.92);
+                width: 2.4rem;
+                height: 2.4rem;
+                border-radius: 14px;
+                border: 1px solid rgba(37, 99, 235, 0.32);
+                background: linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(219, 234, 254, 0.7));
+                box-shadow: 0 16px 34px rgba(37, 99, 235, 0.25);
+                color: rgba(30, 64, 175, 0.92);
                 font-size: 1.35rem;
                 display: grid;
                 place-items: center;
@@ -1353,33 +1400,33 @@ def render_intro_stage():
             }
 
             #hero-why-demai-slider .why-demai-slider__nav[data-nav="prev"] {
-                left: clamp(0.45rem, 2vw, 0.9rem);
+                left: clamp(0.55rem, 2vw, 1rem);
             }
 
             #hero-why-demai-slider .why-demai-slider__nav[data-nav="next"] {
-                right: clamp(0.45rem, 2vw, 0.9rem);
+                right: clamp(0.55rem, 2vw, 1rem);
             }
 
             #hero-why-demai-slider .why-demai-slider__nav:hover,
             #hero-why-demai-slider .why-demai-slider__nav:focus-visible {
-                transform: translateY(-50%) scale(1.05);
-                box-shadow: 0 16px 32px rgba(8, 47, 73, 0.26);
+                transform: translateY(-50%) scale(1.06);
+                box-shadow: 0 20px 40px rgba(30, 64, 175, 0.28);
                 outline: none;
             }
 
             #hero-why-demai-slider .why-demai-slider__dots {
                 display: flex;
                 justify-content: center;
-                gap: 0.45rem;
-                margin-top: clamp(0.75rem, 2vw, 1rem);
+                gap: 0.5rem;
+                margin-top: clamp(0.85rem, 2vw, 1.1rem);
             }
 
             #hero-why-demai-slider .why-demai-slider__dot {
                 border: none;
-                background: rgba(12, 74, 110, 0.16);
+                background: rgba(37, 99, 235, 0.2);
                 border-radius: 999px;
-                width: 0.6rem;
-                height: 0.6rem;
+                width: 0.65rem;
+                height: 0.65rem;
                 padding: 0;
                 cursor: pointer;
                 transition: width 0.2s ease, background 0.2s ease;
@@ -1387,12 +1434,12 @@ def render_intro_stage():
             }
 
             #hero-why-demai-slider .why-demai-slider__dot.is-active {
-                width: 1.5rem;
-                background: linear-gradient(135deg, rgba(8, 47, 73, 0.9), rgba(45, 212, 191, 0.9));
+                width: 1.6rem;
+                background: linear-gradient(135deg, rgba(59, 130, 246, 0.95), rgba(236, 72, 153, 0.9));
             }
 
             #hero-why-demai-slider .why-demai-slider__dot:focus-visible {
-                outline: 2px solid rgba(13, 148, 136, 0.55);
+                outline: 2px solid rgba(37, 99, 235, 0.6);
                 outline-offset: 2px;
             }
 
@@ -1422,7 +1469,7 @@ def render_intro_stage():
 
             @media (max-width: 540px) {
                 #hero-why-demai-slider {
-                    padding: 0.9rem 1rem;
+                    padding: 0.95rem 1.05rem;
                 }
 
                 #hero-why-demai-slider .why-demai-card {
@@ -1670,16 +1717,29 @@ def render_intro_stage():
                 position: relative;
                 display: flex;
                 justify-content: center;
-                padding: clamp(1.2rem, 2.6vw, 2rem);
-                border-radius: 1.6rem;
-                background: linear-gradient(135deg, rgba(13, 148, 136, 0.16), rgba(56, 189, 248, 0.08));
-                border: 1px solid rgba(14, 116, 144, 0.22);
-                box-shadow: 0 20px 48px rgba(12, 74, 110, 0.18);
+                padding: clamp(1.3rem, 2.8vw, 2.1rem);
+                border-radius: 1.75rem;
+                background: linear-gradient(135deg, rgba(59, 130, 246, 0.16), rgba(236, 72, 153, 0.12));
+                border: 1px solid rgba(37, 99, 235, 0.2);
+                box-shadow: 0 24px 52px rgba(37, 99, 235, 0.2);
+                overflow: hidden;
+            }
+
+            .ai-act-quote-block::before {
+                content: "";
+                position: absolute;
+                inset: 0;
+                pointer-events: none;
+                background: radial-gradient(circle at top right, rgba(59, 130, 246, 0.2), transparent 55%),
+                    radial-gradient(circle at bottom left, rgba(236, 72, 153, 0.2), transparent 60%);
+                opacity: 0.9;
             }
 
             .ai-act-quote-block > div[data-testid="stComponent"] {
                 width: 100%;
                 margin: 0;
+                position: relative;
+                z-index: 1;
             }
         </style>
         <div class="ai-act-quote-block" role="region" aria-label="Definition of an AI system from the EU AI Act">
