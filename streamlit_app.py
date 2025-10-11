@@ -1257,260 +1257,239 @@ def render_intro_stage():
         </div>
     """
 
-    with section_surface("section-surface--hero"):
-        hero_left, hero_right = st.columns([7, 5], gap="large")
-        with hero_left:
-            render_demai_logo()
-            st.markdown(hero_copy_html, unsafe_allow_html=True)
-
-        with hero_right:
-            st.markdown('<div class="hero-cta-panel" role="complementary">', unsafe_allow_html=True)
-            render_eu_ai_act_typing()
-
-            if next_stage_key:
-                st.button(
-                    "🚀 Start your machine",
-                    key="flow_start_machine_hero",
-                    type="primary",
-                    on_click=set_active_stage,
-                    args=(next_stage_key,),
-                    use_container_width=True,
-                )
-            st.markdown("</div>", unsafe_allow_html=True)
-
-    why_demai_slider_html = """
+    hero_why_demai_slider_html = """
         <style>
-            #why-demai-slider {
+            #hero-why-demai-slider {
                 position: relative;
-                border-radius: 1.8rem;
-                padding: clamp(1.6rem, 3vw, 2.1rem);
-                background: linear-gradient(135deg, rgba(236, 253, 245, 0.95), rgba(219, 234, 254, 0.9));
-                border: 1px solid rgba(59, 130, 246, 0.22);
-                box-shadow: 0 22px 40px rgba(37, 99, 235, 0.15);
-                overflow: hidden;
+                border-radius: 1.25rem;
+                padding: clamp(1rem, 2.4vw, 1.45rem);
+                background: linear-gradient(140deg, rgba(15, 118, 110, 0.16), rgba(8, 47, 73, 0.08));
+                border: 1px solid rgba(12, 74, 110, 0.22);
+                box-shadow: 0 16px 34px rgba(12, 74, 110, 0.22);
                 font-family: "Inter", "Segoe UI", sans-serif;
+                color: #0f172a;
             }
 
-            #why-demai-slider .why-demai-slider__header {
+            #hero-why-demai-slider .why-demai-slider__header {
                 display: flex;
                 flex-direction: column;
-                gap: 0.4rem;
-                margin-bottom: clamp(1.1rem, 2vw, 1.5rem);
+                gap: 0.25rem;
+                margin-bottom: clamp(0.75rem, 2vw, 1.1rem);
             }
 
-            #why-demai-slider .why-demai-slider__header h3 {
+            #hero-why-demai-slider .why-demai-slider__header h3 {
                 margin: 0;
-                font-size: clamp(1.35rem, 2.4vw, 1.7rem);
-                color: #1e3a8a;
+                font-size: clamp(1.2rem, 2.1vw, 1.4rem);
+                color: rgba(8, 47, 73, 0.94);
+                font-weight: 700;
             }
 
-            #why-demai-slider .why-demai-slider__header p {
+            #hero-why-demai-slider .why-demai-slider__header p {
                 margin: 0;
-                font-size: 0.95rem;
-                color: rgba(30, 41, 59, 0.82);
+                font-size: 0.9rem;
+                color: rgba(15, 23, 42, 0.75);
+                line-height: 1.5;
             }
 
-            #why-demai-slider .why-demai-slider__body {
+            #hero-why-demai-slider .why-demai-slider__viewport {
                 position: relative;
-                display: grid;
-                grid-template-columns: auto 1fr auto;
-                gap: clamp(0.8rem, 2vw, 1.4rem);
-                align-items: center;
+                overflow: hidden;
+                border-radius: 1rem;
+                background: rgba(255, 255, 255, 0.82);
+                border: 1px solid rgba(148, 163, 184, 0.22);
+                box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3);
+                touch-action: pan-y;
             }
 
-            #why-demai-slider .why-demai-slider__slides {
-                position: relative;
-                min-height: clamp(210px, 26vw, 240px);
-                height: var(--slides-height, auto);
+            #hero-why-demai-slider .why-demai-slider__track {
+                display: flex;
+                transition: transform 0.45s cubic-bezier(0.22, 0.61, 0.36, 1);
+                will-change: transform;
             }
 
-            #why-demai-slider .why-demai-card {
-                position: absolute;
-                inset: 0;
-                margin: 0;
-                background: rgba(255, 255, 255, 0.92);
-                border-radius: 1.4rem;
-                padding: clamp(1.1rem, 2vw, 1.45rem);
-                box-shadow: 0 16px 30px rgba(59, 130, 246, 0.16);
-                border: 1px solid rgba(96, 165, 250, 0.32);
+            #hero-why-demai-slider .why-demai-card {
+                flex: 0 0 100%;
+                padding: clamp(1rem, 2vw, 1.25rem);
+                min-height: clamp(180px, 25vw, 220px);
                 display: flex;
                 flex-direction: column;
-                gap: 0.65rem;
-                opacity: 0;
-                transform: translateY(18px) scale(0.96);
-                transition: opacity 0.4s ease, transform 0.45s ease;
-                pointer-events: none;
+                gap: 0.55rem;
+                background: linear-gradient(150deg, rgba(255, 255, 255, 0.96), rgba(224, 242, 254, 0.72));
+                border-radius: 1rem;
+                border: 1px solid rgba(148, 163, 184, 0.2);
+                box-shadow: 0 14px 32px rgba(12, 74, 110, 0.12);
             }
 
-            #why-demai-slider .why-demai-card.is-active {
-                opacity: 1;
-                transform: translateY(0) scale(1);
-                pointer-events: auto;
-            }
-
-            #why-demai-slider .why-demai-card h4 {
+            #hero-why-demai-slider .why-demai-card h4 {
                 margin: 0;
-                font-size: 1.1rem;
-                color: #1e40af;
+                font-size: clamp(1.05rem, 2vw, 1.2rem);
+                color: rgba(8, 47, 73, 0.95);
             }
 
-            #why-demai-slider .why-demai-card p {
+            #hero-why-demai-slider .why-demai-card p {
                 margin: 0;
-                font-size: 0.95rem;
+                font-size: 0.92rem;
                 line-height: 1.6;
-                color: rgba(30, 41, 59, 0.88);
+                color: rgba(15, 23, 42, 0.8);
             }
 
-            #why-demai-slider .why-demai-slider__nav {
-                width: 2.6rem;
-                height: 2.6rem;
+            #hero-why-demai-slider .why-demai-slider__nav {
+                position: absolute;
+                top: 50%;
+                transform: translateY(-50%);
+                width: 2.35rem;
+                height: 2.35rem;
                 border-radius: 999px;
-                border: 1px solid rgba(59, 130, 246, 0.32);
-                background: rgba(255, 255, 255, 0.9);
-                box-shadow: 0 12px 24px rgba(59, 130, 246, 0.18);
-                color: #1e3a8a;
-                font-size: 1.4rem;
+                border: 1px solid rgba(12, 74, 110, 0.25);
+                background: linear-gradient(145deg, rgba(255, 255, 255, 0.95), rgba(191, 219, 254, 0.4));
+                box-shadow: 0 12px 26px rgba(8, 47, 73, 0.18);
+                color: rgba(8, 47, 73, 0.92);
+                font-size: 1.35rem;
                 display: grid;
                 place-items: center;
                 cursor: pointer;
                 transition: transform 0.18s ease, box-shadow 0.18s ease;
+                pointer-events: auto;
             }
 
-            #why-demai-slider .why-demai-slider__nav:hover,
-            #why-demai-slider .why-demai-slider__nav:focus-visible {
-                transform: translateY(-2px);
-                box-shadow: 0 16px 28px rgba(59, 130, 246, 0.24);
+            #hero-why-demai-slider .why-demai-slider__nav[data-nav="prev"] {
+                left: clamp(0.45rem, 2vw, 0.9rem);
+            }
+
+            #hero-why-demai-slider .why-demai-slider__nav[data-nav="next"] {
+                right: clamp(0.45rem, 2vw, 0.9rem);
+            }
+
+            #hero-why-demai-slider .why-demai-slider__nav:hover,
+            #hero-why-demai-slider .why-demai-slider__nav:focus-visible {
+                transform: translateY(-50%) scale(1.05);
+                box-shadow: 0 16px 32px rgba(8, 47, 73, 0.26);
                 outline: none;
             }
 
-            #why-demai-slider .why-demai-slider__dots {
+            #hero-why-demai-slider .why-demai-slider__dots {
                 display: flex;
                 justify-content: center;
-                gap: 0.6rem;
-                margin-top: clamp(1rem, 2vw, 1.4rem);
+                gap: 0.45rem;
+                margin-top: clamp(0.75rem, 2vw, 1rem);
             }
 
-            #why-demai-slider .why-demai-slider__dot {
-                position: relative;
+            #hero-why-demai-slider .why-demai-slider__dot {
                 border: none;
-                background: rgba(191, 219, 254, 0.8);
+                background: rgba(12, 74, 110, 0.16);
                 border-radius: 999px;
-                width: 0.65rem;
-                height: 0.65rem;
+                width: 0.6rem;
+                height: 0.6rem;
                 padding: 0;
                 cursor: pointer;
-                transition: width 0.18s ease, background 0.18s ease;
+                transition: width 0.2s ease, background 0.2s ease;
                 text-indent: -999px;
             }
 
-            #why-demai-slider .why-demai-slider__dot.is-active {
-                width: 1.8rem;
-                background: linear-gradient(135deg, #1e3a8a, #38bdf8);
+            #hero-why-demai-slider .why-demai-slider__dot.is-active {
+                width: 1.5rem;
+                background: linear-gradient(135deg, rgba(8, 47, 73, 0.9), rgba(45, 212, 191, 0.9));
             }
 
-            #why-demai-slider .why-demai-slider__dot:focus-visible {
-                outline: 2px solid rgba(59, 130, 246, 0.55);
+            #hero-why-demai-slider .why-demai-slider__dot:focus-visible {
+                outline: 2px solid rgba(13, 148, 136, 0.55);
                 outline-offset: 2px;
             }
 
+            #hero-why-demai-slider .why-demai-slider__viewport::after {
+                content: "";
+                position: absolute;
+                inset: 0;
+                pointer-events: none;
+                border-radius: inherit;
+                box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.45);
+            }
+
+            #hero-why-demai-slider.is-dragging .why-demai-slider__track {
+                cursor: grabbing;
+            }
+
+            #hero-why-demai-slider .why-demai-slider__track,
+            #hero-why-demai-slider .why-demai-card {
+                cursor: grab;
+            }
+
             @media (prefers-reduced-motion: reduce) {
-                #why-demai-slider .why-demai-card {
+                #hero-why-demai-slider .why-demai-slider__track {
                     transition: none;
                 }
             }
 
-            @media (max-width: 720px) {
-                #why-demai-slider {
-                    padding: 1.4rem;
+            @media (max-width: 540px) {
+                #hero-why-demai-slider {
+                    padding: 0.9rem 1rem;
                 }
 
-                #why-demai-slider .why-demai-slider__body {
-                    grid-template-columns: 1fr;
-                    gap: 0.9rem;
-                }
-
-                #why-demai-slider .why-demai-slider__nav {
-                    width: 2.3rem;
-                    height: 2.3rem;
-                    font-size: 1.25rem;
-                }
-
-                #why-demai-slider .why-demai-slider__nav[data-nav="prev"] {
-                    order: 2;
-                    justify-self: flex-start;
-                }
-
-                #why-demai-slider .why-demai-slider__nav[data-nav="next"] {
-                    order: 3;
-                    justify-self: flex-end;
-                }
-
-                #why-demai-slider .why-demai-slider__slides {
-                    order: 1;
+                #hero-why-demai-slider .why-demai-card {
                     min-height: 200px;
+                }
+
+                #hero-why-demai-slider .why-demai-slider__nav {
+                    width: 2.15rem;
+                    height: 2.15rem;
+                    font-size: 1.2rem;
                 }
             }
         </style>
-        <section id="why-demai-slider" class="why-demai-slider" aria-label="Why demAI" data-active-index="0">
+        <section id="hero-why-demai-slider" class="why-demai-slider" aria-label="Why demAI" data-active-index="0" role="region">
             <div class="why-demai-slider__header">
                 <h3>Why demAI</h3>
-                <p>Three pillars to make applied AI transparent, explainable, and inclusive.</p>
+                <p>Three pillars to keep your AI journey transparent, explainable, and inclusive.</p>
             </div>
-            <div class="why-demai-slider__body">
-                <button class="why-demai-slider__nav why-demai-slider__nav--prev" data-nav="prev" type="button" aria-label="Show previous pillar">‹</button>
-                <div class="why-demai-slider__slides" role="list">
-                    <article id="why-demai-slide-1" class="why-demai-card is-active" role="listitem" aria-hidden="false">
-                        <h4>Demonstrate</h4>
-                        <p>Follow an end-to-end build that shows every decision, trade-off, and impact as the system comes together.</p>
+            <div class="why-demai-slider__viewport" aria-live="polite">
+                <div class="why-demai-slider__track">
+                    <article class="why-demai-card" id="why-demai-slide-1" role="group" aria-roledescription="slide" aria-label="Make it transparent" aria-hidden="false">
+                        <h4>Make it transparent</h4>
+                        <p>See how documentation, evidence, and controls map to EU AI Act checkpoints as you move from data to deployment.</p>
                     </article>
-                    <article id="why-demai-slide-2" class="why-demai-card" role="listitem" aria-hidden="true">
-                        <h4>Demistify</h4>
-                        <p>Peel back the jargon with plain-language explainers and visual cues that clarify what the model is doing.</p>
+                    <article class="why-demai-card" id="why-demai-slide-2" role="group" aria-roledescription="slide" aria-label="Demistify decisions" aria-hidden="true">
+                        <h4>Demistify decisions</h4>
+                        <p>Trace every prediction back to the signals that shaped it with interactive explainability panels and guided reviews.</p>
                     </article>
-                    <article id="why-demai-slide-3" class="why-demai-card" role="listitem" aria-hidden="true">
-                        <h4>Democratize</h4>
-                        <p>Invite anyone to participate by grounding the experience in responsible defaults and practical guardrails.</p>
+                    <article class="why-demai-card" id="why-demai-slide-3" role="group" aria-roledescription="slide" aria-label="Democratize participation" aria-hidden="true">
+                        <h4>Democratize participation</h4>
+                        <p>Invite stakeholders to explore risks, mitigations, and trade-offs together with audit-ready exports.</p>
                     </article>
                 </div>
-                <button class="why-demai-slider__nav why-demai-slider__nav--next" data-nav="next" type="button" aria-label="Show next pillar">›</button>
+                <button class="why-demai-slider__nav" data-nav="prev" type="button" aria-label="Show previous pillar">‹</button>
+                <button class="why-demai-slider__nav" data-nav="next" type="button" aria-label="Show next pillar">›</button>
             </div>
             <div class="why-demai-slider__dots" role="tablist" aria-label="Why demAI pillars">
-                <button class="why-demai-slider__dot is-active" type="button" role="tab" aria-selected="true" aria-controls="why-demai-slide-1">Demonstrate</button>
+                <button class="why-demai-slider__dot is-active" type="button" role="tab" aria-selected="true" aria-controls="why-demai-slide-1">Transparent</button>
                 <button class="why-demai-slider__dot" type="button" role="tab" aria-selected="false" aria-controls="why-demai-slide-2">Demistify</button>
                 <button class="why-demai-slider__dot" type="button" role="tab" aria-selected="false" aria-controls="why-demai-slide-3">Democratize</button>
             </div>
         </section>
         <script>
             (function() {
-                const root = document.getElementById('why-demai-slider');
+                const root = document.getElementById('hero-why-demai-slider');
                 if (!root) {
                     return;
                 }
 
-                const slides = Array.from(root.querySelectorAll('.why-demai-card'));
+                const viewport = root.querySelector('.why-demai-slider__viewport');
+                const track = root.querySelector('.why-demai-slider__track');
+                const slides = Array.from(track.querySelectorAll('.why-demai-card'));
                 const dots = Array.from(root.querySelectorAll('.why-demai-slider__dot'));
                 const prev = root.querySelector('[data-nav="prev"]');
                 const next = root.querySelector('[data-nav="next"]');
-                const slidesContainer = root.querySelector('.why-demai-slider__slides');
                 const total = slides.length;
                 let index = 0;
                 let timerId;
+                let isDragging = false;
+                let dragStartX = 0;
+                let dragDelta = 0;
+                let baseOffset = 0;
+                let activePointerId = null;
                 const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
                 let reduceMotion = motionQuery.matches;
 
-                const syncHeight = () => {
-                    if (!slidesContainer) {
-                        return;
-                    }
-                    const active = slidesContainer.querySelector('.why-demai-card.is-active');
-                    if (!active) {
-                        return;
-                    }
-                    slidesContainer.style.setProperty('height', `${active.offsetHeight}px`);
-                };
-
-                const setActive = (nextIndex) => {
-                    index = (nextIndex + total) % total;
+                const updateAriaState = () => {
                     slides.forEach((slide, i) => {
                         const isActive = i === index;
                         slide.classList.toggle('is-active', isActive);
@@ -1523,7 +1502,25 @@ def render_intro_stage():
                         dot.setAttribute('tabindex', isActive ? '0' : '-1');
                     });
                     root.setAttribute('data-active-index', String(index));
-                    syncHeight();
+                };
+
+                const applyOffset = (offset, animate = true) => {
+                    track.style.transition = animate ? 'transform 0.45s cubic-bezier(0.22, 0.61, 0.36, 1)' : 'none';
+                    track.style.transform = `translateX(${offset}px)`;
+                };
+
+                const getOffsetForIndex = (targetIndex) => {
+                    return -targetIndex * viewport.offsetWidth;
+                };
+
+                const setActive = (nextIndex, { animate = true } = {}) => {
+                    index = (nextIndex + total) % total;
+                    updateAriaState();
+                    applyOffset(getOffsetForIndex(index), animate);
+                };
+
+                const syncOffset = () => {
+                    applyOffset(getOffsetForIndex(index), false);
                 };
 
                 const startTimer = () => {
@@ -1531,7 +1528,7 @@ def render_intro_stage():
                         return;
                     }
                     stopTimer();
-                    timerId = window.setInterval(() => setActive(index + 1), 5000);
+                    timerId = window.setInterval(() => setActive(index + 1), 6000);
                 };
 
                 const stopTimer = () => {
@@ -1551,7 +1548,52 @@ def render_intro_stage():
                 };
 
                 const handleResize = () => {
-                    window.requestAnimationFrame(syncHeight);
+                    window.requestAnimationFrame(syncOffset);
+                };
+
+                const onPointerDown = (event) => {
+                    if (event.pointerType === 'mouse' && event.button !== 0) {
+                        return;
+                    }
+                    isDragging = true;
+                    activePointerId = event.pointerId;
+                    dragStartX = event.clientX;
+                    dragDelta = 0;
+                    baseOffset = getOffsetForIndex(index);
+                    track.style.transition = 'none';
+                    root.classList.add('is-dragging');
+                    viewport.setPointerCapture?.(activePointerId);
+                    stopTimer();
+                };
+
+                const onPointerMove = (event) => {
+                    if (!isDragging || event.pointerId !== activePointerId) {
+                        return;
+                    }
+                    dragDelta = event.clientX - dragStartX;
+                    track.style.transform = `translateX(${baseOffset + dragDelta}px)`;
+                    event.preventDefault();
+                };
+
+                const finishDrag = (event) => {
+                    if (!isDragging || (event.pointerId !== undefined && event.pointerId !== activePointerId)) {
+                        return;
+                    }
+                    isDragging = false;
+                    root.classList.remove('is-dragging');
+                    if (activePointerId !== null) {
+                        viewport.releasePointerCapture?.(activePointerId);
+                    }
+                    activePointerId = null;
+                    const threshold = viewport.offsetWidth * 0.18;
+                    if (dragDelta < -threshold) {
+                        setActive(index + 1);
+                    } else if (dragDelta > threshold) {
+                        setActive(index - 1);
+                    } else {
+                        setActive(index, { animate: true });
+                    }
+                    startTimer();
                 };
 
                 motionQuery.addEventListener?.('change', handleMotionChange);
@@ -1575,6 +1617,16 @@ def render_intro_stage():
                     });
                 });
 
+                viewport.addEventListener('pointerdown', onPointerDown);
+                viewport.addEventListener('pointermove', onPointerMove);
+                viewport.addEventListener('pointerup', finishDrag);
+                viewport.addEventListener('pointercancel', finishDrag);
+                viewport.addEventListener('pointerleave', (event) => {
+                    if (isDragging && event.pointerId === activePointerId) {
+                        finishDrag(event);
+                    }
+                });
+
                 root.addEventListener('mouseenter', stopTimer);
                 root.addEventListener('mouseleave', startTimer);
                 root.addEventListener('focusin', stopTimer);
@@ -1584,15 +1636,59 @@ def render_intro_stage():
                     }
                 });
 
-                setActive(0);
+                setActive(0, { animate: false });
                 startTimer();
-                syncHeight();
+                syncOffset();
             })();
         </script>
     """
 
+    with section_surface("section-surface--hero"):
+        hero_left, hero_right = st.columns([7, 5], gap="large")
+        with hero_left:
+            render_demai_logo()
+            st.markdown(hero_copy_html, unsafe_allow_html=True)
+
+        with hero_right:
+            st.markdown('<div class="hero-cta-panel" role="complementary">', unsafe_allow_html=True)
+            components.html(hero_why_demai_slider_html, height=320, scrolling=False)
+
+            if next_stage_key:
+                st.button(
+                    "🚀 Start your machine",
+                    key="flow_start_machine_hero",
+                    type="primary",
+                    on_click=set_active_stage,
+                    args=(next_stage_key,),
+                    use_container_width=True,
+                )
+            st.markdown("</div>", unsafe_allow_html=True)
+
+    ai_act_quote_wrapper_open = """
+        <style>
+            .ai-act-quote-block {
+                position: relative;
+                display: flex;
+                justify-content: center;
+                padding: clamp(1.2rem, 2.6vw, 2rem);
+                border-radius: 1.6rem;
+                background: linear-gradient(135deg, rgba(13, 148, 136, 0.16), rgba(56, 189, 248, 0.08));
+                border: 1px solid rgba(14, 116, 144, 0.22);
+                box-shadow: 0 20px 48px rgba(12, 74, 110, 0.18);
+            }
+
+            .ai-act-quote-block > div[data-testid="stComponent"] {
+                width: 100%;
+                margin: 0;
+            }
+        </style>
+        <div class="ai-act-quote-block" role="region" aria-label="Definition of an AI system from the EU AI Act">
+    """
+
     with section_surface():
-        components.html(why_demai_slider_html, height=380, scrolling=False)
+        st.markdown(ai_act_quote_wrapper_open, unsafe_allow_html=True)
+        render_eu_ai_act_typing()
+        st.markdown("</div>", unsafe_allow_html=True)
 
 
     with section_surface():
