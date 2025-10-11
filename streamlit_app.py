@@ -111,7 +111,8 @@ from demistifai.modeling import (
 from stages.train_stage import render_train_stage
 from ui.animated_logo import render_demai_logo
 from components.ui_typing_quote import (
-    get_eu_ai_act_typing_iframe_src,
+    get_eu_ai_act_typing_inline_bootstrap,
+    get_eu_ai_act_typing_inline_markup,
     render_eu_ai_act_typing,
     render_machine_definition_typing,
 )
@@ -1248,7 +1249,8 @@ def render_intro_stage():
     if intro_index is not None and intro_index < len(STAGES) - 1:
         next_stage_key = STAGES[intro_index + 1].key
 
-    ai_act_iframe_src = get_eu_ai_act_typing_iframe_src()
+    hero_typing_markup = get_eu_ai_act_typing_inline_markup(id_prefix="eu-typing-hero")
+    hero_typing_bootstrap = get_eu_ai_act_typing_inline_bootstrap(id_prefix="eu-typing-hero")
 
     hero_copy_html = f"""
         <div class="hero-copy hero-surface" role="presentation">
@@ -1291,7 +1293,7 @@ def render_intro_stage():
                         </div>
                     </div>
                     <div class="hero-feature-card__body hero-feature-card__body--animation">
-                        <iframe class="hero-feature-card__iframe" title="Animated EU AI Act definition" src="{ai_act_iframe_src}" loading="lazy"></iframe>
+                        {hero_typing_markup}
                     </div>
                 </article>
             </div>
@@ -1304,6 +1306,7 @@ def render_intro_stage():
     with section_surface("section-surface--hero"):
         render_demai_logo()
         st.markdown(hero_copy_html, unsafe_allow_html=True)
+        components.html(hero_typing_bootstrap, height=0)
         st.markdown(hero_cta_panel_open, unsafe_allow_html=True)
 
         if next_stage_key:
