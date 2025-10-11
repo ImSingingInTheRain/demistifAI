@@ -1,3 +1,4 @@
+import base64
 import json
 from textwrap import dedent
 from string import Template
@@ -25,20 +26,26 @@ HLS = [
 ]
 
 
-def render_eu_ai_act_typing():
-    """Renders the animated, typed definition with progressive highlights."""
+def _eu_ai_act_typing_markup(
+    *,
+    padding: str = "1.25rem 1.4rem",
+    background: str = "linear-gradient(135deg, rgba(79,70,229,.06), rgba(14,165,233,.06))",
+    box_shadow: str = "0 20px 44px rgba(15,23,42,.12)",
+    min_height: str = "8.75rem",
+    eyebrow_text: str = "From the EU AI Act, Article&nbsp;3",
+    icon: str = "⚖️",
+) -> str:
     definition_js = json.dumps(EU_AI_ACT_DEF)
     highlights_js = json.dumps(HLS)
     noscript_text = escape(EU_AI_ACT_DEF)
 
-    html = Template(dedent("""
+    return Template(dedent(r"""
     <style>
       .eu-typing {
         --fg: #0f172a; --muted:#42506b; --accent:#4f46e5;
-        --bg: linear-gradient(135deg, rgba(79,70,229,.06), rgba(14,165,233,.06));
-        position: relative; padding: 1.25rem 1.4rem; border-radius: 1.1rem;
-        background: var(--bg); border: 1px solid rgba(15,23,42,.08);
-        box-shadow: 0 20px 44px rgba(15,23,42,.12);
+        position: relative; padding: $padding; border-radius: 1.1rem;
+        background: $background; border: 1px solid rgba(15,23,42,.08);
+        box-shadow: $box_shadow;
       }
       .eu-typing__eyebrow {
         font-size:.78rem; letter-spacing:.14em; text-transform:uppercase;
@@ -53,7 +60,7 @@ def render_eu_ai_act_typing():
       }
       .eu-typing__text {
         line-height:1.6; font-size:1.02rem; color:var(--fg);
-        min-height: 8.75rem; /* reserve space */
+        min-height: $min_height; /* reserve space */
         position:relative;
       }
       .caret {
@@ -74,15 +81,15 @@ def render_eu_ai_act_typing():
       /* small screens */
       @media (max-width:520px){
         .eu-typing { padding: 1.1rem; }
-        .eu-typing__text { font-size:1rem; min-height: 7.5rem; }
+        .eu-typing__text { font-size:1rem; min-height: calc($min_height - .9rem); }
         .eu-typing__icon { width:2rem; height:2rem; font-size:1rem; }
       }
     </style>
 
     <div class="eu-typing" aria-live="polite">
-      <div class="eu-typing__eyebrow">From the EU AI Act, Article&nbsp;3</div>
+      <div class="eu-typing__eyebrow">$eyebrow</div>
       <div class="eu-typing__row">
-        <div class="eu-typing__icon" aria-hidden="true">⚖️</div>
+        <div class="eu-typing__icon" aria-hidden="true">$icon</div>
         <p id="eu-typing-text" class="eu-typing__text">
           <noscript>$noscript</noscript>
           <span id="typed"></span><span class="caret" id="caret"></span>
@@ -109,7 +116,7 @@ def render_eu_ai_act_typing():
           let html = typedEl.textContent;
           // Apply in priority order; use non-overlapping simple replace
           highlights.forEach(h => {
-            const rx = new RegExp('(\\b' + h.replace(/[-/\\\\^$*+?.()|[\\\\]{}]/g,'\\$$&') + '\\b)', 'i');
+            const rx = new RegExp('(\\\b' + h.replace(/[-/\\\\^$*+?.()|[\\\\]{}]/g,'\\$$&') + '\\b)', 'i');
             html = html.replace(rx, '<span class="hl hl-pop">$$1</span>');
           });
           typedEl.innerHTML = html;
@@ -123,7 +130,7 @@ def render_eu_ai_act_typing():
           const ch = full.charAt(i++);
           typedEl.textContent += ch;
           // update highlights only when we finish a word boundary (space, punctuation)
-          if (/[\\s,.–—;:)/]/.test(ch)) applyHighlights();
+          if (/[\\\s,.–—;:)/]/.test(ch)) applyHighlights();
 
           let next = delay;
           if (ch === ',' || ch === '—') next = slowAfterComma;
@@ -138,8 +145,33 @@ def render_eu_ai_act_typing():
         definition=definition_js,
         highlights=highlights_js,
         noscript=noscript_text,
+        eyebrow=eyebrow_text,
+        icon=icon,
+        padding=padding,
+        background=background,
+        box_shadow=box_shadow,
+        min_height=min_height,
     )
+
+
+def render_eu_ai_act_typing():
+    """Renders the animated, typed definition with progressive highlights."""
+    html = _eu_ai_act_typing_markup()
     components.html(html, height=260, scrolling=False)
+
+
+def get_eu_ai_act_typing_iframe_src() -> str:
+    """Returns a data URI suitable for embedding in an iframe within the hero card."""
+
+    html = _eu_ai_act_typing_markup(
+        padding="0.9rem 1rem",
+        background="linear-gradient(135deg, rgba(79,70,229,.04), rgba(14,165,233,.04))",
+        box_shadow="0 12px 30px rgba(79,70,229,.14)",
+        min_height="7.9rem",
+        eyebrow_text="Definition • EU AI Act",
+    )
+    encoded = base64.b64encode(html.encode("utf-8")).decode("ascii")
+    return f"data:text/html;base64,{encoded}"
 
 
 def render_machine_definition_typing():

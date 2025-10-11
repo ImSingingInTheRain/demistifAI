@@ -110,7 +110,11 @@ from demistifai.modeling import (
 
 from stages.train_stage import render_train_stage
 from ui.animated_logo import render_demai_logo
-from components.ui_typing_quote import render_eu_ai_act_typing, render_machine_definition_typing
+from components.ui_typing_quote import (
+    get_eu_ai_act_typing_iframe_src,
+    render_eu_ai_act_typing,
+    render_machine_definition_typing,
+)
 
 
 logger = logging.getLogger(__name__)
@@ -1244,7 +1248,9 @@ def render_intro_stage():
     if intro_index is not None and intro_index < len(STAGES) - 1:
         next_stage_key = STAGES[intro_index + 1].key
 
-    hero_copy_html = """
+    ai_act_iframe_src = get_eu_ai_act_typing_iframe_src()
+
+    hero_copy_html = f"""
         <div class="hero-copy hero-surface" role="presentation">
             <p class="hero-lead">
                 demAI is an interactive experience where you will build and operate an AI system—while discovering and applying key concepts from the EU AI Act.
@@ -1277,14 +1283,16 @@ def render_intro_stage():
                     </div>
                     <p class="hero-feature-card__body">Empower every employee, not just data scientists, to engage responsibly with AI by making transparency and trust accessible to all.</p>
                 </article>
-                <article class="hero-feature-card" role="listitem" aria-labelledby="hero-feature-launch-title">
+                <article class="hero-feature-card" role="listitem" aria-labelledby="hero-feature-eu-ai-act-title">
                     <div class="hero-feature-card__header">
-                        <span class="hero-feature-card__icon" aria-hidden="true">🚀</span>
+                        <span class="hero-feature-card__icon" aria-hidden="true">⚖️</span>
                         <div class="hero-feature-card__meta">
-                            <h3 id="hero-feature-launch-title" class="hero-feature-card__title">Launch your build workspace</h3>
+                            <h3 id="hero-feature-eu-ai-act-title" class="hero-feature-card__title">Understand the EU AI Act</h3>
                         </div>
                     </div>
-                    <p class="hero-feature-card__body">Kick off the guided lab to configure and evaluate the spam detector with EU AI Act guardrails. Use the <strong>Start your machine</strong> CTA to spin everything up.</p>
+                    <div class="hero-feature-card__body hero-feature-card__body--animation">
+                        <iframe class="hero-feature-card__iframe" title="Animated EU AI Act definition" src="{ai_act_iframe_src}" loading="lazy"></iframe>
+                    </div>
                 </article>
             </div>
         </div>

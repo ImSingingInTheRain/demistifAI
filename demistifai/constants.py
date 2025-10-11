@@ -350,6 +350,26 @@ APP_THEME_CSS = """
     color: rgba(15, 23, 42, 0.78);
 }
 
+.hero-feature-card__body--animation {
+    padding: 0;
+    color: inherit;
+}
+
+.hero-feature-card__iframe {
+    width: 100%;
+    border: 0;
+    border-radius: 1.05rem;
+    height: 260px;
+    background: transparent;
+    display: block;
+}
+
+@media (max-width: 640px) {
+    .hero-feature-card__iframe {
+        height: 240px;
+    }
+}
+
 .hero-cta-panel {
     position: relative;
     display: grid;
