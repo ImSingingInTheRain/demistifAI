@@ -1607,20 +1607,24 @@ LIFECYCLE_RING_HTML = dedent(
       <span class="tip" role="tooltip" id="tip-prepare">Gather representative emails, label them carefully, and scrub PII so the model learns from balanced, trustworthy examples.</span>
     </button>
 
-    <div class="arrow pos-0"   aria-hidden="true">➝</div>
+    <div class="arrow pos-0" aria-hidden="true">➝</div>
 
     <button class="node pos-45" data-stage="train" aria-describedby="desc-train">
       <span class="icon" aria-hidden="true">🧠</span>
       <span class="title" id="title-train">Train</span>
-      <span class="tip" role="tooltip" id="tip-train">Feed the curated dataset into your learning pipeline, keep a validation split aside, and iterate until performance stabilises.</span>
+      <span class="tip" role="tooltip" id="tip-train">
+        Feed the curated dataset into your learning pipeline, keep a validation split aside, and iterate until performance stabilises.
+      </span>
     </button>
 
-    <div class="arrow pos-90"  aria-hidden="true">➝</div>
+    <div class="arrow pos-90" aria-hidden="true">➝</div>
 
     <button class="node pos-135" data-stage="evaluate" aria-describedby="desc-evaluate">
       <span class="icon" aria-hidden="true">🧪</span>
       <span class="title" id="title-evaluate">Evaluate</span>
-      <span class="tip" role="tooltip" id="tip-evaluate">Inspect precision and recall, review borderline decisions, and tune thresholds to reflect your risk posture.</span>
+      <span class="tip" role="tooltip" id="tip-evaluate">
+        Inspect precision and recall, review borderline decisions, and tune thresholds to reflect your risk posture.
+      </span>
     </button>
 
     <div class="arrow pos-180" aria-hidden="true">➝</div>
@@ -1628,11 +1632,13 @@ LIFECYCLE_RING_HTML = dedent(
     <button class="node pos-225" data-stage="use" aria-describedby="desc-use">
       <span class="icon" aria-hidden="true">📬</span>
       <span class="title" id="title-use">Use</span>
-      <span class="tip" role="tooltip" id="tip-use">Deploy the model to live traffic, monitor its calls in context, and capture feedback to enrich the next training loop.</span>
+      <span class="tip" role="tooltip" id="tip-use">
+        Deploy the model to live traffic, monitor its calls in context, and capture feedback to enrich the next training loop.
+      </span>
     </button>
 
     <div class="arrow pos-270" aria-hidden="true">➝</div>
-    <div class="loop  pos-330" aria-hidden="true">↺</div>
+    <div class="loop pos-330" aria-hidden="true">↺</div>
   </div>
 
   <!-- Legend -->
