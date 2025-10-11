@@ -3,7 +3,7 @@
 from streamlit.components.v1 import html as components_html
 
 
-def render_demai_logo(height: int = 140) -> None:
+def render_demai_logo(height: int = 96) -> None:
     """
     Render the animated 'demAI' title.
     - No external dependencies.
@@ -22,7 +22,7 @@ def render_demai_logo(height: int = 140) -> None:
         <style>
           .demai-hero{
             display:flex;align-items:center;justify-content:flex-start;
-            padding:0.5rem 0 0.4rem; margin:0;
+            padding:0; margin:0;
           }
           .demai-title{
             --grad: linear-gradient(90deg,#111827 0%,#0f172a 30%,#1e3a8a 60%,#0ea5e9 100%);
