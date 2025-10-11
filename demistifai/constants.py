@@ -1361,8 +1361,10 @@ EMAIL_INBOX_TABLE_CSS = """
 LIFECYCLE_CYCLE_CSS = dedent(
     """
     <style>
+    /* ---- LIFECYCLE (scoped) ---------------------------------------------- */
     .lifecycle-wrap {
-        margin-top: 0.5rem;
+        margin-top: 0.5rem; /* retain hero spacing while scoping ring size */
+        --ring-size: min(560px, 82vw);
     }
 
     .lifecycle-wrap h4 {
@@ -1374,179 +1376,140 @@ LIFECYCLE_CYCLE_CSS = dedent(
         color: rgba(15, 23, 42, 0.78);
     }
 
-    .lifecycle-cycle {
-        display: grid;
-        place-items: center;
-        padding: 1.1rem 0;
+    .lifecycle-wrap .cycle-ring{
+      /* sizing */
+      width: var(--ring-size);
+      aspect-ratio: 1 / 1;
+      position: relative;
+      margin: 1.1rem auto 0;
+      border-radius: 50%;
+
+      /* backdrop */
+      background: radial-gradient(92% 92% at 50% 50%,
+                  rgba(99,102,241,0.10), rgba(14,165,233,0.06));
+      box-shadow: inset 0 0 0 1px rgba(15,23,42,0.06);
+      isolation: isolate;
+
+      /* polar radii (desktop defaults) */
+      --r-node: 42%;
+      --r-arrow: 28%;
     }
 
-    .cycle-ring {
-        --size: min(520px, 78vw);
-        --radius-node: 40%;
-        --radius-arrow: 26%;
-        position: relative;
-        width: var(--size);
-        aspect-ratio: 1 / 1;
-        margin: 1.1rem auto 0;
-        border-radius: 50%;
-        background: radial-gradient(90% 90% at 50% 50%, rgba(99, 102, 241, 0.1), rgba(14, 165, 233, 0.06));
-        box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.06);
+    /* Fallback if aspect-ratio unsupported */
+    @supports not (aspect-ratio: 1 / 1){
+      .lifecycle-wrap .cycle-ring::before{content:"";display:block;padding-top:100%;}
     }
 
-    .cycle-node,
-    .cycle-arrow,
-    .cycle-loop {
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%) rotate(var(--angle, 0deg)) translate(var(--r, 0%)) rotate(calc(-1 * var(--angle, 0deg)));
-        transform-origin: center center;
+    /* generic polar placement (keeps tiles upright) */
+    .lifecycle-wrap .cycle-node,
+    .lifecycle-wrap .cycle-arrow,
+    .lifecycle-wrap .cycle-loop{
+      position:absolute; top:50%; left:50%;
+      transform: translate(-50%,-50%) rotate(var(--angle,0deg))
+                 translate(var(--r,0%))
+                 rotate(calc(-1 * var(--angle,0deg)));
+      transform-origin: center center;
     }
 
-    .cycle-node {
-        --r: var(--radius-node);
-        display: grid;
-        grid-auto-flow: row;
-        align-items: center;
-        justify-items: center;
-        gap: 0.25rem;
-        padding: 0.65rem 0.9rem;
-        min-width: 132px;
-        background: #fff;
-        border-radius: 1rem;
-        box-shadow: 0 12px 28px rgba(15, 23, 42, 0.12), inset 0 0 0 1px rgba(15, 23, 42, 0.06);
-        cursor: default;
-        transition: transform 140ms ease, box-shadow 140ms ease;
+    /* nodes --------------------------------------------------------------- */
+    .lifecycle-wrap .cycle-node{
+      --r: var(--r-node);
+      z-index: 2;
+      display:grid; place-items:center;
+      gap:.25rem;
+      padding:.7rem .95rem;
+      min-width: 140px;
+      background:#fff;
+      border-radius: 1rem;
+      box-shadow: 0 14px 30px rgba(15,23,42,.12),
+                  inset 0 0 0 1px rgba(15,23,42,.06);
+      text-align:center;
     }
 
-    .cycle-node:focus-visible {
+    .lifecycle-wrap .cycle-node:focus-visible {
         outline: 2px solid rgba(59, 130, 246, 0.7);
         outline-offset: 4px;
     }
 
-    .cycle-node:hover,
-    .cycle-node:focus-visible {
-        transform: translate(-50%, -50%) rotate(var(--angle, 0deg)) translate(var(--r, 0%)) rotate(calc(-1 * var(--angle, 0deg))) translateY(-4px);
-        box-shadow:
-            0 18px 36px rgba(15, 23, 42, 0.16),
-            inset 0 0 0 1px rgba(15, 23, 42, 0.08);
+    .lifecycle-wrap .cycle-title{ font-weight: 800; color:#0f172a; }
+    .lifecycle-wrap .cycle-icon{ font-size: 1.35rem; }
+
+    /* arrows -------------------------------------------------------------- */
+    .lifecycle-wrap .cycle-arrow{
+      --r: var(--r-arrow);
+      z-index: 1;
+      width: 38px; height: 38px;
+      display:flex; align-items:center; justify-content:center;
+      border-radius: 999px;
+      background:#fff;
+      color: rgba(30,64,175,.85);
+      box-shadow: 0 12px 22px rgba(15,23,42,.10),
+                  inset 0 0 0 1px rgba(15,23,42,.06);
+      pointer-events: none; /* let hovers go to nodes */
     }
 
-    .cycle-icon {
-        font-size: 1.25rem;
+    /* loop glyph ---------------------------------------------------------- */
+    .lifecycle-wrap .cycle-loop{
+      --r: calc(var(--r-node) + 6%);
+      z-index: 0;
+      font-size: 1.1rem;
+      color: rgba(30,64,175,.65);
     }
 
-    .cycle-title {
-        font-weight: 700;
-        color: #0f172a;
-        text-align: center;
+    /* tooltips (accessible; appear on hover/focus) ------------------------ */
+    .lifecycle-wrap .cycle-tip{
+      display:none;
+      position:absolute;
+      inset:auto auto -0.6rem 50%;
+      transform: translate(-50%,100%);
+      width: 240px;
+      padding:.6rem .75rem;
+      background:#0f172a; color:#fff;
+      border-radius:.65rem;
+      font-size:.82rem; line-height:1.35;
+      box-shadow: 0 14px 28px rgba(15,23,42,.25);
     }
 
-    .cycle-tip {
-        position: absolute;
-        left: 50%;
-        top: calc(100% + 10px);
-        transform: translateX(-50%);
-        min-width: 220px;
-        max-width: 280px;
-        padding: 0.6rem 0.75rem;
-        border-radius: 14px;
-        background: rgba(15, 23, 42, 0.95);
-        color: white;
-        font-size: 0.82rem;
-        line-height: 1.45;
-        box-shadow: 0 18px 38px rgba(15, 23, 42, 0.26);
-        opacity: 0;
-        visibility: hidden;
-        transition: opacity 140ms ease, visibility 140ms ease, transform 140ms ease;
-        transform-origin: top center;
-        transform: translateX(-50%) translateY(-6px);
-        z-index: 5;
-        pointer-events: none;
+    .lifecycle-wrap .cycle-node:focus .cycle-tip,
+    .lifecycle-wrap .cycle-node:hover .cycle-tip{ display:block; }
+
+    /* ANGLE UTILITIES (include all used) ---------------------------------- */
+    .lifecycle-wrap .pos-0   { --angle:   0deg; }
+    .lifecycle-wrap .pos-45  { --angle:  45deg; }
+    .lifecycle-wrap .pos-90  { --angle:  90deg; }
+    .lifecycle-wrap .pos-135 { --angle: 135deg; }
+    .lifecycle-wrap .pos-180 { --angle: 180deg; }
+    .lifecycle-wrap .pos-225 { --angle: 225deg; }
+    .lifecycle-wrap .pos-270 { --angle: 270deg; }
+    .lifecycle-wrap .pos-315 { --angle: 315deg; }
+    .lifecycle-wrap .pos-330 { --angle: 330deg; } /* for loop glyph */
+    .lifecycle-wrap .pos-360 { --angle: 360deg; } /* synonym of 0 */
+
+    /* MOBILE (≤ 520px): tighter radii & smaller tiles --------------------- */
+    @media (max-width: 520px){
+      .lifecycle-wrap { --ring-size: 86vw; }
+      .lifecycle-wrap .cycle-ring{ --r-node: 39%; --r-arrow: 26%; }
+      .lifecycle-wrap .cycle-node   { min-width: 122px; padding:.55rem .75rem; }
+      .lifecycle-wrap .cycle-icon   { font-size: 1.15rem; }
+      .lifecycle-wrap .cycle-arrow  { width: 32px; height: 32px; }
+      .lifecycle-wrap .cycle-tip    { width: 210px; }
     }
 
-    .cycle-tip:before {
-        content: "";
-        position: absolute;
-        top: -7px;
-        left: 50%;
-        transform: translateX(-50%) rotate(45deg);
-        width: 14px;
-        height: 14px;
-        background: rgba(15, 23, 42, 0.95);
+    /* VERY SMALL (≤ 360px): stack labels tighter -------------------------- */
+    @media (max-width: 360px){
+      .lifecycle-wrap .cycle-node{ min-width: 110px; }
+      .lifecycle-wrap .cycle-title{ font-size: .95rem; }
     }
 
-    .cycle-node:hover .cycle-tip,
-    .cycle-node:focus-within .cycle-tip {
-        opacity: 1;
-        visibility: visible;
-        transform: translateX(-50%) translateY(0);
-    }
-
-    .cycle-arrow {
-        --r: var(--radius-arrow);
-        font-size: 1.05rem;
-        color: rgba(30, 64, 175, 0.85);
-        background: #fff;
-        width: 36px;
-        height: 36px;
-        border-radius: 999px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        box-shadow: 0 10px 22px rgba(15, 23, 42, 0.1), inset 0 0 0 1px rgba(15, 23, 42, 0.06);
-    }
-
-    .cycle-loop {
-        --r: calc(var(--radius-node) + 6%);
-        color: rgba(30, 64, 175, 0.65);
-        font-size: 1.1rem;
-    }
-
-    .pos-45 {
-        --angle: 45deg;
-    }
-
-    .pos-135 {
-        --angle: 135deg;
-    }
-
-    .pos-225 {
-        --angle: 225deg;
-    }
-
-    .pos-315 {
-        --angle: 315deg;
-    }
-
-    .pos-90 {
-        --angle: 90deg;
-    }
-
-    .pos-180 {
-        --angle: 180deg;
-    }
-
-    .pos-270 {
-        --angle: 270deg;
-    }
-
-    .pos-330 {
-        --angle: 330deg;
-    }
-
-    .pos-360 {
-        --angle: 360deg;
-    }
-
-    .lifecycle-legend {
+    /* Scoped legend styles to .lifecycle-wrap to avoid conflicts ---------- */
+    .lifecycle-wrap .lifecycle-legend {
         display: grid;
         gap: 0.9rem;
         grid-template-columns: repeat(4, minmax(0, 1fr));
         margin-top: 1.2rem;
     }
 
-    .lifecycle-legend__item {
+    .lifecycle-wrap .lifecycle-legend__item {
         border-radius: 16px;
         padding: 0.85rem 1rem 0.95rem;
         background: linear-gradient(155deg, rgba(248, 250, 252, 0.95), rgba(226, 232, 240, 0.55));
@@ -1555,23 +1518,23 @@ LIFECYCLE_CYCLE_CSS = dedent(
         gap: 0.45rem;
     }
 
-    .lifecycle-legend__header {
+    .lifecycle-wrap .lifecycle-legend__header {
         display: flex;
         align-items: center;
         gap: 0.5rem;
     }
 
-    .lifecycle-legend__icon {
+    .lifecycle-wrap .lifecycle-legend__icon {
         font-size: 1.1rem;
     }
 
-    .lifecycle-legend__title {
+    .lifecycle-wrap .lifecycle-legend__title {
         font-size: 0.95rem;
         font-weight: 700;
         color: #0f172a;
     }
 
-    .lifecycle-legend__body {
+    .lifecycle-wrap .lifecycle-legend__body {
         margin: 0;
         font-size: 0.9rem;
         line-height: 1.55;
@@ -1579,48 +1542,27 @@ LIFECYCLE_CYCLE_CSS = dedent(
     }
 
     @media (max-width: 1100px) {
-        .lifecycle-legend {
+        .lifecycle-wrap .lifecycle-legend {
             grid-template-columns: repeat(2, minmax(0, 1fr));
         }
     }
 
     @media (max-width: 768px) {
-        .lifecycle-legend {
+        .lifecycle-wrap .lifecycle-legend {
             grid-template-columns: repeat(2, minmax(0, 1fr));
             gap: 0.75rem;
         }
     }
 
     @media (max-width: 640px) {
-        .cycle-tip {
-            min-width: 200px;
-            max-width: 230px;
-        }
-
-        .lifecycle-legend {
+        .lifecycle-wrap .lifecycle-legend {
             grid-template-columns: 1fr;
-        }
-    }
-
-    @media (max-width: 520px) {
-        .lifecycle-wrap .cycle-ring {
-            --radius-node: 38%;
-            --radius-arrow: 25%;
-        }
-
-        .cycle-node {
-            min-width: 118px;
-            padding: 0.55rem 0.75rem;
-        }
-
-        .cycle-arrow {
-            width: 32px;
-            height: 32px;
         }
     }
     </style>
     """
 )
+
 
 
 LIFECYCLE_CYCLE_HTML = dedent(
@@ -1638,7 +1580,7 @@ LIFECYCLE_CYCLE_HTML = dedent(
   </div>
   </div>
 
-  <div class="cycle-arrow cycle-arrow--prepare-train pos-360" aria-hidden="true">➝</div>
+  <div class="cycle-arrow cycle-arrow--prepare-train pos-0" aria-hidden="true">➝</div>
 
   <div class="cycle-node cycle-node--train pos-45" tabindex="0" aria-labelledby="cycle-title-train" aria-describedby="cycle-desc-train">
   <span class="cycle-icon" aria-hidden="true">🧠</span>
