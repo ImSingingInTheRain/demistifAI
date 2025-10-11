@@ -222,64 +222,159 @@ APP_THEME_CSS = """
 .hero-lead {
     margin: 0;
     font-size: clamp(1.18rem, 2.25vw, 1.5rem);
-    line-height: 1.6;
+    line-height: 1.65;
     font-weight: 600;
-    color: #0f172a;
+    color: rgba(15, 23, 42, 0.85);
 }
 
 .hero-copy {
-    display: flex;
-    flex-direction: column;
-    gap: clamp(1.1rem, 1.8vw, 1.6rem);
+    display: grid;
+    gap: clamp(1.3rem, 2vw, 1.9rem);
 }
 
-.hero-what-card {
-    border-radius: 1.6rem;
-    padding: clamp(1.4rem, 2.4vw, 1.9rem);
-    background: radial-gradient(circle at top left, rgba(56, 189, 248, 0.28), transparent 58%),
-        linear-gradient(135deg, rgba(15, 23, 42, 0.78), rgba(30, 64, 175, 0.65));
-    border: 1px solid rgba(148, 163, 184, 0.25);
-    box-shadow: 0 20px 40px rgba(15, 23, 42, 0.22);
-    color: rgba(226, 232, 240, 0.96);
+.hero-surface {
+    position: relative;
+    display: grid;
+    gap: clamp(1.3rem, 2vw, 1.9rem);
+    padding: clamp(1.8rem, 3.2vw, 2.5rem);
+    border-radius: 1.8rem;
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.16), rgba(236, 72, 153, 0.12));
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    box-shadow: 0 24px 52px rgba(15, 23, 42, 0.12);
+    overflow: hidden;
 }
 
-.hero-what-card h3 {
-    margin: 0;
-    font-size: clamp(1.3rem, 2.4vw, 1.6rem);
-    line-height: 1.3;
+.hero-surface::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at top left, rgba(37, 99, 235, 0.2), transparent 55%),
+        radial-gradient(circle at bottom right, rgba(236, 72, 153, 0.2), transparent 58%);
+    opacity: 0.9;
+    pointer-events: none;
 }
 
-.hero-what-card__body {
-    margin: 0.85rem 0 0;
-    font-size: 1rem;
-    line-height: 1.6;
-    color: rgba(226, 232, 240, 0.96);
+.hero-surface > * {
+    position: relative;
+    z-index: 1;
 }
 
-.hero-what-card__badge {
+.hero-surface__header {
+    display: grid;
+    gap: 0.75rem;
+}
+
+.hero-stage-chip {
     display: inline-flex;
     align-items: center;
-    gap: 0.4rem;
+    gap: 0.5rem;
     font-size: 0.78rem;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.18em;
     text-transform: uppercase;
     font-weight: 700;
-    background: rgba(14, 165, 233, 0.22);
-    color: rgba(224, 242, 254, 0.92);
-    padding: 0.35rem 0.75rem;
+    padding: 0.4rem 0.85rem;
     border-radius: 999px;
-    margin-bottom: 0.85rem;
+    color: rgba(15, 23, 42, 0.72);
+    background: rgba(255, 255, 255, 0.7);
+    box-shadow: 0 12px 26px rgba(15, 23, 42, 0.08);
+}
+
+.hero-heading {
+    margin: 0;
+    font-size: clamp(1.95rem, 3.4vw, 2.7rem);
+    line-height: 1.18;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.hero-feature-grid {
+    display: grid;
+    gap: clamp(1rem, 2vw, 1.5rem);
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.hero-feature-card {
+    display: grid;
+    gap: 0.85rem;
+    padding: 1.3rem;
+    border-radius: 1.2rem;
+    background: rgba(255, 255, 255, 0.92);
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    box-shadow: 0 18px 40px rgba(15, 23, 42, 0.12);
+    backdrop-filter: blur(6px);
+}
+
+.hero-feature-card__header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.hero-feature-card__icon {
+    display: grid;
+    place-items: center;
+    width: 2.6rem;
+    height: 2.6rem;
+    border-radius: 1rem;
+    font-size: 1.4rem;
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.18), rgba(236, 72, 153, 0.18));
+    box-shadow: inset 0 0 0 1px rgba(59, 130, 246, 0.12);
+}
+
+.hero-feature-card__meta {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.hero-feature-card__eyebrow {
+    margin: 0;
+    font-size: 0.75rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    font-weight: 700;
+    color: rgba(15, 23, 42, 0.6);
+}
+
+.hero-feature-card__title {
+    margin: 0;
+    font-size: 1.2rem;
+    color: #0f172a;
+}
+
+.hero-feature-card__body {
+    margin: 0;
+    font-size: 0.96rem;
+    line-height: 1.65;
+    color: rgba(15, 23, 42, 0.78);
 }
 
 .hero-cta-panel {
-    display: flex;
-    flex-direction: column;
-    gap: clamp(1.4rem, 2.2vw, 2rem);
-    background: linear-gradient(135deg, rgba(236, 254, 255, 0.95), rgba(224, 242, 254, 0.65));
+    position: relative;
+    display: grid;
+    gap: clamp(1.4rem, 2.2vw, 1.9rem);
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(224, 242, 254, 0.72));
     border-radius: 1.6rem;
-    padding: clamp(1.2rem, 2.4vw, 1.8rem);
-    border: 1px solid rgba(14, 116, 144, 0.25);
-    box-shadow: 0 18px 38px rgba(14, 116, 144, 0.18);
+    padding: clamp(1.4rem, 2.4vw, 2rem);
+    border: 1px solid rgba(37, 99, 235, 0.22);
+    box-shadow: 0 22px 48px rgba(37, 99, 235, 0.18);
+    overflow: hidden;
+}
+
+.hero-cta-panel::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: radial-gradient(circle at top right, rgba(59, 130, 246, 0.18), transparent 55%),
+        radial-gradient(circle at bottom left, rgba(236, 72, 153, 0.18), transparent 58%);
+    opacity: 0.85;
+}
+
+.hero-cta-panel > * {
+    position: relative;
+    z-index: 1;
 }
 
 .hero-cta-panel [data-testid="stComponent"] {
@@ -297,12 +392,12 @@ APP_THEME_CSS = """
     margin: 0;
     font-size: 0.98rem;
     line-height: 1.6;
-    color: rgba(15, 23, 42, 0.86);
+    color: rgba(15, 23, 42, 0.82);
 }
 
 .hero-cta-panel__note {
     font-weight: 600;
-    color: rgba(15, 23, 42, 0.74);
+    color: rgba(15, 23, 42, 0.72);
 }
 
 .hero-cta-panel [data-testid="stButton"] {
@@ -313,6 +408,9 @@ APP_THEME_CSS = """
     width: 100%;
     min-height: 3rem;
     font-size: 1.05rem;
+    font-weight: 600;
+    border-radius: 0.9rem;
+    box-shadow: 0 14px 30px rgba(37, 99, 235, 0.22);
 }
 
 .section-surface.section-surface--hero [data-testid="column"]:first-of-type > div[data-testid="stVerticalBlock"] {
