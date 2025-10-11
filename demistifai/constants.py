@@ -1599,73 +1599,72 @@ LIFECYCLE_CYCLE_CSS = dedent(
 
 LIFECYCLE_CYCLE_HTML = dedent(
     """
-    <div class="lifecycle-wrap">
-        <h4>Your AI system lifecycle at a glance</h4>
-        <p>These are the core stages you will navigate. They flow into one another — it’s a continuous loop you can revisit.</p>
+    <section class="lifecycle-wrap" aria-label="AI system lifecycle overview">
+        <h4>Map the lifecycle of your AI system</h4>
+        <p>Progress through the four interconnected stages below. Each phase feeds the next, forming a loop you can revisit as the system evolves.</p>
 
-            <div class="cycle-ring">
-
-                <div
-                    class="cycle-node cycle-node--prepare"
-                    tabindex="0"
-                    aria-labelledby="cycle-title-prepare"
-                    aria-describedby="cycle-desc-prepare"
-                >
-                    <span class="cycle-icon" aria-hidden="true">📊</span>
-                    <span id="cycle-title-prepare" class="cycle-title">Prepare Data</span>
-                    <div class="cycle-tip" role="tooltip">
-                        Curate examples and add labels. Clean sensitive data (PII) and check balance so the model learns a fair objective.
-                    </div>
+        <div class="cycle-ring" role="presentation">
+            <div
+                class="cycle-node cycle-node--prepare"
+                tabindex="0"
+                aria-labelledby="cycle-title-prepare"
+                aria-describedby="cycle-desc-prepare"
+            >
+                <span class="cycle-icon" aria-hidden="true">📊</span>
+                <span id="cycle-title-prepare" class="cycle-title">Prepare Data</span>
+                <div class="cycle-tip" role="tooltip">
+                    Gather representative emails, label them carefully, and scrub PII so the model learns from balanced, trustworthy examples.
                 </div>
-
-                <div class="cycle-arrow cycle-arrow--prepare-train" aria-hidden="true">➝</div>
-
-                <div
-                    class="cycle-node cycle-node--train"
-                    tabindex="0"
-                    aria-labelledby="cycle-title-train"
-                    aria-describedby="cycle-desc-train"
-                >
-                    <span class="cycle-icon" aria-hidden="true">🧠</span>
-                    <span id="cycle-title-train" class="cycle-title">Train</span>
-                    <div class="cycle-tip" role="tooltip">
-                        The model finds patterns that separate classes. Hold out a test split to keep the evaluation honest.
-                    </div>
-                </div>
-
-                <div class="cycle-arrow cycle-arrow--train-evaluate" aria-hidden="true">➝</div>
-
-                <div
-                    class="cycle-node cycle-node--evaluate"
-                    tabindex="0"
-                    aria-labelledby="cycle-title-evaluate"
-                    aria-describedby="cycle-desc-evaluate"
-                >
-                    <span class="cycle-icon" aria-hidden="true">🧪</span>
-                    <span id="cycle-title-evaluate" class="cycle-title">Evaluate</span>
-                    <div class="cycle-tip" role="tooltip">
-                        Measure precision/recall, inspect borderline cases, and set a threshold that fits your risk tolerance.
-                    </div>
-                </div>
-
-                <div class="cycle-arrow cycle-arrow--evaluate-use" aria-hidden="true">➝</div>
-
-                <div
-                    class="cycle-node cycle-node--use"
-                    tabindex="0"
-                    aria-labelledby="cycle-title-use"
-                    aria-describedby="cycle-desc-use"
-                >
-                    <span class="cycle-icon" aria-hidden="true">📬</span>
-                    <span id="cycle-title-use" class="cycle-title">Use</span>
-                    <div class="cycle-tip" role="tooltip">
-                        Apply the model to new emails. Optionally capture feedback for future adaptiveness.
-                    </div>
-                </div>
-
-                <div class="cycle-arrow cycle-arrow--use-prepare" aria-hidden="true">➝</div>
-                <div class="cycle-loop" aria-hidden="true">↺</div>
             </div>
+
+            <div class="cycle-arrow cycle-arrow--prepare-train" aria-hidden="true">➝</div>
+
+            <div
+                class="cycle-node cycle-node--train"
+                tabindex="0"
+                aria-labelledby="cycle-title-train"
+                aria-describedby="cycle-desc-train"
+            >
+                <span class="cycle-icon" aria-hidden="true">🧠</span>
+                <span id="cycle-title-train" class="cycle-title">Train</span>
+                <div class="cycle-tip" role="tooltip">
+                    Feed the curated dataset into your learning pipeline, keep a validation split aside, and iterate until performance stabilises.
+                </div>
+            </div>
+
+            <div class="cycle-arrow cycle-arrow--train-evaluate" aria-hidden="true">➝</div>
+
+            <div
+                class="cycle-node cycle-node--evaluate"
+                tabindex="0"
+                aria-labelledby="cycle-title-evaluate"
+                aria-describedby="cycle-desc-evaluate"
+            >
+                <span class="cycle-icon" aria-hidden="true">🧪</span>
+                <span id="cycle-title-evaluate" class="cycle-title">Evaluate</span>
+                <div class="cycle-tip" role="tooltip">
+                    Inspect precision and recall, review borderline decisions, and tune thresholds to reflect your risk posture.
+                </div>
+            </div>
+
+            <div class="cycle-arrow cycle-arrow--evaluate-use" aria-hidden="true">➝</div>
+
+            <div
+                class="cycle-node cycle-node--use"
+                tabindex="0"
+                aria-labelledby="cycle-title-use"
+                aria-describedby="cycle-desc-use"
+            >
+                <span class="cycle-icon" aria-hidden="true">📬</span>
+                <span id="cycle-title-use" class="cycle-title">Use</span>
+                <div class="cycle-tip" role="tooltip">
+                    Deploy the model to live traffic, monitor its calls in context, and capture feedback to enrich the next training loop.
+                </div>
+            </div>
+
+            <div class="cycle-arrow cycle-arrow--use-prepare" aria-hidden="true">➝</div>
+            <div class="cycle-loop" aria-hidden="true">↺</div>
+        </div>
 
         <div class="lifecycle-legend" role="list">
             <div class="lifecycle-legend__item" id="cycle-desc-prepare" role="listitem">
@@ -1674,7 +1673,7 @@ LIFECYCLE_CYCLE_HTML = dedent(
                     <span class="lifecycle-legend__title">Prepare Data</span>
                 </div>
                 <p class="lifecycle-legend__body">
-                    Assemble representative examples, label them, and scrub sensitive details so the model learns from balanced, appropriate material.
+                    Assemble balanced, well-labeled examples and strip sensitive signals so the dataset reflects the behaviour you intend to teach.
                 </p>
             </div>
             <div class="lifecycle-legend__item" id="cycle-desc-train" role="listitem">
@@ -1683,7 +1682,7 @@ LIFECYCLE_CYCLE_HTML = dedent(
                     <span class="lifecycle-legend__title">Train</span>
                 </div>
                 <p class="lifecycle-legend__body">
-                    Feed the cleaned dataset into learning algorithms, hold back a test split, and iteratively tune until the model captures robust patterns.
+                    Run the learning routine against the prepared corpus, reserve a holdout split, and iterate on settings until the model captures durable patterns.
                 </p>
             </div>
             <div class="lifecycle-legend__item" id="cycle-desc-evaluate" role="listitem">
@@ -1692,7 +1691,7 @@ LIFECYCLE_CYCLE_HTML = dedent(
                     <span class="lifecycle-legend__title">Evaluate</span>
                 </div>
                 <p class="lifecycle-legend__body">
-                    Study metrics, stress-test edge cases, and adjust decision thresholds so outcomes meet your risk and compliance needs.
+                    Review metrics and edge cases, pressure-test failure scenarios, and calibrate decision thresholds against your compliance requirements.
                 </p>
             </div>
             <div class="lifecycle-legend__item" id="cycle-desc-use" role="listitem">
@@ -1701,11 +1700,11 @@ LIFECYCLE_CYCLE_HTML = dedent(
                     <span class="lifecycle-legend__title">Use</span>
                 </div>
                 <p class="lifecycle-legend__body">
-                    Deploy the model to incoming emails, monitor predictions in context, and capture feedback to feed the next training cycle.
+                    Put the system in front of incoming messages, supervise the outcomes, and log feedback to kick off the next improvement sprint.
                 </p>
             </div>
         </div>
-    </div>
+    </section>
     """
 )
 
