@@ -1303,7 +1303,7 @@ def render_intro_stage():
 
 
     with section_surface():
-        st.markdown(LIFECYCLE_RING_HTML, unsafe_allow_html=True)
+        components.html(LIFECYCLE_RING_HTML, height=780, scrolling=False)
 
 
     with section_surface():
