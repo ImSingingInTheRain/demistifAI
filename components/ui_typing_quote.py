@@ -36,15 +36,15 @@ def render_eu_ai_act_typing():
       .eu-typing {
         --fg: #0f172a; --muted:#42506b; --accent:#4f46e5;
         --bg: linear-gradient(135deg, rgba(79,70,229,.06), rgba(14,165,233,.06));
-        position: relative; padding: 1rem; border-radius: 1.1rem;
+        position: relative; padding: 1.25rem 1.4rem; border-radius: 1.1rem;
         background: var(--bg); border: 1px solid rgba(15,23,42,.08);
-        box-shadow: 0 16px 34px rgba(15,23,42,.10);
+        box-shadow: 0 20px 44px rgba(15,23,42,.12);
       }
       .eu-typing__eyebrow {
         font-size:.78rem; letter-spacing:.14em; text-transform:uppercase;
         font-weight:800; color:#3b5bcc; margin: .1rem 0 .6rem;
       }
-      .eu-typing__row { display:flex; gap:.85rem; align-items:flex-start; }
+      .eu-typing__row { display:flex; gap:1rem; align-items:flex-start; }
       .eu-typing__icon {
         width:2.2rem; height:2.2rem; border-radius:.7rem;
         background:#fff; display:grid; place-items:center;
@@ -52,8 +52,8 @@ def render_eu_ai_act_typing():
         flex:0 0 auto; font-size:1.15rem;
       }
       .eu-typing__text {
-        line-height:1.6; font-size:1rem; color:var(--fg);
-        min-height: 6.5rem; /* reserve space */
+        line-height:1.6; font-size:1.02rem; color:var(--fg);
+        min-height: 8.75rem; /* reserve space */
         position:relative;
       }
       .caret {
@@ -73,7 +73,8 @@ def render_eu_ai_act_typing():
 
       /* small screens */
       @media (max-width:520px){
-        .eu-typing__text { font-size:.98rem; }
+        .eu-typing { padding: 1.1rem; }
+        .eu-typing__text { font-size:1rem; min-height: 7.5rem; }
         .eu-typing__icon { width:2rem; height:2rem; font-size:1rem; }
       }
     </style>
@@ -138,4 +139,4 @@ def render_eu_ai_act_typing():
         highlights=highlights_js,
         noscript=noscript_text,
     )
-    components.html(html, height=220, scrolling=False)
+    components.html(html, height=260, scrolling=False)

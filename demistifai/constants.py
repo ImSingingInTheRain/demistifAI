@@ -191,7 +191,7 @@ APP_THEME_CSS = """
     position: relative;
     display: flex;
     flex-direction: column;
-    gap: clamp(1.6rem, 3vw, 2.3rem);
+    gap: clamp(1.4rem, 3vw, 2.1rem);
     max-width: 680px;
     z-index: 1;
 }
@@ -199,7 +199,7 @@ APP_THEME_CSS = """
 .hero-text-block {
     display: flex;
     flex-direction: column;
-    gap: 0.85rem;
+    gap: 0.625rem;
 }
 
 .hero-eyebrow {
@@ -221,9 +221,10 @@ APP_THEME_CSS = """
 
 .hero-lead {
     margin: 0;
-    font-size: clamp(1rem, 1.35vw, 1.1rem);
-    line-height: 1.7;
-    color: rgba(241, 245, 249, 0.86);
+    font-size: clamp(1.18rem, 2.25vw, 1.5rem);
+    line-height: 1.6;
+    font-weight: 600;
+    color: rgba(241, 245, 249, 0.92);
 }
 
 .hero-info-grid {
@@ -242,8 +243,8 @@ APP_THEME_CSS = """
 .hero-right-panel {
     display: flex;
     flex-direction: column;
-    gap: 1.8rem;
-    align-items: center;
+    gap: clamp(2rem, 3vw, 2.8rem);
+    align-items: stretch;
     width: 100%;
 }
 
@@ -253,12 +254,20 @@ APP_THEME_CSS = """
 
 .hero-right-panel [data-testid="stButton"] {
     width: 100%;
+    margin-top: auto;
+    padding-top: 0.5rem;
 }
 
 .hero-right-panel [data-testid="stButton"] > button {
     width: 100%;
     max-width: 280px;
     margin: 0 auto;
+}
+
+.hero-info-card__content {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
 }
 
 .indicator-chip-row {
@@ -473,6 +482,26 @@ APP_THEME_CSS = """
     color: rgba(15, 23, 42, 0.82);
 }
 
+.hero-info-list {
+    margin: 0;
+    padding-left: 1.15rem;
+    display: grid;
+    gap: 0.55rem;
+    font-size: 0.95rem;
+    line-height: 1.65;
+    color: rgba(15, 23, 42, 0.82);
+    list-style: disc;
+}
+
+.hero-info-list li {
+    margin: 0;
+}
+
+.hero-info-list li strong {
+    color: #1e3a8a;
+    font-weight: 700;
+}
+
 @media (max-width: 767px) {
     .section-surface.section-surface--hero > div[data-testid="stVerticalBlock"],
     .section-surface-block.section-surface--hero {
@@ -482,11 +511,11 @@ APP_THEME_CSS = """
 
     .hero-content {
         max-width: none;
-        gap: 1.5rem;
+        gap: 1.35rem;
     }
 
     .hero-text-block {
-        gap: 0.75rem;
+        gap: 0.6rem;
     }
 
     .hero-text-block h2 {
@@ -494,11 +523,13 @@ APP_THEME_CSS = """
     }
 
     .hero-lead {
-        font-size: 1rem;
+        font-size: 1.1rem;
+        line-height: 1.7;
     }
 
     .hero-right-panel {
-        gap: 1.4rem;
+        gap: 1.8rem;
+        align-items: center;
     }
 
     .hero-info-card {
@@ -507,11 +538,20 @@ APP_THEME_CSS = """
         text-align: left;
     }
 
+    .hero-info-card__content {
+        gap: 0.65rem;
+    }
+
     .hero-info-card__icon {
         width: 2.7rem;
         height: 2.7rem;
         font-size: 1.35rem;
     }
+}
+
+.section-surface--hero .demai-hero {
+    margin: 0 0 10px 0;
+    padding: 0;
 }
 
 .section-surface--hero [data-testid="column"]:nth-child(2) [data-testid="stButton"] {
