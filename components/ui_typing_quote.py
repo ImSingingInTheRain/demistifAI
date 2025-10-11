@@ -1,8 +1,9 @@
 import json
-import streamlit as st
 from textwrap import dedent
 from string import Template
 from html import escape
+
+import streamlit.components.v1 as components
 
 EU_AI_ACT_DEF = (
     "AI system means a machine-based system that is designed to operate with varying levels of autonomy "
@@ -137,4 +138,4 @@ def render_eu_ai_act_typing():
         highlights=highlights_js,
         noscript=noscript_text,
     )
-    st.markdown(html, unsafe_allow_html=True)
+    components.html(html, height=220, scrolling=False)
