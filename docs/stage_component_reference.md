@@ -6,13 +6,13 @@ numbers use `nl -ba` numbering (1-indexed) for quick cross-checks.
 ## Stage boundaries in `streamlit_app.py`
 | Stage key | Function | Line range | Notes |
 | --- | --- | --- | --- |
-| `intro` | `render_intro_stage` | 1244–1324 | Hero welcome, lifecycle primer, and call-to-action buttons. |
-| `overview` | `render_overview_stage` | 1327–2024 | EU AI Act framing, autonomy sliders, and walkthrough of the full pipeline. |
-| `data` | `render_data_stage` | 2025–3793 | Dataset import/generation, linting feedback, and label review utilities. |
-| `evaluate` | `render_evaluate_stage` | 3794–4090 | Evaluation metrics, ROC / confusion matrix views, and governance summary. |
-| `classify` | `render_classify_stage` | 4092–4540 | Live classification console, governance tools, and routing copy. |
-| `model_card` | `render_model_card_stage` | 4542–4643 | Transparency summary, dataset snapshot details, and download affordances. |
-| `train` | `_render_train_stage_wrapper` | 4696–4707 | Streamlit-side wrapper; full UI lives in `stages/train_stage.py`. |
+| `intro` | `render_intro_stage` | 1240–1323 | Hero welcome, lifecycle primer, and call-to-action buttons. |
+| `overview` | `render_overview_stage` | 1326–2023 | EU AI Act framing, autonomy sliders, and walkthrough of the full pipeline. |
+| `data` | `render_data_stage` | 2024–3792 | Dataset import/generation, linting feedback, and label review utilities. |
+| `evaluate` | `render_evaluate_stage` | 3793–4090 | Evaluation metrics, ROC / confusion matrix views, and governance summary. |
+| `classify` | `render_classify_stage` | 4091–4540 | Live classification console, governance tools, and routing copy. |
+| `model_card` | `render_model_card_stage` | 4541–4642 | Transparency summary, dataset snapshot details, and download affordances. |
+| `train` | `_render_train_stage_wrapper` | 4695–4706 | Streamlit-side wrapper; full UI lives in `stages/train_stage.py`. |
 
 > **Tip:** Re-run `nl -ba streamlit_app.py | sed -n 'START,ENDp'` after edits to confirm updated line ranges.
 

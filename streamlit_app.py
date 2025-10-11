@@ -35,8 +35,7 @@ from demistifai.constants import (
     DATASET_LEGIT_DOMAINS,
     DATASET_SUSPICIOUS_TLDS,
     EMAIL_INBOX_TABLE_CSS,
-    LIFECYCLE_CYCLE_CSS,
-    LIFECYCLE_CYCLE_HTML,
+    LIFECYCLE_RING_HTML,
     STAGE_BY_KEY,
     STAGE_INDEX,
     STAGE_TEMPLATE_CSS,
@@ -634,7 +633,6 @@ st.set_page_config(page_title="demistifAI", page_icon="📧", layout="wide")
 st.markdown(APP_THEME_CSS, unsafe_allow_html=True)
 st.markdown(STAGE_TEMPLATE_CSS, unsafe_allow_html=True)
 st.markdown(EMAIL_INBOX_TABLE_CSS, unsafe_allow_html=True)
-st.markdown(LIFECYCLE_CYCLE_CSS, unsafe_allow_html=True)
 
 
 @contextmanager
@@ -1305,7 +1303,7 @@ def render_intro_stage():
 
 
     with section_surface():
-        st.markdown(LIFECYCLE_CYCLE_HTML, unsafe_allow_html=True)
+        st.markdown(LIFECYCLE_RING_HTML, unsafe_allow_html=True)
 
 
     with section_surface():
