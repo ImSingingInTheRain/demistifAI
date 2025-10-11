@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from textwrap import dedent
 from typing import List
 
 # CSS assets used throughout the application.
@@ -1300,204 +1301,208 @@ EMAIL_INBOX_TABLE_CSS = """
 </style>
 """
 
-LIFECYCLE_CYCLE_CSS = """
-<style>
-.lifecycle-wrap {
-    margin-top: 0.5rem;
-}
+LIFECYCLE_CYCLE_CSS = dedent(
+    """
+    <style>
+    .lifecycle-wrap {
+        margin-top: 0.5rem;
+    }
 
-.lifecycle-wrap h4 {
-    margin: 0 0 0.4rem 0;
-}
+    .lifecycle-wrap h4 {
+        margin: 0 0 0.4rem 0;
+    }
 
-.lifecycle-wrap p {
-    margin: 0 0 0.8rem 0;
-    color: rgba(15, 23, 42, 0.78);
-}
+    .lifecycle-wrap p {
+        margin: 0 0 0.8rem 0;
+        color: rgba(15, 23, 42, 0.78);
+    }
 
-.lifecycle-cycle {
-    display: grid;
-    place-items: center;
-    padding: 1.1rem 0;
-}
+    .lifecycle-cycle {
+        display: grid;
+        place-items: center;
+        padding: 1.1rem 0;
+    }
 
-.cycle-ring {
-    position: relative;
-    width: clamp(300px, 64vw, 720px);
-    aspect-ratio: 1 / 1;
-    border-radius: 50%;
-    background: radial-gradient(ellipse at center, rgba(99, 102, 241, 0.06), rgba(14, 165, 233, 0.04));
-    box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.06);
-}
+    .cycle-ring {
+        position: relative;
+        width: clamp(300px, 64vw, 720px);
+        aspect-ratio: 1 / 1;
+        border-radius: 50%;
+        background: radial-gradient(ellipse at center, rgba(99, 102, 241, 0.06), rgba(14, 165, 233, 0.04));
+        box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.06);
+    }
 
-.cycle-node {
-    position: absolute;
-    display: grid;
-    place-items: center;
-    gap: 0.25rem;
-    width: 96px;
-    height: 96px;
-    border-radius: 16px;
-    background: rgba(255, 255, 255, 0.92);
-    box-shadow:
-        0 8px 22px rgba(15, 23, 42, 0.10),
-        inset 0 0 0 1px rgba(15, 23, 42, 0.06);
-    transition: transform 140ms ease, box-shadow 140ms ease;
-    cursor: default;
-}
-
-.cycle-node:hover {
-    transform: translateY(-2px);
-    box-shadow:
-        0 12px 26px rgba(15, 23, 42, 0.14),
-        inset 0 0 0 1px rgba(15, 23, 42, 0.08);
-}
-
-.cycle-icon {
-    font-size: 1.35rem;
-    line-height: 1;
-}
-
-.cycle-title {
-    font-size: 0.85rem;
-    font-weight: 700;
-    color: #0f172a;
-    text-align: center;
-}
-
-.cycle-tip {
-    position: absolute;
-    left: 50%;
-    top: calc(100% + 8px);
-    transform: translateX(-50%);
-    min-width: 220px;
-    max-width: 280px;
-    padding: 0.6rem 0.75rem;
-    border-radius: 12px;
-    background: #0f172a;
-    color: white;
-    font-size: 0.82rem;
-    line-height: 1.35;
-    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.22);
-    opacity: 0;
-    visibility: hidden;
-    transition: opacity 140ms ease, visibility 140ms ease, transform 140ms ease;
-    transform-origin: top center;
-    transform: translateX(-50%) translateY(-6px);
-    z-index: 5;
-    pointer-events: none;
-}
-
-.cycle-tip:before {
-    content: "";
-    position: absolute;
-    top: -6px;
-    left: 50%;
-    transform: translateX(-50%) rotate(45deg);
-    width: 12px;
-    height: 12px;
-    background: #0f172a;
-}
-
-.cycle-node:hover .cycle-tip,
-.cycle-node:focus-within .cycle-tip {
-    opacity: 1;
-    visibility: visible;
-    transform: translateX(-50%) translateY(0);
-}
-
-.cycle-arrow {
-    position: absolute;
-    font-size: 1.1rem;
-    color: rgba(15, 23, 42, 0.55);
-    user-select: none;
-}
-
-.cycle-loop {
-    position: absolute;
-    right: 8%;
-    bottom: 8%;
-    font-size: 1.25rem;
-    color: rgba(15, 23, 42, 0.45);
-}
-
-.cycle-node--prepare { top: 6%; left: 50%; transform: translate(-50%, 0); }
-.cycle-node--train   { top: 30%; left: 88%; transform: translate(-50%, -50%); }
-.cycle-node--evaluate{ top: 74%; left: 74%; transform: translate(-50%, -50%); }
-.cycle-node--use     { top: 88%; left: 26%; transform: translate(-50%, -50%); }
-
-.cycle-arrow--prepare-train   { top: 18%; left: 72%; }
-.cycle-arrow--train-evaluate  { top: 52%; left: 83%; }
-.cycle-arrow--evaluate-use    { top: 84%; left: 50%; transform: translateX(-50%); }
-.cycle-arrow--use-prepare     { top: 30%; left: 18%; transform: rotate(-12deg); }
-
-@media (max-width: 640px) {
     .cycle-node {
-        width: 88px;
-        height: 88px;
+        position: absolute;
+        display: grid;
+        place-items: center;
+        gap: 0.25rem;
+        width: 96px;
+        height: 96px;
+        border-radius: 16px;
+        background: rgba(255, 255, 255, 0.92);
+        box-shadow:
+            0 8px 22px rgba(15, 23, 42, 0.10),
+            inset 0 0 0 1px rgba(15, 23, 42, 0.06);
+        transition: transform 140ms ease, box-shadow 140ms ease;
+        cursor: default;
+    }
+
+    .cycle-node:hover {
+        transform: translateY(-2px);
+        box-shadow:
+            0 12px 26px rgba(15, 23, 42, 0.14),
+            inset 0 0 0 1px rgba(15, 23, 42, 0.08);
+    }
+
+    .cycle-icon {
+        font-size: 1.35rem;
+        line-height: 1;
+    }
+
+    .cycle-title {
+        font-size: 0.85rem;
+        font-weight: 700;
+        color: #0f172a;
+        text-align: center;
     }
 
     .cycle-tip {
-        min-width: 200px;
-        max-width: 240px;
+        position: absolute;
+        left: 50%;
+        top: calc(100% + 8px);
+        transform: translateX(-50%);
+        min-width: 220px;
+        max-width: 280px;
+        padding: 0.6rem 0.75rem;
+        border-radius: 12px;
+        background: #0f172a;
+        color: white;
+        font-size: 0.82rem;
+        line-height: 1.35;
+        box-shadow: 0 10px 24px rgba(15, 23, 42, 0.22);
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 140ms ease, visibility 140ms ease, transform 140ms ease;
+        transform-origin: top center;
+        transform: translateX(-50%) translateY(-6px);
+        z-index: 5;
+        pointer-events: none;
     }
-}
-</style>
-"""
+
+    .cycle-tip:before {
+        content: "";
+        position: absolute;
+        top: -6px;
+        left: 50%;
+        transform: translateX(-50%) rotate(45deg);
+        width: 12px;
+        height: 12px;
+        background: #0f172a;
+    }
+
+    .cycle-node:hover .cycle-tip,
+    .cycle-node:focus-within .cycle-tip {
+        opacity: 1;
+        visibility: visible;
+        transform: translateX(-50%) translateY(0);
+    }
+
+    .cycle-arrow {
+        position: absolute;
+        font-size: 1.1rem;
+        color: rgba(15, 23, 42, 0.55);
+        user-select: none;
+    }
+
+    .cycle-loop {
+        position: absolute;
+        right: 8%;
+        bottom: 8%;
+        font-size: 1.25rem;
+        color: rgba(15, 23, 42, 0.45);
+    }
+
+    .cycle-node--prepare { top: 6%; left: 50%; transform: translate(-50%, 0); }
+    .cycle-node--train   { top: 30%; left: 88%; transform: translate(-50%, -50%); }
+    .cycle-node--evaluate{ top: 74%; left: 74%; transform: translate(-50%, -50%); }
+    .cycle-node--use     { top: 88%; left: 26%; transform: translate(-50%, -50%); }
+
+    .cycle-arrow--prepare-train   { top: 18%; left: 72%; }
+    .cycle-arrow--train-evaluate  { top: 52%; left: 83%; }
+    .cycle-arrow--evaluate-use    { top: 84%; left: 50%; transform: translateX(-50%); }
+    .cycle-arrow--use-prepare     { top: 30%; left: 18%; transform: rotate(-12deg); }
+
+    @media (max-width: 640px) {
+        .cycle-node {
+            width: 88px;
+            height: 88px;
+        }
+
+        .cycle-tip {
+            min-width: 200px;
+            max-width: 240px;
+        }
+    }
+    </style>
+    """
+)
 
 
-LIFECYCLE_CYCLE_HTML = """
-<div class="lifecycle-wrap">
-    <h4>Your AI system lifecycle at a glance</h4>
-    <p>These are the core stages you will navigate. They flow into one another — it’s a continuous loop you can revisit.</p>
+LIFECYCLE_CYCLE_HTML = dedent(
+    """
+    <div class="lifecycle-wrap">
+        <h4>Your AI system lifecycle at a glance</h4>
+        <p>These are the core stages you will navigate. They flow into one another — it’s a continuous loop you can revisit.</p>
 
-    <div class="lifecycle-cycle">
-        <div class="cycle-ring">
+        <div class="lifecycle-cycle">
+            <div class="cycle-ring">
 
-            <div class="cycle-node cycle-node--prepare" tabindex="0" aria-label="Prepare Data">
-                <span class="cycle-icon">📊</span>
-                <span class="cycle-title">Prepare Data</span>
-                <div class="cycle-tip" role="tooltip">
-                    Curate examples and add labels. Clean sensitive data (PII) and check balance so the model learns a fair objective.
+                <div class="cycle-node cycle-node--prepare" tabindex="0" aria-label="Prepare Data">
+                    <span class="cycle-icon">📊</span>
+                    <span class="cycle-title">Prepare Data</span>
+                    <div class="cycle-tip" role="tooltip">
+                        Curate examples and add labels. Clean sensitive data (PII) and check balance so the model learns a fair objective.
+                    </div>
                 </div>
-            </div>
 
-            <div class="cycle-arrow cycle-arrow--prepare-train" aria-hidden="true">➝</div>
+                <div class="cycle-arrow cycle-arrow--prepare-train" aria-hidden="true">➝</div>
 
-            <div class="cycle-node cycle-node--train" tabindex="0" aria-label="Train">
-                <span class="cycle-icon">🧠</span>
-                <span class="cycle-title">Train</span>
-                <div class="cycle-tip" role="tooltip">
-                    The model finds patterns that separate classes. Hold out a test split to keep the evaluation honest.
+                <div class="cycle-node cycle-node--train" tabindex="0" aria-label="Train">
+                    <span class="cycle-icon">🧠</span>
+                    <span class="cycle-title">Train</span>
+                    <div class="cycle-tip" role="tooltip">
+                        The model finds patterns that separate classes. Hold out a test split to keep the evaluation honest.
+                    </div>
                 </div>
-            </div>
 
-            <div class="cycle-arrow cycle-arrow--train-evaluate" aria-hidden="true">➝</div>
+                <div class="cycle-arrow cycle-arrow--train-evaluate" aria-hidden="true">➝</div>
 
-            <div class="cycle-node cycle-node--evaluate" tabindex="0" aria-label="Evaluate">
-                <span class="cycle-icon">🧪</span>
-                <span class="cycle-title">Evaluate</span>
-                <div class="cycle-tip" role="tooltip">
-                    Measure precision/recall, inspect borderline cases, and set a threshold that fits your risk tolerance.
+                <div class="cycle-node cycle-node--evaluate" tabindex="0" aria-label="Evaluate">
+                    <span class="cycle-icon">🧪</span>
+                    <span class="cycle-title">Evaluate</span>
+                    <div class="cycle-tip" role="tooltip">
+                        Measure precision/recall, inspect borderline cases, and set a threshold that fits your risk tolerance.
+                    </div>
                 </div>
-            </div>
 
-            <div class="cycle-arrow cycle-arrow--evaluate-use" aria-hidden="true">➝</div>
+                <div class="cycle-arrow cycle-arrow--evaluate-use" aria-hidden="true">➝</div>
 
-            <div class="cycle-node cycle-node--use" tabindex="0" aria-label="Use">
-                <span class="cycle-icon">📬</span>
-                <span class="cycle-title">Use</span>
-                <div class="cycle-tip" role="tooltip">
-                    Apply the model to new emails. Optionally capture feedback for future adaptiveness.
+                <div class="cycle-node cycle-node--use" tabindex="0" aria-label="Use">
+                    <span class="cycle-icon">📬</span>
+                    <span class="cycle-title">Use</span>
+                    <div class="cycle-tip" role="tooltip">
+                        Apply the model to new emails. Optionally capture feedback for future adaptiveness.
+                    </div>
                 </div>
-            </div>
 
-            <div class="cycle-arrow cycle-arrow--use-prepare" aria-hidden="true">➝</div>
-            <div class="cycle-loop" aria-hidden="true">↺</div>
+                <div class="cycle-arrow cycle-arrow--use-prepare" aria-hidden="true">➝</div>
+                <div class="cycle-loop" aria-hidden="true">↺</div>
+            </div>
         </div>
     </div>
-</div>
-"""
+    """
+)
 
 
 @dataclass(frozen=True)
