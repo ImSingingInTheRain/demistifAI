@@ -1600,7 +1600,6 @@ LIFECYCLE_CYCLE_HTML = dedent(
         <h4>Your AI system lifecycle at a glance</h4>
         <p>These are the core stages you will navigate. They flow into one another — it’s a continuous loop you can revisit.</p>
 
-        <div class="lifecycle-cycle">
             <div class="cycle-ring">
 
                 <div
@@ -1664,7 +1663,6 @@ LIFECYCLE_CYCLE_HTML = dedent(
                 <div class="cycle-arrow cycle-arrow--use-prepare" aria-hidden="true">➝</div>
                 <div class="cycle-loop" aria-hidden="true">↺</div>
             </div>
-        </div>
 
         <div class="lifecycle-legend" role="list">
             <div class="lifecycle-legend__item" id="cycle-desc-prepare" role="listitem">
