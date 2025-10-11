@@ -1381,41 +1381,42 @@ LIFECYCLE_CYCLE_CSS = dedent(
     }
 
     .cycle-ring {
+        --size: min(520px, 78vw);
+        --radius-node: 40%;
+        --radius-arrow: 26%;
         position: relative;
-        width: clamp(300px, 62vw, 720px);
+        width: var(--size);
         aspect-ratio: 1 / 1;
+        margin: 1.1rem auto 0;
         border-radius: 50%;
-        background: radial-gradient(120% 120% at 50% 45%, rgba(59, 130, 246, 0.08), rgba(59, 130, 246, 0.02) 55%, rgba(14, 165, 233, 0.04) 100%);
-        box-shadow:
-            inset 0 0 0 1px rgba(15, 23, 42, 0.06),
-            inset 0 -18px 34px rgba(37, 99, 235, 0.08);
+        background: radial-gradient(90% 90% at 50% 50%, rgba(99, 102, 241, 0.1), rgba(14, 165, 233, 0.06));
+        box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.06);
     }
 
-    .cycle-ring:after {
-        content: "";
+    .cycle-node,
+    .cycle-arrow,
+    .cycle-loop {
         position: absolute;
-        inset: 14%;
-        border-radius: 50%;
-        background: radial-gradient(ellipse at center, rgba(125, 211, 252, 0.12), transparent 65%);
-        pointer-events: none;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%) rotate(var(--angle, 0deg)) translate(var(--r, 0%)) rotate(calc(-1 * var(--angle, 0deg)));
+        transform-origin: center center;
     }
 
     .cycle-node {
-        position: absolute;
+        --r: var(--radius-node);
         display: grid;
-        place-items: center;
-        gap: 0.3rem;
-        width: 96px;
-        height: 96px;
-        border-radius: 18px;
-        background: rgba(255, 255, 255, 0.96);
-        box-shadow:
-            0 14px 32px rgba(15, 23, 42, 0.12),
-            inset 0 0 0 1px rgba(15, 23, 42, 0.06);
-        transition: transform 140ms ease, box-shadow 140ms ease;
+        grid-auto-flow: row;
+        align-items: center;
+        justify-items: center;
+        gap: 0.25rem;
+        padding: 0.65rem 0.9rem;
+        min-width: 132px;
+        background: #fff;
+        border-radius: 1rem;
+        box-shadow: 0 12px 28px rgba(15, 23, 42, 0.12), inset 0 0 0 1px rgba(15, 23, 42, 0.06);
         cursor: default;
-        --cycle-node-transform: translate(-50%, -50%);
-        transform: var(--cycle-node-transform);
+        transition: transform 140ms ease, box-shadow 140ms ease;
     }
 
     .cycle-node:focus-visible {
@@ -1425,19 +1426,17 @@ LIFECYCLE_CYCLE_CSS = dedent(
 
     .cycle-node:hover,
     .cycle-node:focus-visible {
-        transform: var(--cycle-node-transform) translateY(-4px);
+        transform: translate(-50%, -50%) rotate(var(--angle, 0deg)) translate(var(--r, 0%)) rotate(calc(-1 * var(--angle, 0deg))) translateY(-4px);
         box-shadow:
             0 18px 36px rgba(15, 23, 42, 0.16),
             inset 0 0 0 1px rgba(15, 23, 42, 0.08);
     }
 
     .cycle-icon {
-        font-size: 1.35rem;
-        line-height: 1;
+        font-size: 1.25rem;
     }
 
     .cycle-title {
-        font-size: 0.9rem;
         font-weight: 700;
         color: #0f172a;
         text-align: center;
@@ -1485,31 +1484,60 @@ LIFECYCLE_CYCLE_CSS = dedent(
     }
 
     .cycle-arrow {
-        position: absolute;
-        font-size: 1.15rem;
-        color: rgba(30, 58, 138, 0.65);
-        text-shadow: 0 4px 10px rgba(15, 23, 42, 0.18);
-        user-select: none;
+        --r: var(--radius-arrow);
+        font-size: 1.05rem;
+        color: rgba(30, 64, 175, 0.85);
+        background: #fff;
+        width: 36px;
+        height: 36px;
+        border-radius: 999px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 10px 22px rgba(15, 23, 42, 0.1), inset 0 0 0 1px rgba(15, 23, 42, 0.06);
     }
 
     .cycle-loop {
-        position: absolute;
-        right: 8%;
-        bottom: 10%;
-        font-size: 1.35rem;
+        --r: calc(var(--radius-node) + 6%);
         color: rgba(30, 64, 175, 0.65);
-        text-shadow: 0 4px 12px rgba(15, 23, 42, 0.16);
+        font-size: 1.1rem;
     }
 
-    .cycle-node--prepare { top: 6%; left: 50%; --cycle-node-transform: translate(-50%, 0); }
-    .cycle-node--train   { top: 30%; left: 88%; --cycle-node-transform: translate(-50%, -50%); }
-    .cycle-node--evaluate{ top: 74%; left: 74%; --cycle-node-transform: translate(-50%, -50%); }
-    .cycle-node--use     { top: 88%; left: 26%; --cycle-node-transform: translate(-50%, -50%); }
+    .pos-45 {
+        --angle: 45deg;
+    }
 
-    .cycle-arrow--prepare-train   { top: 18%; left: 72%; }
-    .cycle-arrow--train-evaluate  { top: 52%; left: 83%; }
-    .cycle-arrow--evaluate-use    { top: 84%; left: 50%; transform: translateX(-50%); }
-    .cycle-arrow--use-prepare     { top: 30%; left: 18%; transform: rotate(-12deg); }
+    .pos-135 {
+        --angle: 135deg;
+    }
+
+    .pos-225 {
+        --angle: 225deg;
+    }
+
+    .pos-315 {
+        --angle: 315deg;
+    }
+
+    .pos-90 {
+        --angle: 90deg;
+    }
+
+    .pos-180 {
+        --angle: 180deg;
+    }
+
+    .pos-270 {
+        --angle: 270deg;
+    }
+
+    .pos-330 {
+        --angle: 330deg;
+    }
+
+    .pos-360 {
+        --angle: 360deg;
+    }
 
     .lifecycle-legend {
         display: grid;
@@ -1557,15 +1585,6 @@ LIFECYCLE_CYCLE_CSS = dedent(
     }
 
     @media (max-width: 768px) {
-        .cycle-node {
-            width: 88px;
-            height: 88px;
-        }
-
-        .cycle-title {
-            font-size: 0.82rem;
-        }
-
         .lifecycle-legend {
             grid-template-columns: repeat(2, minmax(0, 1fr));
             gap: 0.75rem;
@@ -1573,16 +1592,6 @@ LIFECYCLE_CYCLE_CSS = dedent(
     }
 
     @media (max-width: 640px) {
-        .cycle-node {
-            width: 76px;
-            height: 76px;
-            gap: 0.2rem;
-        }
-
-        .cycle-title {
-            font-size: 0.78rem;
-        }
-
         .cycle-tip {
             min-width: 200px;
             max-width: 230px;
@@ -1590,6 +1599,23 @@ LIFECYCLE_CYCLE_CSS = dedent(
 
         .lifecycle-legend {
             grid-template-columns: 1fr;
+        }
+    }
+
+    @media (max-width: 520px) {
+        .lifecycle-wrap .cycle-ring {
+            --radius-node: 38%;
+            --radius-arrow: 25%;
+        }
+
+        .cycle-node {
+            min-width: 118px;
+            padding: 0.55rem 0.75rem;
+        }
+
+        .cycle-arrow {
+            width: 32px;
+            height: 32px;
         }
     }
     </style>
@@ -1604,7 +1630,7 @@ LIFECYCLE_CYCLE_HTML = dedent(
 <p>Progress through the four interconnected stages below. Each phase feeds the next, forming a loop you can revisit as the system evolves.</p>
 
 <div class="cycle-ring" role="presentation">
-  <div class="cycle-node cycle-node--prepare" tabindex="0" aria-labelledby="cycle-title-prepare" aria-describedby="cycle-desc-prepare">
+  <div class="cycle-node cycle-node--prepare pos-315" tabindex="0" aria-labelledby="cycle-title-prepare" aria-describedby="cycle-desc-prepare">
   <span class="cycle-icon" aria-hidden="true">📊</span>
   <span id="cycle-title-prepare" class="cycle-title">Prepare Data</span>
   <div class="cycle-tip" role="tooltip">
@@ -1612,9 +1638,9 @@ LIFECYCLE_CYCLE_HTML = dedent(
   </div>
   </div>
 
-  <div class="cycle-arrow cycle-arrow--prepare-train" aria-hidden="true">➝</div>
+  <div class="cycle-arrow cycle-arrow--prepare-train pos-360" aria-hidden="true">➝</div>
 
-  <div class="cycle-node cycle-node--train" tabindex="0" aria-labelledby="cycle-title-train" aria-describedby="cycle-desc-train">
+  <div class="cycle-node cycle-node--train pos-45" tabindex="0" aria-labelledby="cycle-title-train" aria-describedby="cycle-desc-train">
   <span class="cycle-icon" aria-hidden="true">🧠</span>
   <span id="cycle-title-train" class="cycle-title">Train</span>
   <div class="cycle-tip" role="tooltip">
@@ -1622,9 +1648,9 @@ LIFECYCLE_CYCLE_HTML = dedent(
   </div>
   </div>
 
-  <div class="cycle-arrow cycle-arrow--train-evaluate" aria-hidden="true">➝</div>
+  <div class="cycle-arrow cycle-arrow--train-evaluate pos-90" aria-hidden="true">➝</div>
 
-  <div class="cycle-node cycle-node--evaluate" tabindex="0" aria-labelledby="cycle-title-evaluate" aria-describedby="cycle-desc-evaluate">
+  <div class="cycle-node cycle-node--evaluate pos-135" tabindex="0" aria-labelledby="cycle-title-evaluate" aria-describedby="cycle-desc-evaluate">
   <span class="cycle-icon" aria-hidden="true">🧪</span>
   <span id="cycle-title-evaluate" class="cycle-title">Evaluate</span>
   <div class="cycle-tip" role="tooltip">
@@ -1632,9 +1658,9 @@ LIFECYCLE_CYCLE_HTML = dedent(
   </div>
   </div>
 
-  <div class="cycle-arrow cycle-arrow--evaluate-use" aria-hidden="true">➝</div>
+  <div class="cycle-arrow cycle-arrow--evaluate-use pos-180" aria-hidden="true">➝</div>
 
-  <div class="cycle-node cycle-node--use" tabindex="0" aria-labelledby="cycle-title-use" aria-describedby="cycle-desc-use">
+  <div class="cycle-node cycle-node--use pos-225" tabindex="0" aria-labelledby="cycle-title-use" aria-describedby="cycle-desc-use">
   <span class="cycle-icon" aria-hidden="true">📬</span>
   <span id="cycle-title-use" class="cycle-title">Use</span>
   <div class="cycle-tip" role="tooltip">
@@ -1642,8 +1668,8 @@ LIFECYCLE_CYCLE_HTML = dedent(
   </div>
   </div>
 
-  <div class="cycle-arrow cycle-arrow--use-prepare" aria-hidden="true">➝</div>
-  <div class="cycle-loop" aria-hidden="true">↺</div>
+  <div class="cycle-arrow cycle-arrow--use-prepare pos-270" aria-hidden="true">➝</div>
+  <div class="cycle-loop pos-330" aria-hidden="true">↺</div>
 </div>
 
 <div class="lifecycle-legend" role="list">
