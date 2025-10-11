@@ -140,3 +140,128 @@ def render_eu_ai_act_typing():
         noscript=noscript_text,
     )
     components.html(html, height=260, scrolling=False)
+
+
+def render_machine_definition_typing():
+    """Animated quote for the Start Your Machine stage with delete + highlight effect."""
+
+    intro_text = (
+        "AI system means a machine-based system that is designed to operate with varying "
+        "levels of autonomy and that"
+    )
+    focus_text = "AI system means a machine-based system"
+
+    html = Template(dedent("""
+    <style>
+      .eu-typing {
+        --fg: #0f172a; --muted:#42506b; --accent:#4f46e5;
+        --bg: linear-gradient(135deg, rgba(79,70,229,.06), rgba(14,165,233,.06));
+        position: relative; padding: 1.25rem 1.4rem; border-radius: 1.1rem;
+        background: var(--bg); border: 1px solid rgba(15,23,42,.08);
+        box-shadow: 0 20px 44px rgba(15,23,42,.12);
+      }
+      .eu-typing__eyebrow {
+        font-size:.78rem; letter-spacing:.14em; text-transform:uppercase;
+        font-weight:800; color:#3b5bcc; margin: .1rem 0 .6rem;
+      }
+      .eu-typing__row { display:flex; gap:1rem; align-items:flex-start; }
+      .eu-typing__icon {
+        width:2.2rem; height:2.2rem; border-radius:.7rem;
+        background:#fff; display:grid; place-items:center;
+        box-shadow: inset 0 0 0 1px rgba(15,23,42,.06);
+        flex:0 0 auto; font-size:1.15rem;
+      }
+      .eu-typing__text {
+        line-height:1.6; font-size:1.02rem; color:var(--fg);
+        min-height: 5.6rem;
+        position:relative;
+      }
+      .caret {
+        display:inline-block; width:1px; background: var(--fg);
+        animation: blink .9s steps(1) infinite;
+        vertical-align:-3px; height:1.1em; margin-left:1px;
+      }
+      @keyframes blink { 50% { opacity:0; } }
+
+      .hl {
+        background: linear-gradient(0deg, rgba(79,70,229,.22), rgba(79,70,229,.22));
+        border-radius:.25rem; padding:.05rem .2rem;
+      }
+      .hl-strong { font-weight:600; color:#1d4ed8; }
+
+      @media (max-width:520px){
+        .eu-typing { padding: 1.1rem; }
+        .eu-typing__text { font-size:1rem; min-height: 5.2rem; }
+        .eu-typing__icon { width:2rem; height:2rem; font-size:1rem; }
+      }
+    </style>
+
+    <div class="eu-typing" aria-live="polite">
+      <div class="eu-typing__eyebrow">From the EU AI Act, Article&nbsp;3</div>
+      <div class="eu-typing__row">
+        <div class="eu-typing__icon" aria-hidden="true">⚖️</div>
+        <p id="machine-typing-text" class="eu-typing__text">
+          <span id="machine-typed"></span><span class="caret" id="machine-caret"></span>
+        </p>
+      </div>
+    </div>
+
+    <script>
+      (function() {
+        const full = $full_text;
+        const keep = $focus_text;
+        const typedEl = document.getElementById('machine-typed');
+        const caret = document.getElementById('machine-caret');
+
+        if (!typedEl || !caret) return;
+
+        let index = 0;
+        const typeDelay = 18;
+        const deleteDelay = 26;
+
+        function typeForward() {
+          if (index >= full.length) {
+            setTimeout(deleteBack, 650);
+            return;
+          }
+
+          const ch = full.charAt(index++);
+          typedEl.textContent += ch;
+
+          let next = typeDelay;
+          if (ch === ',' || ch === ';') next = 160;
+          if (ch === ' ') next = 22;
+          window.setTimeout(typeForward, next);
+        }
+
+        function deleteBack() {
+          const current = typedEl.textContent || '';
+          if (current.length <= keep.length) {
+            typedEl.textContent = keep;
+            setTimeout(finish, 420);
+            return;
+          }
+
+          typedEl.textContent = current.slice(0, -1);
+          window.setTimeout(deleteBack, deleteDelay);
+        }
+
+        function finish() {
+          const finalText = keep + '…';
+          const highlighted = finalText.replace(
+            /machine-based system/i,
+            '<span class="hl hl-strong">$&</span>'
+          );
+          typedEl.innerHTML = highlighted;
+          caret.style.display = 'none';
+        }
+
+        setTimeout(typeForward, 320);
+      })();
+    </script>
+    """)).safe_substitute(
+        full_text=json.dumps(intro_text),
+        focus_text=json.dumps(focus_text),
+    )
+
+    components.html(html, height=200, scrolling=False)

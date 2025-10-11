@@ -110,7 +110,7 @@ from demistifai.modeling import (
 
 from stages.train_stage import render_train_stage
 from ui.animated_logo import render_demai_logo
-from components.ui_typing_quote import render_eu_ai_act_typing
+from components.ui_typing_quote import render_eu_ai_act_typing, render_machine_definition_typing
 
 
 logger = logging.getLogger(__name__)
@@ -2029,9 +2029,7 @@ def render_overview_stage():
     )
 
     with section_surface():
-        render_eu_ai_quote(
-            "The EU AI Act says that “An AI system is a machine-based system”."
-        )
+        render_machine_definition_typing()
 
     with section_surface():
         top_left, top_right = st.columns([0.48, 0.52], gap="large")
