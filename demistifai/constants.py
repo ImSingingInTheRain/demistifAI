@@ -1475,235 +1475,380 @@ EMAIL_INBOX_TABLE_CSS = """
 
 LIFECYCLE_RING_HTML = dedent(
     """\
-<!-- demAI Lifecycle Component (self-contained) -->
-<div id="demai-lifecycle" class="dlc" aria-label="AI system lifecycle overview">
-  <style>
-    /* ===== Scoped to #demai-lifecycle =================================== */
-    #demai-lifecycle.dlc{
-      --ring-size: min(560px, 82vw);
-      --r-node: 42%;
-      --r-arrow: 28%;
-      --elev: 0 14px 30px rgba(15,23,42,.12);
-      --stroke: inset 0 0 0 1px rgba(15,23,42,.06);
-      margin-top: .5rem;
-      font-family: system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
-    }
-    #demai-lifecycle .dlc-title{ margin:0 0 .4rem 0; }
-    #demai-lifecycle .dlc-sub{ margin:0 0 .8rem 0; color:rgba(15,23,42,.78); }
+    <!-- demAI Lifecycle Component (self-contained) -->
+    <div id="demai-lifecycle" class="dlc" aria-label="AI system lifecycle overview">
+        <style>
+            /* ===== Scoped to #demai-lifecycle =================================== */
+            #demai-lifecycle.dlc {
+                --ring-size: min(560px, 82vw);
+                --r-node: 42%;
+                --r-arrow: 28%;
+                --elev: 0 14px 30px rgba(15, 23, 42, 0.12);
+                --stroke: inset 0 0 0 1px rgba(15, 23, 42, 0.06);
+                margin-top: 0.5rem;
+                font-family: system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
+            }
+            #demai-lifecycle .dlc-title {
+                margin: 0 0 0.4rem 0;
+            }
+            #demai-lifecycle .dlc-sub {
+                margin: 0 0 0.8rem 0;
+                color: rgba(15, 23, 42, 0.78);
+            }
 
-    /* Ring */
-    #demai-lifecycle .ring{
-      position: relative; width: var(--ring-size); aspect-ratio:1/1; margin:1.1rem auto 0; border-radius:50%;
-      background: radial-gradient(92% 92% at 50% 50%, rgba(99,102,241,.10), rgba(14,165,233,.06));
-      box-shadow: inset 0 0 0 1px rgba(15,23,42,.06);
-      isolation:isolate;
-    }
-    @supports not (aspect-ratio: 1/1){ #demai-lifecycle .ring::before{content:"";display:block;padding-top:100%;} }
+            /* Ring */
+            #demai-lifecycle .ring {
+                position: relative;
+                width: var(--ring-size);
+                aspect-ratio: 1 / 1;
+                margin: 1.1rem auto 0;
+                border-radius: 50%;
+                background: radial-gradient(92% 92% at 50% 50%, rgba(99, 102, 241, 0.10), rgba(14, 165, 233, 0.06));
+                box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.06);
+                isolation: isolate;
+            }
+            @supports not (aspect-ratio: 1 / 1) {
+                #demai-lifecycle .ring::before {
+                    content: "";
+                    display: block;
+                    padding-top: 100%;
+                }
+            }
 
-    /* Polar placement (keeps tiles upright) */
-    #demai-lifecycle .node, #demai-lifecycle .arrow, #demai-lifecycle .loop{
-      position:absolute; top:50%; left:50%;
-      transform: translate(-50%,-50%) rotate(var(--angle,0deg)) translate(var(--r,0%)) rotate(calc(-1 * var(--angle,0deg)));
-      transform-origin: center center;
-    }
+            /* Polar placement (keeps tiles upright) */
+            #demai-lifecycle .node,
+            #demai-lifecycle .arrow,
+            #demai-lifecycle .loop {
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%) rotate(var(--angle, 0deg)) translate(var(--r, 0%)) rotate(calc(-1 * var(--angle, 0deg)));
+                transform-origin: center center;
+            }
 
-    /* Nodes (tiles) */
-    #demai-lifecycle .node{
-      --r: var(--r-node);
-      display:grid; place-items:center; gap:.25rem;
-      padding:.7rem .95rem; min-width:140px; text-align:center;
-      background:#fff; border-radius:1rem; box-shadow:var(--elev), var(--stroke);
-      transition: transform .18s ease, box-shadow .18s ease;
-      cursor: pointer;
-    }
-    #demai-lifecycle .node .icon{ font-size:1.35rem; }
-    #demai-lifecycle .node .title{ font-weight:800; color:#0f172a; }
-    #demai-lifecycle .node:hover,
-    #demai-lifecycle .node:focus-visible,
-    #demai-lifecycle .node.active{
-      transform: translate(-50%,-50%) rotate(var(--angle,0deg)) translate(var(--r,0%)) rotate(calc(-1 * var(--angle,0deg))) scale(1.04);
-      box-shadow: 0 18px 40px rgba(15,23,42,.18), var(--stroke);
-      outline: none;
-    }
+            /* Nodes (tiles) */
+            #demai-lifecycle .node {
+                --r: var(--r-node);
+                display: grid;
+                place-items: center;
+                gap: 0.25rem;
+                padding: 0.7rem 0.95rem;
+                min-width: 140px;
+                text-align: center;
+                background: #fff;
+                border-radius: 1rem;
+                box-shadow: var(--elev), var(--stroke);
+                transition: transform 0.18s ease, box-shadow 0.18s ease;
+                cursor: pointer;
+            }
+            #demai-lifecycle .node .icon {
+                font-size: 1.35rem;
+            }
+            #demai-lifecycle .node .title {
+                font-weight: 800;
+                color: #0f172a;
+            }
+            #demai-lifecycle .node:hover,
+            #demai-lifecycle .node:focus-visible,
+            #demai-lifecycle .node.active {
+                transform: translate(-50%, -50%) rotate(var(--angle, 0deg)) translate(var(--r, 0%)) rotate(calc(-1 * var(--angle, 0deg))) scale(1.04);
+                box-shadow: 0 18px 40px rgba(15, 23, 42, 0.18), var(--stroke);
+                outline: none;
+            }
 
-    /* Arrows */
-    #demai-lifecycle .arrow{
-      --r: var(--r-arrow);
-      width:38px; height:38px; display:flex; align-items:center; justify-content:center;
-      border-radius:999px; background:#fff; color:rgba(30,64,175,.85);
-      box-shadow: 0 12px 22px rgba(15,23,42,.10), var(--stroke);
-      pointer-events:none; user-select:none;
-    }
+            /* Arrows */
+            #demai-lifecycle .arrow {
+                --r: var(--r-arrow);
+                width: 38px;
+                height: 38px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                border-radius: 999px;
+                background: #fff;
+                color: rgba(30, 64, 175, 0.85);
+                box-shadow: 0 12px 22px rgba(15, 23, 42, 0.10), var(--stroke);
+                pointer-events: none;
+                user-select: none;
+            }
 
-    /* Loop glyph */
-    #demai-lifecycle .loop{ --r: calc(var(--r-node) + 6%); font-size:1.1rem; color:rgba(30,64,175,.65); }
+            /* Loop glyph */
+            #demai-lifecycle .loop {
+                --r: calc(var(--r-node) + 6%);
+                font-size: 1.1rem;
+                color: rgba(30, 64, 175, 0.65);
+            }
 
-    /* Tooltips */
-    #demai-lifecycle .tip{
-      position:absolute; inset:auto auto -.6rem 50%; transform:translate(-50%,100%);
-      width:240px; padding:.6rem .75rem; border-radius:.65rem;
-      background:#0f172a; color:#fff; font-size:.82rem; line-height:1.35;
-      box-shadow: 0 14px 28px rgba(15,23,42,.25);
-      display:none; z-index:3;
-    }
-    #demai-lifecycle .node:hover .tip,
-    #demai-lifecycle .node:focus .tip,
-    #demai-lifecycle .node.active .tip{ display:block; }
+            /* Tooltips */
+            #demai-lifecycle .tip {
+                position: absolute;
+                inset: auto auto -0.6rem 50%;
+                transform: translate(-50%, 100%);
+                width: 240px;
+                padding: 0.6rem 0.75rem;
+                border-radius: 0.65rem;
+                background: #0f172a;
+                color: #fff;
+                font-size: 0.82rem;
+                line-height: 1.35;
+                box-shadow: 0 14px 28px rgba(15, 23, 42, 0.25);
+                display: none;
+                z-index: 3;
+            }
+            #demai-lifecycle .node:hover .tip,
+            #demai-lifecycle .node:focus .tip,
+            #demai-lifecycle .node.active .tip {
+                display: block;
+            }
 
-    /* Angle utilities */
-    #demai-lifecycle .pos-0{--angle:0deg} .pos-45{--angle:45deg} .pos-90{--angle:90deg} .pos-135{--angle:135deg}
-    .pos-180{--angle:180deg} .pos-225{--angle:225deg} .pos-270{--angle:270deg} .pos-315{--angle:315deg}
-    .pos-330{--angle:330deg}
+            /* Angle utilities */
+            #demai-lifecycle .pos-0 {
+                --angle: 0deg;
+            }
+            #demai-lifecycle .pos-45 {
+                --angle: 45deg;
+            }
+            #demai-lifecycle .pos-90 {
+                --angle: 90deg;
+            }
+            #demai-lifecycle .pos-135 {
+                --angle: 135deg;
+            }
+            #demai-lifecycle .pos-180 {
+                --angle: 180deg;
+            }
+            #demai-lifecycle .pos-225 {
+                --angle: 225deg;
+            }
+            #demai-lifecycle .pos-270 {
+                --angle: 270deg;
+            }
+            #demai-lifecycle .pos-315 {
+                --angle: 315deg;
+            }
+            #demai-lifecycle .pos-330 {
+                --angle: 330deg;
+            }
 
-    /* Legend */
-    #demai-lifecycle .legend{
-      display:grid; gap:.9rem; grid-template-columns:repeat(4, minmax(0,1fr)); margin-top:1.2rem;
-    }
-    #demai-lifecycle .legend .item{
-      border-radius:16px; padding:.85rem 1rem .95rem;
-      background:linear-gradient(155deg, rgba(248,250,252,.95), rgba(226,232,240,.55));
-      box-shadow: inset 0 0 0 1px rgba(148,163,184,.25);
-      display:grid; gap:.45rem; transition: box-shadow .18s ease, transform .18s ease;
-    }
-    #demai-lifecycle .legend .item.active{
-      box-shadow: 0 12px 26px rgba(15,23,42,.12), inset 0 0 0 1px rgba(59,130,246,.45);
-      transform: translateY(-2px);
-    }
-    #demai-lifecycle .legend .head{ display:flex; align-items:center; gap:.5rem; }
-    #demai-lifecycle .legend .i{ font-size:1.1rem; }
-    #demai-lifecycle .legend .t{ font-size:.95rem; font-weight:700; color:#0f172a; }
-    #demai-lifecycle .legend .b{ margin:0; font-size:.9rem; line-height:1.55; color:rgba(15,23,42,.78); }
+            /* Legend */
+            #demai-lifecycle .legend {
+                display: grid;
+                gap: 0.9rem;
+                grid-template-columns: repeat(4, minmax(0, 1fr));
+                margin-top: 1.2rem;
+            }
+            #demai-lifecycle .legend .item {
+                border-radius: 16px;
+                padding: 0.85rem 1rem 0.95rem;
+                background: linear-gradient(155deg, rgba(248, 250, 252, 0.95), rgba(226, 232, 240, 0.55));
+                box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.25);
+                display: grid;
+                gap: 0.45rem;
+                transition: box-shadow 0.18s ease, transform 0.18s ease;
+            }
+            #demai-lifecycle .legend .item.active {
+                box-shadow: 0 12px 26px rgba(15, 23, 42, 0.12), inset 0 0 0 1px rgba(59, 130, 246, 0.45);
+                transform: translateY(-2px);
+            }
+            #demai-lifecycle .legend .head {
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+            }
+            #demai-lifecycle .legend .i {
+                font-size: 1.1rem;
+            }
+            #demai-lifecycle .legend .t {
+                font-size: 0.95rem;
+                font-weight: 700;
+                color: #0f172a;
+            }
+            #demai-lifecycle .legend .b {
+                margin: 0;
+                font-size: 0.9rem;
+                line-height: 1.55;
+                color: rgba(15, 23, 42, 0.78);
+            }
 
-    /* Motion & responsiveness */
-    @media (max-width: 1100px){ #demai-lifecycle .legend{ grid-template-columns:repeat(2,minmax(0,1fr)); } }
-    @media (max-width: 768px){
-      #demai-lifecycle{ --ring-size: 86vw; --r-node:39%; --r-arrow:26%; }
-      #demai-lifecycle .node{ min-width:122px; padding:.55rem .75rem; }
-      #demai-lifecycle .node .icon{ font-size:1.15rem; }
-      #demai-lifecycle .arrow{ width:32px; height:32px; }
-      #demai-lifecycle .tip{ width:210px; }
-      #demai-lifecycle .legend{ grid-template-columns:repeat(2,minmax(0,1fr)); gap:.75rem; }
-    }
-    @media (max-width: 360px){
-      #demai-lifecycle .node{ min-width:110px; }
-      #demai-lifecycle .node .title{ font-size:.95rem; }
-      #demai-lifecycle .legend{ grid-template-columns:1fr; }
-    }
-    @media (prefers-reduced-motion: reduce){
-      #demai-lifecycle .node{ transition:none }
-      #demai-lifecycle .legend .item{ transition:none }
-    }
-  </style>
+            /* Motion & responsiveness */
+            @media (max-width: 1100px) {
+                #demai-lifecycle .legend {
+                    grid-template-columns: repeat(2, minmax(0, 1fr));
+                }
+            }
+            @media (max-width: 768px) {
+                #demai-lifecycle {
+                    --ring-size: 86vw;
+                    --r-node: 39%;
+                    --r-arrow: 26%;
+                }
+                #demai-lifecycle .node {
+                    min-width: 122px;
+                    padding: 0.55rem 0.75rem;
+                }
+                #demai-lifecycle .node .icon {
+                    font-size: 1.15rem;
+                }
+                #demai-lifecycle .arrow {
+                    width: 32px;
+                    height: 32px;
+                }
+                #demai-lifecycle .tip {
+                    width: 210px;
+                }
+                #demai-lifecycle .legend {
+                    grid-template-columns: repeat(2, minmax(0, 1fr));
+                    gap: 0.75rem;
+                }
+            }
+            @media (max-width: 360px) {
+                #demai-lifecycle .node {
+                    min-width: 110px;
+                }
+                #demai-lifecycle .node .title {
+                    font-size: 0.95rem;
+                }
+                #demai-lifecycle .legend {
+                    grid-template-columns: 1fr;
+                }
+                #demai-lifecycle .legend .item {
+                    transition: none;
+                }
+            }
+            @media (prefers-reduced-motion: reduce) {
+                #demai-lifecycle .node {
+                    transition: none;
+                }
+                #demai-lifecycle .legend .item {
+                    transition: none;
+                }
+            }
+        </style>
 
-  <h4 class="dlc-title">Map the lifecycle of your AI system</h4>
-  <p class="dlc-sub">Progress through the four interconnected stages below. Each phase feeds the next, forming a loop you can revisit as the system evolves.</p>
+        <h4 class="dlc-title">Map the lifecycle of your AI system</h4>
+        <p class="dlc-sub">Progress through the four interconnected stages below. Each phase feeds the next, forming a loop you can revisit as the system evolves.</p>
 
-  <!-- Ring -->
-  <div class="ring" role="presentation">
-    <!-- Nodes (even spacing 315°, 45°, 135°, 225°) -->
-    <button class="node pos-315" data-stage="prepare" aria-describedby="desc-prepare">
-      <span class="icon" aria-hidden="true">📊</span>
-      <span class="title" id="title-prepare">Prepare Data</span>
-      <span class="tip" role="tooltip" id="tip-prepare">Gather representative emails, label them carefully, and scrub PII so the model learns from balanced, trustworthy examples.</span>
-    </button>
+        <!-- Ring -->
+        <div class="ring" role="presentation">
+            <!-- Nodes (even spacing 315°, 45°, 135°, 225°) -->
+            <button class="node pos-315" data-stage="prepare" aria-describedby="desc-prepare">
+                <span class="icon" aria-hidden="true">📊</span>
+                <span class="title" id="title-prepare">Prepare Data</span>
+                <span class="tip" role="tooltip" id="tip-prepare">Gather representative emails, label them carefully, and scrub PII so the model learns from balanced, trustworthy examples.</span>
+            </button>
 
-    <div class="arrow pos-0" aria-hidden="true">➝</div>
+            <div class="arrow pos-0" aria-hidden="true">➝</div>
 
-    <button class="node pos-45" data-stage="train" aria-describedby="desc-train">
-      <span class="icon" aria-hidden="true">🧠</span>
-      <span class="title" id="title-train">Train</span>
-      <span class="tip" role="tooltip" id="tip-train">
-        Feed the curated dataset into your learning pipeline, keep a validation split aside, and iterate until performance stabilises.
-      </span>
-    </button>
+            <button class="node pos-45" data-stage="train" aria-describedby="desc-train">
+                <span class="icon" aria-hidden="true">🧠</span>
+                <span class="title" id="title-train">Train</span>
+                <span class="tip" role="tooltip" id="tip-train">
+                    Feed the curated dataset into your learning pipeline, keep a validation split aside, and iterate until performance stabilises.
+                </span>
+            </button>
 
-    <div class="arrow pos-90" aria-hidden="true">➝</div>
+            <div class="arrow pos-90" aria-hidden="true">➝</div>
 
-    <button class="node pos-135" data-stage="evaluate" aria-describedby="desc-evaluate">
-      <span class="icon" aria-hidden="true">🧪</span>
-      <span class="title" id="title-evaluate">Evaluate</span>
-      <span class="tip" role="tooltip" id="tip-evaluate">
-        Inspect precision and recall, review borderline decisions, and tune thresholds to reflect your risk posture.
-      </span>
-    </button>
+            <button class="node pos-135" data-stage="evaluate" aria-describedby="desc-evaluate">
+                <span class="icon" aria-hidden="true">🧪</span>
+                <span class="title" id="title-evaluate">Evaluate</span>
+                <span class="tip" role="tooltip" id="tip-evaluate">
+                    Inspect precision and recall, review borderline decisions, and tune thresholds to reflect your risk posture.
+                </span>
+            </button>
 
-    <div class="arrow pos-180" aria-hidden="true">➝</div>
+            <div class="arrow pos-180" aria-hidden="true">➝</div>
 
-    <button class="node pos-225" data-stage="use" aria-describedby="desc-use">
-      <span class="icon" aria-hidden="true">📬</span>
-      <span class="title" id="title-use">Use</span>
-      <span class="tip" role="tooltip" id="tip-use">
-        Deploy the model to live traffic, monitor its calls in context, and capture feedback to enrich the next training loop.
-      </span>
-    </button>
+            <button class="node pos-225" data-stage="use" aria-describedby="desc-use">
+                <span class="icon" aria-hidden="true">📬</span>
+                <span class="title" id="title-use">Use</span>
+                <span class="tip" role="tooltip" id="tip-use">
+                    Deploy the model to live traffic, monitor its calls in context, and capture feedback to enrich the next training loop.
+                </span>
+            </button>
 
-    <div class="arrow pos-270" aria-hidden="true">➝</div>
-    <div class="loop pos-330" aria-hidden="true">↺</div>
-  </div>
+            <div class="arrow pos-270" aria-hidden="true">➝</div>
+            <div class="loop pos-330" aria-hidden="true">↺</div>
+        </div>
 
-  <!-- Legend -->
-  <div class="legend" role="list">
-    <div class="item" role="listitem" data-stage="prepare" id="desc-prepare">
-      <div class="head"><span class="i" aria-hidden="true">📊</span><span class="t">Prepare Data</span></div>
-      <p class="b">Assemble balanced, well-labeled examples and strip sensitive signals so the dataset reflects the behaviour you intend to teach.</p>
+        <!-- Legend -->
+        <div class="legend" role="list">
+            <div class="item" role="listitem" data-stage="prepare" id="desc-prepare">
+                <div class="head">
+                    <span class="i" aria-hidden="true">📊</span>
+                    <span class="t">Prepare Data</span>
+                </div>
+                <p class="b">Assemble balanced, well-labeled examples and strip sensitive signals so the dataset reflects the behaviour you intend to teach.</p>
+            </div>
+            <div class="item" role="listitem" data-stage="train" id="desc-train">
+                <div class="head">
+                    <span class="i" aria-hidden="true">🧠</span>
+                    <span class="t">Train</span>
+                </div>
+                <p class="b">Run the learning routine against the prepared corpus, reserve a holdout split, and iterate on settings until the model captures durable patterns.</p>
+            </div>
+            <div class="item" role="listitem" data-stage="evaluate" id="desc-evaluate">
+                <div class="head">
+                    <span class="i" aria-hidden="true">🧪</span>
+                    <span class="t">Evaluate</span>
+                </div>
+                <p class="b">Review metrics and edge cases, pressure-test failure scenarios, and calibrate decision thresholds against your compliance requirements.</p>
+            </div>
+            <div class="item" role="listitem" data-stage="use" id="desc-use">
+                <div class="head">
+                    <span class="i" aria-hidden="true">📬</span>
+                    <span class="t">Use</span>
+                </div>
+                <p class="b">Put the system in front of incoming messages, supervise the outcomes, and log feedback to kick off the next improvement sprint.</p>
+            </div>
+        </div>
+
+        <script>
+            (function () {
+                const root = document.getElementById('demai-lifecycle');
+                if (!root) return;
+
+                const nodes = Array.from(root.querySelectorAll('.node[data-stage]'));
+                const cards = Array.from(root.querySelectorAll('.legend .item[data-stage]'));
+
+                function setActive(stage) {
+                    nodes.forEach((node) => node.classList.toggle('active', node.dataset.stage === stage));
+                    cards.forEach((card) => card.classList.toggle('active', card.dataset.stage === stage));
+                }
+
+                // Hover/focus sync
+                nodes.forEach((node) => {
+                    const stage = node.dataset.stage;
+                    node.addEventListener('mouseenter', () => setActive(stage));
+                    node.addEventListener('focus', () => setActive(stage));
+                    node.addEventListener('mouseleave', () => setActive(''));
+                    node.addEventListener('blur', () => setActive(''));
+
+                    // Tap toggle (mobile)
+                    node.addEventListener('click', (event) => {
+                        const isActive = node.classList.contains('active');
+                        setActive(isActive ? '' : stage);
+
+                        // avoid scrolling on double-tap zoom
+                        event.preventDefault();
+                    });
+                });
+
+                // Allow legend hover to light the ring
+                cards.forEach((card) => {
+                    const stage = card.dataset.stage;
+                    card.addEventListener('mouseenter', () => setActive(stage));
+                    card.addEventListener('mouseleave', () => setActive(''));
+                    card.addEventListener('click', () => setActive(stage));
+                });
+
+                // Start with "Prepare" highlighted on large screens; none on small
+                const isSmall = window.matchMedia('(max-width:768px)').matches;
+                if (!isSmall) setActive('prepare');
+            })();
+        </script>
     </div>
-    <div class="item" role="listitem" data-stage="train" id="desc-train">
-      <div class="head"><span class="i" aria-hidden="true">🧠</span><span class="t">Train</span></div>
-      <p class="b">Run the learning routine against the prepared corpus, reserve a holdout split, and iterate on settings until the model captures durable patterns.</p>
-    </div>
-    <div class="item" role="listitem" data-stage="evaluate" id="desc-evaluate">
-      <div class="head"><span class="i" aria-hidden="true">🧪</span><span class="t">Evaluate</span></div>
-      <p class="b">Review metrics and edge cases, pressure-test failure scenarios, and calibrate decision thresholds against your compliance requirements.</p>
-    </div>
-    <div class="item" role="listitem" data-stage="use" id="desc-use">
-      <div class="head"><span class="i" aria-hidden="true">📬</span><span class="t">Use</span></div>
-      <p class="b">Put the system in front of incoming messages, supervise the outcomes, and log feedback to kick off the next improvement sprint.</p>
-    </div>
-  </div>
-
-  <script>
-    (function(){
-      const root   = document.getElementById('demai-lifecycle');
-      if(!root) return;
-      const nodes  = Array.from(root.querySelectorAll('.node[data-stage]'));
-      const cards  = Array.from(root.querySelectorAll('.legend .item[data-stage]'));
-
-      function setActive(stage){
-        nodes.forEach(n => n.classList.toggle('active', n.dataset.stage === stage));
-        cards.forEach(c => c.classList.toggle('active', c.dataset.stage === stage));
-      }
-
-      // Hover/focus sync
-      nodes.forEach(n=>{
-        const stage = n.dataset.stage;
-        n.addEventListener('mouseenter', ()=>setActive(stage));
-        n.addEventListener('focus',     ()=>setActive(stage));
-        n.addEventListener('mouseleave', ()=>setActive(''));
-        n.addEventListener('blur',       ()=>setActive(''));
-        // Tap toggle (mobile)
-        n.addEventListener('click', (e)=>{
-          const isActive = n.classList.contains('active');
-          setActive(isActive ? '' : stage);
-          // avoid scrolling on double-tap zoom
-          e.preventDefault();
-        });
-      });
-
-      // Allow legend hover to light the ring
-      cards.forEach(c=>{
-        const stage = c.dataset.stage;
-        c.addEventListener('mouseenter', ()=>setActive(stage));
-        c.addEventListener('mouseleave', ()=>setActive(''));
-        c.addEventListener('click', ()=>setActive(stage));
-      });
-
-      // Start with "Prepare" highlighted on large screens; none on small
-      const isSmall = window.matchMedia('(max-width:768px)').matches;
-      if(!isSmall) setActive('prepare');
-    })();
-  </script>
-</div>
-"""
+    """
 )
 
 
