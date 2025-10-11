@@ -1271,17 +1271,28 @@ def render_intro_stage():
         </div>
     """
 
+    hero_intro_html = f"""
+        <div class="hero-content" role="presentation">
+            <div class="hero-text-block">
+                <p class="hero-eyebrow">Your mission briefing</p>
+                <h2>Build, evaluate, and operate an AI system with confidence.</h2>
+                <p class="hero-lead">
+                    demAI is an interactive experience where you will build, evaluate, and operate an AI system—applying key
+                    concepts from the EU AI Act in a guided, hands-on way.
+                </p>
+            </div>
+            {hero_info_html}
+        </div>
+    """
+
     with section_surface("section-surface--hero"):
         hero_left, hero_right = st.columns([3, 2], gap="large")
         with hero_left:
             render_demai_logo()  # animated heading; ends at "demAI"
-            st.markdown(
-                "demAI is an interactive experience where you will build, evaluate, and operate an AI system—"
-                "applying key concepts from the EU AI Act."
-            )
-            st.markdown(hero_info_html, unsafe_allow_html=True)
+            st.markdown(hero_intro_html, unsafe_allow_html=True)
 
         with hero_right:
+            st.markdown('<div class="hero-right-panel">', unsafe_allow_html=True)
             render_eu_ai_act_typing()
 
             if next_stage_key:
@@ -1293,6 +1304,7 @@ def render_intro_stage():
                     args=(next_stage_key,),
                     use_container_width=True,
                 )
+            st.markdown("</div>", unsafe_allow_html=True)
 
 
     with section_surface():
