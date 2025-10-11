@@ -1253,19 +1253,19 @@ def render_intro_stage():
                 <div class="hero-info-card__content">
                     <h3>What you’ll do</h3>
                     <p>
-                        Build an email spam detector that identifies patterns in messages. You’ll set how strict the filter is
-                        (threshold), choose the autonomy level, and optionally enable adaptiveness to learn from your feedback.
+                        Build an AI email spam detector, teaching it how to recognize safe and malicious messages.
                     </p>
                 </div>
             </div>
             <div class="hero-info-card" role="listitem">
                 <div class="hero-info-card__icon" aria-hidden="true">✨</div>
                 <div class="hero-info-card__content">
-                    <h3>Why demistifAI</h3>
-                    <p>
-                        AI systems are often seen as black boxes, and the EU AI Act can feel too abstract. This experience demystifies
-                        both—showing how everyday AI works in practice.
-                    </p>
+                    <h3>Why demAI</h3>
+                    <ul class="hero-info-list">
+                        <li><strong>DemonstrateAI</strong> — Experience how an AI system actually works, step by step — from data preparation to predictions — through an interactive, hands-on journey.</li>
+                        <li><strong>DemistifyAI</strong> — Break down complex AI concepts into clear, tangible actions so that anyone can understand what’s behind the model’s decisions.</li>
+                        <li><strong>DemocratizeAI</strong> — Empower every person to engage responsibly with AI by making transparency and trust accessible.</li>
+                    </ul>
                 </div>
             </div>
         </div>
@@ -1274,11 +1274,8 @@ def render_intro_stage():
     hero_intro_html = f"""
         <div class="hero-content" role="presentation">
             <div class="hero-text-block">
-                <p class="hero-eyebrow">Your mission briefing</p>
-                <h2>Build, evaluate, and operate an AI system with confidence.</h2>
                 <p class="hero-lead">
-                    demAI is an interactive experience where you will build, evaluate, and operate an AI system—applying key
-                    concepts from the EU AI Act in a guided, hands-on way.
+                    demAI is an interactive experience where you will build and operate an AI system—while discovering and applying key concepts from the EU AI Act.
                 </p>
             </div>
             {hero_info_html}
