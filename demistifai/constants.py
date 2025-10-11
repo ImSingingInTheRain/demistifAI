@@ -202,10 +202,17 @@ APP_THEME_CSS = """
     max-width: 260px;
 }
 
-.section-surface--hero [data-testid="column"]:nth-child(2) .hero-info-grid {
+.hero-info-grid {
     width: 100%;
-    justify-items: center;
-    gap: 1.6rem;
+    display: grid;
+    gap: 1.4rem;
+    justify-items: stretch;
+}
+
+@media (min-width: 768px) {
+    .hero-info-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
 }
 
 .indicator-chip-row {
@@ -372,15 +379,65 @@ APP_THEME_CSS = """
     width: 100%;
 }
 
-.section-surface--hero [data-testid="column"]:nth-child(2) .hero-info-card {
-    text-align: center;
-    margin: 0 auto;
-    max-width: 360px;
+.hero-info-card {
+    position: relative;
+    display: flex;
+    align-items: flex-start;
+    gap: 0.9rem;
+    padding: 1.2rem 1.3rem;
+    border-radius: 18px;
+    border: 1px solid rgba(148, 163, 184, 0.28);
+    background: linear-gradient(135deg, rgba(241, 245, 249, 0.92), rgba(255, 255, 255, 0.98));
+    box-shadow: 0 22px 36px rgba(15, 23, 42, 0.08);
 }
 
-.section-surface--hero [data-testid="column"]:nth-child(2) .hero-info-card h3,
-.section-surface--hero [data-testid="column"]:nth-child(2) .hero-info-card p {
-    text-align: center;
+.hero-info-card::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    border: 1px solid rgba(30, 64, 175, 0.15);
+    pointer-events: none;
+}
+
+.hero-info-card__icon {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.35rem;
+    height: 2.35rem;
+    border-radius: 14px;
+    background: rgba(30, 64, 175, 0.12);
+    font-size: 1.25rem;
+}
+
+.hero-info-card__content h3 {
+    margin: 0 0 0.35rem 0;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.hero-info-card__content p {
+    margin: 0;
+    font-size: 0.95rem;
+    line-height: 1.65;
+    color: rgba(15, 23, 42, 0.82);
+}
+
+@media (max-width: 767px) {
+    .hero-info-card {
+        flex-direction: column;
+        align-items: stretch;
+        text-align: left;
+    }
+
+    .hero-info-card__icon {
+        width: 2.7rem;
+        height: 2.7rem;
+        font-size: 1.35rem;
+    }
 }
 
 .section-surface--hero [data-testid="column"]:nth-child(2) [data-testid="stButton"] {
