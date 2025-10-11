@@ -2,6 +2,7 @@ import json
 import streamlit as st
 from textwrap import dedent
 from string import Template
+from html import escape
 
 EU_AI_ACT_DEF = (
     "AI system means a machine-based system that is designed to operate with varying levels of autonomy "
@@ -27,6 +28,7 @@ def render_eu_ai_act_typing():
     """Renders the animated, typed definition with progressive highlights."""
     definition_js = json.dumps(EU_AI_ACT_DEF)
     highlights_js = json.dumps(HLS)
+    noscript_text = escape(EU_AI_ACT_DEF)
 
     html = Template(dedent("""
     <style>
@@ -80,7 +82,7 @@ def render_eu_ai_act_typing():
       <div class="eu-typing__row">
         <div class="eu-typing__icon" aria-hidden="true">⚖️</div>
         <p id="eu-typing-text" class="eu-typing__text">
-          <noscript>{EU_AI_ACT_DEF}</noscript>
+          <noscript>$noscript</noscript>
           <span id="typed"></span><span class="caret" id="caret"></span>
         </p>
       </div>
@@ -130,5 +132,9 @@ def render_eu_ai_act_typing():
         setTimeout(tick, 350);
       })();
     </script>
-    """)).safe_substitute(definition=definition_js, highlights=highlights_js)
+    """)).safe_substitute(
+        definition=definition_js,
+        highlights=highlights_js,
+        noscript=noscript_text,
+    )
     st.markdown(html, unsafe_allow_html=True)
