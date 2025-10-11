@@ -1414,6 +1414,8 @@ LIFECYCLE_CYCLE_CSS = dedent(
             inset 0 0 0 1px rgba(15, 23, 42, 0.06);
         transition: transform 140ms ease, box-shadow 140ms ease;
         cursor: default;
+        --cycle-node-transform: translate(-50%, -50%);
+        transform: var(--cycle-node-transform);
     }
 
     .cycle-node:focus-visible {
@@ -1421,8 +1423,9 @@ LIFECYCLE_CYCLE_CSS = dedent(
         outline-offset: 4px;
     }
 
-    .cycle-node:hover {
-        transform: translateY(-4px);
+    .cycle-node:hover,
+    .cycle-node:focus-visible {
+        transform: var(--cycle-node-transform) translateY(-4px);
         box-shadow:
             0 18px 36px rgba(15, 23, 42, 0.16),
             inset 0 0 0 1px rgba(15, 23, 42, 0.08);
@@ -1498,10 +1501,10 @@ LIFECYCLE_CYCLE_CSS = dedent(
         text-shadow: 0 4px 12px rgba(15, 23, 42, 0.16);
     }
 
-    .cycle-node--prepare { top: 6%; left: 50%; transform: translate(-50%, 0); }
-    .cycle-node--train   { top: 30%; left: 88%; transform: translate(-50%, -50%); }
-    .cycle-node--evaluate{ top: 74%; left: 74%; transform: translate(-50%, -50%); }
-    .cycle-node--use     { top: 88%; left: 26%; transform: translate(-50%, -50%); }
+    .cycle-node--prepare { top: 6%; left: 50%; --cycle-node-transform: translate(-50%, 0); }
+    .cycle-node--train   { top: 30%; left: 88%; --cycle-node-transform: translate(-50%, -50%); }
+    .cycle-node--evaluate{ top: 74%; left: 74%; --cycle-node-transform: translate(-50%, -50%); }
+    .cycle-node--use     { top: 88%; left: 26%; --cycle-node-transform: translate(-50%, -50%); }
 
     .cycle-arrow--prepare-train   { top: 18%; left: 72%; }
     .cycle-arrow--train-evaluate  { top: 52%; left: 83%; }
