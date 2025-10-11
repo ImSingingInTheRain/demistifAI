@@ -136,11 +136,24 @@ APP_THEME_CSS = """
 
 .section-surface.section-surface--hero > div[data-testid="stVerticalBlock"],
 .section-surface-block.section-surface--hero {
-    padding: 2.6rem 2.8rem;
+    position: relative;
+    padding: clamp(2.4rem, 5vw, 3.6rem);
     background: linear-gradient(160deg, #1d4ed8, #312e81);
     color: #f8fafc;
     border: 1px solid rgba(255, 255, 255, 0.28);
+    border-radius: 32px;
     box-shadow: 0 28px 70px rgba(30, 64, 175, 0.35);
+    overflow: hidden;
+}
+
+.section-surface.section-surface--hero > div[data-testid="stVerticalBlock"]::after,
+.section-surface-block.section-surface--hero::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at top right, rgba(96, 165, 250, 0.35), transparent 42%),
+        radial-gradient(circle at bottom left, rgba(99, 102, 241, 0.28), transparent 46%);
+    pointer-events: none;
 }
 
 .section-surface.section-surface--hero > div[data-testid="stVerticalBlock"]::before,
@@ -174,38 +187,49 @@ APP_THEME_CSS = """
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
 }
 
-.section-surface--hero [data-testid="column"]:nth-child(2) > div:first-of-type {
+.hero-content {
+    position: relative;
     display: flex;
     flex-direction: column;
-    align-items: center;
+    gap: clamp(1.6rem, 3vw, 2.3rem);
+    max-width: 680px;
+    z-index: 1;
 }
 
-.section-surface--hero [data-testid="column"]:nth-child(2) > div:first-of-type > div[data-testid="stVerticalBlock"] {
+.hero-text-block {
     display: flex;
     flex-direction: column;
-    align-items: center;
-    gap: 1.6rem;
-    width: 100%;
+    gap: 0.85rem;
 }
 
-.section-surface--hero [data-testid="column"]:nth-child(2) > div:first-of-type > div[data-testid="stVerticalBlock"] > div {
-    width: 100%;
+.hero-eyebrow {
+    margin: 0;
+    font-size: 0.85rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    font-weight: 600;
+    color: rgba(241, 245, 249, 0.72);
 }
 
-.section-surface--hero [data-testid="column"]:nth-child(2) > div:first-of-type > div[data-testid="stVerticalBlock"] > div[data-testid="stButton"] {
-    display: flex;
-    justify-content: center;
+.hero-text-block h2 {
+    margin: 0;
+    font-size: clamp(1.8rem, 3.2vw, 2.45rem);
+    line-height: 1.18;
+    font-weight: 700;
+    color: #f8fafc;
 }
 
-.section-surface--hero [data-testid="column"]:nth-child(2) > div:first-of-type > div[data-testid="stVerticalBlock"] > div[data-testid="stButton"] > button {
-    width: 100%;
-    max-width: 260px;
+.hero-lead {
+    margin: 0;
+    font-size: clamp(1rem, 1.35vw, 1.1rem);
+    line-height: 1.7;
+    color: rgba(241, 245, 249, 0.86);
 }
 
 .hero-info-grid {
     width: 100%;
     display: grid;
-    gap: 1.4rem;
+    gap: clamp(1.2rem, 2vw, 1.6rem);
     justify-items: stretch;
 }
 
@@ -213,6 +237,28 @@ APP_THEME_CSS = """
     .hero-info-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
+}
+
+.hero-right-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 1.8rem;
+    align-items: center;
+    width: 100%;
+}
+
+.hero-right-panel > div {
+    width: 100%;
+}
+
+.hero-right-panel [data-testid="stButton"] {
+    width: 100%;
+}
+
+.hero-right-panel [data-testid="stButton"] > button {
+    width: 100%;
+    max-width: 280px;
+    margin: 0 auto;
 }
 
 .indicator-chip-row {
@@ -384,11 +430,12 @@ APP_THEME_CSS = """
     display: flex;
     align-items: flex-start;
     gap: 0.9rem;
-    padding: 1.2rem 1.3rem;
+    padding: clamp(1.15rem, 2vw, 1.45rem) clamp(1.2rem, 2.1vw, 1.6rem);
     border-radius: 18px;
     border: 1px solid rgba(148, 163, 184, 0.28);
     background: linear-gradient(135deg, rgba(241, 245, 249, 0.92), rgba(255, 255, 255, 0.98));
     box-shadow: 0 22px 36px rgba(15, 23, 42, 0.08);
+    height: 100%;
 }
 
 .hero-info-card::before {
@@ -427,6 +474,33 @@ APP_THEME_CSS = """
 }
 
 @media (max-width: 767px) {
+    .section-surface.section-surface--hero > div[data-testid="stVerticalBlock"],
+    .section-surface-block.section-surface--hero {
+        padding: 2.2rem 1.9rem;
+        border-radius: 26px;
+    }
+
+    .hero-content {
+        max-width: none;
+        gap: 1.5rem;
+    }
+
+    .hero-text-block {
+        gap: 0.75rem;
+    }
+
+    .hero-text-block h2 {
+        font-size: 1.85rem;
+    }
+
+    .hero-lead {
+        font-size: 1rem;
+    }
+
+    .hero-right-panel {
+        gap: 1.4rem;
+    }
+
     .hero-info-card {
         flex-direction: column;
         align-items: stretch;
