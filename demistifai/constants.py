@@ -1771,38 +1771,6 @@ LIFECYCLE_RING_HTML = dedent(
             <div class="loop pos-330" aria-hidden="true">↺</div>
         </div>
 
-        <!-- Legend -->
-        <div class="legend" role="list">
-            <div class="item" role="listitem" data-stage="prepare" id="desc-prepare">
-                <div class="head">
-                    <span class="i" aria-hidden="true">📊</span>
-                    <span class="t">Prepare Data</span>
-                </div>
-                <p class="b">Assemble balanced, well-labeled examples and strip sensitive signals so the dataset reflects the behaviour you intend to teach.</p>
-            </div>
-            <div class="item" role="listitem" data-stage="train" id="desc-train">
-                <div class="head">
-                    <span class="i" aria-hidden="true">🧠</span>
-                    <span class="t">Train</span>
-                </div>
-                <p class="b">Run the learning routine against the prepared corpus, reserve a holdout split, and iterate on settings until the model captures durable patterns.</p>
-            </div>
-            <div class="item" role="listitem" data-stage="evaluate" id="desc-evaluate">
-                <div class="head">
-                    <span class="i" aria-hidden="true">🧪</span>
-                    <span class="t">Evaluate</span>
-                </div>
-                <p class="b">Review metrics and edge cases, pressure-test failure scenarios, and calibrate decision thresholds against your compliance requirements.</p>
-            </div>
-            <div class="item" role="listitem" data-stage="use" id="desc-use">
-                <div class="head">
-                    <span class="i" aria-hidden="true">📬</span>
-                    <span class="t">Use</span>
-                </div>
-                <p class="b">Put the system in front of incoming messages, supervise the outcomes, and log feedback to kick off the next improvement sprint.</p>
-            </div>
-        </div>
-
         <script>
             (function () {
                 const root = document.getElementById('demai-lifecycle');
