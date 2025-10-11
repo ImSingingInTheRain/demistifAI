@@ -1252,27 +1252,20 @@ def render_intro_stage():
             <div class="hero-what-card" role="group" aria-labelledby="hero-what-title">
                 <div class="hero-what-card__badge" aria-hidden="true">🛠️&nbsp; Your build path</div>
                 <h3 id="hero-what-title">What you’ll do</h3>
-                <ul class="hero-what-card__list">
-                    <li><strong>Shape the data</strong> by labeling real-looking emails to teach the model what spam and safe mail look like.</li>
-                    <li><strong>Train and tune</strong> a classifier with guided evaluation checkpoints so you can see how regulations influence design choices.</li>
-                    <li><strong>Deploy responsibly</strong> by monitoring outcomes, documenting risks, and aligning with the EU AI Act narrative at every step.</li>
-                </ul>
+                <p class="hero-what-card__body">Build an AI email spam detector, teaching it how to recognize safe and malicious messages.</p>
             </div>
         </div>
     """
 
-    render_demai_logo()
-
     with section_surface("section-surface--hero"):
         hero_left, hero_right = st.columns([7, 5], gap="large")
         with hero_left:
+            render_demai_logo()
             st.markdown(hero_copy_html, unsafe_allow_html=True)
 
         with hero_right:
             st.markdown('<div class="hero-cta-panel" role="complementary">', unsafe_allow_html=True)
-            st.markdown('<div class="hero-cta-panel__typing" aria-hidden="true">', unsafe_allow_html=True)
             render_eu_ai_act_typing()
-            st.markdown('</div>', unsafe_allow_html=True)
             st.markdown(
                 """
                 <div class="hero-cta-panel__copy">
@@ -1296,44 +1289,129 @@ def render_intro_stage():
             st.markdown("</div>", unsafe_allow_html=True)
 
     why_demai_slider_html = """
-        <section class="why-demai-slider" aria-label="Why demAI">
+        <section id="why-demai-slider" class="why-demai-slider" aria-label="Why demAI" data-active-index="0">
             <div class="why-demai-slider__header">
                 <h3>Why demAI</h3>
                 <p>Three pillars to make applied AI transparent, explainable, and inclusive.</p>
             </div>
-            <div class="why-demai-slider__viewport" role="presentation">
-                <div class="why-demai-slider__track">
-                    <article class="why-demai-card">
+            <div class="why-demai-slider__body">
+                <button class="why-demai-slider__nav why-demai-slider__nav--prev" data-nav="prev" type="button" aria-label="Show previous pillar">‹</button>
+                <div class="why-demai-slider__slides" role="list">
+                    <article id="why-demai-slide-1" class="why-demai-card is-active" role="listitem" aria-hidden="false">
                         <h4>Demonstrate</h4>
                         <p>Follow an end-to-end build that shows every decision, trade-off, and impact as the system comes together.</p>
                     </article>
-                    <article class="why-demai-card">
+                    <article id="why-demai-slide-2" class="why-demai-card" role="listitem" aria-hidden="true">
                         <h4>Demistify</h4>
                         <p>Peel back the jargon with plain-language explainers and visual cues that clarify what the model is doing.</p>
                     </article>
-                    <article class="why-demai-card">
-                        <h4>Democratize</h4>
-                        <p>Invite anyone to participate by grounding the experience in responsible defaults and practical guardrails.</p>
-                    </article>
-                    <article class="why-demai-card" aria-hidden="true">
-                        <h4>Demonstrate</h4>
-                        <p>Follow an end-to-end build that shows every decision, trade-off, and impact as the system comes together.</p>
-                    </article>
-                    <article class="why-demai-card" aria-hidden="true">
-                        <h4>Demistify</h4>
-                        <p>Peel back the jargon with plain-language explainers and visual cues that clarify what the model is doing.</p>
-                    </article>
-                    <article class="why-demai-card" aria-hidden="true">
+                    <article id="why-demai-slide-3" class="why-demai-card" role="listitem" aria-hidden="true">
                         <h4>Democratize</h4>
                         <p>Invite anyone to participate by grounding the experience in responsible defaults and practical guardrails.</p>
                     </article>
                 </div>
+                <button class="why-demai-slider__nav why-demai-slider__nav--next" data-nav="next" type="button" aria-label="Show next pillar">›</button>
+            </div>
+            <div class="why-demai-slider__dots" role="tablist" aria-label="Why demAI pillars">
+                <button class="why-demai-slider__dot is-active" type="button" role="tab" aria-selected="true" aria-controls="why-demai-slide-1">Demonstrate</button>
+                <button class="why-demai-slider__dot" type="button" role="tab" aria-selected="false" aria-controls="why-demai-slide-2">Demistify</button>
+                <button class="why-demai-slider__dot" type="button" role="tab" aria-selected="false" aria-controls="why-demai-slide-3">Democratize</button>
             </div>
         </section>
+        <script>
+            (function() {
+                const root = document.getElementById('why-demai-slider');
+                if (!root) {
+                    return;
+                }
+
+                const slides = Array.from(root.querySelectorAll('.why-demai-card'));
+                const dots = Array.from(root.querySelectorAll('.why-demai-slider__dot'));
+                const prev = root.querySelector('[data-nav="prev"]');
+                const next = root.querySelector('[data-nav="next"]');
+                const total = slides.length;
+                let index = 0;
+                let timerId;
+                const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+                let reduceMotion = motionQuery.matches;
+
+                const setActive = (nextIndex) => {
+                    index = (nextIndex + total) % total;
+                    slides.forEach((slide, i) => {
+                        const isActive = i === index;
+                        slide.classList.toggle('is-active', isActive);
+                        slide.setAttribute('aria-hidden', String(!isActive));
+                    });
+                    dots.forEach((dot, i) => {
+                        const isActive = i === index;
+                        dot.classList.toggle('is-active', isActive);
+                        dot.setAttribute('aria-selected', String(isActive));
+                        dot.setAttribute('tabindex', isActive ? '0' : '-1');
+                    });
+                    root.setAttribute('data-active-index', String(index));
+                };
+
+                const startTimer = () => {
+                    if (reduceMotion) {
+                        return;
+                    }
+                    stopTimer();
+                    timerId = window.setInterval(() => setActive(index + 1), 5000);
+                };
+
+                const stopTimer = () => {
+                    if (timerId) {
+                        window.clearInterval(timerId);
+                        timerId = undefined;
+                    }
+                };
+
+                const handleMotionChange = (event) => {
+                    reduceMotion = event.matches;
+                    if (reduceMotion) {
+                        stopTimer();
+                    } else {
+                        startTimer();
+                    }
+                };
+
+                motionQuery.addEventListener?.('change', handleMotionChange);
+                motionQuery.addListener?.(handleMotionChange);
+
+                prev?.addEventListener('click', () => {
+                    setActive(index - 1);
+                    startTimer();
+                });
+
+                next?.addEventListener('click', () => {
+                    setActive(index + 1);
+                    startTimer();
+                });
+
+                dots.forEach((dot, i) => {
+                    dot.addEventListener('click', () => {
+                        setActive(i);
+                        startTimer();
+                    });
+                });
+
+                root.addEventListener('mouseenter', stopTimer);
+                root.addEventListener('mouseleave', startTimer);
+                root.addEventListener('focusin', stopTimer);
+                root.addEventListener('focusout', (event) => {
+                    if (!root.contains(event.relatedTarget)) {
+                        startTimer();
+                    }
+                });
+
+                setActive(0);
+                startTimer();
+            })();
+        </script>
     """
 
     with section_surface():
-        st.markdown(why_demai_slider_html, unsafe_allow_html=True)
+        components.html(why_demai_slider_html, height=360, scrolling=False)
 
 
     with section_surface():
