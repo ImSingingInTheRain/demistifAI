@@ -4,6 +4,7 @@ Welcome! This repository contains the **demistifAI** Streamlit lab that walks us
 
 ## Architectural quick facts
 - The Streamlit entry point is [`streamlit_app.py`](./streamlit_app.py). Most UI surfaces live there in dedicated helper functions (e.g., `render_*_stage`) that map directly to the lifecycle stages defined in [`demistifai/constants.py`](./demistifai/constants.py).
+- Stage boundaries and a component placement map live in [`docs/stage_component_reference.md`](./docs/stage_component_reference.md); keep it current when stages move or code is reorganised.
 - Core data, modeling, and simulation helpers live in the [`demistifai`](./demistifai) package:
   - `dataset.py` owns labeled data generation, linting, and CSV import/export helpers.
   - `modeling.py` contains feature engineering, training, calibration, and interpretability utilities.
@@ -35,5 +36,6 @@ Welcome! This repository contains the **demistifAI** Streamlit lab that walks us
 - Reflect new capabilities or workflow shifts in the README (especially in the stage-by-stage walkthrough) when they materially change user experience.
 - Keep terminology (e.g., "High autonomy", "Nerd Mode") consistent across UI strings, README, and any new docs you add.
 - Follow repository-wide communication norms: concise commit messages, and PR descriptions that summarise user-facing impact plus any testing performed.
+- Update [`docs/stage_component_reference.md`](./docs/stage_component_reference.md) whenever stage line ranges change or components move to new files, and call out the refresh in your PR summary.
 
 Following these conventions keeps the guided lab cohesive and saves future you from UI or state-management surprises. Happy shipping!
