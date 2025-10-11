@@ -110,6 +110,7 @@ from demistifai.modeling import (
 )
 
 from stages.train_stage import render_train_stage
+from ui.animated_logo import render_demai_logo
 
 
 logger = logging.getLogger(__name__)
@@ -1237,10 +1238,6 @@ with st.sidebar:
     )
     st.markdown("</div>", unsafe_allow_html=True)
 
-st.title("📧 demistifAI")
-
-
-
 def render_intro_stage():
 
     next_stage_key: Optional[str] = None
@@ -1276,20 +1273,10 @@ def render_intro_stage():
     with section_surface("section-surface--hero"):
         hero_left, hero_right = st.columns([3, 2], gap="large")
         with hero_left:
-            st.subheader("Welcome to demistifAI! 🎉")
+            render_demai_logo()  # animated heading; ends at "demAI"
             st.markdown(
-                "demistifAI is an interactive experience where you’ll build, evaluate, and operate an AI system — "
+                "demAI is an interactive experience where you will build, evaluate, and operate an AI system—"
                 "applying key concepts from the EU AI Act."
-            )
-            st.markdown(
-                """
-                Along the way you’ll see:
-
-                - how an AI system works end-to-end,
-                - how it infers using AI models,
-                - how models learn from data to achieve an explicit objective, and
-                - how autonomy levels affect you as a user, plus how optional adaptiveness loops your feedback back into training.
-                """
             )
             st.markdown(hero_info_html, unsafe_allow_html=True)
 
