@@ -1277,15 +1277,20 @@ def render_intro_stage():
                     </div>
                     <p class="hero-feature-card__body">Empower every employee, not just data scientists, to engage responsibly with AI by making transparency and trust accessible to all.</p>
                 </article>
+                <article class="hero-feature-card" role="listitem" aria-labelledby="hero-feature-launch-title">
+                    <div class="hero-feature-card__header">
+                        <span class="hero-feature-card__icon" aria-hidden="true">🚀</span>
+                        <div class="hero-feature-card__meta">
+                            <h3 id="hero-feature-launch-title" class="hero-feature-card__title">Launch your build workspace</h3>
+                        </div>
+                    </div>
+                    <p class="hero-feature-card__body">Kick off the guided lab to configure and evaluate the spam detector with EU AI Act guardrails. Use the <strong>Start your machine</strong> CTA to spin everything up.</p>
+                </article>
             </div>
         </div>
     """
     hero_cta_panel_open = """
         <div class="hero-cta-panel" role="complementary">
-            <div class="hero-cta-panel__copy">
-                <h3>Launch your build workspace</h3>
-                <p>Kick off the guided lab to configure and evaluate the spam detector with EU AI Act guardrails.</p>
-            </div>
     """
 
     with section_surface("section-surface--hero"):
