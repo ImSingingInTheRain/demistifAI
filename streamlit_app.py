@@ -111,6 +111,7 @@ from demistifai.modeling import (
 
 from stages.train_stage import render_train_stage
 from ui.animated_logo import render_demai_logo
+from components.ui_typing_quote import render_eu_ai_act_typing
 
 
 logger = logging.getLogger(__name__)
@@ -1281,12 +1282,7 @@ def render_intro_stage():
             st.markdown(hero_info_html, unsafe_allow_html=True)
 
         with hero_right:
-            render_eu_ai_quote(
-                "“AI system means a machine-based system that is designed to operate with varying levels of autonomy and that may exhibit "
-                "adaptiveness after deployment, and that, for explicit or implicit objectives, infers, from the input it "
-                "receives, how to generate outputs such as predictions, content, recommendations, or decisions that can "
-                "influence physical or virtual environments.”"
-            )
+            render_eu_ai_act_typing()
 
             if next_stage_key:
                 st.button(
