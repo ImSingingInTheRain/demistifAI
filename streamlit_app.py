@@ -1249,20 +1249,26 @@ def render_intro_stage():
         next_stage_key = STAGES[intro_index + 1].key
 
     hero_info_html = """
-        <div class="hero-info-grid">
-            <div class="hero-info-card">
-                <h3>What you’ll do</h3>
-                <p>
-                    Build an email spam detector that identifies patterns in messages. You’ll set how strict the filter is
-                    (threshold), choose the autonomy level, and optionally enable adaptiveness to learn from your feedback.
-                </p>
+        <div class="hero-info-grid" role="list">
+            <div class="hero-info-card" role="listitem">
+                <div class="hero-info-card__icon" aria-hidden="true">🛠️</div>
+                <div class="hero-info-card__content">
+                    <h3>What you’ll do</h3>
+                    <p>
+                        Build an email spam detector that identifies patterns in messages. You’ll set how strict the filter is
+                        (threshold), choose the autonomy level, and optionally enable adaptiveness to learn from your feedback.
+                    </p>
+                </div>
             </div>
-            <div class="hero-info-card">
-                <h3>Why demistifAI</h3>
-                <p>
-                    AI systems are often seen as black boxes, and the EU AI Act can feel too abstract. This experience demystifies
-                    both—showing how everyday AI works in practice.
-                </p>
+            <div class="hero-info-card" role="listitem">
+                <div class="hero-info-card__icon" aria-hidden="true">✨</div>
+                <div class="hero-info-card__content">
+                    <h3>Why demistifAI</h3>
+                    <p>
+                        AI systems are often seen as black boxes, and the EU AI Act can feel too abstract. This experience demystifies
+                        both—showing how everyday AI works in practice.
+                    </p>
+                </div>
             </div>
         </div>
     """
@@ -1276,11 +1282,14 @@ def render_intro_stage():
                 "applying key concepts from the EU AI Act."
             )
             st.markdown(
-                "Along the way you’ll see:\n"
-                "- how an AI system works end-to-end,\n"
-                "- how it infers using AI models,\n"
-                "- how models learn from data to achieve an explicit objective,\n"
-                "- how autonomy levels affect you as a user, and how optional adaptiveness feeds your feedback back into training."
+                """
+                Along the way you’ll see:
+
+                - how an AI system works end-to-end,
+                - how it infers using AI models,
+                - how models learn from data to achieve an explicit objective, and
+                - how autonomy levels affect you as a user, plus how optional adaptiveness loops your feedback back into training.
+                """
             )
             st.markdown(hero_info_html, unsafe_allow_html=True)
 
