@@ -1250,35 +1250,32 @@ def render_intro_stage():
                 demAI is an interactive experience where you will build and operate an AI system—while discovering and applying key concepts from the EU AI Act.
             </p>
             <div class="hero-feature-grid" role="list">
-                <article class="hero-feature-card" role="listitem" aria-labelledby="hero-feature-build-title">
+                <article class="hero-feature-card" role="listitem" aria-labelledby="hero-feature-demonstrate-title">
                     <div class="hero-feature-card__header">
                         <span class="hero-feature-card__icon" aria-hidden="true">🛠️</span>
                         <div class="hero-feature-card__meta">
-                            <p class="hero-feature-card__eyebrow">Your build path</p>
-                            <h3 id="hero-feature-build-title" class="hero-feature-card__title">What you’ll do</h3>
+                            <h3 id="hero-feature-demonstrate-title" class="hero-feature-card__title">DemonstrateAI</h3>
                         </div>
                     </div>
-                    <p class="hero-feature-card__body">Build an AI email spam detector, teaching it how to recognize safe and malicious messages.</p>
+                    <p class="hero-feature-card__body">Experience how an AI system actually works, step by step — from data preparation to predictions — through an interactive, hands-on journey.</p>
                 </article>
-                <article class="hero-feature-card" role="listitem" aria-labelledby="hero-feature-guardrails-title">
+                <article class="hero-feature-card" role="listitem" aria-labelledby="hero-feature-demistify-title">
                     <div class="hero-feature-card__header">
                         <span class="hero-feature-card__icon" aria-hidden="true">🧭</span>
                         <div class="hero-feature-card__meta">
-                            <p class="hero-feature-card__eyebrow">EU AI Act pillars</p>
-                            <h3 id="hero-feature-guardrails-title" class="hero-feature-card__title">Navigate the guardrails</h3>
+                            <h3 id="hero-feature-demistify-title" class="hero-feature-card__title">DemistifyAI</h3>
                         </div>
                     </div>
-                    <p class="hero-feature-card__body">Trace how obligations, evidence, and governance map onto each stage of the lifecycle.</p>
+                    <p class="hero-feature-card__body">Break down complex AI concepts into clear, tangible actions so that anyone can understand what’s behind the model’s decisions.</p>
                 </article>
-                <article class="hero-feature-card" role="listitem" aria-labelledby="hero-feature-experiment-title">
+                <article class="hero-feature-card" role="listitem" aria-labelledby="hero-feature-democratize-title">
                     <div class="hero-feature-card__header">
                         <span class="hero-feature-card__icon" aria-hidden="true">🧪</span>
                         <div class="hero-feature-card__meta">
-                            <p class="hero-feature-card__eyebrow">Hands-on practice</p>
-                            <h3 id="hero-feature-experiment-title" class="hero-feature-card__title">Experiment safely</h3>
+                            <h3 id="hero-feature-democratize-title" class="hero-feature-card__title">DemocratizeAI</h3>
                         </div>
                     </div>
-                    <p class="hero-feature-card__body">Use synthetic data, adjustable guardrails, and explainability panels to test decisions before deployment.</p>
+                    <p class="hero-feature-card__body">Empower every employee, not just data scientists, to engage responsibly with AI by making transparency and trust accessible to all.</p>
                 </article>
             </div>
         </div>
