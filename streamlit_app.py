@@ -1266,16 +1266,6 @@ def render_intro_stage():
         with hero_right:
             st.markdown('<div class="hero-cta-panel" role="complementary">', unsafe_allow_html=True)
             render_eu_ai_act_typing()
-            st.markdown(
-                """
-                <div class="hero-cta-panel__copy">
-                    <h3>Guided by the EU AI Act</h3>
-                    <p>Watch the regulation come to life with an animated tour of the Act and launch into an interactive build that highlights your obligations.</p>
-                    <p class="hero-cta-panel__note">No prior ML experience required — just curiosity and a willingness to explore.</p>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
 
             if next_stage_key:
                 st.button(
@@ -1289,6 +1279,178 @@ def render_intro_stage():
             st.markdown("</div>", unsafe_allow_html=True)
 
     why_demai_slider_html = """
+        <style>
+            #why-demai-slider {
+                position: relative;
+                border-radius: 1.8rem;
+                padding: clamp(1.6rem, 3vw, 2.1rem);
+                background: linear-gradient(135deg, rgba(236, 253, 245, 0.95), rgba(219, 234, 254, 0.9));
+                border: 1px solid rgba(59, 130, 246, 0.22);
+                box-shadow: 0 22px 40px rgba(37, 99, 235, 0.15);
+                overflow: hidden;
+                font-family: "Inter", "Segoe UI", sans-serif;
+            }
+
+            #why-demai-slider .why-demai-slider__header {
+                display: flex;
+                flex-direction: column;
+                gap: 0.4rem;
+                margin-bottom: clamp(1.1rem, 2vw, 1.5rem);
+            }
+
+            #why-demai-slider .why-demai-slider__header h3 {
+                margin: 0;
+                font-size: clamp(1.35rem, 2.4vw, 1.7rem);
+                color: #1e3a8a;
+            }
+
+            #why-demai-slider .why-demai-slider__header p {
+                margin: 0;
+                font-size: 0.95rem;
+                color: rgba(30, 41, 59, 0.82);
+            }
+
+            #why-demai-slider .why-demai-slider__body {
+                position: relative;
+                display: grid;
+                grid-template-columns: auto 1fr auto;
+                gap: clamp(0.8rem, 2vw, 1.4rem);
+                align-items: center;
+            }
+
+            #why-demai-slider .why-demai-slider__slides {
+                position: relative;
+                min-height: clamp(210px, 26vw, 240px);
+                height: var(--slides-height, auto);
+            }
+
+            #why-demai-slider .why-demai-card {
+                position: absolute;
+                inset: 0;
+                margin: 0;
+                background: rgba(255, 255, 255, 0.92);
+                border-radius: 1.4rem;
+                padding: clamp(1.1rem, 2vw, 1.45rem);
+                box-shadow: 0 16px 30px rgba(59, 130, 246, 0.16);
+                border: 1px solid rgba(96, 165, 250, 0.32);
+                display: flex;
+                flex-direction: column;
+                gap: 0.65rem;
+                opacity: 0;
+                transform: translateY(18px) scale(0.96);
+                transition: opacity 0.4s ease, transform 0.45s ease;
+                pointer-events: none;
+            }
+
+            #why-demai-slider .why-demai-card.is-active {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+                pointer-events: auto;
+            }
+
+            #why-demai-slider .why-demai-card h4 {
+                margin: 0;
+                font-size: 1.1rem;
+                color: #1e40af;
+            }
+
+            #why-demai-slider .why-demai-card p {
+                margin: 0;
+                font-size: 0.95rem;
+                line-height: 1.6;
+                color: rgba(30, 41, 59, 0.88);
+            }
+
+            #why-demai-slider .why-demai-slider__nav {
+                width: 2.6rem;
+                height: 2.6rem;
+                border-radius: 999px;
+                border: 1px solid rgba(59, 130, 246, 0.32);
+                background: rgba(255, 255, 255, 0.9);
+                box-shadow: 0 12px 24px rgba(59, 130, 246, 0.18);
+                color: #1e3a8a;
+                font-size: 1.4rem;
+                display: grid;
+                place-items: center;
+                cursor: pointer;
+                transition: transform 0.18s ease, box-shadow 0.18s ease;
+            }
+
+            #why-demai-slider .why-demai-slider__nav:hover,
+            #why-demai-slider .why-demai-slider__nav:focus-visible {
+                transform: translateY(-2px);
+                box-shadow: 0 16px 28px rgba(59, 130, 246, 0.24);
+                outline: none;
+            }
+
+            #why-demai-slider .why-demai-slider__dots {
+                display: flex;
+                justify-content: center;
+                gap: 0.6rem;
+                margin-top: clamp(1rem, 2vw, 1.4rem);
+            }
+
+            #why-demai-slider .why-demai-slider__dot {
+                position: relative;
+                border: none;
+                background: rgba(191, 219, 254, 0.8);
+                border-radius: 999px;
+                width: 0.65rem;
+                height: 0.65rem;
+                padding: 0;
+                cursor: pointer;
+                transition: width 0.18s ease, background 0.18s ease;
+                text-indent: -999px;
+            }
+
+            #why-demai-slider .why-demai-slider__dot.is-active {
+                width: 1.8rem;
+                background: linear-gradient(135deg, #1e3a8a, #38bdf8);
+            }
+
+            #why-demai-slider .why-demai-slider__dot:focus-visible {
+                outline: 2px solid rgba(59, 130, 246, 0.55);
+                outline-offset: 2px;
+            }
+
+            @media (prefers-reduced-motion: reduce) {
+                #why-demai-slider .why-demai-card {
+                    transition: none;
+                }
+            }
+
+            @media (max-width: 720px) {
+                #why-demai-slider {
+                    padding: 1.4rem;
+                }
+
+                #why-demai-slider .why-demai-slider__body {
+                    grid-template-columns: 1fr;
+                    gap: 0.9rem;
+                }
+
+                #why-demai-slider .why-demai-slider__nav {
+                    width: 2.3rem;
+                    height: 2.3rem;
+                    font-size: 1.25rem;
+                }
+
+                #why-demai-slider .why-demai-slider__nav[data-nav="prev"] {
+                    order: 2;
+                    justify-self: flex-start;
+                }
+
+                #why-demai-slider .why-demai-slider__nav[data-nav="next"] {
+                    order: 3;
+                    justify-self: flex-end;
+                }
+
+                #why-demai-slider .why-demai-slider__slides {
+                    order: 1;
+                    min-height: 200px;
+                }
+            }
+        </style>
         <section id="why-demai-slider" class="why-demai-slider" aria-label="Why demAI" data-active-index="0">
             <div class="why-demai-slider__header">
                 <h3>Why demAI</h3>
@@ -1329,11 +1491,23 @@ def render_intro_stage():
                 const dots = Array.from(root.querySelectorAll('.why-demai-slider__dot'));
                 const prev = root.querySelector('[data-nav="prev"]');
                 const next = root.querySelector('[data-nav="next"]');
+                const slidesContainer = root.querySelector('.why-demai-slider__slides');
                 const total = slides.length;
                 let index = 0;
                 let timerId;
                 const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
                 let reduceMotion = motionQuery.matches;
+
+                const syncHeight = () => {
+                    if (!slidesContainer) {
+                        return;
+                    }
+                    const active = slidesContainer.querySelector('.why-demai-card.is-active');
+                    if (!active) {
+                        return;
+                    }
+                    slidesContainer.style.setProperty('height', `${active.offsetHeight}px`);
+                };
 
                 const setActive = (nextIndex) => {
                     index = (nextIndex + total) % total;
@@ -1349,6 +1523,7 @@ def render_intro_stage():
                         dot.setAttribute('tabindex', isActive ? '0' : '-1');
                     });
                     root.setAttribute('data-active-index', String(index));
+                    syncHeight();
                 };
 
                 const startTimer = () => {
@@ -1375,8 +1550,13 @@ def render_intro_stage():
                     }
                 };
 
+                const handleResize = () => {
+                    window.requestAnimationFrame(syncHeight);
+                };
+
                 motionQuery.addEventListener?.('change', handleMotionChange);
                 motionQuery.addListener?.(handleMotionChange);
+                window.addEventListener('resize', handleResize);
 
                 prev?.addEventListener('click', () => {
                     setActive(index - 1);
@@ -1406,12 +1586,13 @@ def render_intro_stage():
 
                 setActive(0);
                 startTimer();
+                syncHeight();
             })();
         </script>
     """
 
     with section_surface():
-        components.html(why_demai_slider_html, height=360, scrolling=False)
+        components.html(why_demai_slider_html, height=380, scrolling=False)
 
 
     with section_surface():
