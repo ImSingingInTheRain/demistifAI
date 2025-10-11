@@ -1382,33 +1382,49 @@ LIFECYCLE_CYCLE_CSS = dedent(
 
     .cycle-ring {
         position: relative;
-        width: clamp(300px, 64vw, 720px);
+        width: clamp(300px, 62vw, 720px);
         aspect-ratio: 1 / 1;
         border-radius: 50%;
-        background: radial-gradient(ellipse at center, rgba(99, 102, 241, 0.06), rgba(14, 165, 233, 0.04));
-        box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.06);
+        background: radial-gradient(120% 120% at 50% 45%, rgba(59, 130, 246, 0.08), rgba(59, 130, 246, 0.02) 55%, rgba(14, 165, 233, 0.04) 100%);
+        box-shadow:
+            inset 0 0 0 1px rgba(15, 23, 42, 0.06),
+            inset 0 -18px 34px rgba(37, 99, 235, 0.08);
+    }
+
+    .cycle-ring:after {
+        content: "";
+        position: absolute;
+        inset: 14%;
+        border-radius: 50%;
+        background: radial-gradient(ellipse at center, rgba(125, 211, 252, 0.12), transparent 65%);
+        pointer-events: none;
     }
 
     .cycle-node {
         position: absolute;
         display: grid;
         place-items: center;
-        gap: 0.25rem;
+        gap: 0.3rem;
         width: 96px;
         height: 96px;
-        border-radius: 16px;
-        background: rgba(255, 255, 255, 0.92);
+        border-radius: 18px;
+        background: rgba(255, 255, 255, 0.96);
         box-shadow:
-            0 8px 22px rgba(15, 23, 42, 0.10),
+            0 14px 32px rgba(15, 23, 42, 0.12),
             inset 0 0 0 1px rgba(15, 23, 42, 0.06);
         transition: transform 140ms ease, box-shadow 140ms ease;
         cursor: default;
     }
 
+    .cycle-node:focus-visible {
+        outline: 2px solid rgba(59, 130, 246, 0.7);
+        outline-offset: 4px;
+    }
+
     .cycle-node:hover {
-        transform: translateY(-2px);
+        transform: translateY(-4px);
         box-shadow:
-            0 12px 26px rgba(15, 23, 42, 0.14),
+            0 18px 36px rgba(15, 23, 42, 0.16),
             inset 0 0 0 1px rgba(15, 23, 42, 0.08);
     }
 
@@ -1418,7 +1434,7 @@ LIFECYCLE_CYCLE_CSS = dedent(
     }
 
     .cycle-title {
-        font-size: 0.85rem;
+        font-size: 0.9rem;
         font-weight: 700;
         color: #0f172a;
         text-align: center;
@@ -1427,17 +1443,17 @@ LIFECYCLE_CYCLE_CSS = dedent(
     .cycle-tip {
         position: absolute;
         left: 50%;
-        top: calc(100% + 8px);
+        top: calc(100% + 10px);
         transform: translateX(-50%);
         min-width: 220px;
         max-width: 280px;
         padding: 0.6rem 0.75rem;
-        border-radius: 12px;
-        background: #0f172a;
+        border-radius: 14px;
+        background: rgba(15, 23, 42, 0.95);
         color: white;
         font-size: 0.82rem;
-        line-height: 1.35;
-        box-shadow: 0 10px 24px rgba(15, 23, 42, 0.22);
+        line-height: 1.45;
+        box-shadow: 0 18px 38px rgba(15, 23, 42, 0.26);
         opacity: 0;
         visibility: hidden;
         transition: opacity 140ms ease, visibility 140ms ease, transform 140ms ease;
@@ -1450,12 +1466,12 @@ LIFECYCLE_CYCLE_CSS = dedent(
     .cycle-tip:before {
         content: "";
         position: absolute;
-        top: -6px;
+        top: -7px;
         left: 50%;
         transform: translateX(-50%) rotate(45deg);
-        width: 12px;
-        height: 12px;
-        background: #0f172a;
+        width: 14px;
+        height: 14px;
+        background: rgba(15, 23, 42, 0.95);
     }
 
     .cycle-node:hover .cycle-tip,
@@ -1467,17 +1483,19 @@ LIFECYCLE_CYCLE_CSS = dedent(
 
     .cycle-arrow {
         position: absolute;
-        font-size: 1.1rem;
-        color: rgba(15, 23, 42, 0.55);
+        font-size: 1.15rem;
+        color: rgba(30, 58, 138, 0.65);
+        text-shadow: 0 4px 10px rgba(15, 23, 42, 0.18);
         user-select: none;
     }
 
     .cycle-loop {
         position: absolute;
         right: 8%;
-        bottom: 8%;
-        font-size: 1.25rem;
-        color: rgba(15, 23, 42, 0.45);
+        bottom: 10%;
+        font-size: 1.35rem;
+        color: rgba(30, 64, 175, 0.65);
+        text-shadow: 0 4px 12px rgba(15, 23, 42, 0.16);
     }
 
     .cycle-node--prepare { top: 6%; left: 50%; transform: translate(-50%, 0); }
@@ -1490,15 +1508,85 @@ LIFECYCLE_CYCLE_CSS = dedent(
     .cycle-arrow--evaluate-use    { top: 84%; left: 50%; transform: translateX(-50%); }
     .cycle-arrow--use-prepare     { top: 30%; left: 18%; transform: rotate(-12deg); }
 
-    @media (max-width: 640px) {
+    .lifecycle-legend {
+        display: grid;
+        gap: 0.9rem;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        margin-top: 1.2rem;
+    }
+
+    .lifecycle-legend__item {
+        border-radius: 16px;
+        padding: 0.85rem 1rem 0.95rem;
+        background: linear-gradient(155deg, rgba(248, 250, 252, 0.95), rgba(226, 232, 240, 0.55));
+        box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.25);
+        display: grid;
+        gap: 0.45rem;
+    }
+
+    .lifecycle-legend__header {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .lifecycle-legend__icon {
+        font-size: 1.1rem;
+    }
+
+    .lifecycle-legend__title {
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: #0f172a;
+    }
+
+    .lifecycle-legend__body {
+        margin: 0;
+        font-size: 0.9rem;
+        line-height: 1.55;
+        color: rgba(15, 23, 42, 0.78);
+    }
+
+    @media (max-width: 1100px) {
+        .lifecycle-legend {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+    }
+
+    @media (max-width: 768px) {
         .cycle-node {
             width: 88px;
             height: 88px;
         }
 
+        .cycle-title {
+            font-size: 0.82rem;
+        }
+
+        .lifecycle-legend {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 0.75rem;
+        }
+    }
+
+    @media (max-width: 640px) {
+        .cycle-node {
+            width: 76px;
+            height: 76px;
+            gap: 0.2rem;
+        }
+
+        .cycle-title {
+            font-size: 0.78rem;
+        }
+
         .cycle-tip {
             min-width: 200px;
-            max-width: 240px;
+            max-width: 230px;
+        }
+
+        .lifecycle-legend {
+            grid-template-columns: 1fr;
         }
     }
     </style>
@@ -1515,9 +1603,14 @@ LIFECYCLE_CYCLE_HTML = dedent(
         <div class="lifecycle-cycle">
             <div class="cycle-ring">
 
-                <div class="cycle-node cycle-node--prepare" tabindex="0" aria-label="Prepare Data">
-                    <span class="cycle-icon">📊</span>
-                    <span class="cycle-title">Prepare Data</span>
+                <div
+                    class="cycle-node cycle-node--prepare"
+                    tabindex="0"
+                    aria-labelledby="cycle-title-prepare"
+                    aria-describedby="cycle-desc-prepare"
+                >
+                    <span class="cycle-icon" aria-hidden="true">📊</span>
+                    <span id="cycle-title-prepare" class="cycle-title">Prepare Data</span>
                     <div class="cycle-tip" role="tooltip">
                         Curate examples and add labels. Clean sensitive data (PII) and check balance so the model learns a fair objective.
                     </div>
@@ -1525,9 +1618,14 @@ LIFECYCLE_CYCLE_HTML = dedent(
 
                 <div class="cycle-arrow cycle-arrow--prepare-train" aria-hidden="true">➝</div>
 
-                <div class="cycle-node cycle-node--train" tabindex="0" aria-label="Train">
-                    <span class="cycle-icon">🧠</span>
-                    <span class="cycle-title">Train</span>
+                <div
+                    class="cycle-node cycle-node--train"
+                    tabindex="0"
+                    aria-labelledby="cycle-title-train"
+                    aria-describedby="cycle-desc-train"
+                >
+                    <span class="cycle-icon" aria-hidden="true">🧠</span>
+                    <span id="cycle-title-train" class="cycle-title">Train</span>
                     <div class="cycle-tip" role="tooltip">
                         The model finds patterns that separate classes. Hold out a test split to keep the evaluation honest.
                     </div>
@@ -1535,9 +1633,14 @@ LIFECYCLE_CYCLE_HTML = dedent(
 
                 <div class="cycle-arrow cycle-arrow--train-evaluate" aria-hidden="true">➝</div>
 
-                <div class="cycle-node cycle-node--evaluate" tabindex="0" aria-label="Evaluate">
-                    <span class="cycle-icon">🧪</span>
-                    <span class="cycle-title">Evaluate</span>
+                <div
+                    class="cycle-node cycle-node--evaluate"
+                    tabindex="0"
+                    aria-labelledby="cycle-title-evaluate"
+                    aria-describedby="cycle-desc-evaluate"
+                >
+                    <span class="cycle-icon" aria-hidden="true">🧪</span>
+                    <span id="cycle-title-evaluate" class="cycle-title">Evaluate</span>
                     <div class="cycle-tip" role="tooltip">
                         Measure precision/recall, inspect borderline cases, and set a threshold that fits your risk tolerance.
                     </div>
@@ -1545,9 +1648,14 @@ LIFECYCLE_CYCLE_HTML = dedent(
 
                 <div class="cycle-arrow cycle-arrow--evaluate-use" aria-hidden="true">➝</div>
 
-                <div class="cycle-node cycle-node--use" tabindex="0" aria-label="Use">
-                    <span class="cycle-icon">📬</span>
-                    <span class="cycle-title">Use</span>
+                <div
+                    class="cycle-node cycle-node--use"
+                    tabindex="0"
+                    aria-labelledby="cycle-title-use"
+                    aria-describedby="cycle-desc-use"
+                >
+                    <span class="cycle-icon" aria-hidden="true">📬</span>
+                    <span id="cycle-title-use" class="cycle-title">Use</span>
                     <div class="cycle-tip" role="tooltip">
                         Apply the model to new emails. Optionally capture feedback for future adaptiveness.
                     </div>
@@ -1555,6 +1663,45 @@ LIFECYCLE_CYCLE_HTML = dedent(
 
                 <div class="cycle-arrow cycle-arrow--use-prepare" aria-hidden="true">➝</div>
                 <div class="cycle-loop" aria-hidden="true">↺</div>
+            </div>
+        </div>
+
+        <div class="lifecycle-legend" role="list">
+            <div class="lifecycle-legend__item" id="cycle-desc-prepare" role="listitem">
+                <div class="lifecycle-legend__header">
+                    <span class="lifecycle-legend__icon" aria-hidden="true">📊</span>
+                    <span class="lifecycle-legend__title">Prepare Data</span>
+                </div>
+                <p class="lifecycle-legend__body">
+                    Assemble representative examples, label them, and scrub sensitive details so the model learns from balanced, appropriate material.
+                </p>
+            </div>
+            <div class="lifecycle-legend__item" id="cycle-desc-train" role="listitem">
+                <div class="lifecycle-legend__header">
+                    <span class="lifecycle-legend__icon" aria-hidden="true">🧠</span>
+                    <span class="lifecycle-legend__title">Train</span>
+                </div>
+                <p class="lifecycle-legend__body">
+                    Feed the cleaned dataset into learning algorithms, hold back a test split, and iteratively tune until the model captures robust patterns.
+                </p>
+            </div>
+            <div class="lifecycle-legend__item" id="cycle-desc-evaluate" role="listitem">
+                <div class="lifecycle-legend__header">
+                    <span class="lifecycle-legend__icon" aria-hidden="true">🧪</span>
+                    <span class="lifecycle-legend__title">Evaluate</span>
+                </div>
+                <p class="lifecycle-legend__body">
+                    Study metrics, stress-test edge cases, and adjust decision thresholds so outcomes meet your risk and compliance needs.
+                </p>
+            </div>
+            <div class="lifecycle-legend__item" id="cycle-desc-use" role="listitem">
+                <div class="lifecycle-legend__header">
+                    <span class="lifecycle-legend__icon" aria-hidden="true">📬</span>
+                    <span class="lifecycle-legend__title">Use</span>
+                </div>
+                <p class="lifecycle-legend__body">
+                    Deploy the model to incoming emails, monitor predictions in context, and capture feedback to feed the next training cycle.
+                </p>
             </div>
         </div>
     </div>
