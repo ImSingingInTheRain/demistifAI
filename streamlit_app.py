@@ -1153,12 +1153,14 @@ ss["use_adaptiveness"] = bool(ss.get("adaptive", False))
 with st.sidebar:
     st.markdown("<div class='sidebar-shell'>", unsafe_allow_html=True)
     st.markdown(
-        """
+        textwrap.dedent(
+            """
         <div class="sidebar-brand">
             <p class="sidebar-title">demistifAI control room</p>
             <p class="sidebar-subtitle">Navigate the lifecycle, review guidance, and manage your session without losing progress.</p>
         </div>
-        """,
+        """
+        ),
         unsafe_allow_html=True,
     )
 
@@ -1301,7 +1303,8 @@ def render_intro_stage():
 
 
     st.markdown(
-        """
+        textwrap.dedent(
+            """
         <style>
           .lifecycle-wrap {
             margin-top: 0.5rem;
@@ -1435,13 +1438,15 @@ def render_intro_stage():
             .cycle-tip { min-width: 200px; max-width: 240px; }
           }
         </style>
-        """,
+        """
+        ),
         unsafe_allow_html=True,
     )
 
     with section_surface():
         st.markdown(
-            """
+            textwrap.dedent(
+                """
             <div class="lifecycle-wrap">
                 <h4>Your AI system lifecycle at a glance</h4>
                 <p>These are the core stages you will navigate. They flow into one another — it’s a continuous loop you can revisit.</p>
@@ -1492,7 +1497,8 @@ def render_intro_stage():
                     </div>
                 </div>
             </div>
-            """,
+            """
+            ),
             unsafe_allow_html=True,
         )
 
