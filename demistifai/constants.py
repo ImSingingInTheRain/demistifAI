@@ -1446,6 +1446,60 @@ LIFECYCLE_CYCLE_CSS = """
 """
 
 
+LIFECYCLE_CYCLE_HTML = """
+<div class="lifecycle-wrap">
+    <h4>Your AI system lifecycle at a glance</h4>
+    <p>These are the core stages you will navigate. They flow into one another — it’s a continuous loop you can revisit.</p>
+
+    <div class="lifecycle-cycle">
+        <div class="cycle-ring">
+
+            <div class="cycle-node cycle-node--prepare" tabindex="0" aria-label="Prepare Data">
+                <span class="cycle-icon">📊</span>
+                <span class="cycle-title">Prepare Data</span>
+                <div class="cycle-tip" role="tooltip">
+                    Curate examples and add labels. Clean sensitive data (PII) and check balance so the model learns a fair objective.
+                </div>
+            </div>
+
+            <div class="cycle-arrow cycle-arrow--prepare-train" aria-hidden="true">➝</div>
+
+            <div class="cycle-node cycle-node--train" tabindex="0" aria-label="Train">
+                <span class="cycle-icon">🧠</span>
+                <span class="cycle-title">Train</span>
+                <div class="cycle-tip" role="tooltip">
+                    The model finds patterns that separate classes. Hold out a test split to keep the evaluation honest.
+                </div>
+            </div>
+
+            <div class="cycle-arrow cycle-arrow--train-evaluate" aria-hidden="true">➝</div>
+
+            <div class="cycle-node cycle-node--evaluate" tabindex="0" aria-label="Evaluate">
+                <span class="cycle-icon">🧪</span>
+                <span class="cycle-title">Evaluate</span>
+                <div class="cycle-tip" role="tooltip">
+                    Measure precision/recall, inspect borderline cases, and set a threshold that fits your risk tolerance.
+                </div>
+            </div>
+
+            <div class="cycle-arrow cycle-arrow--evaluate-use" aria-hidden="true">➝</div>
+
+            <div class="cycle-node cycle-node--use" tabindex="0" aria-label="Use">
+                <span class="cycle-icon">📬</span>
+                <span class="cycle-title">Use</span>
+                <div class="cycle-tip" role="tooltip">
+                    Apply the model to new emails. Optionally capture feedback for future adaptiveness.
+                </div>
+            </div>
+
+            <div class="cycle-arrow cycle-arrow--use-prepare" aria-hidden="true">➝</div>
+            <div class="cycle-loop" aria-hidden="true">↺</div>
+        </div>
+    </div>
+</div>
+"""
+
+
 @dataclass(frozen=True)
 class StageMeta:
     key: str
