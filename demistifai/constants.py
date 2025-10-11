@@ -227,47 +227,197 @@ APP_THEME_CSS = """
     color: rgba(241, 245, 249, 0.92);
 }
 
-.hero-info-grid {
-    width: 100%;
-    display: grid;
-    gap: clamp(1.2rem, 2vw, 1.6rem);
-    justify-items: stretch;
+.hero-copy {
+    display: flex;
+    flex-direction: column;
+    gap: clamp(1.4rem, 2vw, 2.2rem);
 }
 
-@media (min-width: 768px) {
-    .hero-info-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+.hero-what-card {
+    border-radius: 1.6rem;
+    padding: clamp(1.4rem, 2.4vw, 1.9rem);
+    background: radial-gradient(circle at top left, rgba(56, 189, 248, 0.28), transparent 58%),
+        linear-gradient(135deg, rgba(15, 23, 42, 0.78), rgba(30, 64, 175, 0.65));
+    border: 1px solid rgba(148, 163, 184, 0.25);
+    box-shadow: 0 20px 40px rgba(15, 23, 42, 0.22);
+    color: rgba(226, 232, 240, 0.96);
+}
+
+.hero-what-card h3 {
+    margin: 0;
+    font-size: clamp(1.3rem, 2.4vw, 1.6rem);
+    line-height: 1.3;
+}
+
+.hero-what-card__badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.78rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-weight: 700;
+    background: rgba(14, 165, 233, 0.22);
+    color: rgba(224, 242, 254, 0.92);
+    padding: 0.35rem 0.75rem;
+    border-radius: 999px;
+    margin-bottom: 0.85rem;
+}
+
+.hero-what-card__list {
+    margin: 1.1rem 0 0;
+    padding-left: 1.05rem;
+    display: grid;
+    gap: 0.6rem;
+    font-size: 0.98rem;
+    line-height: 1.6;
+}
+
+.hero-what-card__list li strong {
+    color: #f8fafc;
+}
+
+.hero-cta-panel {
+    display: flex;
+    flex-direction: column;
+    gap: clamp(1.4rem, 2.2vw, 2rem);
+    background: linear-gradient(135deg, rgba(236, 254, 255, 0.95), rgba(224, 242, 254, 0.65));
+    border-radius: 1.6rem;
+    padding: clamp(1.2rem, 2.4vw, 1.8rem);
+    border: 1px solid rgba(14, 116, 144, 0.25);
+    box-shadow: 0 18px 38px rgba(14, 116, 144, 0.18);
+}
+
+.hero-cta-panel__typing {
+    min-height: 160px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(125, 211, 252, 0.25);
+    border-radius: 1.2rem;
+    padding: 0.75rem;
+}
+
+.hero-cta-panel__copy h3 {
+    margin: 0 0 0.6rem 0;
+    font-size: clamp(1.2rem, 2.4vw, 1.5rem);
+    color: #0f172a;
+}
+
+.hero-cta-panel__copy p {
+    margin: 0;
+    font-size: 0.98rem;
+    line-height: 1.6;
+    color: rgba(15, 23, 42, 0.86);
+}
+
+.hero-cta-panel__note {
+    font-weight: 600;
+    color: rgba(15, 23, 42, 0.74);
+}
+
+.hero-cta-panel [data-testid="stButton"] {
+    margin-top: 0.5rem;
+}
+
+.hero-cta-panel [data-testid="stButton"] > button {
+    width: 100%;
+    min-height: 3rem;
+    font-size: 1.05rem;
+}
+
+.why-demai-slider {
+    position: relative;
+    overflow: hidden;
+    border-radius: 1.8rem;
+    padding: clamp(1.6rem, 3vw, 2.1rem);
+    background: linear-gradient(135deg, rgba(236, 253, 245, 0.95), rgba(219, 234, 254, 0.9));
+    border: 1px solid rgba(59, 130, 246, 0.22);
+    box-shadow: 0 22px 40px rgba(37, 99, 235, 0.15);
+}
+
+.why-demai-slider__header {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    margin-bottom: clamp(1.1rem, 2vw, 1.5rem);
+}
+
+.why-demai-slider__header h3 {
+    margin: 0;
+    font-size: clamp(1.35rem, 2.4vw, 1.7rem);
+    color: #1e3a8a;
+}
+
+.why-demai-slider__header p {
+    margin: 0;
+    font-size: 0.95rem;
+    color: rgba(30, 41, 59, 0.82);
+}
+
+.why-demai-slider__viewport {
+    overflow: hidden;
+}
+
+.why-demai-slider__track {
+    --slider-gap: clamp(1rem, 2vw, 1.4rem);
+    display: flex;
+    gap: var(--slider-gap);
+    width: max-content;
+    animation: why-demai-slide 24s linear infinite;
+}
+
+.why-demai-card {
+    min-width: clamp(220px, 32vw, 280px);
+    background: rgba(255, 255, 255, 0.92);
+    border-radius: 1.4rem;
+    padding: clamp(1.1rem, 2vw, 1.4rem);
+    box-shadow: 0 16px 30px rgba(59, 130, 246, 0.16);
+    border: 1px solid rgba(96, 165, 250, 0.32);
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+}
+
+.why-demai-card h4 {
+    margin: 0;
+    font-size: 1.1rem;
+    color: #1e40af;
+}
+
+.why-demai-card p {
+    margin: 0;
+    font-size: 0.94rem;
+    line-height: 1.55;
+    color: rgba(30, 41, 59, 0.88);
+}
+
+@keyframes why-demai-slide {
+    0%, 15% {
+        transform: translateX(0);
+    }
+    33%, 48% {
+        transform: translateX(calc(-100% - var(--slider-gap)));
+    }
+    66%, 81% {
+        transform: translateX(calc(-200% - calc(var(--slider-gap) * 2)));
+    }
+    100% {
+        transform: translateX(calc(-300% - calc(var(--slider-gap) * 3)));
     }
 }
 
-.hero-right-panel {
-    display: flex;
-    flex-direction: column;
-    gap: clamp(2rem, 3vw, 2.8rem);
-    align-items: stretch;
-    width: 100%;
+@media (hover: hover) {
+    .why-demai-slider__track:hover {
+        animation-play-state: paused;
+    }
 }
 
-.hero-right-panel > div {
-    width: 100%;
-}
-
-.hero-right-panel [data-testid="stButton"] {
-    width: 100%;
-    margin-top: auto;
-    padding-top: 0.5rem;
-}
-
-.hero-right-panel [data-testid="stButton"] > button {
-    width: 100%;
-    max-width: 280px;
-    margin: 0 auto;
-}
-
-.hero-info-card__content {
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
+@media (prefers-reduced-motion: reduce) {
+    .hero-cta-panel__typing,
+    .why-demai-slider__track {
+        animation: none;
+    }
 }
 
 .indicator-chip-row {

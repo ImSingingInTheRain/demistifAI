@@ -1244,51 +1244,45 @@ def render_intro_stage():
     if intro_index is not None and intro_index < len(STAGES) - 1:
         next_stage_key = STAGES[intro_index + 1].key
 
-    hero_info_html = """
-        <div class="hero-info-grid" role="list">
-            <div class="hero-info-card" role="listitem">
-                <div class="hero-info-card__icon" aria-hidden="true">🛠️</div>
-                <div class="hero-info-card__content">
-                    <h3>What you’ll do</h3>
-                    <p>
-                        Build an AI email spam detector, teaching it how to recognize safe and malicious messages.
-                    </p>
-                </div>
-            </div>
-            <div class="hero-info-card" role="listitem">
-                <div class="hero-info-card__icon" aria-hidden="true">✨</div>
-                <div class="hero-info-card__content">
-                    <h3>Why demAI</h3>
-                    <ul class="hero-info-list">
-                        <li><strong>DemonstrateAI</strong> — Experience how an AI system actually works, step by step — from data preparation to predictions — through an interactive, hands-on journey.</li>
-                        <li><strong>DemistifyAI</strong> — Break down complex AI concepts into clear, tangible actions so that anyone can understand what’s behind the model’s decisions.</li>
-                        <li><strong>DemocratizeAI</strong> — Empower every person to engage responsibly with AI by making transparency and trust accessible.</li>
-                    </ul>
-                </div>
+    hero_copy_html = """
+        <div class="hero-copy" role="presentation">
+            <p class="hero-lead">
+                demAI is an interactive experience where you will build and operate an AI system—while discovering and applying key concepts from the EU AI Act.
+            </p>
+            <div class="hero-what-card" role="group" aria-labelledby="hero-what-title">
+                <div class="hero-what-card__badge" aria-hidden="true">🛠️&nbsp; Your build path</div>
+                <h3 id="hero-what-title">What you’ll do</h3>
+                <ul class="hero-what-card__list">
+                    <li><strong>Shape the data</strong> by labeling real-looking emails to teach the model what spam and safe mail look like.</li>
+                    <li><strong>Train and tune</strong> a classifier with guided evaluation checkpoints so you can see how regulations influence design choices.</li>
+                    <li><strong>Deploy responsibly</strong> by monitoring outcomes, documenting risks, and aligning with the EU AI Act narrative at every step.</li>
+                </ul>
             </div>
         </div>
     """
 
-    hero_intro_html = f"""
-        <div class="hero-content" role="presentation">
-            <div class="hero-text-block">
-                <p class="hero-lead">
-                    demAI is an interactive experience where you will build and operate an AI system—while discovering and applying key concepts from the EU AI Act.
-                </p>
-            </div>
-            {hero_info_html}
-        </div>
-    """
+    render_demai_logo()
 
     with section_surface("section-surface--hero"):
-        hero_left, hero_right = st.columns([3, 2], gap="large")
+        hero_left, hero_right = st.columns([7, 5], gap="large")
         with hero_left:
-            render_demai_logo()  # animated heading; ends at "demAI"
-            st.markdown(hero_intro_html, unsafe_allow_html=True)
+            st.markdown(hero_copy_html, unsafe_allow_html=True)
 
         with hero_right:
-            st.markdown('<div class="hero-right-panel">', unsafe_allow_html=True)
+            st.markdown('<div class="hero-cta-panel" role="complementary">', unsafe_allow_html=True)
+            st.markdown('<div class="hero-cta-panel__typing" aria-hidden="true">', unsafe_allow_html=True)
             render_eu_ai_act_typing()
+            st.markdown('</div>', unsafe_allow_html=True)
+            st.markdown(
+                """
+                <div class="hero-cta-panel__copy">
+                    <h3>Guided by the EU AI Act</h3>
+                    <p>Watch the regulation come to life with an animated tour of the Act and launch into an interactive build that highlights your obligations.</p>
+                    <p class="hero-cta-panel__note">No prior ML experience required — just curiosity and a willingness to explore.</p>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
 
             if next_stage_key:
                 st.button(
@@ -1300,6 +1294,46 @@ def render_intro_stage():
                     use_container_width=True,
                 )
             st.markdown("</div>", unsafe_allow_html=True)
+
+    why_demai_slider_html = """
+        <section class="why-demai-slider" aria-label="Why demAI">
+            <div class="why-demai-slider__header">
+                <h3>Why demAI</h3>
+                <p>Three pillars to make applied AI transparent, explainable, and inclusive.</p>
+            </div>
+            <div class="why-demai-slider__viewport" role="presentation">
+                <div class="why-demai-slider__track">
+                    <article class="why-demai-card">
+                        <h4>Demonstrate</h4>
+                        <p>Follow an end-to-end build that shows every decision, trade-off, and impact as the system comes together.</p>
+                    </article>
+                    <article class="why-demai-card">
+                        <h4>Demistify</h4>
+                        <p>Peel back the jargon with plain-language explainers and visual cues that clarify what the model is doing.</p>
+                    </article>
+                    <article class="why-demai-card">
+                        <h4>Democratize</h4>
+                        <p>Invite anyone to participate by grounding the experience in responsible defaults and practical guardrails.</p>
+                    </article>
+                    <article class="why-demai-card" aria-hidden="true">
+                        <h4>Demonstrate</h4>
+                        <p>Follow an end-to-end build that shows every decision, trade-off, and impact as the system comes together.</p>
+                    </article>
+                    <article class="why-demai-card" aria-hidden="true">
+                        <h4>Demistify</h4>
+                        <p>Peel back the jargon with plain-language explainers and visual cues that clarify what the model is doing.</p>
+                    </article>
+                    <article class="why-demai-card" aria-hidden="true">
+                        <h4>Democratize</h4>
+                        <p>Invite anyone to participate by grounding the experience in responsible defaults and practical guardrails.</p>
+                    </article>
+                </div>
+            </div>
+        </section>
+    """
+
+    with section_surface():
+        st.markdown(why_demai_slider_html, unsafe_allow_html=True)
 
 
     with section_surface():
