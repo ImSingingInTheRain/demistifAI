@@ -174,6 +174,164 @@ def get_eu_ai_act_typing_iframe_src() -> str:
     return f"data:text/html;base64,{encoded}"
 
 
+def get_eu_ai_act_typing_inline_markup(
+    *,
+    id_prefix: str = "eu-typing-hero",
+    eyebrow_text: str = "Definition • EU AI Act",
+    icon: str = "⚖️",
+) -> str:
+    """Return markup for the inline hero animation container.
+
+    The returned HTML carries data attributes so a bootstrap script can animate
+    the definition without relying on an iframe wrapper.
+    """
+
+    definition_attr = escape(EU_AI_ACT_DEF, quote=True)
+    highlights_attr = escape(json.dumps(HLS), quote=True)
+    eyebrow_attr = escape(eyebrow_text, quote=True)
+    icon_attr = escape(icon, quote=True)
+    noscript_text = escape(EU_AI_ACT_DEF)
+
+    container_id = f"{id_prefix}-container"
+    text_id = f"{id_prefix}-text"
+    typed_id = f"{id_prefix}-typed"
+    caret_id = f"{id_prefix}-caret"
+
+    return Template(
+        dedent(
+            """
+            <div class="eu-typing" id="$container_id" data-definition="$definition" data-highlights="$highlights" aria-live="polite">
+              <div class="eu-typing__eyebrow">$eyebrow</div>
+              <div class="eu-typing__row">
+                <div class="eu-typing__icon" aria-hidden="true">$icon</div>
+                <p id="$text_id" class="eu-typing__text" data-role="text">
+                  <span id="$typed_id" data-role="typed"></span><span class="caret" id="$caret_id" data-role="caret"></span>
+                  <noscript>$noscript</noscript>
+                </p>
+              </div>
+            </div>
+            """
+        )
+    ).safe_substitute(
+        container_id=container_id,
+        definition=definition_attr,
+        highlights=highlights_attr,
+        eyebrow=eyebrow_attr,
+        icon=icon_attr,
+        text_id=text_id,
+        typed_id=typed_id,
+        caret_id=caret_id,
+        noscript=noscript_text,
+    )
+
+
+def get_eu_ai_act_typing_inline_bootstrap(*, id_prefix: str = "eu-typing-hero") -> str:
+    """Return a script snippet that animates the inline hero quote.
+
+    The script is intended to be rendered via ``components.html(..., height=0)``
+    so it can reach into the Streamlit document and progressively type the text.
+    """
+
+    container_id = f"{id_prefix}-container"
+    typed_id = f"{id_prefix}-typed"
+    caret_id = f"{id_prefix}-caret"
+
+    return Template(
+        dedent(
+            r"""
+            <script>
+              (function() {
+                var rootWindow = window;
+                var doc = document;
+                try {
+                  if (window.parent && window.parent.document) {
+                    rootWindow = window.parent;
+                    doc = window.parent.document;
+                  }
+                } catch (err) {
+                  // ignore cross-origin access issues
+                }
+
+                if (!doc) {
+                  return;
+                }
+
+                var container = doc.getElementById('$container_id');
+                var typedEl = doc.getElementById('$typed_id');
+                var caret = doc.getElementById('$caret_id');
+                if (!container || !typedEl || !caret) {
+                  return;
+                }
+
+                if (container.dataset.animated === '1') {
+                  return;
+                }
+                container.dataset.animated = '1';
+
+                var definition = container.dataset.definition || '';
+                var highlights = [];
+                try {
+                  highlights = JSON.parse(container.dataset.highlights || '[]');
+                } catch (err) {
+                  highlights = [];
+                }
+
+                typedEl.textContent = '';
+
+                function applyHighlights() {
+                  var html = typedEl.textContent;
+                  highlights.forEach(function(h) {
+                    if (!h) {
+                      return;
+                    }
+                    var rx = new RegExp('(\\\b' + h.replace(/[-/\\\\^$*+?.()|[\\\\]{}]/g,'\\$$&') + '\\b)', 'i');
+                    html = html.replace(rx, '<span class="hl hl-pop">$$1</span>');
+                  });
+                  typedEl.innerHTML = html;
+                }
+
+                var i = 0;
+                var baseDelay = 14;
+                var slowAfterComma = 280;
+                var isMobile = false;
+                if (rootWindow.matchMedia) {
+                  isMobile = rootWindow.matchMedia('(max-width:520px)').matches;
+                }
+                var delay = isMobile ? 18 : baseDelay;
+
+                function tick() {
+                  if (i >= definition.length) {
+                    caret.style.display = 'none';
+                    return;
+                  }
+                  var ch = definition.charAt(i++);
+                  typedEl.textContent += ch;
+                  if (/[\\\s,.–—;:)/]/.test(ch)) {
+                    applyHighlights();
+                  }
+
+                  var next = delay;
+                  if (ch === ',' || ch === '—') {
+                    next = slowAfterComma;
+                  }
+                  if (ch === '.') {
+                    next = slowAfterComma + 120;
+                  }
+                  rootWindow.setTimeout(tick, next);
+                }
+
+                rootWindow.setTimeout(tick, 350);
+              })();
+            </script>
+            """
+        )
+    ).safe_substitute(
+        container_id=container_id,
+        typed_id=typed_id,
+        caret_id=caret_id,
+    )
+
+
 def render_machine_definition_typing():
     """Animated quote for the Start Your Machine stage with delete + highlight effect."""
 
