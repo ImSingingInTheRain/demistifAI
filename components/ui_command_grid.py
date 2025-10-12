@@ -6,6 +6,13 @@ from typing import Iterable, List, Sequence
 
 import streamlit as st
 
+import streamlit.components.v1 as components
+
+from components.ui_typing_quote import (
+    get_eu_ai_act_typing_inline_bootstrap,
+    get_eu_ai_act_typing_inline_markup,
+)
+
 
 def _prepare_lines(lines: Iterable[str]) -> List[str]:
     return ["" if line is None else str(line) for line in lines]
@@ -26,6 +33,7 @@ def _build_grid_html(
     typed_lines: Sequence[str],
     css_classes: Sequence[str],
     show_caret: bool,
+    quote_markup: str,
 ) -> str:
     segments = []
     for typed, css_class in zip(typed_lines, css_classes):
@@ -44,10 +52,7 @@ def _build_grid_html(
             <pre class="term-body-{suffix}">{body_html}{caret_html}</pre>
           </div>
           <div class="placeholder-{suffix}">
-            <div>
-              <div class="ph-label">Placeholder</div>
-              <div class="ph-sub">This panel matches the terminal’s height and will host future UI.</div>
-            </div>
+            {quote_markup}
           </div>
         </div>
         """
@@ -73,6 +78,9 @@ def render_command_grid(lines=None, title: str = ""):
         ]
 
     suffix = "welcome_cmd"
+    quote_id_prefix = "eu-typing-welcome"
+    quote_markup = get_eu_ai_act_typing_inline_markup(id_prefix=quote_id_prefix)
+    quote_bootstrap = get_eu_ai_act_typing_inline_bootstrap(id_prefix=quote_id_prefix)
 
     st.markdown(
         dedent(
@@ -130,21 +138,16 @@ def render_command_grid(lines=None, title: str = ""):
                 box-shadow: 0 12px 28px rgba(15,23,42,.08), inset 0 0 0 1px rgba(148,163,184,.25);
                 padding: 1rem 1.1rem;
                 display: flex;
-                align-items: center;
+                flex-direction: column;
+                align-items: stretch;
                 justify-content: center;
                 min-height: 240px;
                 height: 100%;
                 color: #334155;
-                text-align: center;
+                text-align: left;
               }}
-              .placeholder-{suffix} .ph-label {{
-                font-weight: 700;
-                color:#0f172a;
-                margin-bottom:.25rem;
-              }}
-              .placeholder-{suffix} .ph-sub {{
-                font-size:.9rem;
-                color: rgba(15,23,42,.7);
+              .placeholder-{suffix} .eu-typing {{
+                width: 100%;
               }}
             </style>
             """
@@ -169,9 +172,11 @@ def render_command_grid(lines=None, title: str = ""):
                 typed_lines=list(cached_render),
                 css_classes=css_classes,
                 show_caret=False,
+                quote_markup=quote_markup,
             ),
             unsafe_allow_html=True,
         )
+        components.html(quote_bootstrap, height=0)
         return
 
     typed_lines: List[str] = [""] * len(prepared_lines)
@@ -188,6 +193,7 @@ def render_command_grid(lines=None, title: str = ""):
                     typed_lines=typed_lines,
                     css_classes=css_classes,
                     show_caret=True,
+                    quote_markup=quote_markup,
                 ),
                 unsafe_allow_html=True,
             )
@@ -201,6 +207,7 @@ def render_command_grid(lines=None, title: str = ""):
                     typed_lines=typed_lines,
                     css_classes=css_classes,
                     show_caret=True,
+                    quote_markup=quote_markup,
                 ),
                 unsafe_allow_html=True,
             )
@@ -213,9 +220,11 @@ def render_command_grid(lines=None, title: str = ""):
             typed_lines=typed_lines,
             css_classes=css_classes,
             show_caret=False,
+            quote_markup=quote_markup,
         ),
         unsafe_allow_html=True,
     )
 
     st.session_state[f"{key_prefix}_lines"] = lines_key
     st.session_state[f"{key_prefix}_render"] = tuple(typed_lines)
+    components.html(quote_bootstrap, height=0)

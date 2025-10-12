@@ -6,7 +6,7 @@ numbers use `nl -ba` numbering (1-indexed) for quick cross-checks.
 ## Stage boundaries in `streamlit_app.py`
 | Stage key | Function | Line range | Notes |
 | --- | --- | --- | --- |
-| `intro` | `render_intro_stage` | 1240–1368 | Full-width hero with feature highlights, EU AI Act spotlight, lifecycle primer, and call-to-action buttons. |
+| `intro` | `render_intro_stage` | 1238–1302 | Command grid with inline EU AI Act definition, lifecycle primer, and launch controls. |
 | `overview` | `render_overview_stage` | 1715–2410 | EU AI Act framing, autonomy sliders, and walkthrough of the full pipeline. |
 | `data` | `render_data_stage` | 2411–4179 | Dataset import/generation, linting feedback, and label review utilities. |
 | `evaluate` | `render_evaluate_stage` | 4180–4477 | Evaluation metrics, ROC / confusion matrix views, and governance summary. |
