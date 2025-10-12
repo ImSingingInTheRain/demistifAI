@@ -1,16 +1,62 @@
-import json
+import html
+import re
+import time
 from textwrap import dedent
-import streamlit.components.v1 as components
+from typing import Iterable, List, Sequence
+
+import streamlit as st
 
 
-def render_command_grid(lines=None, title=""):
-    """
-    Renders a 2/3–1/3 responsive grid:
-      - Left: animated command terminal (typewriter)
-      - Right: placeholder card with equal height to the terminal
-    The right card's height is auto-synced to the left via CSS Grid + stretch and
-    a tiny ResizeObserver for stubborn browsers.
-    """
+def _prepare_lines(lines: Iterable[str]) -> List[str]:
+    return ["" if line is None else str(line) for line in lines]
+
+
+def _line_css_class(index: int, text: str, suffix: str) -> str:
+    if index == 0:
+        return f"cmdline-{suffix}"
+    trimmed = text.strip()
+    if trimmed and re.match(r"^dem[a-z]*ai$", trimmed, re.IGNORECASE):
+        return f"hl-{suffix}"
+    return ""
+
+
+def _build_grid_html(
+    *,
+    suffix: str,
+    typed_lines: Sequence[str],
+    css_classes: Sequence[str],
+    show_caret: bool,
+) -> str:
+    segments = []
+    for typed, css_class in zip(typed_lines, css_classes):
+        safe_text = html.escape(typed)
+        if css_class:
+            safe_text = f'<span class="{css_class}">{safe_text}</span>'
+        segments.append(safe_text)
+
+    body_html = "".join(segments)
+    caret_html = f'<span class="caret-{suffix}"></span>' if show_caret else ""
+
+    return dedent(
+        f"""
+        <div class="cmdgrid-{suffix}">
+          <div class="terminal-{suffix}">
+            <pre class="term-body-{suffix}">{body_html}{caret_html}</pre>
+          </div>
+          <div class="placeholder-{suffix}">
+            <div>
+              <div class="ph-label">Placeholder</div>
+              <div class="ph-sub">This panel matches the terminal’s height and will host future UI.</div>
+            </div>
+          </div>
+        </div>
+        """
+    ).strip()
+
+
+def render_command_grid(lines=None, title: str = ""):
+    """Render the intro command grid directly in Streamlit without an iframe."""
+
     if lines is None:
         lines = [
             "$ pip install demAI",
@@ -23,156 +69,153 @@ def render_command_grid(lines=None, title=""):
             "Break down complex AI concepts into clear, tangible actions so that anyone can understand what’s behind the model’s decisions.\n",
             "",
             "democratizeAI",
-            "Empower everyone to engage responsibly with AI, making transparency and trust accessible to all."
+            "Empower everyone to engage responsibly with AI, making transparency and trust accessible to all.",
         ]
 
-    # Unique suffix prevents ID clashes if rendered multiple times
-    suf = "welcome_cmd"
+    suffix = "welcome_cmd"
 
-    lines_json = json.dumps(lines)
+    st.markdown(
+        dedent(
+            f"""
+            <style>
+              .cmdgrid-{suffix} {{
+                display: grid;
+                grid-template-columns: 2fr 1fr;
+                gap: 1.1rem;
+                align-items: stretch;
+              }}
+              @media (max-width: 860px) {{
+                .cmdgrid-{suffix} {{ grid-template-columns: 1fr; }}
+              }}
+              .terminal-{suffix} {{
+                background: #0d1117;
+                color: #e5e7eb;
+                font-family: 'Fira Code', ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+                border-radius: 12px;
+                padding: 1.1rem 1rem 1.3rem;
+                box-shadow: 0 14px 34px rgba(0,0,0,.25);
+                position: relative;
+                overflow: hidden;
+                min-height: 240px;
+                display: flex;
+                flex-direction: column;
+              }}
+              .terminal-{suffix}::before {{
+                content: '●  ●  ●';
+                position: absolute; top: 8px; left: 12px;
+                color: #ef4444cc; letter-spacing: 6px; font-size: .9rem;
+              }}
+              .term-body-{suffix} {{
+                margin-top: 0.6rem;
+                white-space: pre-wrap;
+                word-wrap: break-word;
+                line-height: 1.55;
+                font-size: .95rem;
+                flex: 1 1 auto;
+              }}
+              .cmdline-{suffix} {{ color: #93c5fd; }}
+              .hl-{suffix} {{ color: #a5f3fc; }}
+              .caret-{suffix} {{
+                display:inline-block;
+                width:6px;
+                height:1rem;
+                background:#22d3ee;
+                vertical-align:-0.18rem;
+                animation: blink-{suffix} .85s steps(1,end) infinite;
+              }}
+              @keyframes blink-{suffix} {{ 50% {{ opacity: 0; }} }}
+              .placeholder-{suffix} {{
+                background: linear-gradient(155deg, rgba(248,250,252,.95), rgba(226,232,240,.6));
+                border-radius: 12px;
+                box-shadow: 0 12px 28px rgba(15,23,42,.08), inset 0 0 0 1px rgba(148,163,184,.25);
+                padding: 1rem 1.1rem;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                min-height: 240px;
+                height: 100%;
+                color: #334155;
+                text-align: center;
+              }}
+              .placeholder-{suffix} .ph-label {{
+                font-weight: 700;
+                color:#0f172a;
+                margin-bottom:.25rem;
+              }}
+              .placeholder-{suffix} .ph-sub {{
+                font-size:.9rem;
+                color: rgba(15,23,42,.7);
+              }}
+            </style>
+            """
+        ),
+        unsafe_allow_html=True,
+    )
 
-    html = dedent(f"""
-    <style>
-      /* ---- Scoped grid -------------------------------------------------- */
-      .cmdgrid-{suf} {{
-        display: grid;
-        grid-template-columns: 2fr 1fr;        /* 2/3 : 1/3 */
-        gap: 1.1rem;
-        align-items: stretch;                  /* equal row height */
-      }}
-      @media (max-width: 860px){{
-        .cmdgrid-{suf} {{ grid-template-columns: 1fr; }}
-      }}
+    prepared_lines = _prepare_lines(lines)
+    css_classes = [_line_css_class(idx, line, suffix) for idx, line in enumerate(prepared_lines)]
+    key_prefix = f"cmdgrid_{suffix}"
+    lines_key = tuple(prepared_lines)
 
-      /* ---- Terminal (left) --------------------------------------------- */
-      .terminal-{suf} {{
-        background: #0d1117;
-        color: #e5e7eb;
-        font-family: 'Fira Code', ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
-        border-radius: 12px;
-        padding: 1.1rem 1rem 1.3rem;
-        box-shadow: 0 14px 34px rgba(0,0,0,.25);
-        position: relative;
-        overflow: hidden;
-        min-height: 240px;
-        display: flex;
-        flex-direction: column;
-      }}
-      .terminal-{suf}::before {{
-        content: '●  ●  ●';
-        position: absolute; top: 8px; left: 12px;
-        color: #ef4444cc; letter-spacing: 6px; font-size: .9rem;
-      }}
-      .term-body-{suf} {{
-        margin-top: 0.6rem;
-        white-space: pre-wrap; word-wrap: break-word;
-        line-height: 1.55; font-size: .95rem;
-        flex: 1 1 auto;
-      }}
-      .cmdline-{suf} {{ color: #93c5fd; }}
-      .hl-{suf} {{ color: #a5f3fc; }}
-      .caret-{suf} {{
-        display:inline-block; width:6px; height:1rem;
-        background:#22d3ee; vertical-align:-0.18rem;
-        animation: blink-{suf} .85s steps(1,end) infinite;
-      }}
-      @keyframes blink-{suf} {{ 50% {{ opacity: 0; }} }}
+    placeholder = st.empty()
 
-      /* ---- Placeholder card (right) ------------------------------------ */
-      .placeholder-{suf} {{
-        background: linear-gradient(155deg, rgba(248,250,252,.95), rgba(226,232,240,.6));
-        border-radius: 12px;
-        box-shadow: 0 12px 28px rgba(15,23,42,.08), inset 0 0 0 1px rgba(148,163,184,.25);
-        padding: 1rem 1.1rem;
-        display: flex; align-items: center; justify-content: center;
-        min-height: 240px;          /* matches terminal minimum */
-        height: 100%;               /* stretch to grid row height */
-        color: #334155;
-        text-align: center;
-      }}
-      .placeholder-{suf} .ph-label {{
-        font-weight: 700; color:#0f172a; margin-bottom:.25rem;
-      }}
-      .placeholder-{suf} .ph-sub {{
-        font-size:.9rem; color: rgba(15,23,42,.7);
-      }}
-    </style>
+    cached_lines = st.session_state.get(f"{key_prefix}_lines")
+    cached_render = st.session_state.get(f"{key_prefix}_render")
 
-    <div class="cmdgrid-{suf}">
-      <!-- LEFT: terminal -->
-      <div class="terminal-{suf}">
-        <pre id="term-content-{suf}" class="term-body-{suf}"></pre>
-        <div id="term-caret-{suf}" class="caret-{suf}"></div>
-      </div>
+    if cached_lines == lines_key and cached_render is not None:
+        placeholder.markdown(
+            _build_grid_html(
+                suffix=suffix,
+                typed_lines=list(cached_render),
+                css_classes=css_classes,
+                show_caret=False,
+            ),
+            unsafe_allow_html=True,
+        )
+        return
 
-      <!-- RIGHT: placeholder (equal height) -->
-      <div id="placeholder-{suf}" class="placeholder-{suf}">
-        <div>
-          <div class="ph-label">Placeholder</div>
-          <div class="ph-sub">This panel matches the terminal’s height and will host future UI.</div>
-        </div>
-      </div>
-    </div>
+    typed_lines: List[str] = [""] * len(prepared_lines)
 
-    <script>
-      // Typewriter for terminal lines (robust & simple)
-      const LINES_{suf} = {lines_json};
-      const container_{suf} = document.getElementById("term-content-{suf}");
-      const caret_{suf} = document.getElementById("term-caret-{suf}");
-      container_{suf}.textContent = '';
+    # Initial pause to mimic the original animation timing.
+    time.sleep(0.32)
 
-      const prepared_{suf} = LINES_{suf}.map((rawLine, idx) => {{
-        const safeLine = (rawLine === undefined || rawLine === null) ? '' : String(rawLine);
-        const span = document.createElement('span');
-        span.textContent = '';
-        if(idx === 0){{
-          span.classList.add('cmdline-{suf}');
-        }} else {{
-          const trimmed = safeLine.trim();
-          if(trimmed && /^dem[a-z]*ai$/i.test(trimmed)){{
-            span.classList.add('hl-{suf}');
-          }}
-        }}
-        container_{suf}.appendChild(span);
-        return {{ span, text: safeLine }};
-      }});
+    for idx, line in enumerate(prepared_lines):
+        for char in line:
+            typed_lines[idx] += char
+            placeholder.markdown(
+                _build_grid_html(
+                    suffix=suffix,
+                    typed_lines=typed_lines,
+                    css_classes=css_classes,
+                    show_caret=True,
+                ),
+                unsafe_allow_html=True,
+            )
+            time.sleep(0.024)
 
-      let lineIndex_{suf} = 0;
-      let charIndex_{suf} = 0;
+        if idx < len(prepared_lines) - 1 and not line.endswith("\n"):
+            typed_lines[idx] += "\n"
+            placeholder.markdown(
+                _build_grid_html(
+                    suffix=suffix,
+                    typed_lines=typed_lines,
+                    css_classes=css_classes,
+                    show_caret=True,
+                ),
+                unsafe_allow_html=True,
+            )
 
-      function typeNext_{suf}(){{
-        if(lineIndex_{suf} >= prepared_{suf}.length){{
-          caret_{suf}.style.display = 'none';
-          return;
-        }}
+        time.sleep(0.36)
 
-        const entry_{suf} = prepared_{suf}[lineIndex_{suf}];
-        const span = entry_{suf}.span;
-        const text = entry_{suf}.text;
-        if(charIndex_{suf} < text.length){{
-          span.textContent += text.charAt(charIndex_{suf}++);
-          setTimeout(typeNext_{suf}, 24);
-          return;
-        }}
+    placeholder.markdown(
+        _build_grid_html(
+            suffix=suffix,
+            typed_lines=typed_lines,
+            css_classes=css_classes,
+            show_caret=False,
+        ),
+        unsafe_allow_html=True,
+    )
 
-        if(lineIndex_{suf} < prepared_{suf}.length - 1 && !text.endsWith('\n')){{
-          span.textContent += '\n';
-        }}
-
-        lineIndex_{suf}++;
-        charIndex_{suf} = 0;
-        setTimeout(typeNext_{suf}, 360);
-      }}
-
-      setTimeout(typeNext_{suf}, 320);
-
-      // Height sync fallback (most browsers stretch via CSS Grid already)
-      try {{
-        const grid = document.querySelector('.cmdgrid-{suf}');
-        const ph  = document.getElementById('placeholder-{suf}');
-        const ro = new ResizeObserver(()=>{{ ph.style.height = grid.offsetHeight + 'px'; }});
-        ro.observe(grid);
-      }} catch(e){{ /* no-op */ }}
-    </script>
-    """)
-    components.html(html, height=520, scrolling=False)
+    st.session_state[f"{key_prefix}_lines"] = lines_key
+    st.session_state[f"{key_prefix}_render"] = tuple(typed_lines)
