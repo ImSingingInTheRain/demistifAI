@@ -1,3 +1,4 @@
+import json
 from textwrap import dedent
 import streamlit.components.v1 as components
 
@@ -27,6 +28,8 @@ def render_command_grid(lines=None, title=""):
 
     # Unique suffix prevents ID clashes if rendered multiple times
     suf = "welcome_cmd"
+
+    lines_json = json.dumps(lines)
 
     html = dedent(f"""
     <style>
@@ -113,51 +116,52 @@ def render_command_grid(lines=None, title=""):
 
     <script>
       // Typewriter for terminal lines (robust & simple)
-      const LINES_{suf} = {lines!r};
+      const LINES_{suf} = {lines_json};
       const container_{suf} = document.getElementById("term-content-{suf}");
       const caret_{suf} = document.getElementById("term-caret-{suf}");
       container_{suf}.textContent = '';
 
-      const lineNodes_{suf} = [];
-      for(let idx = 0; idx < LINES_{suf}.length; idx++){{
+      const prepared_{suf} = LINES_{suf}.map((rawLine, idx) => {{
+        const safeLine = (rawLine === undefined || rawLine === null) ? '' : String(rawLine);
         const span = document.createElement('span');
-        const candidateLine = LINES_{suf}[idx];
-        const rawLine = (candidateLine === undefined || candidateLine === null) ? '' : candidateLine;
+        span.textContent = '';
         if(idx === 0){{
           span.classList.add('cmdline-{suf}');
         }} else {{
-          const trimmed = rawLine.trim();
+          const trimmed = safeLine.trim();
           if(trimmed && /^dem[a-z]*ai$/i.test(trimmed)){{
             span.classList.add('hl-{suf}');
           }}
         }}
         container_{suf}.appendChild(span);
-        lineNodes_{suf}.push(span);
-      }}
+        return {{ span, text: safeLine }};
+      }});
 
-      let i_{suf} = 0;
-      let j_{suf} = 0;
+      let lineIndex_{suf} = 0;
+      let charIndex_{suf} = 0;
 
       function typeNext_{suf}(){{
-        if(i_{suf} >= LINES_{suf}.length){{
+        if(lineIndex_{suf} >= prepared_{suf}.length){{
           caret_{suf}.style.display = 'none';
           return;
         }}
-        const candidateActiveLine = LINES_{suf}[i_{suf}];
-        const line = (candidateActiveLine === undefined || candidateActiveLine === null) ? '' : candidateActiveLine;
-        const target = lineNodes_{suf}[i_{suf}];
-        if(j_{suf} < line.length){{
-          target.textContent += line[j_{suf}++];
+
+        const {{ span, text }} = prepared_{suf}[lineIndex_{suf}];
+        if(charIndex_{suf} < text.length){{
+          span.textContent += text.charAt(charIndex_{suf}++);
           setTimeout(typeNext_{suf}, 24);
-        }} else {{
-          if(i_{suf} < LINES_{suf}.length - 1 && !line.endsWith('\n')){{
-            target.textContent += '\n';
-          }}
-          i_{suf}++;
-          j_{suf} = 0;
-          setTimeout(typeNext_{suf}, 360);
+          return;
         }}
+
+        if(lineIndex_{suf} < prepared_{suf}.length - 1 && !text.endsWith('\n')){{
+          span.textContent += '\n';
+        }}
+
+        lineIndex_{suf}++;
+        charIndex_{suf} = 0;
+        setTimeout(typeNext_{suf}, 360);
       }}
+
       setTimeout(typeNext_{suf}, 320);
 
       // Height sync fallback (most browsers stretch via CSS Grid already)
