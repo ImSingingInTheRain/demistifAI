@@ -111,6 +111,7 @@ from demistifai.modeling import (
 from stages.train_stage import render_train_stage
 from ui.animated_logo import render_demai_logo
 from components.ui_command_grid import render_command_grid
+from components.components_mac import render_mac_window
 logger = logging.getLogger(__name__)
 
 
@@ -1246,6 +1247,83 @@ def render_intro_stage():
         render_demai_logo()
         render_command_grid()
 
+        lifecycle_sidecar_html = textwrap.dedent(
+            """
+            <style>
+                .mw-intro-lifecycle__col .lifecycle-sidecar {
+                    display: grid;
+                    gap: 0.75rem;
+                }
+                .mw-intro-lifecycle__col .lifecycle-sidecar__eyebrow {
+                    font-size: 0.7rem;
+                    letter-spacing: 0.18em;
+                    text-transform: uppercase;
+                    font-weight: 700;
+                    color: rgba(15, 23, 42, 0.58);
+                }
+                .mw-intro-lifecycle__col .lifecycle-sidecar__title {
+                    margin: 0;
+                    font-size: 1.25rem;
+                    font-weight: 700;
+                    color: #0f172a;
+                }
+                .mw-intro-lifecycle__col .lifecycle-sidecar__body {
+                    margin: 0;
+                    font-size: 0.95rem;
+                    line-height: 1.6;
+                    color: rgba(15, 23, 42, 0.78);
+                }
+                .mw-intro-lifecycle__col .lifecycle-sidecar__list {
+                    margin: 0;
+                    padding: 0;
+                    list-style: none;
+                    display: grid;
+                    gap: 0.55rem;
+                }
+                .mw-intro-lifecycle__col .lifecycle-sidecar__list li {
+                    display: grid;
+                    gap: 0.15rem;
+                }
+                .mw-intro-lifecycle__col .lifecycle-sidecar__list strong {
+                    font-weight: 700;
+                    color: #1d4ed8;
+                }
+            </style>
+            <div class="lifecycle-sidecar" role="complementary" aria-label="Lifecycle guidance">
+                <div class="lifecycle-sidecar__eyebrow">How to navigate</div>
+                <h5 class="lifecycle-sidecar__title">Work the loop</h5>
+                <p class="lifecycle-sidecar__body">
+                    Explore each stage in sequence, then jump back whenever you discover new risks or feedback.
+                    demAI keeps your progress so you can iterate quickly.
+                </p>
+                <ul class="lifecycle-sidecar__list">
+                    <li>
+                        <strong>Start in Prepare.</strong>
+                        Build a representative dataset and clean sensitive details before training.
+                    </li>
+                    <li>
+                        <strong>Advance to Train &amp; Evaluate.</strong>
+                        Tune your model, benchmark performance, and adjust thresholds responsibly.
+                    </li>
+                    <li>
+                        <strong>Deploy in Use.</strong>
+                        Monitor real traffic, capture corrections, and feed improvements back into Prepare.
+                    </li>
+                </ul>
+            </div>
+            """
+        ).strip()
+
+        render_mac_window(
+            st,
+            title="demAI lifecycle",
+            subtitle="Map and follow each stage of your AI system",
+            ratios=(0.7, 0.3),
+            col_html=[LIFECYCLE_RING_HTML, lifecycle_sidecar_html],
+            dense=True,
+            id_suffix="intro-lifecycle",
+        )
+
     ai_act_quote_wrapper_open = """
         <style>
             .ai-act-quote-block {
@@ -1281,10 +1359,6 @@ def render_intro_stage():
     """
 
     
-    with section_surface():
-        components.html(LIFECYCLE_RING_HTML, height=780, scrolling=False)
-
-
     with section_surface():
         ready_left, ready_right = st.columns([3, 2], gap="large")
         with ready_left:
