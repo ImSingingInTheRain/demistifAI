@@ -1353,12 +1353,7 @@ def render_intro_stage():
         <div class="ai-act-quote-block" role="region" aria-label="Definition of an AI system from the EU AI Act">
     """
 
-    with section_surface():
-        st.markdown(ai_act_quote_wrapper_open, unsafe_allow_html=True)
-        render_eu_ai_act_typing()
-        st.markdown("</div>", unsafe_allow_html=True)
-
-
+    
     with section_surface():
         components.html(LIFECYCLE_RING_HTML, height=780, scrolling=False)
 
