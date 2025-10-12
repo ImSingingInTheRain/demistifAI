@@ -290,7 +290,7 @@ def get_eu_ai_act_typing_inline_bootstrap(*, id_prefix: str = "eu-typing-hero") 
                 var typeDelay = 36;
                 var deleteDelay = 52;
                 var pauseAfterType = 360;
-                var pauseAfterDelete = 240;
+                var pauseAfterDelete = 360;
 
                 if (rootWindow.matchMedia && rootWindow.matchMedia('(max-width:520px)').matches) {
                   typeDelay = 44;
