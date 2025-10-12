@@ -7,22 +7,16 @@ from html import escape
 import streamlit.components.v1 as components
 
 EU_AI_ACT_DEF = (
-    "AI system means a machine-based system that is designed to operate with varying levels of autonomy "
-    "and that may exhibit adaptiveness after deployment, and that, for explicit or implicit objectives, "
-    "infers, from the input it receives, how to generate outputs such as predictions, content, "
-    "recommendations, or decisions that can influence physical or virtual environments."
+    "An AI system infers how to generate outputs that can influence physical or virtual environments."
 )
 
 # map of substrings to highlight when first fully typed
 HLS = [
-    "machine-based",
-    "input",
     "infers",
     "outputs",
-    "predictions",
-    "recommendations",
-    "decisions",
-    "influence",
+    "physical",
+    "virtual",
+    "environments",
 ]
 
 
@@ -268,7 +262,6 @@ def get_eu_ai_act_typing_inline_bootstrap(*, id_prefix: str = "eu-typing-hero") 
                 }
                 container.dataset.animated = '1';
 
-                var definition = container.dataset.definition || '';
                 var highlights = [];
                 try {
                   highlights = JSON.parse(container.dataset.highlights || '[]');
@@ -278,49 +271,117 @@ def get_eu_ai_act_typing_inline_bootstrap(*, id_prefix: str = "eu-typing-hero") 
 
                 typedEl.textContent = '';
 
+                function escapeRegex(str) {
+                  return str.replace(/[-/\\^$*+?.()|[\\]{}]/g, '\\$&');
+                }
+
                 function applyHighlights() {
                   var html = typedEl.textContent;
                   highlights.forEach(function(h) {
                     if (!h) {
                       return;
                     }
-                    var rx = new RegExp('(\\\b' + h.replace(/[-/\\\\^$*+?.()|[\\\\]{}]/g,'\\$$&') + '\\b)', 'i');
+                    var rx = new RegExp('(\\\b' + escapeRegex(h) + '\\b)', 'i');
                     html = html.replace(rx, '<span class="hl hl-pop">$$1</span>');
                   });
                   typedEl.innerHTML = html;
                 }
 
-                var i = 0;
-                var baseDelay = 14;
-                var slowAfterComma = 280;
-                var isMobile = false;
-                if (rootWindow.matchMedia) {
-                  isMobile = rootWindow.matchMedia('(max-width:520px)').matches;
-                }
-                var delay = isMobile ? 18 : baseDelay;
+                var typeDelay = 18;
+                var deleteDelay = 26;
+                var pauseAfterType = 360;
+                var pauseAfterDelete = 240;
 
-                function tick() {
-                  if (i >= definition.length) {
+                if (rootWindow.matchMedia && rootWindow.matchMedia('(max-width:520px)').matches) {
+                  typeDelay = 22;
+                  deleteDelay = 30;
+                }
+
+                var steps = [
+                  { kind: 'type', text: 'An AI system is a machine-based system' },
+                  { kind: 'delete', text: ' a machine-based system' },
+                  { kind: 'type', text: ' designed to operate with varying levels of autonomy' },
+                  { kind: 'delete', text: ' is designed to operate with varying levels of autonomy' },
+                  { kind: 'type', text: ' may exhibit adaptiveness after deployment' },
+                  { kind: 'delete', text: ' may exhibit adaptiveness after deployment' },
+                  { kind: 'type', text: ' for explicit or implicit objectives, infers' },
+                  { kind: 'delete', text: ' for explicit or implicit objectives,' },
+                  { kind: 'type', text: ' from the input it receives' },
+                  { kind: 'delete', text: ' from the input it receives' },
+                  { kind: 'type', text: ' how to generate outputs such as predictions, content, recommendations, or decisions' },
+                  { kind: 'delete', text: ' such as predictions, content, recommendations, or decisions' },
+                  { kind: 'type', text: ' that can influence physical or virtual environments.' }
+                ];
+
+                function typeForward(text, index, done) {
+                  if (index >= text.length) {
+                    return done();
+                  }
+                  var ch = text.charAt(index);
+                  typedEl.textContent += ch;
+                  applyHighlights();
+
+                  var nextDelay = typeDelay;
+                  if (ch === ',' || ch === '—') {
+                    nextDelay = Math.max(typeDelay, 220);
+                  } else if (ch === '.') {
+                    nextDelay = Math.max(typeDelay, 260);
+                  } else if (ch === ' ') {
+                    nextDelay = Math.max(typeDelay, 22);
+                  }
+
+                  rootWindow.setTimeout(function() {
+                    typeForward(text, index + 1, done);
+                  }, nextDelay);
+                }
+
+                function deleteBackward(text, done) {
+                  var length = text.length;
+                  var current = typedEl.textContent;
+                  if (!current.endsWith(text)) {
+                    length = Math.min(length, current.length);
+                  }
+
+                  function stepDelete(remaining) {
+                    if (remaining <= 0) {
+                      return done();
+                    }
+                    typedEl.textContent = typedEl.textContent.slice(0, -1);
+                    applyHighlights();
+                    rootWindow.setTimeout(function() {
+                      stepDelete(remaining - 1);
+                    }, deleteDelay);
+                  }
+
+                  stepDelete(length);
+                }
+
+                function runStep(idx) {
+                  if (idx >= steps.length) {
+                    applyHighlights();
                     caret.style.display = 'none';
                     return;
                   }
-                  var ch = definition.charAt(i++);
-                  typedEl.textContent += ch;
-                  if (/[\\\s,.–—;:)/]/.test(ch)) {
-                    applyHighlights();
-                  }
 
-                  var next = delay;
-                  if (ch === ',' || ch === '—') {
-                    next = slowAfterComma;
+                  var step = steps[idx];
+                  if (step.kind === 'type') {
+                    typeForward(step.text, 0, function() {
+                      rootWindow.setTimeout(function() {
+                        runStep(idx + 1);
+                      }, step.pauseAfter || pauseAfterType);
+                    });
+                  } else {
+                    deleteBackward(step.text, function() {
+                      rootWindow.setTimeout(function() {
+                        runStep(idx + 1);
+                      }, step.pauseAfter || pauseAfterDelete);
+                    });
                   }
-                  if (ch === '.') {
-                    next = slowAfterComma + 120;
-                  }
-                  rootWindow.setTimeout(tick, next);
                 }
 
-                rootWindow.setTimeout(tick, 350);
+                rootWindow.setTimeout(function() {
+                  runStep(0);
+                }, 320);
               })();
             </script>
             """
