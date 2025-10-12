@@ -1304,15 +1304,6 @@ def render_intro_stage():
         components.html(hero_typing_bootstrap, height=0)
         st.markdown(hero_cta_panel_open, unsafe_allow_html=True)
 
-        if next_stage_key:
-            st.button(
-                "🚀 Start your machine",
-                key="flow_start_machine_hero",
-                type="primary",
-                on_click=set_active_stage,
-                args=(next_stage_key,),
-                use_container_width=True,
-            )
         st.markdown("</div>", unsafe_allow_html=True)
 
     ai_act_quote_wrapper_open = """
@@ -1346,7 +1337,7 @@ def render_intro_stage():
                 z-index: 1;
             }
         </style>
-        <div class="ai-act-quote-block" role="region" aria-label="Definition of an AI system from the EU AI Act">
+        <div class="ai-act-quote-block" role="region" aria-label="From the EU AI Act, Article 3">
     """
 
     
