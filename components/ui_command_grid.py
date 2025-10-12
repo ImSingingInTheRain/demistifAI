@@ -146,7 +146,9 @@ def render_command_grid(lines=None, title=""):
           return;
         }}
 
-        const {{ span, text }} = prepared_{suf}[lineIndex_{suf}];
+        const entry_{suf} = prepared_{suf}[lineIndex_{suf}];
+        const span = entry_{suf}.span;
+        const text = entry_{suf}.text;
         if(charIndex_{suf} < text.length){{
           span.textContent += text.charAt(charIndex_{suf}++);
           setTimeout(typeNext_{suf}, 24);
