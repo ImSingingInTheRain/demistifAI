@@ -111,13 +111,6 @@ from demistifai.modeling import (
 from stages.train_stage import render_train_stage
 from ui.animated_logo import render_demai_logo
 from components.ui_command_grid import render_command_grid
-from components.ui_typing_quote import (
-    get_eu_ai_act_typing_inline_bootstrap,
-    get_eu_ai_act_typing_inline_markup,
-    render_eu_ai_act_typing,
-)
-
-
 logger = logging.getLogger(__name__)
 
 
@@ -1249,64 +1242,9 @@ def render_intro_stage():
     if intro_index is not None and intro_index < len(STAGES) - 1:
         next_stage_key = STAGES[intro_index + 1].key
 
-    hero_typing_markup = get_eu_ai_act_typing_inline_markup(id_prefix="eu-typing-hero")
-    hero_typing_bootstrap = get_eu_ai_act_typing_inline_bootstrap(id_prefix="eu-typing-hero")
-
-    hero_copy_html = f"""
-        <div class="hero-copy hero-surface" role="presentation">
-            <p class="hero-lead">
-                demAI is an interactive experience where you will build and operate an AI system—while discovering and applying key concepts from the EU AI Act.
-            </p>
-            <div class="hero-feature-grid" role="list">
-                <article class="hero-feature-card" role="listitem" aria-labelledby="hero-feature-demonstrate-title">
-                    <div class="hero-feature-card__header">
-                        <span class="hero-feature-card__icon" aria-hidden="true">🛠️</span>
-                        <div class="hero-feature-card__meta">
-                            <h3 id="hero-feature-demonstrate-title" class="hero-feature-card__title">DemonstrateAI</h3>
-                        </div>
-                    </div>
-                    <p class="hero-feature-card__body">Experience how an AI system actually works, step by step — from data preparation to predictions — through an interactive, hands-on journey.</p>
-                </article>
-                <article class="hero-feature-card" role="listitem" aria-labelledby="hero-feature-demistify-title">
-                    <div class="hero-feature-card__header">
-                        <span class="hero-feature-card__icon" aria-hidden="true">🧭</span>
-                        <div class="hero-feature-card__meta">
-                            <h3 id="hero-feature-demistify-title" class="hero-feature-card__title">DemistifyAI</h3>
-                        </div>
-                    </div>
-                    <p class="hero-feature-card__body">Break down complex AI concepts into clear, tangible actions so that anyone can understand what’s behind the model’s decisions.</p>
-                </article>
-                <article class="hero-feature-card" role="listitem" aria-labelledby="hero-feature-democratize-title">
-                    <div class="hero-feature-card__header">
-                        <span class="hero-feature-card__icon" aria-hidden="true">🧪</span>
-                        <div class="hero-feature-card__meta">
-                            <h3 id="hero-feature-democratize-title" class="hero-feature-card__title">DemocratizeAI</h3>
-                        </div>
-                    </div>
-                    <p class="hero-feature-card__body">Empower every employee, not just data scientists, to engage responsibly with AI by making transparency and trust accessible to all.</p>
-                </article>
-                <article class="hero-feature-card" role="listitem" aria-labelledby="hero-feature-eu-ai-act-title">
-                    <div class="hero-feature-card__header">
-                        <span class="hero-feature-card__icon" aria-hidden="true">⚖️</span>
-                        <div class="hero-feature-card__meta">
-                            <h3 id="hero-feature-eu-ai-act-title" class="hero-feature-card__title">Understand the EU AI Act</h3>
-                        </div>
-                    </div>
-                    <div class="hero-feature-card__body hero-feature-card__body--animation">
-                        {hero_typing_markup}
-    """
-    hero_cta_panel_open = """
-        <div class="hero-cta-panel" role="complementary">
-    """
-
     with section_surface("section-surface--hero"):
         render_demai_logo()
         render_command_grid()
-        st.markdown(hero_copy_html, unsafe_allow_html=True)
-        components.html(hero_typing_bootstrap, height=0)
-        st.markdown(hero_cta_panel_open, unsafe_allow_html=True)
-
-        st.markdown("</div>", unsafe_allow_html=True)
 
     ai_act_quote_wrapper_open = """
         <style>
