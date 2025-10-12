@@ -98,9 +98,7 @@ def render_command_grid(lines=None, title=""):
     <div class="cmdgrid-{suf}">
       <!-- LEFT: terminal -->
       <div class="terminal-{suf}">
-        <pre id="term-content-{suf}" class="term-body-{suf}">
-<span class="cmdline-{suf}">{lines[0]}</span>
-</pre>
+        <pre id="term-content-{suf}" class="term-body-{suf}"></pre>
         <div id="term-caret-{suf}" class="caret-{suf}"></div>
       </div>
 
@@ -118,22 +116,47 @@ def render_command_grid(lines=None, title=""):
       const LINES_{suf} = {lines!r};
       const container_{suf} = document.getElementById("term-content-{suf}");
       const caret_{suf} = document.getElementById("term-caret-{suf}");
-      let i_{suf} = 1;  // first line already printed
+      container_{suf}.textContent = '';
+
+      const lineNodes_{suf} = [];
+      for(let idx = 0; idx < LINES_{suf}.length; idx++){{
+        const span = document.createElement('span');
+        const rawLine = LINES_{suf}[idx] ?? '';
+        if(idx === 0){{
+          span.classList.add('cmdline-{suf}');
+        }} else {{
+          const trimmed = rawLine.trim();
+          if(trimmed && /^dem[a-z]*ai$/i.test(trimmed)){{
+            span.classList.add('hl-{suf}');
+          }}
+        }}
+        container_{suf}.appendChild(span);
+        lineNodes_{suf}.push(span);
+      }}
+
+      let i_{suf} = 0;
       let j_{suf} = 0;
 
       function typeNext_{suf}(){{
-        if(i_{suf} >= LINES_{suf}.length){{ caret_{suf}.style.display='none'; return; }}
-        const line = LINES_{suf}[i_{suf}];
+        if(i_{suf} >= LINES_{suf}.length){{
+          caret_{suf}.style.display = 'none';
+          return;
+        }}
+        const line = LINES_{suf}[i_{suf}] ?? '';
+        const target = lineNodes_{suf}[i_{suf}];
         if(j_{suf} < line.length){{
-          container_{suf}.innerHTML += line[j_{suf}++];
+          target.textContent += line[j_{suf}++];
           setTimeout(typeNext_{suf}, 24);
         }} else {{
-          container_{suf}.innerHTML += "\n";
-          i_{suf}++; j_{suf} = 0;
-          setTimeout(typeNext_{suf}, 380);
+          if(i_{suf} < LINES_{suf}.length - 1 && !line.endsWith('\n')){{
+            target.textContent += '\n';
+          }}
+          i_{suf}++;
+          j_{suf} = 0;
+          setTimeout(typeNext_{suf}, 360);
         }}
       }}
-      setTimeout(typeNext_{suf}, 600);
+      setTimeout(typeNext_{suf}, 320);
 
       // Height sync fallback (most browsers stretch via CSS Grid already)
       try {{
