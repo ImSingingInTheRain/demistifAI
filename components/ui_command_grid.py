@@ -121,7 +121,8 @@ def render_command_grid(lines=None, title=""):
       const lineNodes_{suf} = [];
       for(let idx = 0; idx < LINES_{suf}.length; idx++){{
         const span = document.createElement('span');
-        const rawLine = LINES_{suf}[idx] ?? '';
+        const candidateLine = LINES_{suf}[idx];
+        const rawLine = (candidateLine === undefined || candidateLine === null) ? '' : candidateLine;
         if(idx === 0){{
           span.classList.add('cmdline-{suf}');
         }} else {{
@@ -142,7 +143,8 @@ def render_command_grid(lines=None, title=""):
           caret_{suf}.style.display = 'none';
           return;
         }}
-        const line = LINES_{suf}[i_{suf}] ?? '';
+        const candidateActiveLine = LINES_{suf}[i_{suf}];
+        const line = (candidateActiveLine === undefined || candidateActiveLine === null) ? '' : candidateActiveLine;
         const target = lineNodes_{suf}[i_{suf}];
         if(j_{suf} < line.length){{
           target.textContent += line[j_{suf}++];
