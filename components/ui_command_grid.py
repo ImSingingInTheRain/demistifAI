@@ -1,5 +1,5 @@
 from textwrap import dedent
-import streamlit as st
+import streamlit.components.v1 as components
 
 
 def render_command_grid(lines=None, title=""):
@@ -121,27 +121,27 @@ def render_command_grid(lines=None, title=""):
       let i_{suf} = 1;  // first line already printed
       let j_{suf} = 0;
 
-      function typeNext_{suf}(){
-        if(i_{suf} >= LINES_{suf}.length){ caret_{suf}.style.display='none'; return; }
+      function typeNext_{suf}(){{
+        if(i_{suf} >= LINES_{suf}.length){{ caret_{suf}.style.display='none'; return; }}
         const line = LINES_{suf}[i_{suf}];
-        if(j_{suf} < line.length){
+        if(j_{suf} < line.length){{
           container_{suf}.innerHTML += line[j_{suf}++];
           setTimeout(typeNext_{suf}, 24);
-        } else {
+        }} else {{
           container_{suf}.innerHTML += "\n";
           i_{suf}++; j_{suf} = 0;
           setTimeout(typeNext_{suf}, 380);
-        }
-      }
+        }}
+      }}
       setTimeout(typeNext_{suf}, 600);
 
       // Height sync fallback (most browsers stretch via CSS Grid already)
-      try {
+      try {{
         const grid = document.querySelector('.cmdgrid-{suf}');
         const ph  = document.getElementById('placeholder-{suf}');
-        const ro = new ResizeObserver(()=>{ ph.style.height = grid.offsetHeight + 'px'; });
+        const ro = new ResizeObserver(()=>{{ ph.style.height = grid.offsetHeight + 'px'; }});
         ro.observe(grid);
-      } catch(e){ /* no-op */ }
+      }} catch(e){{ /* no-op */ }}
     </script>
     """)
-    st.markdown(html, unsafe_allow_html=True)
+    components.html(html, height=520, scrolling=False)

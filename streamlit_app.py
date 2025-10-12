@@ -110,6 +110,7 @@ from demistifai.modeling import (
 
 from stages.train_stage import render_train_stage
 from ui.animated_logo import render_demai_logo
+from components.ui_command_grid import render_command_grid
 from components.ui_typing_quote import (
     get_eu_ai_act_typing_inline_bootstrap,
     get_eu_ai_act_typing_inline_markup,
@@ -1300,6 +1301,7 @@ def render_intro_stage():
 
     with section_surface("section-surface--hero"):
         render_demai_logo()
+        render_command_grid()
         st.markdown(hero_copy_html, unsafe_allow_html=True)
         components.html(hero_typing_bootstrap, height=0)
         st.markdown(hero_cta_panel_open, unsafe_allow_html=True)
