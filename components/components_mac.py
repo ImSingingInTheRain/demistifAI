@@ -183,6 +183,17 @@ def mac_window_html(
 
 
 def render_mac_window(st, **kwargs):
-    """Render directly in Streamlit with native HTML (no iframe)."""
+    """Render the macOS-style window in Streamlit."""
+
     html_str = mac_window_html(**kwargs)
+
+    # Streamlit 1.50 introduced ``st.html`` which properly renders rich HTML and
+    # scripts without escaping them back to text. Use it when available so the
+    # lifecycle map (and other interactive payloads) execute as intended.
+    render_html = getattr(st, "html", None)
+    if callable(render_html):
+        render_html(html_str)
+        return
+
+    # Fall back to the legacy markdown pathway for older Streamlit versions.
     st.markdown(html_str, unsafe_allow_html=True)
