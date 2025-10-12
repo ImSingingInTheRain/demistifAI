@@ -65,8 +65,9 @@ def render_command_grid(lines=None, title: str = ""):
     if lines is None:
         lines = [
             "$ pip install demAI",
+            "\n"
             "Welcome to demAI — an interactive experience where you will build and operate an AI system, while discovering and applying key concepts from the EU AI Act.\n",
-            "",
+            "\n",
             "",
             "demonstrateAI",
             "Experience how an AI system actually works, step by step — from data preparation to predictions — through an interactive, hands-on journey.\n",
