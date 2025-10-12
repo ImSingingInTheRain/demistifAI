@@ -114,7 +114,7 @@ def render_command_grid(lines=None, title: str = ""):
                 color: #ef4444cc; letter-spacing: 6px; font-size: .9rem;
               }}
               .term-body-{suffix} {{
-                margin-top: 0.6rem;
+                margin-top: 1rem;
                 white-space: pre-wrap;
                 word-wrap: break-word;
                 line-height: 1.55;
