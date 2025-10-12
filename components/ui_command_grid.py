@@ -109,8 +109,8 @@ def render_command_grid(lines=None, title: str = ""):
                 flex-direction: column;
               }}
               .terminal-{suffix}::before {{
-                content: '●  ●  ●';
-                position: absolute; top: 8px; left: 12px;
+                content: '●';
+                position: absolute; top: 10px; left: 12px;
                 color: #ef4444cc; letter-spacing: 6px; font-size: .9rem;
               }}
               .term-body-{suffix} {{
