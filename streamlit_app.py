@@ -1293,7 +1293,6 @@ def render_intro_stage():
                     </div>
                     <div class="hero-feature-card__body hero-feature-card__body--animation">
                         {hero_typing_markup}
-        </div>
     """
     hero_cta_panel_open = """
         <div class="hero-cta-panel" role="complementary">
