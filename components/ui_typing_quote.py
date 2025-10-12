@@ -71,6 +71,7 @@ def _eu_ai_act_typing_markup(
       @keyframes pop { 0%{transform:scale(.96); box-shadow:0 0 0 rgba(79,70,229,0);}
                        70%{transform:scale(1.02); box-shadow:0 8px 18px rgba(79,70,229,.25);}
                        100%{transform:scale(1); box-shadow:0 0 0 rgba(79,70,229,0);} }
+      .typing-bold { font-weight:700; }
 
       /* small screens */
       @media (max-width:520px){
@@ -271,26 +272,159 @@ def get_eu_ai_act_typing_inline_bootstrap(*, id_prefix: str = "eu-typing-hero") 
 
                 typedEl.textContent = '';
 
-                function escapeRegex(str) {
-                  return str.replace(/[-/\\^$*+?.()|[\\]{}]/g, '\\$&');
-                }
-
-                function applyHighlights() {
-                  var html = typedEl.textContent;
+                function createHighlightState() {
+                  var state = {};
                   highlights.forEach(function(h) {
                     if (!h) {
                       return;
                     }
-                    var rx = new RegExp('(\\\b' + escapeRegex(h) + '\\b)', 'i');
-                    html = html.replace(rx, '<span class="hl hl-pop">$$1</span>');
+                    state[h.toLowerCase()] = 0;
                   });
+                  return state;
+                }
+
+                var highlightState = createHighlightState();
+                var currentText = '';
+                var boldRange = null;
+
+                function resetHighlightState() {
+                  highlightState = createHighlightState();
+                }
+
+                function computeHighlightRanges(text) {
+                  var ranges = [];
+                  var lower = text.toLowerCase();
+
+                  function isBoundary(ch) {
+                    return !/[a-z0-9_]/.test(ch);
+                  }
+
+                  highlights.forEach(function(h) {
+                    if (!h) {
+                      return;
+                    }
+                    var key = h.toLowerCase();
+                    var len = key.length;
+                    var searchFrom = 0;
+                    var foundIndex = -1;
+
+                    while (searchFrom < lower.length) {
+                      var idx = lower.indexOf(key, searchFrom);
+                      if (idx === -1) {
+                        break;
+                      }
+                      var before = idx === 0 ? '' : lower.charAt(idx - 1);
+                      var after = idx + len >= lower.length ? '' : lower.charAt(idx + len);
+                      if ((idx === 0 || isBoundary(before)) && (idx + len >= lower.length || isBoundary(after))) {
+                        foundIndex = idx;
+                        break;
+                      }
+                      searchFrom = idx + 1;
+                    }
+
+                    if (foundIndex !== -1) {
+                      var cls = highlightState[key] === 1 ? 'hl' : 'hl hl-pop';
+                      highlightState[key] = 1;
+                      ranges.push({ start: foundIndex, end: foundIndex + len, className: cls });
+                    } else {
+                      highlightState[key] = 0;
+                    }
+                  });
+
+                  return ranges;
+                }
+
+                function escapeHtmlChar(ch) {
+                  if (ch === '&') return '&amp;';
+                  if (ch === '<') return '&lt;';
+                  if (ch === '>') return '&gt;';
+                  return ch;
+                }
+
+                function renderText() {
+                  var ranges = computeHighlightRanges(currentText);
+                  var openEvents = {};
+
+                  function schedule(start, event) {
+                    if (!openEvents[start]) {
+                      openEvents[start] = [];
+                    }
+                    openEvents[start].push(event);
+                  }
+
+                  if (boldRange && boldRange.end > boldRange.start) {
+                    var boundedEnd = Math.min(boldRange.end, currentText.length);
+                    if (boundedEnd > boldRange.start) {
+                      schedule(boldRange.start, {
+                        end: boundedEnd,
+                        open: '<strong class="typing-bold">',
+                        close: '</strong>',
+                        priority: 0
+                      });
+                    }
+                  }
+
+                  ranges.forEach(function(range) {
+                    var boundedEnd = Math.min(range.end, currentText.length);
+                    if (boundedEnd > range.start) {
+                      schedule(range.start, {
+                        end: boundedEnd,
+                        open: '<span class="' + range.className + '">',
+                        close: '</span>',
+                        priority: 1
+                      });
+                    }
+                  });
+
+                  var html = '';
+                  var stack = [];
+                  for (var i = 0; i < currentText.length; i++) {
+                    while (stack.length && stack[stack.length - 1].end <= i) {
+                      html += stack.pop().close;
+                    }
+
+                    var openings = openEvents[i];
+                    if (openings && openings.length) {
+                      openings.sort(function(a, b) {
+                        return a.priority - b.priority;
+                      });
+                      for (var j = 0; j < openings.length; j++) {
+                        html += openings[j].open;
+                        stack.push(openings[j]);
+                      }
+                    }
+
+                    html += escapeHtmlChar(currentText.charAt(i));
+                  }
+
+                  while (stack.length) {
+                    html += stack.pop().close;
+                  }
+
                   typedEl.innerHTML = html;
+                }
+
+                function updateBoldRangeForCurrentText() {
+                  if (!boldRange) {
+                    return;
+                  }
+                  if (boldRange.start >= currentText.length) {
+                    boldRange = null;
+                    return;
+                  }
+                  if (boldRange.end > currentText.length) {
+                    boldRange.end = currentText.length;
+                  }
+                  if (boldRange.end <= boldRange.start) {
+                    boldRange = null;
+                  }
                 }
 
                 var typeDelay = 36;
                 var deleteDelay = 52;
-                var pauseAfterType = 360;
-                var pauseAfterDelete = 360;
+                var pauseAfterType = 3000;
+                var pauseAfterDelete = 3000;
+                var pauseBetweenCycles = 0;
 
                 if (rootWindow.matchMedia && rootWindow.matchMedia('(max-width:520px)').matches) {
                   typeDelay = 44;
@@ -315,11 +449,16 @@ def get_eu_ai_act_typing_inline_bootstrap(*, id_prefix: str = "eu-typing-hero") 
 
                 function typeForward(text, index, done) {
                   if (index >= text.length) {
+                    renderText();
                     return done();
                   }
+
                   var ch = text.charAt(index);
-                  typedEl.textContent += ch;
-                  applyHighlights();
+                  currentText += ch;
+                  if (boldRange) {
+                    boldRange.end = currentText.length;
+                  }
+                  renderText();
 
                   var nextDelay = typeDelay;
                   if (ch === ',' || ch === '—') {
@@ -337,34 +476,52 @@ def get_eu_ai_act_typing_inline_bootstrap(*, id_prefix: str = "eu-typing-hero") 
 
                 function deleteBackward(text, done) {
                   var length = text.length;
-                  var current = typedEl.textContent;
-                  if (!current.endsWith(text)) {
-                    length = Math.min(length, current.length);
+                  if (!currentText.endsWith(text)) {
+                    length = Math.min(length, currentText.length);
                   }
 
                   function stepDelete(remaining) {
                     if (remaining <= 0) {
+                      updateBoldRangeForCurrentText();
+                      renderText();
                       return done();
                     }
-                    typedEl.textContent = typedEl.textContent.slice(0, -1);
-                    applyHighlights();
+
+                    currentText = currentText.slice(0, -1);
+                    updateBoldRangeForCurrentText();
+                    renderText();
+
                     rootWindow.setTimeout(function() {
                       stepDelete(remaining - 1);
                     }, deleteDelay);
                   }
 
-                  stepDelete(length);
+                  stepDelete(Math.min(length, currentText.length));
+                }
+
+                function restartCycle() {
+                  caret.style.display = 'inline-block';
+                  currentText = '';
+                  boldRange = null;
+                  resetHighlightState();
+                  renderText();
+                  rootWindow.setTimeout(function() {
+                    runStep(0);
+                  }, 200);
                 }
 
                 function runStep(idx) {
                   if (idx >= steps.length) {
-                    applyHighlights();
                     caret.style.display = 'none';
+                    rootWindow.setTimeout(function() {
+                      restartCycle();
+                    }, pauseBetweenCycles);
                     return;
                   }
 
                   var step = steps[idx];
                   if (step.kind === 'type') {
+                    boldRange = { start: currentText.length, end: currentText.length };
                     typeForward(step.text, 0, function() {
                       rootWindow.setTimeout(function() {
                         runStep(idx + 1);
@@ -378,6 +535,8 @@ def get_eu_ai_act_typing_inline_bootstrap(*, id_prefix: str = "eu-typing-hero") 
                     });
                   }
                 }
+
+                renderText();
 
                 rootWindow.setTimeout(function() {
                   runStep(0);

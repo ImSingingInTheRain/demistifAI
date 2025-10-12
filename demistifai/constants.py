@@ -419,6 +419,10 @@ APP_THEME_CSS = """
     padding: 0.05rem 0.2rem;
 }
 
+.hero-feature-card__body--animation .typing-bold {
+    font-weight: 700;
+}
+
 .hero-feature-card__body--animation .hl-pop {
     animation: pop 0.28s ease-out;
 }
