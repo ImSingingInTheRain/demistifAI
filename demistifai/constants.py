@@ -1744,7 +1744,6 @@ LIFECYCLE_RING_HTML = dedent(
             /* ===== Scoped to #demai-lifecycle =================================== */
             #demai-lifecycle.dlc {
                 --ring-size: min(560px, 82vw);
-                --r-arrow: 28%;
                 --square-inset: clamp(16%, calc(50% - 180px), 22%);
                 --elev: 0 14px 30px rgba(15, 23, 42, 0.12);
                 --stroke: inset 0 0 0 1px rgba(15, 23, 42, 0.06);
@@ -1789,9 +1788,6 @@ LIFECYCLE_RING_HTML = dedent(
             #demai-lifecycle .arrow,
             #demai-lifecycle .loop {
                 position: absolute;
-                top: 50%;
-                left: 50%;
-                transform: translate(-50%, -50%) rotate(var(--angle, 0deg)) translate(var(--r, 0%)) rotate(calc(-1 * var(--angle, 0deg)));
                 transform-origin: center center;
             }
 
@@ -1846,7 +1842,12 @@ LIFECYCLE_RING_HTML = dedent(
 
             /* Arrows */
             #demai-lifecycle .arrow {
-                --r: var(--r-arrow);
+                --arrow-top: 50%;
+                --arrow-left: 50%;
+                --angle: 0deg;
+                top: var(--arrow-top);
+                left: var(--arrow-left);
+                transform: translate(-50%, -50%) rotate(var(--angle));
                 width: 38px;
                 height: 38px;
                 display: flex;
@@ -1860,11 +1861,34 @@ LIFECYCLE_RING_HTML = dedent(
                 user-select: none;
             }
 
+            #demai-lifecycle .arrow-top {
+                --arrow-top: calc(var(--square-inset));
+                --arrow-left: 50%;
+                --angle: 0deg;
+            }
+            #demai-lifecycle .arrow-right {
+                --arrow-top: 50%;
+                --arrow-left: calc(100% - var(--square-inset));
+                --angle: 90deg;
+            }
+            #demai-lifecycle .arrow-bottom {
+                --arrow-top: calc(100% - var(--square-inset));
+                --arrow-left: 50%;
+                --angle: 180deg;
+            }
+            #demai-lifecycle .arrow-left {
+                --arrow-top: 50%;
+                --arrow-left: calc(var(--square-inset));
+                --angle: 270deg;
+            }
+
             /* Loop glyph */
             #demai-lifecycle .loop {
-                --r: calc(var(--r-node) + 6%);
-                font-size: 1.1rem;
-                color: rgba(30, 64, 175, 0.65);
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                font-size: 2rem;
+                color: rgba(30, 64, 175, 0.55);
             }
 
             /* Tooltips */
@@ -1968,7 +1992,6 @@ LIFECYCLE_RING_HTML = dedent(
                 #demai-lifecycle {
                     --ring-size: 86vw;
                     --r-node: 39%;
-                    --r-arrow: 26%;
                 }
                 #demai-lifecycle .node {
                     min-width: 122px;
@@ -2025,7 +2048,7 @@ LIFECYCLE_RING_HTML = dedent(
                 <span class="tip" role="tooltip" id="tip-prepare">Gather representative emails, label them carefully, and scrub PII so the model learns from balanced, trustworthy examples.</span>
             </button>
 
-            <div class="arrow pos-0" aria-hidden="true">➝</div>
+            <div class="arrow arrow-top" aria-hidden="true">➝</div>
 
             <button class="node corner-ne" data-stage="train" aria-describedby="desc-train">
                 <span class="icon" aria-hidden="true">🧠</span>
@@ -2035,7 +2058,7 @@ LIFECYCLE_RING_HTML = dedent(
                 </span>
             </button>
 
-            <div class="arrow pos-90" aria-hidden="true">➝</div>
+            <div class="arrow arrow-right" aria-hidden="true">➝</div>
 
             <button class="node corner-se" data-stage="evaluate" aria-describedby="desc-evaluate">
                 <span class="icon" aria-hidden="true">🧪</span>
@@ -2045,7 +2068,7 @@ LIFECYCLE_RING_HTML = dedent(
                 </span>
             </button>
 
-            <div class="arrow pos-180" aria-hidden="true">➝</div>
+            <div class="arrow arrow-bottom" aria-hidden="true">➝</div>
 
             <button class="node corner-sw" data-stage="use" aria-describedby="desc-use">
                 <span class="icon" aria-hidden="true">📬</span>
@@ -2055,8 +2078,8 @@ LIFECYCLE_RING_HTML = dedent(
                 </span>
             </button>
 
-            <div class="arrow pos-270" aria-hidden="true">➝</div>
-            <div class="loop pos-330" aria-hidden="true">↺</div>
+            <div class="arrow arrow-left" aria-hidden="true">➝</div>
+            <div class="loop" aria-hidden="true">↺</div>
         </div>
 
         <script>
