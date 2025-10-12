@@ -114,7 +114,6 @@ from components.ui_typing_quote import (
     get_eu_ai_act_typing_inline_bootstrap,
     get_eu_ai_act_typing_inline_markup,
     render_eu_ai_act_typing,
-    render_machine_definition_typing,
 )
 
 
@@ -1792,9 +1791,6 @@ def render_overview_stage():
         """,
         unsafe_allow_html=True,
     )
-
-    with section_surface():
-        render_machine_definition_typing()
 
     with section_surface():
         top_left, top_right = st.columns([0.48, 0.52], gap="large")

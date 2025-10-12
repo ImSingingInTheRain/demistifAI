@@ -287,14 +287,14 @@ def get_eu_ai_act_typing_inline_bootstrap(*, id_prefix: str = "eu-typing-hero") 
                   typedEl.innerHTML = html;
                 }
 
-                var typeDelay = 18;
-                var deleteDelay = 26;
+                var typeDelay = 36;
+                var deleteDelay = 52;
                 var pauseAfterType = 360;
                 var pauseAfterDelete = 240;
 
                 if (rootWindow.matchMedia && rootWindow.matchMedia('(max-width:520px)').matches) {
-                  typeDelay = 22;
-                  deleteDelay = 30;
+                  typeDelay = 44;
+                  deleteDelay = 60;
                 }
 
                 var steps = [
