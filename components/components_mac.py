@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import html
 import uuid
-from textwrap import dedent
+from textwrap import dedent, indent
 
 
 def mac_window_html(
@@ -39,6 +39,25 @@ def mac_window_html(
     ph_text = "rgba(15,23,42,.55)" if theme == "light" else "rgba(229,231,235,.55)"
 
     pad = ".9rem 1.05rem" if dense else "1.1rem 1.25rem"
+
+    col_padding_reset_css = ""
+    if id_suffix == "overview-mac-placeholder":
+        col_padding_reset_css = (
+            "\n"
+            + indent(
+                dedent(
+                    f"""
+                    .mw-{suf}__col {{
+                      padding-top: unset;
+                      padding-bottom: unset;
+                      padding-left: unset;
+                      padding-right: unset;
+                    }}
+                    """
+                ).strip("\n"),
+                "          ",
+            )
+        )
 
     placeholders = [
         dedent(
@@ -130,7 +149,7 @@ def mac_window_html(
             display: grid;
             align-content: start;
             gap: .65rem;
-          }}
+          }}{col_padding_reset_css}
 
           /* Placeholder skeleton */
           .mw-{suf}__placeholder {{
