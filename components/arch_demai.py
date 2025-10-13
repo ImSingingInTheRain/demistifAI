@@ -6,13 +6,7 @@ import streamlit as st
 def render_demai_architecture(nerd_mode: bool = False, active_stage: str | None = None):
     """
     Renders the interactive 'demAI machine' architecture diagram used across stages.
-
-    Uses `st.html` when available (Streamlit ≥ 1.36) so that `<style>`/`<script>`
-    tags execute correctly on newer releases; falls back to `st.markdown` for
-    older deployments.
-
-    nerd_mode=True  -> auto-expand cards and reveal extra details.
-    active_stage    -> optional highlight: 'overview'/'data'/'train'/'evaluate'/'use'
+    (Same architecture: style_block + html_block + script_block)
     """
 
     # Content
@@ -29,7 +23,7 @@ def render_demai_architecture(nerd_mode: bool = False, active_stage: str | None 
     UI_DESC     = ("Your control panel for building and using the system. Tooltips and explainers guide each step.")
     UI_NERD     = "Stages: Prepare • Train • Evaluate • Use; debug panels; parameter sliders; model insights."
 
-    # Highlight ring by stage (optional, subtle glow)
+    # Optional highlight
     stage_glow = {
         "overview": "ui",
         "data":     "ui",
@@ -42,48 +36,62 @@ def render_demai_architecture(nerd_mode: bool = False, active_stage: str | None 
     glow_inbox = " is-glow" if stage_glow == "inbox" else ""
     glow_model = " is-glow" if stage_glow == "model" else ""
 
-
+    # ---------- Styles (updated) ----------
     style_block = dedent("""
     <style>
       .demai-arch {
-        --ink: #0f172a; --muted: rgba(15,23,42,.72);
-        --ring1: rgba(99,102,241,.10); --ring2: rgba(14,165,233,.10); --ring3: rgba(15,23,42,.06);
-        --card: #fff; --shadow: 0 14px 30px rgba(15,23,42,.12), inset 0 0 0 1px rgba(15,23,42,.06);
+        --ink: #0f172a; --muted: rgba(15,23,42,.78);
+        --ring1: rgba(99,102,241,.10); --ring2: rgba(14,165,233,.10);
+        --card: #fff; --shadow: 0 16px 36px rgba(15,23,42,.14), inset 0 0 0 1px rgba(15,23,42,.06);
         position: relative; border-radius: 16px;
-        background: radial-gradient(90% 90% at 50% 50%, var(--ring1), var(--ring2));
-        box-shadow: inset 0 0 0 1px rgba(15,23,42,.06);
-        padding: clamp(14px, 3vw, 22px); margin: .25rem 0 1rem 0; isolation: isolate;
+        background: radial-gradient(90% 90% at 50% 0%, rgba(2,132,199,.10), rgba(99,102,241,.06));
+        padding: clamp(12px, 2.6vw, 20px); margin: .25rem 0 1rem 0; isolation: isolate;
       }
 
       .demai-arch__canvas {
-        position: relative; width: min(920px, 100%); margin: 0 auto;
-        aspect-ratio: 16 / 9; border-radius: 12px;
-        background: linear-gradient(180deg, rgba(255,255,255,.7), rgba(255,255,255,.35));
+        position: relative; width: min(980px, 100%); margin: 0 auto;
+        aspect-ratio: 16 / 9; border-radius: 14px;
+        background: linear-gradient(180deg, rgba(255,255,255,.85), rgba(248,250,252,.70));
         box-shadow: inset 0 0 0 1px rgba(15,23,42,.06); overflow: hidden;
       }
       @supports not (aspect-ratio: 16 / 9) {
         .demai-arch__canvas::before { content:""; display:block; padding-top:56.25%; }
       }
 
-      .demai-arch__ring { position:absolute; inset:6%; border-radius:18px; display:grid; place-items:center; }
-      .demai-arch__ring--outer { inset:4%;  box-shadow: inset 0 0 0 2px rgba(15,23,42,.06); }
-      .demai-arch__ring--mid   { inset:12%; box-shadow: inset 0 0 0 2px rgba(15,23,42,.08); }
-      .demai-arch__ring--inner { inset:26%; box-shadow: inset 0 0 0 2px rgba(15,23,42,.10); }
+      /* Rings: give more space so cards can size up nicely */
+      .demai-arch__ring { position:absolute; border-radius:18px; display:grid; place-items:center; }
+      .demai-arch__ring--outer { inset: 6%; box-shadow: inset 0 0 0 2px rgba(15,23,42,.06); }
+      .demai-arch__ring--mid   { inset: 16%; box-shadow: inset 0 0 0 2px rgba(15,23,42,.08); }
+      .demai-arch__ring--inner { inset: 32%; box-shadow: inset 0 0 0 2px rgba(15,23,42,.10); }
 
-      .demai-arch__ring.is-glow { box-shadow: inset 0 0 0 2px rgba(59,130,246,.35), 0 0 0 6px rgba(59,130,246,.10); }
-
-      .demai-arch__slot { display:grid; place-items:center; width:100%; height:100%; padding:4%; }
-
-      .demai-arch .arch-card {
-        width: min(520px, 86%); max-width: 520px; background: var(--card);
-        border-radius: 14px; box-shadow: var(--shadow); transform-style: preserve-3d;
-        perspective: 1000px; cursor: pointer; position: relative;
+      .demai-arch__ring.is-glow {
+        box-shadow:
+          inset 0 0 0 2px rgba(59,130,246,.45),
+          0 0 0 6px rgba(59,130,246,.12),
+          0 8px 28px rgba(59,130,246,.10);
       }
+
+      .demai-arch__slot { display:grid; place-items:center; width:100%; height:100%; padding: 3.5%; }
+
+      /* Cards: give them a real height so absolute faces don't collapse the parent */
+      .demai-arch .arch-card {
+        width: min(560px, 88%); max-width: 560px;
+        min-height: clamp(140px, 24vh, 190px);   /* <- critical fix */
+        background: var(--card);
+        border-radius: 16px; box-shadow: var(--shadow);
+        transform-style: preserve-3d; perspective: 1000px;
+        cursor: pointer; position: relative;
+        transition: transform .18s ease;
+      }
+      .demai-arch .arch-card:hover { transform: translateY(-2px); }
+
       .demai-arch .arch-card__face {
-        padding: clamp(14px, 2.4vw, 18px) clamp(16px, 2.8vw, 22px);
-        backface-visibility: hidden; transition: transform .6s ease, opacity .6s ease;
-        border-radius: 14px; position: absolute; inset: 0; display:grid; gap:.35rem;
-        align-content:center; text-align:center;
+        position: absolute; inset: 0;
+        padding: clamp(16px, 2.8vw, 22px) clamp(18px, 3vw, 26px);
+        display:grid; gap:.5rem; align-content:center; text-align:center;
+        border-radius: 16px;
+        backface-visibility: hidden;
+        transition: transform .6s ease, opacity .6s ease;
       }
       .demai-arch .arch-card__front { transform: rotateY(0deg); }
       .demai-arch .arch-card__back  { transform: rotateY(180deg); opacity: 0; }
@@ -93,12 +101,15 @@ def render_demai_architecture(nerd_mode: bool = False, active_stage: str | None 
 
       .demai-arch .arch-card__title {
         font-weight: 800; color: var(--ink);
-        display:inline-flex; gap:.5rem; align-items:center; justify-content:center;
-        font-size: clamp(1rem, 1.2vw + .8rem, 1.15rem);
+        display:inline-flex; gap:.55rem; align-items:center; justify-content:center;
+        font-size: clamp(1.06rem, 1.1vw + .95rem, 1.25rem);
       }
-      .demai-arch .arch-card__icon { font-size: clamp(1.1rem, 1.4vw + .9rem, 1.35rem); }
-      .demai-arch .arch-card__desc { color: var(--muted); line-height:1.55; font-size:.96rem; }
-      .demai-arch .arch-card__extra { margin-top:.35rem; font-size:.86rem; color:rgba(15,23,42,.78); background:rgba(226,232,240,.6); border-radius:8px; padding:.5rem .6rem; }
+      .demai-arch .arch-card__icon { font-size: clamp(1.2rem, 1.4vw + 1rem, 1.5rem); }
+      .demai-arch .arch-card__desc { color: var(--muted); line-height:1.58; font-size: clamp(.95rem, .35vw + .9rem, 1rem); }
+      .demai-arch .arch-card__extra {
+        margin-top:.4rem; font-size: .9rem; color: rgba(15,23,42,.85);
+        background: rgba(226,232,240,.6); border-radius:10px; padding:.55rem .7rem;
+      }
 
       .demai-arch.nerd-on .arch-card { cursor: default; }
       .demai-arch.nerd-on .arch-card .arch-card__front { display:none; }
@@ -106,13 +117,18 @@ def render_demai_architecture(nerd_mode: bool = False, active_stage: str | None 
 
       .demai-arch .arch-card:focus-visible { outline:2px solid rgba(59,130,246,.7); outline-offset:4px; }
 
+      /* Mobile */
       @media (max-width: 680px){
         .demai-arch__canvas { aspect-ratio: 4 / 5; }
-        .demai-arch__ring--inner { inset: 20%; }
+        .demai-arch__ring--outer { inset: 4%; }
+        .demai-arch__ring--mid   { inset: 12%; }
+        .demai-arch__ring--inner { inset: 28%; }
+        .demai-arch .arch-card { min-height: clamp(150px, 30vh, 220px); }
       }
     </style>
     """)
 
+    # ---------- Markup ----------
     html_block = dedent(f"""
     <div class="demai-arch{' nerd-on' if nerd_mode else ''}" aria-label="demAI architecture diagram">
       <div class="demai-arch__canvas" role="presentation">
@@ -164,6 +180,7 @@ def render_demai_architecture(nerd_mode: bool = False, active_stage: str | None 
     </div>
     """)
 
+    # ---------- Script (unchanged behavior) ----------
     script_block = dedent("""
     <script>
       (function() {
