@@ -1290,24 +1290,16 @@ def render_intro_stage():
                 }
             </style>
             <div class="lifecycle-sidecar" role="complementary" aria-label="Lifecycle guidance">
-                <div class="lifecycle-sidecar__eyebrow">How to navigate</div>
-                <h5 class="lifecycle-sidecar__title">Work the loop</h5>
+                <div class="lifecycle-sidecar__eyebrow">What you'll do</div>
+                <h5 class="lifecycle-sidecar__title">Build and use an AI spam detector</h5>
                 <p class="lifecycle-sidecar__body">
-                    Explore each stage in sequence, then jump back whenever you discover new risks or feedback.
-                    demAI keeps your progress so you can iterate quickly.
+                    In this interactive journey, you’ll build and use your own AI system, an email spam detector. You will experience the key steps of a development lifecycle, step by step: no technical skills are needed. 
+                    Along the way, you’ll uncover how AI systems learn, make predictions, while applying in practice key concepts from the EU AI Act.
                 </p>
                 <ul class="lifecycle-sidecar__list">
                     <li>
-                        <strong>Start in Prepare.</strong>
-                        Build a representative dataset and clean sensitive details before training.
-                    </li>
-                    <li>
-                        <strong>Advance to Train &amp; Evaluate.</strong>
-                        Tune your model, benchmark performance, and adjust thresholds responsibly.
-                    </li>
-                    <li>
-                        <strong>Deploy in Use.</strong>
-                        Monitor real traffic, capture corrections, and feed improvements back into Prepare.
+                        <strong>Discover your journey</strong>
+                        To your right, you’ll find an interactive map showing the full lifecycle of your AI system— this is your guide through this hands-on exploration of responsible and transparent AI.
                     </li>
                 </ul>
             </div>
