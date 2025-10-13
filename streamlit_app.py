@@ -1400,7 +1400,15 @@ def render_intro_stage():
             id_suffix="intro-lifecycle",
         )
 
-        mac_window_height = 0 if next_stage_key else 620
+        # ``components.html`` requires an explicit height. We previously set the
+        # iframe height to ``0`` when a "next stage" existed (the common intro
+        # scenario) so the component could size itself automatically. Newer
+        # Streamlit builds, however, strictly honour the provided height and a
+        # zero value collapses the iframe, hiding the entire mac window chrome.
+        # Set a sensible fixed height so the lifecycle map is always visible
+        # while keeping the fallback path intact if the intro stage ever lacks a
+        # successor.
+        mac_window_height = 620 if next_stage_key else 460
 
         mac_window_response = components.html(
             f"{mac_window_markup}{cta_bootstrap_html}",
