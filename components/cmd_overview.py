@@ -227,9 +227,9 @@ def _build_animation_html(
                 const stripped = part.trim();
                 let safe = escapeHtml(part);
                 if (/^dem[a-z]*ai$/i.test(stripped)) {{
-                  safe = `<span class="hl-{_TERMINAL_SUFFIX}">${safe}</span>`;
+                  safe = `<span class="hl-{_TERMINAL_SUFFIX}">${{safe}}</span>`;
                 }} else if (part.startsWith('$ ')) {{
-                  safe = `<span class="cmdline-{_TERMINAL_SUFFIX}">${safe}</span>`;
+                  safe = `<span class="cmdline-{_TERMINAL_SUFFIX}">${{safe}}</span>`;
                 }}
                 result += safe;
               }}
