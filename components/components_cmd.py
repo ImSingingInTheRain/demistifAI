@@ -48,8 +48,12 @@ def render_ai_act_terminal(
         {"kind": "type", "text": "$ pip install demAI\n\n"},
     ]
 
-    demai_lines_json = json.dumps(demai_lines)
-    ops_json = json.dumps(ops)
+    def _safe_json(obj):
+        # Prevent </script> from breaking out of the script tag
+        return json.dumps(obj).replace("</script>", "<\\/script>")
+
+    demai_lines_json = _safe_json(demai_lines)
+    ops_json = _safe_json(ops)
 
     suf = "ai_act_fullterm"
 
@@ -80,6 +84,7 @@ def render_ai_act_terminal(
                 line-height: 1.6;
                 font-size: .96rem;
               }}
+              .caret-{suf} {{ margin-left: 2px; }}
               .cmdline-{suf} {{ color: #93c5fd; }}
               .hl-{suf}     {{ color: #a5f3fc; font-weight: 600; }}
               .caret-{suf} {{
@@ -96,7 +101,7 @@ def render_ai_act_terminal(
             </div>
 
             <script>
-              (function(){{
+              window.requestAnimationFrame(function(){
                 const term   = document.getElementById("term-{suf}");
                 const caret  = document.getElementById("caret-{suf}");
                 const ops    = {ops_json};
@@ -198,15 +203,15 @@ def render_ai_act_terminal(
                     }});
                   }});
                 }});
-              }})();
+              });
             </script>
             """
     )
 
     render_html = getattr(st, "html", None)
     if callable(render_html):
-        render_html(html_payload)
+        render_html(html_payload, height=360, scrolling=False)
         return
 
-    components.html(html_payload, height=310, scrolling=False)
+    components.html(html_payload, height=360, scrolling=False)
 
