@@ -111,7 +111,6 @@ from demistifai.modeling import (
 from stages.train_stage import render_train_stage
 from ui.animated_logo import render_demai_logo
 from components.components_cmd import render_ai_act_terminal
-from components.components_mac import mac_window_html
 logger = logging.getLogger(__name__)
 
 
@@ -1247,99 +1246,130 @@ def render_intro_stage():
         render_demai_logo()
         render_ai_act_terminal()
 
-        cta_button_html = ""
-        cta_bootstrap_html = ""
-
-        if next_stage_key:
-            cta_button_html = textwrap.dedent(
-                """
-                <button id="intro-lifecycle-cta" class="lifecycle-sidecar__cta" type="button">
-                    🚀 Start your machine
-                </button>
-                """
-            ).strip()
-
-            cta_bootstrap_html = textwrap.dedent(
-                """
-                <script>
-                  (function () {
-                    const MAX_ATTEMPTS = 10;
-                    let attempts = 0;
-
-                    function bindCta() {
-                      const btn = document.getElementById("intro-lifecycle-cta");
-                      const streamlit = window.Streamlit;
-                      if (!btn || !streamlit) {
-                        if (attempts < MAX_ATTEMPTS) {
-                          attempts += 1;
-                          window.setTimeout(bindCta, 80);
-                        }
-                        return;
-                      }
-
-                      if (!btn.dataset.bound) {
-                        btn.dataset.bound = "true";
-                        btn.addEventListener("click", function (event) {
-                          event.preventDefault();
-                          streamlit.setComponentValue("start-machine");
-                        });
-                      }
-
-                      streamlit.setFrameHeight(
-                        document.documentElement.scrollHeight || document.body.scrollHeight
-                      );
-                    }
-
-                    window.addEventListener("load", bindCta);
-                    bindCta();
-                  })();
-                </script>
-                """
-            ).strip()
-
-        lifecycle_sidecar_html = (
-            textwrap.dedent(
-                """
+        intro_mac_styles = textwrap.dedent(
+            """
             <style>
-                .mw-intro-lifecycle__col .lifecycle-sidecar {
+                /* === intro mac window shell ==================================== */
+                div[data-testid="stVerticalBlock"]:has(> div.intro-mac-window__chrome) {
+                    border-radius: 14px;
+                    overflow: hidden;
+                    box-shadow: 0 16px 40px rgba(15, 23, 42, 0.12);
+                    background: #ffffff;
+                    border: 1px solid rgba(15, 23, 42, 0.08);
+                }
+                div[data-testid="stVerticalBlock"]:has(> div.intro-mac-window__chrome)
+                    > div[data-testid="stHorizontalBlock"] {
+                    padding: 1.05rem 1.25rem 1.35rem;
+                    background: linear-gradient(155deg, rgba(248, 250, 252, 0.95), rgba(226, 232, 240, 0.55));
+                    gap: 1rem;
+                }
+                div[data-testid="stVerticalBlock"]:has(> div.intro-mac-window__chrome)
+                    div[data-testid="stColumn"] > div[data-testid="stVerticalBlock"] {
+                    background: transparent;
+                    box-shadow: none;
+                }
+
+                /* Chrome */
+                .intro-mac-window__chrome {
+                    display: grid;
+                    grid-template-columns: auto 1fr;
+                    align-items: center;
+                    gap: 0.75rem;
+                    padding: 0.65rem 1rem;
+                    background: #f5f7fb;
+                    border-bottom: 1px solid rgba(15, 23, 42, 0.12);
+                }
+                .intro-mac-window__lights {
+                    display: inline-flex;
+                    gap: 0.45rem;
+                    padding-left: 0.15rem;
+                }
+                .intro-mac-window__light {
+                    width: 12px;
+                    height: 12px;
+                    border-radius: 999px;
+                    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.08);
+                }
+                .intro-mac-window__light--red {
+                    background: #ff5f56;
+                }
+                .intro-mac-window__light--yellow {
+                    background: #ffbd2e;
+                }
+                .intro-mac-window__light--green {
+                    background: #27c93f;
+                }
+                .intro-mac-window__titles {
+                    display: grid;
+                    gap: 0.15rem;
+                }
+                .intro-mac-window__title {
+                    font-weight: 800;
+                    color: #0f172a;
+                    line-height: 1.2;
+                }
+                .intro-mac-window__subtitle {
+                    font-size: 0.92rem;
+                    color: rgba(15, 23, 42, 0.7);
+                }
+
+                /* Columns */
+                .mw-intro-lifecycle__col {
+                    border-radius: 12px;
+                    background: linear-gradient(155deg, rgba(248, 250, 252, 0.95), rgba(226, 232, 240, 0.55));
+                    box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.25);
+                    padding: 1rem 1.1rem;
+                    display: grid;
+                    align-content: start;
+                    gap: 0.65rem;
+                }
+                .mw-intro-lifecycle__col--ring {
+                    padding: 0.3rem;
+                    background: transparent;
+                    box-shadow: none;
+                }
+
+                /* Sidecar copy */
+                .lifecycle-sidecar {
                     display: grid;
                     gap: 0.75rem;
                 }
-                .mw-intro-lifecycle__col .lifecycle-sidecar__eyebrow {
+                .lifecycle-sidecar__eyebrow {
                     font-size: 0.7rem;
                     letter-spacing: 0.18em;
                     text-transform: uppercase;
                     font-weight: 700;
                     color: rgba(15, 23, 42, 0.58);
                 }
-                .mw-intro-lifecycle__col .lifecycle-sidecar__title {
+                .lifecycle-sidecar__title {
                     margin: 0;
                     font-size: 1.25rem;
                     font-weight: 700;
                     color: #0f172a;
                 }
-                .mw-intro-lifecycle__col .lifecycle-sidecar__body {
+                .lifecycle-sidecar__body {
                     margin: 0;
                     font-size: 0.95rem;
                     line-height: 1.6;
                     color: rgba(15, 23, 42, 0.78);
                 }
-                .mw-intro-lifecycle__col .lifecycle-sidecar__list {
+                .lifecycle-sidecar__list {
                     margin: 0;
                     padding: 0;
                     list-style: none;
                     display: grid;
                     gap: 0.55rem;
                 }
-                .mw-intro-lifecycle__col .lifecycle-sidecar__list li {
+                .lifecycle-sidecar__list li {
                     display: grid;
                     gap: 0.15rem;
                 }
-                .mw-intro-lifecycle__col .lifecycle-sidecar__list strong {
+                .lifecycle-sidecar__list strong {
                     font-weight: 700;
                     color: #1d4ed8;
                 }
-                .mw-intro-lifecycle__col .lifecycle-sidecar__cta {
+                div[data-testid="stVerticalBlock"]:has(> div.lifecycle-sidecar)
+                    div[data-testid="stButton"] > button {
                     margin-top: 0.35rem;
                     display: inline-flex;
                     align-items: center;
@@ -1352,70 +1382,98 @@ def render_intro_stage():
                     background: #2563eb;
                     color: #fff;
                     border: none;
-                    cursor: pointer;
                     box-shadow: 0 14px 30px rgba(37, 99, 235, 0.25);
-                    transition: transform 0.15s ease, box-shadow 0.15s ease;
                     width: 100%;
                     text-align: center;
                 }
-                .mw-intro-lifecycle__col .lifecycle-sidecar__cta:hover {
+                div[data-testid="stVerticalBlock"]:has(> div.lifecycle-sidecar)
+                    div[data-testid="stButton"] > button:hover {
                     transform: translateY(-1px);
                     box-shadow: 0 18px 32px rgba(37, 99, 235, 0.3);
                 }
-                .mw-intro-lifecycle__col .lifecycle-sidecar__cta:focus-visible {
+                div[data-testid="stVerticalBlock"]:has(> div.lifecycle-sidecar)
+                    div[data-testid="stButton"] > button:focus-visible {
                     outline: 3px solid rgba(59, 130, 246, 0.45);
                     outline-offset: 3px;
                 }
+
+                @media (max-width: 920px) {
+                    div[data-testid="stVerticalBlock"]:has(> div.intro-mac-window__chrome)
+                        > div[data-testid="stHorizontalBlock"] {
+                        grid-auto-flow: row;
+                    }
+                }
             </style>
-            <div class="lifecycle-sidecar" role="complementary" aria-label="Lifecycle guidance">
-                <div class="lifecycle-sidecar__eyebrow">What you'll do</div>
-                <h5 class="lifecycle-sidecar__title">Build and use an AI spam detector</h5>
-                <p class="lifecycle-sidecar__body">
-                    In this interactive journey, you’ll build and use your own AI system, an email spam detector. You will experience the key steps of a development lifecycle, step by step: no technical skills are needed.
-                    Along the way, you’ll uncover how AI systems learn, make predictions, while applying in practice key concepts from the EU AI Act.
-                </p>
-                <ul class="lifecycle-sidecar__list">
-                    <li>
-                        <strong>Discover your journey</strong>
-                        To your right, you’ll find an interactive map showing the full lifecycle of your AI system— this is your guide through this hands-on exploration of responsible and transparent AI.
-                    </li>
-                    <li>
-                        <strong>Are you ready to make a machine learn?</strong>
-                        Click the button below to start your demAI journey!
-                        __CTA_BUTTON__
-                    </li>
-                </ul>
+            """
+        )
+
+        st.markdown(intro_mac_styles, unsafe_allow_html=True)
+
+        lifecycle_sidecar_html = textwrap.dedent(
+            """
+            <div class="mw-intro-lifecycle__col">
+                <div class="lifecycle-sidecar" role="complementary" aria-label="Lifecycle guidance">
+                    <div class="lifecycle-sidecar__eyebrow">What you'll do</div>
+                    <h5 class="lifecycle-sidecar__title">Build and use an AI spam detector</h5>
+                    <p class="lifecycle-sidecar__body">
+                        In this interactive journey, you’ll build and use your own AI system, an email spam detector. You will experience the key steps of a development lifecycle, step by step: no technical skills are needed.
+                        Along the way, you’ll uncover how AI systems learn, make predictions, while applying in practice key concepts from the EU AI Act.
+                    </p>
+                    <ul class="lifecycle-sidecar__list">
+                        <li>
+                            <strong>Discover your journey</strong>
+                            To your right, you’ll find an interactive map showing the full lifecycle of your AI system— this is your guide through this hands-on exploration of responsible and transparent AI.
+                        </li>
+                        <li>
+                            <strong>Are you ready to make a machine learn?</strong>
+                            Click the button below to start your demAI journey!
+                        </li>
+                    </ul>
+                </div>
             </div>
             """
+        ).strip()
+
+        start_clicked = False
+
+        with st.container():
+            st.markdown(
+                textwrap.dedent(
+                    """
+                    <div class="intro-mac-window__chrome" role="group" aria-label="Your AI system window">
+                        <div class="intro-mac-window__lights" aria-hidden="true">
+                            <span class="intro-mac-window__light intro-mac-window__light--red"></span>
+                            <span class="intro-mac-window__light intro-mac-window__light--yellow"></span>
+                            <span class="intro-mac-window__light intro-mac-window__light--green"></span>
+                        </div>
+                        <div class="intro-mac-window__titles">
+                            <div class="intro-mac-window__title">Your AI system</div>
+                            <div class="intro-mac-window__subtitle">Explore the lifecycle of demAI</div>
+                        </div>
+                    </div>
+                    """
+                ),
+                unsafe_allow_html=True,
             )
-            .replace("__CTA_BUTTON__", cta_button_html)
-            .strip()
-        )
 
-        mac_window_markup = mac_window_html(
-            title="Your AI system",
-            ratios=(0.3, 0.7),
-            col_html=[lifecycle_sidecar_html, LIFECYCLE_RING_HTML],
-            dense=True,
-            id_suffix="intro-lifecycle",
-        )
+            left_col, right_col = st.columns((0.32, 0.68), gap="large")
 
-        # ``components.html`` requires an explicit height. We previously set the
-        # iframe height to ``0`` when a "next stage" existed (the common intro
-        # scenario) so the component could size itself automatically. Newer
-        # Streamlit builds, however, strictly honour the provided height and a
-        # zero value collapses the iframe, hiding the entire mac window chrome.
-        # Set a sensible fixed height so the lifecycle map is always visible
-        # while keeping the fallback path intact if the intro stage ever lacks a
-        # successor.
-        mac_window_height = 620 if next_stage_key else 460
+            with left_col:
+                st.markdown(lifecycle_sidecar_html, unsafe_allow_html=True)
+                if next_stage_key:
+                    start_clicked = st.button(
+                        "🚀 Start your machine",
+                        key="intro_start_machine",
+                        use_container_width=True,
+                    )
 
-        mac_window_response = components.html(
-            f"{mac_window_markup}{cta_bootstrap_html}",
-            height=mac_window_height,
-        )
+            with right_col:
+                st.markdown(
+                    f"<div class='mw-intro-lifecycle__col mw-intro-lifecycle__col--ring'>{LIFECYCLE_RING_HTML}</div>",
+                    unsafe_allow_html=True,
+                )
 
-        if mac_window_response == "start-machine" and next_stage_key:
+        if start_clicked and next_stage_key:
             set_active_stage(next_stage_key)
 
     ai_act_quote_wrapper_open = """
