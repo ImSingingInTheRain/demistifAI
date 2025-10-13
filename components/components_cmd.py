@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import inspect
 import json
 from textwrap import dedent
 
@@ -210,8 +211,19 @@ def render_ai_act_terminal(
 
     render_html = getattr(st, "html", None)
     if callable(render_html):
-        render_html(html_payload, height=360, scrolling=False)
-        return
+        preferred_kwargs = {"height": 360, "scrolling": False}
+        try:
+            render_html(html_payload, **preferred_kwargs)
+            return
+        except TypeError:
+            sig = inspect.signature(render_html)
+            supported_kwargs = {
+                key: preferred_kwargs[key]
+                for key in preferred_kwargs
+                if key in sig.parameters
+            }
+            render_html(html_payload, **supported_kwargs)
+            return
 
     components.html(html_payload, height=360, scrolling=False)
 
