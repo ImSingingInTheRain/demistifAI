@@ -23,20 +23,8 @@ _DEFAULT_DEMAI_LINES: List[str] = [
 ]
 
 _DEFAULT_OPS = [
-    {"kind": "type", "text": "$ get EU AI Act AI system definition\n\n"},
-    {"kind": "type", "text": "An AI system is a machine-based system"},
-    {"kind": "delete", "text": " a machine-based system"},
-    {"kind": "type", "text": " designed to operate with varying levels of autonomy"},
-    {"kind": "delete", "text": " designed to operate with varying levels of autonomy"},
-    {"kind": "type", "text": " may exhibit adaptiveness after deployment"},
-    {"kind": "delete", "text": " may exhibit adaptiveness after deployment"},
-    {"kind": "type", "text": " for explicit or implicit objectives, infers"},
-    {"kind": "delete", "text": " for explicit or implicit objectives, infers"},
-    {"kind": "type", "text": " infers from the input it receives"},
-    {"kind": "delete", "text": " from the input it receives"},
-    {"kind": "type", "text": " how to generate outputs such as predictions, content, recommendations, or decisions"},
-    {"kind": "delete", "text": " such as predictions, content, recommendations, or decisions"},
-    {"kind": "type", "text": " that can influence physical or virtual environments.\n\n"},
+    {"kind": "type", "text": "$ get EU-AI-Act.definition\n\n"},
+    {"kind": "type", "text": " ‘AI system’ means a machine-based system that is designed to operate with varying levels of autonomy and that may exhibit adaptiveness after deployment, and that, for explicit or implicit objectives, infers, from the input it receives, how to generate outputs such as predictions, content, recommendations, or decisions that can influence physical or virtual environments; \n\n"},
     {"kind": "type", "text": "confused?\n\n"},
     {"kind": "type", "text": "$ pip install demAI\n\n"},
 ]
