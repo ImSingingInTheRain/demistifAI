@@ -1245,7 +1245,7 @@ def render_intro_stage():
 
     with section_surface("section-surface--hero"):
         render_demai_logo()
-        render_command_grid()
+        render_ai_act_terminal()
 
         lifecycle_sidecar_html = textwrap.dedent(
             """
