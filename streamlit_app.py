@@ -1447,8 +1447,7 @@ def render_intro_stage():
                             <span class="intro-mac-window__light intro-mac-window__light--green"></span>
                         </div>
                         <div class="intro-mac-window__titles">
-                            <div class="intro-mac-window__title">Your AI system</div>
-                            <div class="intro-mac-window__subtitle">Explore the lifecycle of demAI</div>
+                            <div class="intro-mac-window__title">Start your demAI journey</div>
                         </div>
                     </div>
                     """
