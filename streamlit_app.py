@@ -1448,8 +1448,16 @@ def render_intro_stage():
                         Click the button below to start your demAI journey!
                     </li>
                 </ul>
-                <div id="intro-start-button-slot" class="intro-start-button-slot" aria-live="polite"></div>
-            </div>
+               <div id="intro-start-button-source" class="intro-start-button-source">',
+                            unsafe_allow_html=True,
+                        )
+                        if next_stage_key:
+                            start_clicked = st.button(
+                                "🚀 Start your machine",
+                                key="intro_start_machine",
+                                use_container_width=True,
+                            )
+                </div>
             """
         ).strip()
 
@@ -1470,19 +1478,6 @@ def render_intro_stage():
         )
 
         start_clicked = False
-
-        with st.container():
-            st.markdown(
-                '<div id="intro-start-button-source" class="intro-start-button-source">',
-                unsafe_allow_html=True,
-            )
-            if next_stage_key:
-                start_clicked = st.button(
-                    "🚀 Start your machine",
-                    key="intro_start_machine",
-                    use_container_width=True,
-                )
-            st.markdown("</div>", unsafe_allow_html=True)
 
         st.markdown(
             """
