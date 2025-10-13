@@ -1316,8 +1316,7 @@ def render_intro_stage():
 
         render_mac_window(
             st,
-            title="demAI lifecycle",
-            subtitle="Map and follow each stage of your AI system",
+            title="Your AI system",
             ratios=(0.7, 0.3),
             col_html=[LIFECYCLE_RING_HTML, lifecycle_sidecar_html],
             dense=True,
