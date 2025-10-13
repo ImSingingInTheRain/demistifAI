@@ -115,6 +115,8 @@ from components.components_cmd import render_ai_act_terminal
 from components.components_mac import render_mac_window
 logger = logging.getLogger(__name__)
 
+st.session_state.setdefault("viewport_is_mobile", False)
+
 
 def callable_or_attr(target: Any, attr: str | None = None) -> bool:
     """Return True if ``target`` (or one of its attributes) is callable."""
@@ -1561,7 +1563,16 @@ def render_overview_stage():
 
     with section_surface("section-surface--arch"):
         st.markdown("#### The demAI machine — your system at a glance")
-        render_demai_architecture(nerd_mode=nerd_flag, active_stage="overview")
+        is_narrow = (
+            st.session_state.get("viewport_is_mobile")
+            if "viewport_is_mobile" in st.session_state
+            else False
+        )
+        if is_narrow:
+            with st.expander("Show system diagram"):
+                render_demai_architecture(nerd_mode=nerd_flag, active_stage="overview")
+        else:
+            render_demai_architecture(nerd_mode=nerd_flag, active_stage="overview")
 
     st.markdown(
         """
