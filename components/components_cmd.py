@@ -25,7 +25,7 @@ _DEFAULT_DEMAI_LINES: List[str] = [
 _DEFAULT_OPS = [
     {"kind": "type", "text": "$ get EU-AI-Act.definition\n\n"},
     {"kind": "type", "text": " ‘AI system’ means a machine-based system that is designed to operate with varying levels of autonomy and that may exhibit adaptiveness after deployment, and that, for explicit or implicit objectives, infers, from the input it receives, how to generate outputs such as predictions, content, recommendations, or decisions that can influence physical or virtual environments; \n\n"},
-    {"kind": "type", "text": "confused?\n\n"},
+    {"kind": "type", "text": "...confused?\n\n"},
     {"kind": "type", "text": "$ pip install demAI\n\n"},
 ]
 
@@ -47,7 +47,7 @@ def _ensure_terminal_css() -> None:
             color: #e5e7eb;
             font-family: 'Fira Code', ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
             border-radius: 12px;
-            padding: 1.1rem 1rem 1.3rem;
+            padding: 1.5rem 1rem 1.3rem;
             box-shadow: 0 14px 34px rgba(0,0,0,.25);
             position: relative;
             overflow: hidden;
