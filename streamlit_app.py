@@ -1306,14 +1306,6 @@ def render_intro_stage():
                         Click the button below to start your demAI journey!
                     </li>
                 </ul>
-        if next_stage_key:
-                st.button(
-                    "🚀 Start your machine",
-                    key="flow_start_machine_ready",
-                    type="primary",
-                    on_click=set_active_stage,
-                    args=(next_stage_key,),
-                )
             </div>
             """
         ).strip()
@@ -1326,6 +1318,18 @@ def render_intro_stage():
             dense=True,
             id_suffix="intro-lifecycle",
         )
+
+        if next_stage_key:
+            cta_col, _ = st.columns([0.35, 0.65])
+            with cta_col:
+                st.button(
+                    "🚀 Start your machine",
+                    key="flow_start_machine_ready",
+                    type="primary",
+                    on_click=set_active_stage,
+                    args=(next_stage_key,),
+                    use_container_width=True,
+                )
 
     ai_act_quote_wrapper_open = """
         <style>
