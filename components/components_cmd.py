@@ -34,7 +34,7 @@ def render_ai_act_terminal(
         {"kind": "type", "text": "An AI system is a machine-based system"},
         {"kind": "delete", "text": " a machine-based system"},
         {"kind": "type", "text": " designed to operate with varying levels of autonomy"},
-        {"kind": "delete", "text": " is designed to operate with varying levels of autonomy"},
+        {"kind": "delete", "text": " designed to operate with varying levels of autonomy"},
         {"kind": "type", "text": " may exhibit adaptiveness after deployment"},
         {"kind": "delete", "text": " may exhibit adaptiveness after deployment"},
         {"kind": "type", "text": " for explicit or implicit objectives, infers"},
