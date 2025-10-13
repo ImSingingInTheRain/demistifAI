@@ -5,6 +5,7 @@ import json
 import re
 from textwrap import dedent
 from typing import Iterable, List
+from uuid import uuid4
 
 import streamlit as st
 import streamlit.components.v1 as components
@@ -133,178 +134,174 @@ def _compute_final_state(ops: Iterable[dict], demai_lines: Iterable[str]) -> str
     return raw
 
 
-def _build_animation_html(
-    ops: Iterable[dict],
-    demai_lines: Iterable[str],
-    speed_type_ms: int,
-    speed_delete_ms: int,
-    pause_between_ops_ms: int,
-) -> str:
-    payload = {
-        "ops": list(ops),
-        "lines": list(demai_lines),
-        "speed_type": max(speed_type_ms, 0),
-        "speed_delete": max(speed_delete_ms, 0),
-        "pause_between_ops": max(pause_between_ops_ms, 0),
-    }
-    data = json.dumps(payload)
-
+def _build_inline_mount_markup(config: dict, mount_id: str) -> str:
+    config_attr = html.escape(json.dumps(config), quote=True)
     return dedent(
         f"""
-        <style>
-          .terminal-{_TERMINAL_SUFFIX} {{
-            width: 100%;
-            background: #0d1117;
-            color: #e5e7eb;
-            font-family: 'Fira Code', ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
-            border-radius: 12px;
-            padding: 1.5rem 1rem 1.3rem;
-            box-shadow: 0 14px 34px rgba(0,0,0,.25);
-            position: relative;
-            overflow: hidden;
-            min-height: 260px;
-          }}
-          .terminal-{_TERMINAL_SUFFIX}::before {{
-            content: '●  ●  ●';
-            position: absolute; top: 8px; left: 12px;
-            color: #ef4444cc; letter-spacing: 6px; font-size: .9rem;
-          }}
-          .term-body-{_TERMINAL_SUFFIX} {{
-            margin-top: .8rem;
-            white-space: pre-wrap;
-            word-wrap: break-word;
-            line-height: 1.6;
-            font-size: .96rem;
-          }}
-          .caret-{_TERMINAL_SUFFIX} {{
-            margin-left: 2px;
-            display:inline-block; width:6px; height:1rem;
-            background:#22d3ee; vertical-align:-0.18rem;
-            animation: blink-{_TERMINAL_SUFFIX} .85s steps(1,end) infinite;
-          }}
-          .cmdline-{_TERMINAL_SUFFIX} {{ color: #93c5fd; }}
-          .hl-{_TERMINAL_SUFFIX}     {{ color: #a5f3fc; font-weight: 600; }}
-          @keyframes blink-{_TERMINAL_SUFFIX} {{ 50% {{ opacity: 0; }} }}
-        </style>
-        <div class="terminal-{_TERMINAL_SUFFIX}">
+        <div id="{mount_id}" class="terminal-{_TERMINAL_SUFFIX}" data-config='{config_attr}' data-animated="0">
           <pre class="term-body-{_TERMINAL_SUFFIX}"></pre>
           <span class="caret-{_TERMINAL_SUFFIX}"></span>
         </div>
+        """
+    )
+
+
+def _build_inline_bootstrap(mount_id: str) -> str:
+    script = dedent(
+        """
         <script>
-          (function() {{
-            const config = {data};
-            const ops = Array.isArray(config.ops) ? config.ops : [];
-            const manifesto = Array.isArray(config.lines) ? config.lines : [];
-            const typeDelay = Math.max(config.speed_type, 0);
-            const deleteDelay = Math.max(config.speed_delete, 0);
-            const pauseDelay = Math.max(config.pause_between_ops, 0);
+          (function() {
+            var doc = document;
+            try {
+              if (window.parent && window.parent.document) {
+                doc = window.parent.document;
+              }
+            } catch (err) {
+              // ignore cross-origin access issues
+            }
 
-            const pre = document.querySelector('.term-body-{_TERMINAL_SUFFIX}');
-            const caret = document.querySelector('.caret-{_TERMINAL_SUFFIX}');
-            if (!pre || !caret) {{
+            if (!doc) {
               return;
-            }}
+            }
 
-            let raw = '';
+            var mount = doc.getElementById("__MOUNT_ID__");
+            if (!mount) {
+              return;
+            }
 
-            function escapeHtml(value) {{
+            if (mount.dataset.animated === "1") {
+              return;
+            }
+            mount.dataset.animated = "1";
+
+            var config = {};
+            try {
+              config = JSON.parse(mount.dataset.config || "{}");
+            } catch (err) {
+              config = {};
+            }
+
+            var ops = Array.isArray(config.ops) ? config.ops : [];
+            var manifesto = Array.isArray(config.lines) ? config.lines : [];
+            var typeDelay = Math.max(config.speed_type || 0, 0);
+            var deleteDelay = Math.max(config.speed_delete || 0, 0);
+            var pauseDelay = Math.max(config.pause_between_ops || 0, 0);
+
+            var pre = mount.querySelector(".term-body-__SUFFIX__");
+            var caret = mount.querySelector(".caret-__SUFFIX__");
+            if (!pre || !caret) {
+              return;
+            }
+
+            var raw = "";
+
+            function escapeHtml(value) {
               return value
-                .replace(/&/g, '&amp;')
-                .replace(/</g, '&lt;')
-                .replace(/>/g, '&gt;')
-                .replace(/"/g, '&quot;')
-                .replace(/'/g, '&#x27;');
-            }}
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#x27;");
+            }
 
-            function highlight(text) {{
-              const parts = text.split(/(\n)/);
-              let result = '';
-              for (const part of parts) {{
-                if (part === '\n') {{
-                  result += '\n';
+            function highlight(text) {
+              var parts = text.split(/(\n)/);
+              var result = "";
+              for (var i = 0; i < parts.length; i += 1) {
+                var part = parts[i];
+                if (part === "\n") {
+                  result += "\n";
                   continue;
-                }}
-                const stripped = part.trim();
-                let safe = escapeHtml(part);
-                if (/^dem[a-z]*ai$/i.test(stripped)) {{
-                  safe = `<span class="hl-{_TERMINAL_SUFFIX}">${{safe}}</span>`;
-                }} else if (part.startsWith('$ ')) {{
-                  safe = `<span class="cmdline-{_TERMINAL_SUFFIX}">${{safe}}</span>`;
-                }}
+                }
+                var stripped = part.trim();
+                var safe = escapeHtml(part);
+                if (/^dem[a-z]*ai$/i.test(stripped)) {
+                  safe = '<span class="hl-__SUFFIX__">' + safe + "</span>";
+                } else if (part.indexOf("$ ") === 0) {
+                  safe = '<span class="cmdline-__SUFFIX__">' + safe + "</span>";
+                }
                 result += safe;
-              }}
+              }
               return result;
-            }}
+            }
 
-            function render(showCaret) {{
+            function render(showCaret) {
               pre.innerHTML = highlight(raw);
-              caret.style.display = showCaret ? 'inline-block' : 'none';
-            }}
+              caret.style.display = showCaret ? "inline-block" : "none";
+            }
 
-            function wait(ms) {{
-              return ms > 0 ? new Promise(resolve => setTimeout(resolve, ms)) : Promise.resolve();
-            }}
+            function wait(ms) {
+              if (!ms) {
+                return Promise.resolve();
+              }
+              return new Promise(function(resolve) {
+                setTimeout(resolve, ms);
+              });
+            }
 
-            async function typeText(text) {{
-              if (!text) {{
+            async function typeText(text) {
+              if (!text) {
                 return;
-              }}
-              for (const ch of text) {{
-                raw += ch;
+              }
+              for (var idx = 0; idx < text.length; idx += 1) {
+                raw += text.charAt(idx);
                 render(true);
                 await wait(typeDelay);
-              }}
-            }}
+              }
+            }
 
-            async function deleteText(text) {{
-              if (!text) {{
+            async function deleteText(text) {
+              if (!text) {
                 render(true);
                 return;
-              }}
-              const target = String(text);
-              if (!raw.endsWith(target)) {{
+              }
+              var target = String(text);
+              if (!raw.endsWith(target)) {
                 render(true);
                 return;
-              }}
-              for (let i = 0; i < target.length; i += 1) {{
+              }
+              for (var j = 0; j < target.length; j += 1) {
                 raw = raw.slice(0, -1);
                 render(true);
                 await wait(deleteDelay);
-              }}
-            }}
+              }
+            }
 
-            async function run() {{
+            async function run() {
               render(true);
-              for (const op of ops) {{
-                const kind = op && op.kind;
-                const text = op && typeof op.text === 'string' ? op.text : '';
-                if (kind === 'type') {{
+              for (var k = 0; k < ops.length; k += 1) {
+                var op = ops[k] || {};
+                var kind = op.kind;
+                var text = typeof op.text === "string" ? op.text : "";
+                if (kind === "type") {
                   await typeText(text);
-                }} else if (kind === 'delete') {{
+                } else if (kind === "delete") {
                   await deleteText(text);
-                }} else {{
+                } else {
                   render(true);
-                }}
+                }
                 await wait(pauseDelay);
-              }}
+              }
 
-              await typeText('\n');
-              for (const line of manifesto) {{
-                const content = typeof line === 'string' ? line : '';
-                await typeText(content);
-                if (!content.endsWith('\n')) {{
-                  await typeText('\n');
-                }}
-              }}
+              await typeText("\n");
+              for (var m = 0; m < manifesto.length; m += 1) {
+                var line = typeof manifesto[m] === "string" ? manifesto[m] : "";
+                await typeText(line);
+                if (!line.endsWith("\n")) {
+                  await typeText("\n");
+                }
+              }
 
               render(false);
-            }}
+            }
 
             run();
-          }})();
+          })();
         </script>
         """
     )
+
+    return script.replace("__MOUNT_ID__", mount_id).replace("__SUFFIX__", _TERMINAL_SUFFIX)
 
 
 def render_ai_act_terminal(
@@ -328,15 +325,18 @@ def render_ai_act_terminal(
         return
 
     prepared_lines = _prepare_lines(demai_lines)
-    animation_html = _build_animation_html(
-        _DEFAULT_OPS,
-        prepared_lines,
-        speed_type_ms=speed_type_ms,
-        speed_delete_ms=speed_delete_ms,
-        pause_between_ops_ms=pause_between_ops_ms,
-    )
+    config = {
+        "ops": list(_DEFAULT_OPS),
+        "lines": prepared_lines,
+        "speed_type": max(speed_type_ms, 0),
+        "speed_delete": max(speed_delete_ms, 0),
+        "pause_between_ops": max(pause_between_ops_ms, 0),
+    }
+    mount_id = f"terminal-{_TERMINAL_SUFFIX}-{uuid4().hex}"
+    mount_markup = _build_inline_mount_markup(config, mount_id)
+    bootstrap = _build_inline_bootstrap(mount_id)
 
-    with container:
-        components.html(animation_html, height=320, scrolling=False)
+    container.markdown(mount_markup, unsafe_allow_html=True)
+    components.html(bootstrap, height=0)
 
     st.session_state[final_state_key] = _compute_final_state(_DEFAULT_OPS, prepared_lines)
