@@ -24,28 +24,25 @@ class ArchitectureCard:
         """Return HTML for a single card."""
 
         highlight_class = " is-highlight" if highlight else ""
-        open_attr = " open" if force_open else ""
+        open_class = " is-open" if force_open else ""
         summary_html = html.escape(self.summary)
         detail_html = html.escape(self.detail)
         title_html = html.escape(self.title)
 
         return dedent(
             f"""
-            <details class="arch-card{highlight_class}" data-arch="{self.key}"{open_attr}>
-              <summary>
-                <div class="arch-card__header">
-                  <span class="arch-card__icon" aria-hidden="true">{self.icon}</span>
-                  <div class="arch-card__text">
-                    <h3 class="arch-card__title">{title_html}</h3>
-                    <p class="arch-card__summary">{summary_html}</p>
-                  </div>
-                  <div class="arch-card__chevron" aria-hidden="true">▾</div>
+            <article class="arch-card{highlight_class}{open_class}" data-arch="{self.key}">
+              <div class="arch-card__header" aria-expanded="{'true' if force_open else 'false'}">
+                <span class="arch-card__icon" aria-hidden="true">{self.icon}</span>
+                <div class="arch-card__text">
+                  <h3 class="arch-card__title">{title_html}</h3>
+                  <p class="arch-card__summary">{summary_html}</p>
                 </div>
-              </summary>
-              <div class="arch-card__body" aria-live="polite">
+              </div>
+              <div class="arch-card__body" aria-live="polite" aria-hidden="{'false' if force_open else 'true'}">
                 <p class="arch-card__detail">{detail_html}</p>
               </div>
-            </details>
+            </article>
             """
         ).strip()
 
@@ -175,10 +172,13 @@ def _inject_styles() -> None:
             background: var(--card-bg);
             border: 1px solid var(--card-border);
             box-shadow: var(--card-shadow);
-            padding: clamp(16px, 2.8vw, 28px);
-            transition: transform .3s ease, box-shadow .3s ease, border-color .3s ease;
+            padding: clamp(18px, 2.6vw, 30px);
+            transition: transform .35s ease, box-shadow .35s ease, border-color .35s ease;
             overflow:visible;
             color: var(--text-primary);
+            display:flex;
+            flex-direction:column;
+            gap: clamp(14px, 2vw, 20px);
           }
 
           .arch-card::before{
@@ -194,45 +194,50 @@ def _inject_styles() -> None:
           .arch-card::after{
             content:"";
             position:absolute;
-            width: 14px;
-            height: 14px;
+            width: 46px;
+            height: 46px;
             border-radius:50%;
-            border: 2px solid rgba(148,197,255,.8);
-            background: rgba(5,23,45,.85);
-            top: 50%;
-            transform: translateY(-50%);
-            box-shadow: 0 0 12px rgba(56,189,248,.55);
+            border: 1px solid rgba(125,211,252,.6);
+            background: radial-gradient(circle at 50% 50%, rgba(148,197,255,.35), transparent 65%);
+            top: 12px;
+            left: 12px;
+            opacity:.45;
+            pointer-events:none;
+            filter: blur(.4px);
           }
 
-          .arch-card[data-arch="ui"]::after{ left: -34px; }
-          .arch-card[data-arch="model"]::after{ left: 50%; transform: translate(-50%, -50%); }
-          .arch-card[data-arch="inbox"]::after{ right: -34px; }
-
-          .arch-card summary{ cursor:pointer; }
-          .arch-card summary::-webkit-details-marker{ display:none; }
-          .arch-card summary:focus-visible{ outline: 2px solid rgba(148,197,255,.7); outline-offset: 6px; }
+          .arch-card[data-arch="model"]::after{ left: 50%; transform: translateX(-50%); }
+          .arch-card[data-arch="inbox"]::after{ left: auto; right: 12px; }
 
           .arch-card__header{
             display:flex;
-            align-items:flex-start;
-            gap: clamp(14px, 1.8vw, 20px);
+            align-items:center;
+            gap: clamp(16px, 2vw, 22px);
           }
 
           .arch-card__icon{
-            font-size: clamp(1.6rem, 2vw, 2.2rem);
-            filter: drop-shadow(0 12px 20px rgba(0,0,0,.45));
-            transform: translateY(-4px);
+            font-size: clamp(1.75rem, 2.3vw, 2.4rem);
+            filter: drop-shadow(0 12px 22px rgba(0,0,0,.45));
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            width: clamp(52px, 4.2vw, 60px);
+            height: clamp(52px, 4.2vw, 60px);
+            border-radius: 16px;
+            border: 1px solid rgba(148,197,255,.5);
+            background: linear-gradient(145deg, rgba(11,45,86,.95), rgba(5,24,48,.9));
+            box-shadow: inset 0 0 0 1px rgba(148,197,255,.2), 0 18px 30px rgba(3,12,26,.55);
           }
 
           .arch-card__text{
             display:flex;
             flex-direction:column;
-            gap: .4rem;
+            gap: .5rem;
           }
 
           .arch-card__title{
             margin:0;
-            font-size: clamp(1.1rem, .9vw + 1rem, 1.35rem);
+            font-size: clamp(1.15rem, 1vw + 1rem, 1.42rem);
             font-weight:800;
             letter-spacing:.02em;
             text-transform:uppercase;
@@ -242,23 +247,22 @@ def _inject_styles() -> None:
           .arch-card__summary{
             margin:0;
             color: var(--text-muted);
-            font-size: clamp(.95rem, .4vw + .9rem, 1.05rem);
-            line-height:1.6;
+            font-size: clamp(.96rem, .45vw + .9rem, 1.08rem);
+            line-height:1.55;
           }
-
-          .arch-card__chevron{
-            margin-left:auto;
-            color: rgba(148,197,255,.6);
-            font-size: 1.2rem;
-            transition: transform .3s ease, color .3s ease;
-          }
-
-          .arch-card[open] .arch-card__chevron{ transform: rotate(180deg); color: rgba(125,211,252,.95); }
 
           .arch-card__body{
-            margin-top: clamp(16px, 2vw, 22px);
+            margin-top:0;
             padding-top: clamp(14px, 1.6vw, 20px);
-            border-top: 1px dashed rgba(148,197,255,.35);
+            border-top: 1px dashed rgba(148,197,255,.3);
+            display:flex;
+            flex-direction:column;
+            gap: .6rem;
+            max-height:0;
+            opacity:0;
+            overflow:hidden;
+            pointer-events:none;
+            transition: max-height .35s ease, opacity .3s ease;
           }
 
           .arch-card__detail{
@@ -268,14 +272,14 @@ def _inject_styles() -> None:
             line-height:1.7;
             background: rgba(3,17,34,.78);
             border-radius: 14px;
-            padding: .8rem 1rem;
+            padding: .85rem 1.05rem;
             box-shadow: inset 0 0 0 1px rgba(125,211,252,.18);
           }
 
           .arch-card:hover{
-            transform: translateY(-6px);
+            transform: translateY(-4px);
             border-color: rgba(191,219,254,.75);
-            box-shadow: 0 32px 60px rgba(1,10,26,.68);
+            box-shadow: 0 28px 58px rgba(1,10,26,.68);
           }
 
           .arch-card.is-highlight{
@@ -291,14 +295,16 @@ def _inject_styles() -> None:
 
           .arch-card.is-highlight .arch-card__title{ color: #f1fbff; }
 
-          .arch-surface.nerd-on .arch-card{ cursor: default; }
-          .arch-surface.nerd-on .arch-card summary{ cursor: default; }
+          .arch-card.is-open .arch-card__body,
+          .arch-surface.nerd-on .arch-card.is-open .arch-card__body{
+            max-height: 320px;
+            opacity:1;
+            pointer-events:auto;
+          }
 
           @media (max-width: 640px){
             .arch-grid::after{ display:none; }
-            .arch-card[data-arch="ui"]::after,
-            .arch-card[data-arch="model"]::after,
-            .arch-card[data-arch="inbox"]::after{ display:none; }
+            .arch-card::after{ display:none; }
           }
         </style>
         """
@@ -337,8 +343,10 @@ def render_demai_architecture(*, nerd_mode: bool = False, active_stage: str | No
 
     highlighted_key = _stage_highlight(active_stage)
 
+    show_details = nerd_mode and (active_stage or "").lower() == "overview"
+
     card_markup = "\n".join(
-        card.render(highlight=card.key == highlighted_key, force_open=nerd_mode)
+        card.render(highlight=card.key == highlighted_key, force_open=show_details)
         for card in cards
     )
 
