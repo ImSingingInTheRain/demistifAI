@@ -144,7 +144,7 @@ def mac_window_html(
             border-radius: 12px;
             background: linear-gradient(155deg, rgba(248,250,252,.95), rgba(226,232,240,.55));
             box-shadow: inset 0 0 0 1px rgba(148,163,184,.25);
-            padding: 1rem 1.1rem;
+            padding: 0rem 0rem;
             min-height: 200px;
             display: grid;
             align-content: start;
