@@ -105,8 +105,12 @@ def render_ai_act_terminal(
                 const deleteDelay = {int(speed_delete_ms)};
                 const pauseDelay  = {int(pause_between_ops_ms)};
 
+                function sanitize(line) {{
+                  return line.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+                }}
+
                 function highlightIfDem(line) {{
-                  const safe = line.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+                  const safe = sanitize(line);
                   if (/^\\s*dem[a-z]*ai\\s*$/i.test(line.trim())) {{
                     return '<span class="hl-{suf}">' + safe + '</span>';
                   }}
@@ -122,35 +126,31 @@ def render_ai_act_terminal(
                 }}
 
                 let raw = "";
-                let html = "";
 
-                function syncAppend(ch) {{
-                  raw += ch;
-                  if (ch === "\n") {{
-                    html += "\n";
-                  }} else {{
-                    html += ch.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
-                  }}
-                  setHTML(html);
-                }}
-
-                function rewriteHTMLFromRaw() {{
+                function renderRaw() {{
                   const parts = raw.split(/(\n)/);
                   let out = "";
-                  for (let i=0; i<parts.length; i++) {{
+                  for (let i = 0; i < parts.length; i++) {{
                     const seg = parts[i];
-                    if (seg === "\n") {{ out += "\n"; continue; }}
+                    if (seg === "\n") {{
+                      out += "\n";
+                      continue;
+                    }}
                     out += highlightIfDem(seg);
                   }}
-                  html = out;
-                  setHTML(html);
+                  setHTML(out);
+                }}
+
+                function appendChar(ch) {{
+                  raw += ch;
+                  renderRaw();
                 }}
 
                 function typeText(text, done) {{
                   let i = 0;
                   (function loop(){{
                     if (i >= text.length) return done();
-                    syncAppend(text.charAt(i++));
+                    appendChar(text.charAt(i++));
                     setTimeout(loop, typeDelay);
                   }})();
                 }}
@@ -163,12 +163,11 @@ def render_ai_act_terminal(
                   let removed = 0;
                   (function loop(){{
                     if (removed >= count) {{
-                      rewriteHTMLFromRaw();
+                      renderRaw();
                       return done();
                     }}
                     raw = raw.slice(0, -1);
-                    html = html.slice(0, -1);
-                    setHTML(html);
+                    renderRaw();
                     removed++;
                     setTimeout(loop, deleteDelay);
                   }})();
