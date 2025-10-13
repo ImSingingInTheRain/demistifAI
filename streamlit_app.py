@@ -1301,7 +1301,19 @@ def render_intro_stage():
                         <strong>Discover your journey</strong>
                         To your right, you’ll find an interactive map showing the full lifecycle of your AI system— this is your guide through this hands-on exploration of responsible and transparent AI.
                     </li>
+                    <li>
+                        <strong>Are you ready to make a machine learn?</strong>
+                        Click the button below to start your demAI journey!
+                    </li>
                 </ul>
+        if next_stage_key:
+                st.button(
+                    "🚀 Start your machine",
+                    key="flow_start_machine_ready",
+                    type="primary",
+                    on_click=set_active_stage,
+                    args=(next_stage_key,),
+                )
             </div>
             """
         ).strip()
@@ -1355,17 +1367,6 @@ def render_intro_stage():
         with ready_left:
             st.markdown("### Ready to make a machine learn?")
             st.markdown("No worries — you don’t need to be a developer or data scientist to follow along.")
-        with ready_right:
-            if next_stage_key:
-                st.button(
-                    "🚀 Start your machine",
-                    key="flow_start_machine_ready",
-                    type="primary",
-                    on_click=set_active_stage,
-                    args=(next_stage_key,),
-                )
-
-
 
 def render_overview_stage():
     stage = STAGE_BY_KEY["overview"]
