@@ -1317,7 +1317,7 @@ def render_intro_stage():
         render_mac_window(
             st,
             title="Your AI system",
-            ratios=(0.3, 0.68),
+            ratios=(0.3, 0.7),
             col_html=[lifecycle_sidecar_html, LIFECYCLE_RING_HTML],
             dense=True,
             id_suffix="intro-lifecycle",
