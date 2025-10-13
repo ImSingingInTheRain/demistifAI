@@ -48,10 +48,10 @@ def mac_window_html(
                 dedent(
                     f"""
                     .mw-{suf}__col {{
-                      padding-top: unset;
-                      padding-bottom: unset;
-                      padding-left: unset;
-                      padding-right: unset;
+                      padding-top: 0px;
+                      padding-bottom: 0px;
+                      padding-left: 0px;
+                      padding-right: 0px;
                     }}
                     """
                 ).strip("\n"),
