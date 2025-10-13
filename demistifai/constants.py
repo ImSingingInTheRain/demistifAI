@@ -26,10 +26,6 @@ APP_THEME_CSS = """
     font-family: "Inter", "Segoe UI", sans-serif;
 }
 
-.st-emotion-cache-tn0cau {
-    display: contents !important;
-}
-
 [data-testid="stMainBlock"] {
     padding-top: 2.5rem;
     padding-bottom: 3rem;
