@@ -6,20 +6,20 @@ numbers use `nl -ba` numbering (1-indexed) for quick cross-checks.
 ## Stage boundaries in `streamlit_app.py`
 | Stage key | Function | Line range | Notes |
 | --- | --- | --- | --- |
-| `intro` | `render_intro_stage` | 1238–1302 | Command grid with inline EU AI Act definition, lifecycle primer, and launch controls. |
-| `overview` | `render_overview_stage` | 1715–2410 | EU AI Act framing, autonomy sliders, and walkthrough of the full pipeline. |
-| `data` | `render_data_stage` | 2411–4179 | Dataset import/generation, linting feedback, and label review utilities. |
-| `evaluate` | `render_evaluate_stage` | 4180–4477 | Evaluation metrics, ROC / confusion matrix views, and governance summary. |
-| `classify` | `render_classify_stage` | 4478–4927 | Live classification console, governance tools, and routing copy. |
-| `model_card` | `render_model_card_stage` | 4928–5081 | Transparency summary, dataset snapshot details, and download affordances. |
-| `train` | `_render_train_stage_wrapper` | 5082–5093 | Streamlit-side wrapper; full UI lives in `stages/train_stage.py`. |
+| `intro` | `render_intro_stage` | 1242–1534 | Command grid with inline EU AI Act definition, lifecycle primer, and launch controls. |
+| `overview` | `render_overview_stage` | 1536–2242 | EU AI Act framing, autonomy sliders, and walkthrough of the full pipeline. |
+| `data` | `render_data_stage` | 2243–4010 | Dataset import/generation, linting feedback, and label review utilities. |
+| `evaluate` | `render_evaluate_stage` | 4012–4323 | Evaluation metrics, ROC / confusion matrix views, and governance summary. |
+| `classify` | `render_classify_stage` | 4325–4788 | Live classification console, governance tools, and routing copy. |
+| `model_card` | `render_model_card_stage` | 4790–4889 | Transparency summary, dataset snapshot details, and download affordances. |
+| `train` | `_render_train_stage_wrapper` | 4944–4955 | Streamlit-side wrapper; full UI lives in `stages/train_stage.py`. |
 
 > **Tip:** Re-run `nl -ba streamlit_app.py | sed -n 'START,ENDp'` after edits to confirm updated line ranges.
 
 ## Stage implementation outside the main app
 | Stage key | File | Line range | Purpose |
 | --- | --- | --- | --- |
-| `train` | `stages/train_stage.py` | 167–1867 | Full training UI, nerd mode tooling, interpretability widgets, and background tasks. |
+| `train` | `stages/train_stage.py` | 168–1883 | Full training UI, nerd mode tooling, interpretability widgets, and background tasks. |
 
 Supporting helpers for training live alongside the stage:
 - `stages/train_helpers.py` – shared callbacks and utilities for the training workflow.
