@@ -9,15 +9,17 @@ def mac_window_html(
     title: str = "demAI",
     subtitle: str | None = None,
     columns: int = 2,
-    ratios: tuple[float, ...] = (2, 1),
+    ratios: tuple[float, ...] | None = None,
     col_html: list[str] | None = None,
     dense: bool = False,
     theme: str = "light",
     id_suffix: str | None = None,
 ) -> str:
     """Return a scoped HTML/CSS macOS-style window."""
-    if columns not in (2, 3):
-        raise ValueError("columns must be 2 or 3")
+    if columns not in (1, 2, 3):
+        raise ValueError("columns must be 1, 2 or 3")
+    if ratios is None:
+        ratios = tuple(1 for _ in range(columns))
     if len(ratios) != columns or any(r <= 0 for r in ratios):
         raise ValueError("ratios must match columns and be positive")
     if col_html is None:
