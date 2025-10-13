@@ -111,6 +111,7 @@ from demistifai.modeling import (
 from stages.train_stage import render_train_stage
 from ui.animated_logo import render_demai_logo
 from components.components_cmd import render_ai_act_terminal
+from components.components_mac import render_mac_window
 logger = logging.getLogger(__name__)
 
 
@@ -1246,22 +1247,20 @@ def render_intro_stage():
         render_demai_logo()
         render_ai_act_terminal()
 
-        intro_mac_styles = textwrap.dedent(
+        window_css = textwrap.dedent(
             """
             <style>
-                /* === intro mac window shell ==================================== */
-                div[data-testid="stVerticalBlock"]:has(> div.intro-mac-window__chrome) {
+                .mw-intro-lifecycle {
                     position: relative;
                     margin: clamp(1.2rem, 4vw, 2.4rem) auto 2.4rem;
                     max-width: min(1100px, 100%);
                     border-radius: 20px;
                     overflow: hidden;
                     isolation: isolate;
-                    background: linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(241, 245, 249, 0.88));
                     border: 1px solid rgba(15, 23, 42, 0.08);
                     box-shadow: 0 28px 64px rgba(15, 23, 42, 0.16);
                 }
-                div[data-testid="stVerticalBlock"]:has(> div.intro-mac-window__chrome)::before {
+                .mw-intro-lifecycle::before {
                     content: "";
                     position: absolute;
                     inset: 0;
@@ -1271,117 +1270,24 @@ def render_intro_stage():
                         radial-gradient(circle at bottom right, rgba(129, 140, 248, 0.18), transparent 60%);
                     opacity: 0.85;
                 }
-                div[data-testid="stVerticalBlock"]:has(> div.intro-mac-window__chrome)
-                    > div[data-testid="stHorizontalBlock"] {
+                .mw-intro-lifecycle__body {
                     position: relative;
                     z-index: 1;
-                    padding: clamp(1.15rem, 2.6vw, 1.7rem) clamp(1.4rem, 3vw, 2.15rem)
-                        clamp(1.55rem, 3.2vw, 2.15rem);
                     background: rgba(248, 250, 252, 0.95);
                     backdrop-filter: blur(22px);
-                    display: grid;
-                    grid-template-columns: minmax(0, 360px) minmax(0, 1fr);
+                }
+                .mw-intro-lifecycle__grid {
                     gap: clamp(1rem, 2.5vw, 1.8rem);
                 }
-                div[data-testid="stVerticalBlock"]:has(> div.intro-mac-window__chrome)
-                    > div[data-testid="stHorizontalBlock"]::before {
-                    content: "";
-                    position: absolute;
-                    inset: 0;
-                    border-radius: 0 0 20px 20px;
-                    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6),
-                        inset 0 0 0 1px rgba(148, 163, 184, 0.18);
-                    pointer-events: none;
-                }
-                div[data-testid="stVerticalBlock"]:has(> div.intro-mac-window__chrome)
-                    > div[data-testid="stHorizontalBlock"]
-                    > div[data-testid="column"] {
-                    align-self: stretch;
-                }
-                div[data-testid="stVerticalBlock"]:has(> div.intro-mac-window__chrome)
-                    div[data-testid="stColumn"] > div[data-testid="stVerticalBlock"] {
-                    background: transparent;
-                    box-shadow: none;
-                    padding: 0;
-                }
-                div[data-testid="stVerticalBlock"]:has(> div.intro-mac-window__chrome)
-                    div[data-testid="stColumn"] > div[data-testid="stVerticalBlock"]
-                    > div[data-testid="stVerticalBlock"] {
-                    background: transparent;
-                    box-shadow: none;
-                }
-
-                /* Chrome */
-                .intro-mac-window__chrome {
-                    position: relative;
-                    z-index: 2;
-                    display: grid;
-                    grid-template-columns: auto 1fr;
-                    align-items: center;
-                    gap: 0.75rem;
-                    padding: 0.75rem 1.2rem;
-                    background: linear-gradient(180deg, rgba(248, 250, 252, 0.92), rgba(226, 232, 240, 0.8));
-                    border-bottom: 1px solid rgba(148, 163, 184, 0.28);
-                    backdrop-filter: blur(18px);
-                }
-                .intro-mac-window__chrome::after {
-                    content: "";
-                    position: absolute;
-                    inset: 0;
-                    background: linear-gradient(180deg, rgba(255, 255, 255, 0.65), transparent 75%);
-                    pointer-events: none;
-                }
-                .intro-mac-window__lights {
-                    position: relative;
-                    display: inline-flex;
-                    gap: 0.45rem;
-                    padding-left: 0.15rem;
-                    z-index: 1;
-                }
-                .intro-mac-window__light {
-                    width: 12px;
-                    height: 12px;
-                    border-radius: 999px;
-                    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.75),
-                        0 3px 7px rgba(15, 23, 42, 0.18);
-                }
-                .intro-mac-window__light--red {
-                    background: #ff5f56;
-                }
-                .intro-mac-window__light--yellow {
-                    background: #ffbd2e;
-                }
-                .intro-mac-window__light--green {
-                    background: #27c93f;
-                }
-                .intro-mac-window__titles {
-                    display: grid;
-                    gap: 0.15rem;
-                    position: relative;
-                    z-index: 1;
-                }
-                .intro-mac-window__title {
-                    font-weight: 800;
-                    color: #0f172a;
-                    line-height: 1.2;
-                    font-size: clamp(1.05rem, 2.1vw, 1.25rem);
-                }
-                .intro-mac-window__subtitle {
-                    font-size: 0.92rem;
-                    color: rgba(15, 23, 42, 0.7);
-                }
-
-                /* Columns */
                 .mw-intro-lifecycle__col {
                     position: relative;
                     display: flex;
-                    flex-direction: column;
-                    gap: 0.75rem;
-                    padding: clamp(1rem, 2vw, 1.3rem);
                     border-radius: 16px;
+                    padding: clamp(1rem, 2vw, 1.3rem);
                     background: linear-gradient(180deg, rgba(255, 255, 255, 0.88), rgba(226, 232, 240, 0.68));
                     border: 1px solid rgba(148, 163, 184, 0.25);
                     box-shadow: 0 18px 42px rgba(15, 23, 42, 0.12);
+                    overflow: hidden;
                 }
                 .mw-intro-lifecycle__col::before {
                     content: "";
@@ -1395,81 +1301,75 @@ def render_intro_stage():
                 .mw-intro-lifecycle__col > * {
                     position: relative;
                     z-index: 1;
+                    width: 100%;
                 }
-                .mw-intro-lifecycle__col--ring {
+                .mw-intro-lifecycle__col:has(> .intro-lifecycle-map) {
                     padding: clamp(0.45rem, 1.6vw, 0.85rem);
                     background: linear-gradient(180deg, rgba(37, 99, 235, 0.16), rgba(14, 116, 144, 0.08));
                     border: 1px solid rgba(37, 99, 235, 0.32);
                     box-shadow: 0 24px 52px rgba(37, 99, 235, 0.22);
                 }
-                .mw-intro-lifecycle__col--ring::before {
+                .mw-intro-lifecycle__col:has(> .intro-lifecycle-map)::before {
                     background: radial-gradient(circle at center, rgba(96, 165, 250, 0.38), transparent 70%);
                     opacity: 0.65;
                 }
-                .mw-intro-lifecycle__col--ring > div[data-testid="stComponent"] {
-                    flex: 1;
+                .intro-lifecycle-sidecar {
                     display: flex;
-                }
-                .mw-intro-lifecycle__col--ring iframe {
-                    width: 100%;
-                    height: 100% !important;
-                    min-height: clamp(420px, 56vw, 560px);
-                    border: none;
-                    border-radius: 18px;
-                    box-shadow: 0 22px 50px rgba(30, 64, 175, 0.25);
-                }
-
-                /* Sidecar copy */
-                .lifecycle-sidecar {
-                    display: grid;
+                    flex-direction: column;
                     gap: 0.85rem;
+                    height: 100%;
                 }
-                .lifecycle-sidecar__eyebrow {
+                .intro-lifecycle-sidecar__eyebrow {
                     font-size: 0.72rem;
                     letter-spacing: 0.18em;
                     text-transform: uppercase;
                     font-weight: 700;
                     color: rgba(15, 23, 42, 0.58);
                 }
-                .lifecycle-sidecar__title {
+                .intro-lifecycle-sidecar__title {
                     margin: 0;
                     font-size: clamp(1.2rem, 2.4vw, 1.4rem);
                     font-weight: 700;
                     color: #0f172a;
                 }
-                .lifecycle-sidecar__body {
+                .intro-lifecycle-sidecar__body {
                     margin: 0;
                     font-size: 0.97rem;
                     line-height: 1.65;
                     color: rgba(15, 23, 42, 0.78);
                 }
-                .lifecycle-sidecar__list {
+                .intro-lifecycle-sidecar__list {
                     margin: 0;
                     padding: 0;
                     list-style: none;
                     display: grid;
                     gap: 0.55rem;
                 }
-                .lifecycle-sidecar__list li {
+                .intro-lifecycle-sidecar__list li {
                     display: grid;
                     gap: 0.2rem;
                 }
-                .lifecycle-sidecar__list strong {
+                .intro-lifecycle-sidecar__list strong {
                     font-weight: 700;
                     color: #1d4ed8;
                 }
-                div[data-testid="stVerticalBlock"]:has(> div.lifecycle-sidecar) {
+                .intro-start-button-slot {
+                    margin-top: auto;
                     display: flex;
                     flex-direction: column;
-                    gap: 1.1rem;
-                    height: 100%;
+                    gap: 0.6rem;
                 }
-                div[data-testid="stVerticalBlock"]:has(> div.lifecycle-sidecar)
-                    > div[data-testid="stButton"] {
-                    margin-top: auto;
+                .intro-start-button-source {
+                    display: none;
                 }
-                div[data-testid="stVerticalBlock"]:has(> div.lifecycle-sidecar)
-                    div[data-testid="stButton"] > button {
+                .intro-start-button-source.intro-start-button-source--mounted {
+                    display: block;
+                }
+                .intro-start-button-source--mounted div[data-testid="stButton"] {
+                    margin: 0;
+                    width: 100%;
+                }
+                .intro-start-button-source--mounted div[data-testid="stButton"] > button {
                     margin-top: 0.35rem;
                     display: inline-flex;
                     align-items: center;
@@ -1487,116 +1387,111 @@ def render_intro_stage():
                     text-align: center;
                     transition: transform 0.18s ease, box-shadow 0.18s ease;
                 }
-                div[data-testid="stVerticalBlock"]:has(> div.lifecycle-sidecar)
-                    div[data-testid="stButton"] > button:hover {
+                .intro-start-button-source--mounted div[data-testid="stButton"] > button:hover {
                     transform: translateY(-1px);
                     box-shadow: 0 24px 40px rgba(37, 99, 235, 0.34);
                 }
-                div[data-testid="stVerticalBlock"]:has(> div.lifecycle-sidecar)
-                    div[data-testid="stButton"] > button:focus-visible {
+                .intro-start-button-source--mounted div[data-testid="stButton"] > button:focus-visible {
                     outline: 3px solid rgba(59, 130, 246, 0.45);
                     outline-offset: 3px;
                 }
-
+                .intro-lifecycle-map {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 0.75rem;
+                    height: 100%;
+                }
+                .intro-lifecycle-map #demai-lifecycle.dlc {
+                    flex: 1;
+                    width: 100%;
+                }
                 @media (max-width: 1024px) {
-                    div[data-testid="stVerticalBlock"]:has(> div.intro-mac-window__chrome) {
+                    .mw-intro-lifecycle {
                         margin: clamp(1rem, 4vw, 1.8rem) auto;
                     }
                 }
                 @media (max-width: 920px) {
-                    div[data-testid="stVerticalBlock"]:has(> div.intro-mac-window__chrome)
-                        > div[data-testid="stHorizontalBlock"] {
-                        grid-template-columns: 1fr;
-                        padding: 1.2rem 1.4rem 1.6rem;
-                    }
-                    .mw-intro-lifecycle__col--ring iframe {
-                        min-height: clamp(420px, 90vw, 560px);
-                    }
-                }
-                @media (max-width: 640px) {
-                    .intro-mac-window__chrome {
-                        grid-template-columns: 1fr;
-                        justify-items: flex-start;
-                        row-gap: 0.5rem;
+                    .intro-lifecycle-map #demai-lifecycle.dlc {
+                        --ring-size: 86vw;
                     }
                 }
             </style>
             """
         )
 
-        st.markdown(intro_mac_styles, unsafe_allow_html=True)
+        st.markdown(window_css, unsafe_allow_html=True)
 
-        lifecycle_sidecar_html = textwrap.dedent(
+        left_col_html = textwrap.dedent(
             """
-            <div class="mw-intro-lifecycle__col">
-                <div class="lifecycle-sidecar" role="complementary" aria-label="Lifecycle guidance">
-                    <div class="lifecycle-sidecar__eyebrow">What you'll do</div>
-                    <h5 class="lifecycle-sidecar__title">Build and use an AI spam detector</h5>
-                    <p class="lifecycle-sidecar__body">
-                        In this interactive journey, you’ll build and use your own AI system, an email spam detector. You will experience the key steps of a development lifecycle, step by step: no technical skills are needed.
-                        Along the way, you’ll uncover how AI systems learn, make predictions, while applying in practice key concepts from the EU AI Act.
-                    </p>
-                    <ul class="lifecycle-sidecar__list">
-                        <li>
-                            <strong>Discover your journey</strong>
-                            To your right, you’ll find an interactive map showing the full lifecycle of your AI system— this is your guide through this hands-on exploration of responsible and transparent AI.
-                        </li>
-                        <li>
-                            <strong>Are you ready to make a machine learn?</strong>
-                            Click the button below to start your demAI journey!
-                        </li>
-                    </ul>
-                </div>
+            <div class="intro-lifecycle-sidecar" role="complementary" aria-label="Lifecycle guidance">
+                <div class="intro-lifecycle-sidecar__eyebrow">What you'll do</div>
+                <h5 class="intro-lifecycle-sidecar__title">Build and use an AI spam detector</h5>
+                <p class="intro-lifecycle-sidecar__body">
+                    In this interactive journey, you’ll build and use your own AI system, an email spam detector. You will experience the key steps of a development lifecycle, step by step: no technical skills are needed.
+                    Along the way, you’ll uncover how AI systems learn, make predictions, while applying in practice key concepts from the EU AI Act.
+                </p>
+                <ul class="intro-lifecycle-sidecar__list">
+                    <li>
+                        <strong>Discover your journey</strong>
+                        To your right, you’ll find an interactive map showing the full lifecycle of your AI system— this is your guide through this hands-on exploration of responsible and transparent AI.
+                    </li>
+                    <li>
+                        <strong>Are you ready to make a machine learn?</strong>
+                        Click the button below to start your demAI journey!
+                    </li>
+                </ul>
+                <div id="intro-start-button-slot" class="intro-start-button-slot" aria-live="polite"></div>
             </div>
             """
         ).strip()
+
+        right_col_html = textwrap.dedent(
+            f"""
+            <div class="intro-lifecycle-map" role="presentation">
+                {LIFECYCLE_RING_HTML}
+            </div>
+            """
+        ).strip()
+
+        render_mac_window(
+            st,
+            title="Start your demAI journey",
+            ratios=(0.38, 0.62),
+            col_html=[left_col_html, right_col_html],
+            id_suffix="intro-lifecycle",
+        )
 
         start_clicked = False
 
         with st.container():
             st.markdown(
-                textwrap.dedent(
-                    """
-                    <div class="intro-mac-window__chrome" role="group" aria-label="Your AI system window">
-                        <div class="intro-mac-window__lights" aria-hidden="true">
-                            <span class="intro-mac-window__light intro-mac-window__light--red"></span>
-                            <span class="intro-mac-window__light intro-mac-window__light--yellow"></span>
-                            <span class="intro-mac-window__light intro-mac-window__light--green"></span>
-                        </div>
-                        <div class="intro-mac-window__titles">
-                            <div class="intro-mac-window__title">Start your demAI journey</div>
-                        </div>
-                    </div>
-                    """
-                ),
+                '<div id="intro-start-button-source" class="intro-start-button-source">',
                 unsafe_allow_html=True,
             )
-
-            left_col, right_col = st.columns((0.32, 0.68), gap="large")
-
-            with left_col:
-                st.markdown(lifecycle_sidecar_html, unsafe_allow_html=True)
-                if next_stage_key:
-                    start_clicked = st.button(
-                        "🚀 Start your machine",
-                        key="intro_start_machine",
-                        use_container_width=True,
-                    )
-
-            with right_col:
-                ring_wrapper = textwrap.dedent(
-                    """
-                    <div class="mw-intro-lifecycle__col mw-intro-lifecycle__col--ring">
-                        {ring_html}
-                    </div>
-                    """
-                ).strip()
-
-                components.html(
-                    ring_wrapper.format(ring_html=LIFECYCLE_RING_HTML),
-                    height=620,
-                    scrolling=False,
+            if next_stage_key:
+                start_clicked = st.button(
+                    "🚀 Start your machine",
+                    key="intro_start_machine",
+                    use_container_width=True,
                 )
+            st.markdown("</div>", unsafe_allow_html=True)
+
+        st.markdown(
+            """
+            <script>
+            (function () {
+                const source = document.getElementById("intro-start-button-source");
+                const slot = document.getElementById("intro-start-button-slot");
+                if (!source || !slot) return;
+                if (!slot.contains(source)) {
+                    slot.appendChild(source);
+                }
+                source.classList.add("intro-start-button-source--mounted");
+            })();
+            </script>
+            """,
+            unsafe_allow_html=True,
+        )
 
         if start_clicked and next_stage_key:
             set_active_stage(next_stage_key)
