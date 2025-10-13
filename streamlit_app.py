@@ -1251,44 +1251,99 @@ def render_intro_stage():
             <style>
                 /* === intro mac window shell ==================================== */
                 div[data-testid="stVerticalBlock"]:has(> div.intro-mac-window__chrome) {
-                    border-radius: 14px;
+                    position: relative;
+                    margin: clamp(1.2rem, 4vw, 2.4rem) auto 2.4rem;
+                    max-width: min(1100px, 100%);
+                    border-radius: 20px;
                     overflow: hidden;
-                    box-shadow: 0 16px 40px rgba(15, 23, 42, 0.12);
-                    background: #ffffff;
+                    isolation: isolate;
+                    background: linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(241, 245, 249, 0.88));
                     border: 1px solid rgba(15, 23, 42, 0.08);
+                    box-shadow: 0 28px 64px rgba(15, 23, 42, 0.16);
+                }
+                div[data-testid="stVerticalBlock"]:has(> div.intro-mac-window__chrome)::before {
+                    content: "";
+                    position: absolute;
+                    inset: 0;
+                    pointer-events: none;
+                    background:
+                        radial-gradient(circle at top left, rgba(96, 165, 250, 0.22), transparent 58%),
+                        radial-gradient(circle at bottom right, rgba(129, 140, 248, 0.18), transparent 60%);
+                    opacity: 0.85;
                 }
                 div[data-testid="stVerticalBlock"]:has(> div.intro-mac-window__chrome)
                     > div[data-testid="stHorizontalBlock"] {
-                    padding: 1.05rem 1.25rem 1.35rem;
-                    background: linear-gradient(155deg, rgba(248, 250, 252, 0.95), rgba(226, 232, 240, 0.55));
-                    gap: 1rem;
+                    position: relative;
+                    z-index: 1;
+                    padding: clamp(1.15rem, 2.6vw, 1.7rem) clamp(1.4rem, 3vw, 2.15rem)
+                        clamp(1.55rem, 3.2vw, 2.15rem);
+                    background: rgba(248, 250, 252, 0.95);
+                    backdrop-filter: blur(22px);
+                    display: grid;
+                    grid-template-columns: minmax(0, 360px) minmax(0, 1fr);
+                    gap: clamp(1rem, 2.5vw, 1.8rem);
+                }
+                div[data-testid="stVerticalBlock"]:has(> div.intro-mac-window__chrome)
+                    > div[data-testid="stHorizontalBlock"]::before {
+                    content: "";
+                    position: absolute;
+                    inset: 0;
+                    border-radius: 0 0 20px 20px;
+                    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6),
+                        inset 0 0 0 1px rgba(148, 163, 184, 0.18);
+                    pointer-events: none;
+                }
+                div[data-testid="stVerticalBlock"]:has(> div.intro-mac-window__chrome)
+                    > div[data-testid="stHorizontalBlock"]
+                    > div[data-testid="column"] {
+                    align-self: stretch;
                 }
                 div[data-testid="stVerticalBlock"]:has(> div.intro-mac-window__chrome)
                     div[data-testid="stColumn"] > div[data-testid="stVerticalBlock"] {
+                    background: transparent;
+                    box-shadow: none;
+                    padding: 0;
+                }
+                div[data-testid="stVerticalBlock"]:has(> div.intro-mac-window__chrome)
+                    div[data-testid="stColumn"] > div[data-testid="stVerticalBlock"]
+                    > div[data-testid="stVerticalBlock"] {
                     background: transparent;
                     box-shadow: none;
                 }
 
                 /* Chrome */
                 .intro-mac-window__chrome {
+                    position: relative;
+                    z-index: 2;
                     display: grid;
                     grid-template-columns: auto 1fr;
                     align-items: center;
                     gap: 0.75rem;
-                    padding: 0.65rem 1rem;
-                    background: #f5f7fb;
-                    border-bottom: 1px solid rgba(15, 23, 42, 0.12);
+                    padding: 0.75rem 1.2rem;
+                    background: linear-gradient(180deg, rgba(248, 250, 252, 0.92), rgba(226, 232, 240, 0.8));
+                    border-bottom: 1px solid rgba(148, 163, 184, 0.28);
+                    backdrop-filter: blur(18px);
+                }
+                .intro-mac-window__chrome::after {
+                    content: "";
+                    position: absolute;
+                    inset: 0;
+                    background: linear-gradient(180deg, rgba(255, 255, 255, 0.65), transparent 75%);
+                    pointer-events: none;
                 }
                 .intro-mac-window__lights {
+                    position: relative;
                     display: inline-flex;
                     gap: 0.45rem;
                     padding-left: 0.15rem;
+                    z-index: 1;
                 }
                 .intro-mac-window__light {
                     width: 12px;
                     height: 12px;
                     border-radius: 999px;
-                    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.08);
+                    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.75),
+                        0 3px 7px rgba(15, 23, 42, 0.18);
                 }
                 .intro-mac-window__light--red {
                     background: #ff5f56;
@@ -1302,11 +1357,14 @@ def render_intro_stage():
                 .intro-mac-window__titles {
                     display: grid;
                     gap: 0.15rem;
+                    position: relative;
+                    z-index: 1;
                 }
                 .intro-mac-window__title {
                     font-weight: 800;
                     color: #0f172a;
                     line-height: 1.2;
+                    font-size: clamp(1.05rem, 2.1vw, 1.25rem);
                 }
                 .intro-mac-window__subtitle {
                     font-size: 0.92rem;
@@ -1315,27 +1373,59 @@ def render_intro_stage():
 
                 /* Columns */
                 .mw-intro-lifecycle__col {
-                    border-radius: 12px;
-                    background: linear-gradient(155deg, rgba(248, 250, 252, 0.95), rgba(226, 232, 240, 0.55));
-                    box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.25);
-                    padding: 1rem 1.1rem;
-                    display: grid;
-                    align-content: start;
-                    gap: 0.65rem;
+                    position: relative;
+                    display: flex;
+                    flex-direction: column;
+                    gap: 0.75rem;
+                    padding: clamp(1rem, 2vw, 1.3rem);
+                    border-radius: 16px;
+                    background: linear-gradient(180deg, rgba(255, 255, 255, 0.88), rgba(226, 232, 240, 0.68));
+                    border: 1px solid rgba(148, 163, 184, 0.25);
+                    box-shadow: 0 18px 42px rgba(15, 23, 42, 0.12);
+                }
+                .mw-intro-lifecycle__col::before {
+                    content: "";
+                    position: absolute;
+                    inset: 0;
+                    border-radius: inherit;
+                    background: linear-gradient(135deg, rgba(59, 130, 246, 0.16), transparent 65%);
+                    opacity: 0.8;
+                    pointer-events: none;
+                }
+                .mw-intro-lifecycle__col > * {
+                    position: relative;
+                    z-index: 1;
                 }
                 .mw-intro-lifecycle__col--ring {
-                    padding: 0.3rem;
-                    background: transparent;
-                    box-shadow: none;
+                    padding: clamp(0.45rem, 1.6vw, 0.85rem);
+                    background: linear-gradient(180deg, rgba(37, 99, 235, 0.16), rgba(14, 116, 144, 0.08));
+                    border: 1px solid rgba(37, 99, 235, 0.32);
+                    box-shadow: 0 24px 52px rgba(37, 99, 235, 0.22);
+                }
+                .mw-intro-lifecycle__col--ring::before {
+                    background: radial-gradient(circle at center, rgba(96, 165, 250, 0.38), transparent 70%);
+                    opacity: 0.65;
+                }
+                .mw-intro-lifecycle__col--ring > div[data-testid="stComponent"] {
+                    flex: 1;
+                    display: flex;
+                }
+                .mw-intro-lifecycle__col--ring iframe {
+                    width: 100%;
+                    height: 100% !important;
+                    min-height: clamp(420px, 56vw, 560px);
+                    border: none;
+                    border-radius: 18px;
+                    box-shadow: 0 22px 50px rgba(30, 64, 175, 0.25);
                 }
 
                 /* Sidecar copy */
                 .lifecycle-sidecar {
                     display: grid;
-                    gap: 0.75rem;
+                    gap: 0.85rem;
                 }
                 .lifecycle-sidecar__eyebrow {
-                    font-size: 0.7rem;
+                    font-size: 0.72rem;
                     letter-spacing: 0.18em;
                     text-transform: uppercase;
                     font-weight: 700;
@@ -1343,14 +1433,14 @@ def render_intro_stage():
                 }
                 .lifecycle-sidecar__title {
                     margin: 0;
-                    font-size: 1.25rem;
+                    font-size: clamp(1.2rem, 2.4vw, 1.4rem);
                     font-weight: 700;
                     color: #0f172a;
                 }
                 .lifecycle-sidecar__body {
                     margin: 0;
-                    font-size: 0.95rem;
-                    line-height: 1.6;
+                    font-size: 0.97rem;
+                    line-height: 1.65;
                     color: rgba(15, 23, 42, 0.78);
                 }
                 .lifecycle-sidecar__list {
@@ -1362,11 +1452,21 @@ def render_intro_stage():
                 }
                 .lifecycle-sidecar__list li {
                     display: grid;
-                    gap: 0.15rem;
+                    gap: 0.2rem;
                 }
                 .lifecycle-sidecar__list strong {
                     font-weight: 700;
                     color: #1d4ed8;
+                }
+                div[data-testid="stVerticalBlock"]:has(> div.lifecycle-sidecar) {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 1.1rem;
+                    height: 100%;
+                }
+                div[data-testid="stVerticalBlock"]:has(> div.lifecycle-sidecar)
+                    > div[data-testid="stButton"] {
+                    margin-top: auto;
                 }
                 div[data-testid="stVerticalBlock"]:has(> div.lifecycle-sidecar)
                     div[data-testid="stButton"] > button {
@@ -1378,18 +1478,19 @@ def render_intro_stage():
                     font-weight: 600;
                     font-size: 0.95rem;
                     border-radius: 999px;
-                    padding: 0.6rem 1.3rem;
-                    background: #2563eb;
+                    padding: 0.68rem 1.6rem;
+                    background: linear-gradient(135deg, #2563eb, #4338ca);
                     color: #fff;
                     border: none;
-                    box-shadow: 0 14px 30px rgba(37, 99, 235, 0.25);
+                    box-shadow: 0 18px 36px rgba(37, 99, 235, 0.3);
                     width: 100%;
                     text-align: center;
+                    transition: transform 0.18s ease, box-shadow 0.18s ease;
                 }
                 div[data-testid="stVerticalBlock"]:has(> div.lifecycle-sidecar)
                     div[data-testid="stButton"] > button:hover {
                     transform: translateY(-1px);
-                    box-shadow: 0 18px 32px rgba(37, 99, 235, 0.3);
+                    box-shadow: 0 24px 40px rgba(37, 99, 235, 0.34);
                 }
                 div[data-testid="stVerticalBlock"]:has(> div.lifecycle-sidecar)
                     div[data-testid="stButton"] > button:focus-visible {
@@ -1397,10 +1498,26 @@ def render_intro_stage():
                     outline-offset: 3px;
                 }
 
+                @media (max-width: 1024px) {
+                    div[data-testid="stVerticalBlock"]:has(> div.intro-mac-window__chrome) {
+                        margin: clamp(1rem, 4vw, 1.8rem) auto;
+                    }
+                }
                 @media (max-width: 920px) {
                     div[data-testid="stVerticalBlock"]:has(> div.intro-mac-window__chrome)
                         > div[data-testid="stHorizontalBlock"] {
-                        grid-auto-flow: row;
+                        grid-template-columns: 1fr;
+                        padding: 1.2rem 1.4rem 1.6rem;
+                    }
+                    .mw-intro-lifecycle__col--ring iframe {
+                        min-height: clamp(420px, 90vw, 560px);
+                    }
+                }
+                @media (max-width: 640px) {
+                    .intro-mac-window__chrome {
+                        grid-template-columns: 1fr;
+                        justify-items: flex-start;
+                        row-gap: 0.5rem;
                     }
                 }
             </style>
@@ -1477,7 +1594,7 @@ def render_intro_stage():
 
                 components.html(
                     ring_wrapper.format(ring_html=LIFECYCLE_RING_HTML),
-                    height=650,
+                    height=620,
                     scrolling=False,
                 )
 
