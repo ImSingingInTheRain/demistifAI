@@ -1,219 +1,236 @@
+"""Streamlit-native architecture overview component for the demAI lab."""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
 from textwrap import dedent
 import html
+from typing import Iterable
+
 import streamlit as st
 
 
-def render_demai_architecture(nerd_mode: bool = False, active_stage: str | None = None):
-    """
-    Simple, robust 'demAI machine' diagram:
-    - 3 responsive flip-cards laid out with CSS Grid
-    - nerd_mode=True shows backs (details) without flipping
-    - active_stage highlights a card: 'overview'/'data' -> UI, 'use' -> Inbox, 'train'/'evaluate' -> Model
-    """
+@dataclass(frozen=True)
+class ArchitectureCard:
+    """Data model for each building block in the demAI system diagram."""
 
-    # --- Content ---------------------------------------------------------
-    MODEL_TITLE = "🧠 AI model"
-    MODEL_DESC  = ("Learns from examples you provide to distinguish Spam vs Safe. "
-                   "At use-time it analyzes each new email and emits a spam score.")
-    MODEL_NERD  = "Text encoder + classifier; optional numeric guardrails; thresholding → spam/safe."
+    key: str
+    icon: str
+    title: str
+    summary: str
+    detail: str
 
-    INBOX_TITLE = "📥 Inbox interface"
-    INBOX_DESC  = "A simulated inbox feeds emails into the system and sends them to the AI model."
-    INBOX_NERD  = "Batch/stream ingestion; metadata extraction; replay for evaluation."
+    def render(self, highlight: bool, force_open: bool) -> str:
+        """Return HTML for a single card."""
 
-    UI_TITLE    = "🖥️ User interface"
-    UI_DESC     = "Your control panel for building and using the system. Tooltips and explainers guide each step."
-    UI_NERD     = "Stages: Prepare • Train • Evaluate • Use; debug panels; parameter sliders; model insights."
+        highlight_class = " is-highlight" if highlight else ""
+        open_attr = " open" if force_open else ""
+        summary_html = html.escape(self.summary)
+        detail_html = html.escape(self.detail)
+        title_html = html.escape(self.title)
 
-    # Map stage to highlight target
-    stage_glow = {
+        return dedent(
+            f"""
+            <details class="arch-card{highlight_class}" data-arch="{self.key}"{open_attr}>
+              <summary>
+                <div class="arch-card__header">
+                  <span class="arch-card__icon" aria-hidden="true">{self.icon}</span>
+                  <div class="arch-card__text">
+                    <h3 class="arch-card__title">{title_html}</h3>
+                    <p class="arch-card__summary">{summary_html}</p>
+                  </div>
+                  <div class="arch-card__chevron" aria-hidden="true">▾</div>
+                </div>
+              </summary>
+              <div class="arch-card__body" aria-live="polite">
+                <p class="arch-card__detail">{detail_html}</p>
+              </div>
+            </details>
+            """
+        ).strip()
+
+
+def _stage_highlight(stage: str | None) -> str:
+    """Return which card should glow for the provided stage."""
+
+    mapping = {
         "overview": "ui",
-        "data":     "ui",
-        "train":    "model",
+        "data": "ui",
+        "train": "model",
         "evaluate": "model",
-        "use":      "inbox",
-    }.get((active_stage or "").lower(), "")
+        "use": "inbox",
+    }
+    if not stage:
+        return ""
+    return mapping.get(stage.lower(), "")
 
-    glow_ui    = " is-highlight" if stage_glow == "ui"    else ""
-    glow_inbox = " is-highlight" if stage_glow == "inbox" else ""
-    glow_model = " is-highlight" if stage_glow == "model" else ""
 
-    # --- Styles (no absolute positioning; pure grid) ---------------------
-    css = dedent("""
-    <style>
-      .arch-surface{
-        --ink:#0f172a; --muted:rgba(15,23,42,.78);
-        --card:#fff; --stroke:rgba(15,23,42,.08);
-        --brand:rgba(59,130,246,.65);
-        border-radius:16px; padding:clamp(12px,2.4vw,20px);
-        background: radial-gradient(120% 100% at 50% 0%, rgba(99,102,241,.08), rgba(14,165,233,.06));
-        box-shadow: inset 0 0 0 1px rgba(15,23,42,.06);
-      }
+def _inject_styles() -> None:
+    """Inject the CSS styles that give the cards their personality."""
 
-      /* Subtle “frame” to nod to layers without layout complexity */
-      .arch-surface__frame{
-        border-radius:14px;
-        background: linear-gradient(180deg, rgba(255,255,255,.92), rgba(248,250,252,.82));
-        box-shadow: inset 0 0 0 1px var(--stroke);
-        padding: clamp(8px, 1.6vw, 14px);
-      }
+    style_block = dedent(
+        """
+        <style>
+          .arch-surface{
+            --ink:#0f172a;
+            --muted:rgba(15,23,42,.76);
+            --frame:linear-gradient(180deg, rgba(255,255,255,.95), rgba(248,250,252,.82));
+            --highlight:rgba(59,130,246,.22);
+            --stroke:rgba(15,23,42,.08);
+            --shadow:0 18px 36px rgba(15,23,42,.14);
+            --card-bg:rgba(255,255,255,.96);
+            position:relative;
+            background: radial-gradient(140% 115% at 50% 0%, rgba(99,102,241,.1), rgba(14,165,233,.08));
+            border-radius: 18px;
+            padding: clamp(16px, 2.6vw, 28px);
+            box-shadow: inset 0 0 0 1px rgba(15,23,42,.05);
+          }
 
-      .arch-grid{
-        display:grid;
-        gap: clamp(12px, 1.6vw, 16px);
-        grid-template-columns: 1fr;              /* mobile first */
-      }
+          .arch-surface__frame{
+            border-radius: 16px;
+            background: var(--frame);
+            box-shadow: inset 0 0 0 1px var(--stroke);
+            padding: clamp(10px, 2vw, 18px);
+          }
 
-      /* Desktop: 3 columns, center card slightly wider */
-      @media (min-width: 900px){
-        .arch-grid{
-          grid-template-columns: 1fr 1.15fr 1fr;
-          align-items: stretch;
-        }
-      }
+          .arch-grid{
+            display:grid;
+            gap: clamp(12px, 1.8vw, 18px);
+          }
 
-      .arch-card{
-        border-radius:16px; perspective:1000px; position:relative;
-      }
+          @media (min-width: 880px){
+            .arch-grid{ grid-template-columns: 1fr 1.1fr 1fr; }
+          }
 
-      .arch-card__inner{
-        position:relative; border-radius:16px; height:100%;
-        transform-style: preserve-3d; transition: transform .6s ease;
-        box-shadow: 0 16px 36px rgba(15,23,42,.14), inset 0 0 0 1px var(--stroke);
-        background: var(--card);
-        cursor: pointer;
-      }
+          .arch-card{
+            list-style:none;
+            border-radius: 16px;
+            background: var(--card-bg);
+            box-shadow: var(--shadow), inset 0 0 0 1px var(--stroke);
+            padding: clamp(14px, 2.4vw, 22px);
+            transition: box-shadow .25s ease, transform .25s ease;
+            position:relative;
+            overflow:hidden;
+          }
 
-      .arch-card__face{
-        position:absolute; inset:0; border-radius:16px;
-        display:grid; place-content:center; gap:.55rem;
-        padding: clamp(16px, 2.4vw, 22px);
-        backface-visibility:hidden;
-        text-align:center;
-      }
+          .arch-card summary{ cursor:pointer; }
+          .arch-card summary::-webkit-details-marker{ display:none; }
+          .arch-card summary:focus-visible{ outline: 2px solid rgba(59,130,246,.7); outline-offset: 4px; }
 
-      .arch-card__front{ }
-      .arch-card__back{ transform: rotateY(180deg); }
+          .arch-card__header{
+            display:flex;
+            align-items:center;
+            gap: clamp(12px, 1vw, 16px);
+          }
 
-      .arch-card__title{
-        color: var(--ink); font-weight:800;
-        font-size: clamp(1.05rem, 1.1vw + .95rem, 1.25rem);
-        display:inline-flex; align-items:center; gap:.6rem; justify-content:center;
-      }
-      .arch-card__icon{ font-size: clamp(1.2rem, 1.4vw + 1rem, 1.5rem); }
-      .arch-card__desc{ color:var(--muted); line-height:1.6; font-size: clamp(.95rem, .3vw + .9rem, 1rem); }
-      .arch-card__extra{
-        margin-top:.45rem; font-size:.9rem; color:rgba(15,23,42,.9);
-        background: rgba(226,232,240,.6); border-radius:10px; padding:.55rem .7rem;
-      }
+          .arch-card__icon{
+            font-size: clamp(1.4rem, 1.8vw, 1.9rem);
+            filter: drop-shadow(0 6px 12px rgba(15,23,42,.2));
+          }
 
-      /* Flip on toggle */
-      .arch-card.is-flipped .arch-card__inner{ transform: rotateY(180deg); }
+          .arch-card__text{
+            display:flex;
+            flex-direction:column;
+            gap: .35rem;
+          }
 
-      /* Nerd mode: always show details; no flipping cursor */
-      .arch-surface.nerd-on .arch-card__inner{
-        transform: none !important; cursor: default;
-      }
-      .arch-surface.nerd-on .arch-card__front{ display:none; }
-      .arch-surface.nerd-on .arch-card__back{ transform: none; }
+          .arch-card__title{
+            margin:0;
+            font-size: clamp(1.05rem, 1.1vw + .95rem, 1.25rem);
+            font-weight:800;
+            color: var(--ink);
+          }
 
-      /* Highlight ring */
-      .arch-card.is-highlight .arch-card__inner{
-        box-shadow:
-          0 18px 38px rgba(59,130,246,.15),
-          inset 0 0 0 2px var(--brand),
-          inset 0 0 0 1px rgba(255,255,255,.3);
-      }
+          .arch-card__summary{
+            margin:0;
+            color: var(--muted);
+            font-size: clamp(.95rem, .3vw + .9rem, 1rem);
+            line-height:1.55;
+          }
 
-      /* Focus accessibility */
-      .arch-card__inner:focus-visible{ outline: 2px solid rgba(59,130,246,.7); outline-offset: 4px; }
+          .arch-card__chevron{
+            margin-left:auto;
+            color: rgba(15,23,42,.4);
+            font-size: 1.2rem;
+            transition: transform .25s ease, color .25s ease;
+          }
 
-    </style>
-    """)
+          .arch-card[open] .arch-card__chevron{ transform: rotate(180deg); color: rgba(37,99,235,.8); }
 
-    # --- Markup ----------------------------------------------------------
-    html_block = dedent(f"""
-    <div class="arch-surface{' nerd-on' if nerd_mode else ''}" aria-label="demAI architecture diagram">
-      <div class="arch-surface__frame">
-        <div class="arch-grid">
+          .arch-card__body{
+            margin-top: clamp(12px, 1.2vw, 16px);
+            padding-top: clamp(10px, 1vw, 14px);
+            border-top: 1px solid rgba(148,163,184,.24);
+          }
 
-          <!-- UI card -->
-          <article class="arch-card{' is-highlight' if glow_ui else ''}" data-arch="ui">
-            <div class="arch-card__inner" tabindex="0" aria-label="User interface card">
-              <div class="arch-card__face arch-card__front">
-                <div class="arch-card__title"><span class="arch-card__icon">🖥️</span>{html.escape(UI_TITLE)}</div>
-              </div>
-              <div class="arch-card__face arch-card__back">
-                <div class="arch-card__title"><span class="arch-card__icon">🖥️</span>{html.escape(UI_TITLE)}</div>
-                <p class="arch-card__desc">{html.escape(UI_DESC)}</p>
-                <div class="arch-card__extra">{html.escape(UI_NERD)}</div>
-              </div>
+          .arch-card__detail{
+            margin:0;
+            color: rgba(15,23,42,.9);
+            font-size: clamp(.93rem, .3vw + .9rem, 1rem);
+            line-height:1.6;
+            background: rgba(226,232,240,.55);
+            border-radius: 12px;
+            padding: .65rem .85rem;
+          }
+
+          .arch-card:hover{ transform: translateY(-4px); box-shadow: 0 22px 40px rgba(15,23,42,.18), inset 0 0 0 1px rgba(148,163,184,.28); }
+          .arch-card.is-highlight{ box-shadow: 0 26px 48px rgba(37,99,235,.22), inset 0 0 0 2px rgba(59,130,246,.5); }
+          .arch-card.is-highlight .arch-card__title{ color: rgba(37,99,235,.95); }
+
+          .arch-surface.nerd-on .arch-card{ cursor: default; }
+          .arch-surface.nerd-on .arch-card summary{ cursor: default; }
+        </style>
+        """
+    )
+    st.markdown(style_block, unsafe_allow_html=True)
+
+
+def render_demai_architecture(*, nerd_mode: bool = False, active_stage: str | None = None) -> None:
+    """Render the demAI architecture diagram using Streamlit-native primitives."""
+
+    _inject_styles()
+
+    cards: Iterable[ArchitectureCard] = (
+        ArchitectureCard(
+            key="ui",
+            icon="🖥️",
+            title="User interface",
+            summary="Your control panel for building and monitoring the system.",
+            detail="Stages: Prepare • Train • Evaluate • Use; guided explainers, sliders, and insights dashboards.",
+        ),
+        ArchitectureCard(
+            key="model",
+            icon="🧠",
+            title="AI model",
+            summary="Learns from labeled examples to distinguish spam from safe mail.",
+            detail="Text encoder + classifier with optional numeric guardrails. Produces spam scores routed through policy thresholds.",
+        ),
+        ArchitectureCard(
+            key="inbox",
+            icon="📥",
+            title="Inbox interface",
+            summary="Streams new emails into the pipeline and hands them to the model.",
+            detail="Batch and streaming ingestion, metadata enrichment, and replay tooling for evaluation batches.",
+        ),
+    )
+
+    highlighted_key = _stage_highlight(active_stage)
+
+    card_markup = "\n".join(
+        card.render(highlight=card.key == highlighted_key, force_open=nerd_mode)
+        for card in cards
+    )
+
+    container_html = dedent(
+        f"""
+        <section class="arch-surface{' nerd-on' if nerd_mode else ''}" aria-label="demAI architecture diagram">
+          <div class="arch-surface__frame">
+            <div class="arch-grid">
+              {card_markup}
             </div>
-          </article>
+          </div>
+        </section>
+        """
+    ).strip()
 
-          <!-- Model card (center column on desktop) -->
-          <article class="arch-card{' is-highlight' if glow_model else ''}" data-arch="model">
-            <div class="arch-card__inner" tabindex="0" aria-label="AI model card">
-              <div class="arch-card__face arch-card__front">
-                <div class="arch-card__title"><span class="arch-card__icon">🧠</span>{html.escape(MODEL_TITLE)}</div>
-              </div>
-              <div class="arch-card__face arch-card__back">
-                <div class="arch-card__title"><span class="arch-card__icon">🧠</span>{html.escape(MODEL_TITLE)}</div>
-                <p class="arch-card__desc">{html.escape(MODEL_DESC)}</p>
-                <div class="arch-card__extra">{html.escape(MODEL_NERD)}</div>
-              </div>
-            </div>
-          </article>
-
-          <!-- Inbox card -->
-          <article class="arch-card{' is-highlight' if glow_inbox else ''}" data-arch="inbox">
-            <div class="arch-card__inner" tabindex="0" aria-label="Inbox interface card">
-              <div class="arch-card__face arch-card__front">
-                <div class="arch-card__title"><span class="arch-card__icon">📥</span>{html.escape(INBOX_TITLE)}</div>
-              </div>
-              <div class="arch-card__face arch-card__back">
-                <div class="arch-card__title"><span class="arch-card__icon">📥</span>{html.escape(INBOX_TITLE)}</div>
-                <p class="arch-card__desc">{html.escape(INBOX_DESC)}</p>
-                <div class="arch-card__extra">{html.escape(INBOX_NERD)}</div>
-              </div>
-            </div>
-          </article>
-
-        </div>
-      </div>
-    </div>
-    """)
-
-    # --- Script (click/keyboard flip; no flip in nerd mode) --------------
-    js = dedent("""
-    <script>
-      (function(){
-        const root = document.currentScript.closest('.block-container') || document.body;
-        const host = root.querySelector('.arch-surface');
-        if(!host) return;
-
-        if(host.classList.contains('nerd-on')) return; // always open; no flipping
-
-        host.querySelectorAll('.arch-card').forEach(card=>{
-          const inner = card.querySelector('.arch-card__inner');
-          // click
-          inner.addEventListener('click', ()=> card.classList.toggle('is-flipped'));
-          // keyboard
-          inner.addEventListener('keydown', (e)=>{
-            if(e.key === 'Enter' || e.key === ' '){
-              e.preventDefault();
-              card.classList.toggle('is-flipped');
-            }
-          });
-        });
-      })();
-    </script>
-    """)
-
-    payload = css + html_block + js
-
-    # Native render (no iframe)
-    if hasattr(st, "html"):
-        st.html(payload)
-    else:
-        st.markdown(payload, unsafe_allow_html=True)
+    st.markdown(container_html, unsafe_allow_html=True)
