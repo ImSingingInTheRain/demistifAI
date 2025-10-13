@@ -101,7 +101,7 @@ def render_ai_act_terminal(
             </div>
 
             <script>
-              window.requestAnimationFrame(function(){
+              window.requestAnimationFrame(function(){{
                 const term   = document.getElementById("term-{suf}");
                 const caret  = document.getElementById("caret-{suf}");
                 const ops    = {ops_json};
@@ -203,7 +203,7 @@ def render_ai_act_terminal(
                     }});
                   }});
                 }});
-              });
+              }});
             </script>
             """
     )
