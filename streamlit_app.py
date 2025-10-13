@@ -1547,7 +1547,6 @@ def render_overview_stage():
         render_mac_window(
             st,
             title="System snapshot",
-            subtitle="Placeholder",
             columns=1,
             ratios=(1,),
             col_html=[
