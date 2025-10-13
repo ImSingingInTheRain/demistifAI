@@ -38,7 +38,7 @@ def mac_window_html(
     sub_color = "rgba(15,23,42,.70)" if theme == "light" else "rgba(229,231,235,.70)"
     ph_text = "rgba(15,23,42,.55)" if theme == "light" else "rgba(229,231,235,.55)"
 
-    pad = ".9rem 1.05rem" if dense else "1.1rem 1.25rem"
+    pad = ".9rem 1.05rem" if dense else "0rem 0rem"
 
     col_padding_reset_css = ""
     if id_suffix == "overview-mac-placeholder":
