@@ -110,6 +110,7 @@ from demistifai.modeling import (
 
 from stages.train_stage import render_train_stage
 from ui.animated_logo import render_demai_logo
+from components.arch_demai import render_demai_architecture
 from components.components_cmd import render_ai_act_terminal
 from components.components_mac import render_mac_window
 logger = logging.getLogger(__name__)
@@ -1555,7 +1556,12 @@ def render_overview_stage():
     incoming_seed = ss.get("incoming_seed")
     autonomy_label = str(ss.get("autonomy", AUTONOMY_LEVELS[0]))
     adaptiveness_enabled = bool(ss.get("adaptive", False))
-    nerd_enabled = bool(ss.get("nerd_mode"))
+    nerd_flag = bool(st.session_state.get("nerd_mode_train") or st.session_state.get("nerd_mode"))
+    nerd_enabled = nerd_flag
+
+    with section_surface("section-surface--arch"):
+        st.markdown("#### The demAI machine — your system at a glance")
+        render_demai_architecture(nerd_mode=nerd_flag, active_stage="overview")
 
     st.markdown(
         """
