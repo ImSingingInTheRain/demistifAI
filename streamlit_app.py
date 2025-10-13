@@ -1405,7 +1405,6 @@ def render_intro_stage():
         mac_window_response = components.html(
             f"{mac_window_markup}{cta_bootstrap_html}",
             height=mac_window_height,
-            key="intro-lifecycle-mac",
         )
 
         if mac_window_response == "start-machine" and next_stage_key:
