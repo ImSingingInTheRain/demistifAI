@@ -186,6 +186,6 @@ def render_demai_architecture(nerd_mode: bool = False, active_stage: str | None 
     full_markup = "\n".join([style_block, html_block, script_block])
 
     if hasattr(st, "html"):
-        st.html(full_markup, height=540, scrolling=False)
+        st.html(full_markup)
     else:
         st.markdown(full_markup, unsafe_allow_html=True)
