@@ -10,23 +10,14 @@ import streamlit as st
 
 
 _DEFAULT_DEMAI_LINES: List[str] = [
-    "Welcome to demAI — an interactive experience where you will build and operate an AI system, while discovering and applying key concepts from the EU AI Act.\n",
-    "",
-    "demonstrateAI",
-    "Experience how an AI system actually works, step by step — from data preparation to predictions — through an interactive, hands-on journey.\n",
-    "",
-    "demistifyAI",
-    "Break down complex AI concepts into clear, tangible actions so that anyone can understand what’s behind the model’s decisions.\n",
-    "",
-    "democratizeAI",
-    "Empower everyone to engage responsibly with AI, making transparency and trust accessible to all.",
+    "You are already inside a machine-based system: a Streamlit UI (software) running in the cloud (hardware). Use this control room to build, evaluate, and operate a focused email spam detector. We'll guide you through each stage and surface tips when you need them.",
 ]
 
 _DEFAULT_OPS = [
     {"kind": "type", "text": "$ get EU-AI-Act.definition\n\n"},
-    {"kind": "type", "text": " ‘AI system’ means a machine-based system that is designed to operate with varying levels of autonomy and that may exhibit adaptiveness after deployment, and that, for explicit or implicit objectives, infers, from the input it receives, how to generate outputs such as predictions, content, recommendations, or decisions that can influence physical or virtual environments; \n\n"},
+    {"kind": "type", "text": " ‘AI system’ means a machine-based system... \n\n"},
     {"kind": "type", "text": "...confused?\n\n"},
-    {"kind": "type", "text": "$ pip install demAI\n\n"},
+    {"kind": "type", "text": "$ start demAI_machine\n\n"},
 ]
 
 _TERMINAL_SUFFIX = "ai_act_fullterm"
