@@ -20,6 +20,7 @@ import streamlit as st
 from sklearn.metrics import accuracy_score, confusion_matrix, f1_score, precision_recall_fscore_support
 from sklearn.model_selection import train_test_split
 
+from components.arch_demai import render_demai_architecture
 from demistifai.constants import STAGE_BY_KEY, STAGE_INDEX, StageMeta
 from demistifai.dataset import (
     DEFAULT_DATASET_CONFIG,
@@ -786,6 +787,21 @@ def render_train_stage(
     stage_number = STAGE_INDEX.get(stage.key, 0) - STAGE_INDEX.get("data", 0) + 1
     if stage_number < 1:
         stage_number = STAGE_INDEX.get(stage.key, 0) + 1
+
+    nerd_mode_flag = bool(ss.get("nerd_mode_train") or ss.get("nerd_mode"))
+
+    with section_surface("section-surface--arch"):
+        st.markdown("#### The demAI machine — your system at a glance")
+        is_narrow = (
+            st.session_state.get("viewport_is_mobile")
+            if "viewport_is_mobile" in st.session_state
+            else False
+        )
+        if is_narrow:
+            with st.expander("Show system diagram"):
+                render_demai_architecture(nerd_mode=nerd_mode_flag, active_stage="train")
+        else:
+            render_demai_architecture(nerd_mode=nerd_mode_flag, active_stage="train")
 
     nerd_mode_train_enabled = bool(ss.get("nerd_mode_train"))
 
