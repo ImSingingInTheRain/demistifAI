@@ -1448,7 +1448,48 @@ def render_intro_stage():
                         Click the button below to start your demAI journey!
                     </li>
                 </ul>
-                <div id="intro-start-button-slot" class="intro-start-button-slot" aria-live="polite"></div>
+                <div id="intro-start-button-slot" class="intro-start-button-slot" aria-live="polite">
+                start_clicked = False
+
+                start_button_container = st.container()
+                with start_button_container:
+                    if next_stage_key:
+                        st.markdown(
+                            '<div id="intro-start-button-source" class="intro-start-button-source">',
+                            unsafe_allow_html=True,
+                        )
+                        start_clicked = st.button(
+                            "🚀 Start your machine",
+                            key="intro_start_machine",
+                            use_container_width=True,
+                        )
+                        st.markdown("</div>", unsafe_allow_html=True)
+                    else:
+                        st.markdown(
+                            '<div id="intro-start-button-source" class="intro-start-button-source"></div>',
+                            unsafe_allow_html=True,
+                        )
+        
+                st.markdown(
+                    """
+                    <script>
+                    (function () {
+                        const source = document.getElementById("intro-start-button-source");
+                        const slot = document.getElementById("intro-start-button-slot");
+                        if (!source || !slot) return;
+                        if (!slot.contains(source)) {
+                            slot.appendChild(source);
+                        }
+                        source.classList.add("intro-start-button-source--mounted");
+                    })();
+                    </script>
+                    """,
+                    unsafe_allow_html=True,
+                )
+        
+                if start_clicked and next_stage_key:
+                    set_active_stage(next_stage_key)
+                </div>
             </div>
             """
         ).strip()
@@ -1468,47 +1509,6 @@ def render_intro_stage():
             col_html=[left_col_html, right_col_html],
             id_suffix="intro-lifecycle",
         )
-
-        start_clicked = False
-
-        start_button_container = st.container()
-        with start_button_container:
-            if next_stage_key:
-                st.markdown(
-                    '<div id="intro-start-button-source" class="intro-start-button-source">',
-                    unsafe_allow_html=True,
-                )
-                start_clicked = st.button(
-                    "🚀 Start your machine",
-                    key="intro_start_machine",
-                    use_container_width=True,
-                )
-                st.markdown("</div>", unsafe_allow_html=True)
-            else:
-                st.markdown(
-                    '<div id="intro-start-button-source" class="intro-start-button-source"></div>',
-                    unsafe_allow_html=True,
-                )
-
-        st.markdown(
-            """
-            <script>
-            (function () {
-                const source = document.getElementById("intro-start-button-source");
-                const slot = document.getElementById("intro-start-button-slot");
-                if (!source || !slot) return;
-                if (!slot.contains(source)) {
-                    slot.appendChild(source);
-                }
-                source.classList.add("intro-start-button-source--mounted");
-            })();
-            </script>
-            """,
-            unsafe_allow_html=True,
-        )
-
-        if start_clicked and next_stage_key:
-            set_active_stage(next_stage_key)
 
     ai_act_quote_wrapper_open = """
         <style>
