@@ -1533,20 +1533,8 @@ def render_overview_stage():
 
     with section_surface("section-surface--arch"):
         st.markdown("#### The demAI machine — your system at a glance")
-        is_narrow = (
-            st.session_state.get("viewport_is_mobile")
-            if "viewport_is_mobile" in st.session_state
-            else False
-        )
-        show_arch = st.checkbox(
-            "Show system diagram", value=True, key="show_arch_overview"
-        )
-        if show_arch:
-            if is_narrow:
-                with st.expander("Show system diagram"):
-                    render_demai_architecture(nerd_mode=nerd_flag, active_stage="overview")
-            else:
-                render_demai_architecture(nerd_mode=nerd_flag, active_stage="overview")
+        
+         render_demai_architecture(nerd_mode=nerd_flag, active_stage="overview")
 
     st.markdown(
         """
@@ -3997,17 +3985,8 @@ def render_evaluate_stage():
 
     with section_surface("section-surface--arch"):
         st.markdown("#### The demAI machine — your system at a glance")
-        is_narrow = (
-            st.session_state.get("viewport_is_mobile")
-            if "viewport_is_mobile" in st.session_state
-            else False
-        )
-        if is_narrow:
-            with st.expander("Show system diagram"):
-                render_demai_architecture(nerd_mode=nerd_flag, active_stage="evaluate")
-        else:
-            render_demai_architecture(nerd_mode=nerd_flag, active_stage="evaluate")
-
+        render_demai_architecture(nerd_mode=nerd_flag, active_stage="evaluate")
+       
     cache = ss["split_cache"]
     if len(cache) == 4:
         X_tr, X_te, y_tr, y_te = cache
