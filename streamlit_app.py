@@ -110,7 +110,10 @@ from demistifai.modeling import (
 
 from stages.train_stage import render_train_stage
 from ui.animated_logo import render_demai_logo
-from components.arch_demai import render_demai_architecture
+from components.arch_demai import (
+    demai_architecture_markup,
+    demai_architecture_styles,
+)
 from components.components_cmd import render_ai_act_terminal
 from components.components_mac import render_mac_window
 logger = logging.getLogger(__name__)
@@ -1540,18 +1543,21 @@ def render_overview_stage():
             key="overview_placeholder_notes",
         )
     with overview_columns[1]:
+        st.markdown(demai_architecture_styles(), unsafe_allow_html=True)
         render_mac_window(
             st,
             title="System snapshot",
             subtitle="Placeholder",
             columns=1,
             ratios=(1,),
-            col_html=[None],
+            col_html=[
+                demai_architecture_markup(
+                    nerd_mode=nerd_flag,
+                    active_stage="overview",
+                )
+            ],
             id_suffix="overview-mac-placeholder",
         )
-
-    with section_surface("section-surface--arch"):
-        render_demai_architecture(nerd_mode=nerd_flag, active_stage="overview")
 
     st.markdown(
         """

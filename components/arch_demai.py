@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from textwrap import dedent
 import html
+from textwrap import dedent
 from typing import Iterable
 
 import streamlit as st
@@ -62,10 +62,10 @@ def _stage_highlight(stage: str | None) -> str:
     return mapping.get(stage.lower(), "")
 
 
-def _inject_styles() -> None:
-    """Inject the CSS styles that give the cards their personality."""
+def _style_block() -> str:
+    """Return the scoped CSS required for the architecture cards."""
 
-    style_block = dedent(
+    return dedent(
         """
         <style>
           .arch-surface{
@@ -308,14 +308,33 @@ def _inject_styles() -> None:
           }
         </style>
         """
-    )
-    st.markdown(style_block, unsafe_allow_html=True)
+    ).strip()
+
+
+def demai_architecture_styles() -> str:
+    """Expose the architecture style block for external renderers."""
+
+    return _style_block()
+
+
+def _inject_styles() -> None:
+    """Inject the CSS styles that give the cards their personality."""
+
+    st.markdown(_style_block(), unsafe_allow_html=True)
 
 
 def render_demai_architecture(*, nerd_mode: bool = False, active_stage: str | None = None) -> None:
     """Render the demAI architecture diagram using Streamlit-native primitives."""
 
     _inject_styles()
+    markup = demai_architecture_markup(nerd_mode=nerd_mode, active_stage=active_stage)
+    st.markdown(markup, unsafe_allow_html=True)
+
+
+def demai_architecture_markup(
+    *, nerd_mode: bool = False, active_stage: str | None = None, include_styles: bool = False
+) -> str:
+    """Return HTML markup for the demAI architecture diagram."""
 
     cards: Iterable[ArchitectureCard] = (
         ArchitectureCard(
@@ -362,4 +381,6 @@ def render_demai_architecture(*, nerd_mode: bool = False, active_stage: str | No
         """
     ).strip()
 
-    st.markdown(container_html, unsafe_allow_html=True)
+    if include_styles:
+        return "\n".join([_style_block(), container_html])
+    return container_html
