@@ -1365,13 +1365,6 @@ def render_intro_stage():
         <div class="ai-act-quote-block" role="region" aria-label="From the EU AI Act, Article 3">
     """
 
-    
-    with section_surface():
-        ready_left, ready_right = st.columns([3, 2], gap="large")
-        with ready_left:
-            st.markdown("### Ready to make a machine learn?")
-            st.markdown("No worries — you don’t need to be a developer or data scientist to follow along.")
-
 def render_overview_stage():
     stage = STAGE_BY_KEY["overview"]
 
