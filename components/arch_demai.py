@@ -1,6 +1,7 @@
 from textwrap import dedent
 import html
 import streamlit as st
+from streamlit.components.v1 import html as components_html
 
 
 def render_demai_architecture(nerd_mode: bool = False, active_stage: str | None = None):
@@ -211,7 +212,9 @@ def render_demai_architecture(nerd_mode: bool = False, active_stage: str | None 
 
     full_markup = "\n".join([style_block, html_block, script_block])
 
-    if hasattr(st, "html"):
-        st.html(full_markup)
-    else:
-        st.markdown(full_markup, unsafe_allow_html=True)
+    st_html = getattr(st, "html", None)
+    if callable(st_html):
+        st_html(full_markup)
+        return
+
+    components_html(full_markup, height=560, scrolling=False)
