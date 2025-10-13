@@ -790,18 +790,6 @@ def render_train_stage(
 
     nerd_mode_flag = bool(ss.get("nerd_mode_train") or ss.get("nerd_mode"))
 
-    with section_surface("section-surface--arch"):
-        st.markdown("#### The demAI machine — your system at a glance")
-        is_narrow = (
-            st.session_state.get("viewport_is_mobile")
-            if "viewport_is_mobile" in st.session_state
-            else False
-        )
-        if is_narrow:
-            with st.expander("Show system diagram"):
-                render_demai_architecture(nerd_mode=nerd_mode_flag, active_stage="train")
-        else:
-            render_demai_architecture(nerd_mode=nerd_mode_flag, active_stage="train")
 
     nerd_mode_train_enabled = bool(ss.get("nerd_mode_train"))
 
