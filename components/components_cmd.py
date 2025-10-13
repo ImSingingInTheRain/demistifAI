@@ -4,6 +4,7 @@ import json
 from textwrap import dedent
 
 import streamlit as st
+import streamlit.components.v1 as components
 
 
 def render_ai_act_terminal(
@@ -52,9 +53,8 @@ def render_ai_act_terminal(
 
     suf = "ai_act_fullterm"
 
-    st.markdown(
-        dedent(
-            f"""
+    html_payload = dedent(
+        f"""
             <style>
               .terminal-{suf} {{
                 width: 100%;
@@ -202,7 +202,12 @@ def render_ai_act_terminal(
               }})();
             </script>
             """
-        ),
-        unsafe_allow_html=True,
     )
+
+    render_html = getattr(st, "html", None)
+    if callable(render_html):
+        render_html(html_payload)
+        return
+
+    components.html(html_payload, height=310, scrolling=False)
 
