@@ -1468,9 +1468,18 @@ def render_intro_stage():
                     )
 
             with right_col:
-                st.markdown(
-                    f"<div class='mw-intro-lifecycle__col mw-intro-lifecycle__col--ring'>{LIFECYCLE_RING_HTML}</div>",
-                    unsafe_allow_html=True,
+                ring_wrapper = textwrap.dedent(
+                    """
+                    <div class="mw-intro-lifecycle__col mw-intro-lifecycle__col--ring">
+                        {ring_html}
+                    </div>
+                    """
+                ).strip()
+
+                components.html(
+                    ring_wrapper.format(ring_html=LIFECYCLE_RING_HTML),
+                    height=650,
+                    scrolling=False,
                 )
 
         if start_clicked and next_stage_key:
