@@ -3981,10 +3981,6 @@ def render_evaluate_stage():
 
     nerd_flag = bool(ss.get("nerd_mode_eval") or ss.get("nerd_mode"))
 
-    with section_surface("section-surface--arch"):
-        st.markdown("#### The demAI machine — your system at a glance")
-        render_demai_architecture(nerd_mode=nerd_flag, active_stage="evaluate")
-
        
     cache = ss["split_cache"]
     if len(cache) == 4:
@@ -4280,18 +4276,6 @@ def render_classify_stage():
 
     nerd_flag = bool(ss.get("nerd_mode_use") or ss.get("nerd_mode"))
 
-    with section_surface("section-surface--arch"):
-        st.markdown("#### The demAI machine — your system at a glance")
-        is_narrow = (
-            st.session_state.get("viewport_is_mobile")
-            if "viewport_is_mobile" in st.session_state
-            else False
-        )
-        if is_narrow:
-            with st.expander("Show system diagram"):
-                render_demai_architecture(nerd_mode=nerd_flag, active_stage="use")
-        else:
-            render_demai_architecture(nerd_mode=nerd_flag, active_stage="use")
 
     with section_surface():
         overview_col, guidance_col = st.columns([3, 2], gap="large")
