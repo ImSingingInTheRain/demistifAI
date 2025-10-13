@@ -1449,8 +1449,6 @@ def render_intro_stage():
                     </li>
                 </ul>
                    <div id="intro-start-button-source" class="intro-start-button-source">',
-                                unsafe_allow_html=True,
-                            )
                             if next_stage_key:
                                 start_clicked = st.button(
                                     "🚀 Start your machine",
