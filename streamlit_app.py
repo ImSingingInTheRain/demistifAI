@@ -1533,13 +1533,6 @@ def render_overview_stage():
 
     with section_surface("section-surface--arch"):
         render_demai_architecture(nerd_mode=nerd_flag, active_stage="overview")
-        render_mac_window(
-            st,
-            title="Your machine",
-            ratios=(0.38, 0.62),
-            col_html=[left_col_html, right_col_html],
-            id_suffix="intro-lifecycle",
-        )        
 
     st.markdown(
         """
