@@ -1531,7 +1531,7 @@ def render_overview_stage():
     nerd_flag = bool(st.session_state.get("nerd_mode_train") or st.session_state.get("nerd_mode"))
     nerd_enabled = nerd_flag
 
-    overview_columns = st.columns([1, 1], gap="large")
+    overview_columns = st.columns([0.25, 0.75], gap="large")
     with overview_columns[0]:
         st.text_area(
             "Overview summary (placeholder)",
