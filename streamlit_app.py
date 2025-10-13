@@ -1532,9 +1532,7 @@ def render_overview_stage():
     nerd_enabled = nerd_flag
 
     with section_surface("section-surface--arch"):
-        st.markdown("#### The demAI machine — your system at a glance")
-        
-         render_demai_architecture(nerd_mode=nerd_flag, active_stage="overview")
+        render_demai_architecture(nerd_mode=nerd_flag, active_stage="overview")
 
     st.markdown(
         """
