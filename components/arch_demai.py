@@ -69,21 +69,21 @@ def _style_block() -> str:
         """
         <style>
           .arch-surface{
-            --blueprint-bg:#051729;
-            --blueprint-grid:rgba(56,118,171,.28);
-            --blueprint-border:rgba(120,189,255,.45);
-            --card-bg:rgba(7,27,55,.76);
-            --card-border:rgba(147,197,253,.4);
-            --card-shadow:0 25px 50px rgba(5,15,30,.45);
-            --text-primary:#e2f1ff;
-            --text-muted:rgba(195,218,247,.88);
-            --highlight:rgba(56,189,248,.28);
+            --surface-bg:linear-gradient(180deg, rgba(231,244,255,.9), rgba(219,234,254,.65));
+            --surface-grid:rgba(56,118,171,.18);
+            --surface-border:rgba(96,165,250,.45);
+            --card-bg:rgba(248,250,252,.88);
+            --card-border:rgba(148,163,184,.5);
+            --card-shadow:0 16px 36px rgba(15,23,42,.18);
+            --text-primary:#0f172a;
+            --text-muted:rgba(15,23,42,.68);
+            --highlight:rgba(59,130,246,.14);
             position:relative;
             isolation:isolate;
-            padding: clamp(18px, 3vw, 32px);
-            border-radius: 22px;
-            background: radial-gradient(120% 140% at 50% 0%, rgba(56,189,248,.28), rgba(15,118,190,.1) 45%, var(--blueprint-bg) 100%);
-            box-shadow: inset 0 0 0 1px rgba(148,197,255,.25), 0 40px 60px rgba(1,8,18,.65);
+            padding: clamp(14px, 2.2vw, 24px);
+            border-radius: 18px;
+            background: var(--surface-bg);
+            box-shadow: inset 0 0 0 1px rgba(148,197,255,.22), 0 26px 50px rgba(15,23,42,.15);
             overflow:hidden;
           }
 
@@ -92,20 +92,19 @@ def _style_block() -> str:
             position:absolute;
             inset:0;
             background-image:
-              repeating-linear-gradient(0deg, transparent 0 30px, var(--blueprint-grid) 30px 31px),
-              repeating-linear-gradient(90deg, transparent 0 30px, var(--blueprint-grid) 30px 31px);
-            opacity:.6;
+              repeating-linear-gradient(0deg, transparent 0 26px, var(--surface-grid) 26px 27px),
+              repeating-linear-gradient(90deg, transparent 0 26px, var(--surface-grid) 26px 27px);
+            opacity:.55;
             pointer-events:none;
-            mix-blend-mode:screen;
             z-index:-1;
           }
 
           .arch-surface__frame{
-            border-radius: 18px;
-            padding: clamp(14px, 3vw, 28px);
-            background: linear-gradient(180deg, rgba(9,34,66,.65), rgba(7,23,45,.85));
-            border: 1px solid var(--blueprint-border);
-            box-shadow: inset 0 0 0 1px rgba(120,189,255,.18);
+            border-radius: 14px;
+            padding: clamp(12px, 2.4vw, 22px);
+            background: rgba(255,255,255,.72);
+            border: 1px solid var(--surface-border);
+            box-shadow: inset 0 0 0 1px rgba(148,197,255,.16);
             position:relative;
           }
 
@@ -113,27 +112,27 @@ def _style_block() -> str:
           .arch-surface__frame::after{
             content:"";
             position:absolute;
-            border: 1px solid rgba(120,189,255,.32);
-            border-radius: 18px;
+            border: 1px solid rgba(148,197,255,.28);
+            border-radius: 14px;
             pointer-events:none;
           }
 
           .arch-surface__frame::before{
-            inset:14px;
-            opacity:.65;
+            inset:12px;
+            opacity:.55;
           }
 
           .arch-surface__frame::after{
-            inset:28px;
-            opacity:.35;
+            inset:24px;
+            opacity:.28;
           }
 
           .arch-grid{
             display:grid;
-            gap: clamp(14px, 2.5vw, 28px);
-            grid-template-columns: repeat(auto-fit, minmax(240px,1fr));
+            gap: clamp(12px, 2vw, 20px);
+            grid-template-columns: repeat(auto-fit, minmax(210px,1fr));
             position:relative;
-            padding: clamp(8px, 2vw, 14px) clamp(10px, 2.4vw, 18px);
+            padding: clamp(6px, 1.6vw, 12px) clamp(8px, 2vw, 16px);
           }
 
           @media (min-width: 900px){
@@ -146,118 +145,117 @@ def _style_block() -> str:
           .arch-grid::before{
             content:"";
             position:absolute;
-            inset: clamp(12px, 2vw, 24px);
-            border: 1px dashed rgba(120,189,255,.35);
-            border-radius: 18px;
+            inset: clamp(10px, 1.8vw, 20px);
+            border: 1px dashed rgba(96,165,250,.35);
+            border-radius: 14px;
             pointer-events:none;
-            opacity:.7;
+            opacity:.55;
           }
 
           .arch-grid::after{
             content:"";
             position:absolute;
             top: 50%;
-            left: clamp(12px, 2vw, 24px);
-            right: clamp(12px, 2vw, 24px);
+            left: clamp(10px, 1.8vw, 20px);
+            right: clamp(10px, 1.8vw, 20px);
             height: 0;
-            border-top: 2px solid rgba(79,172,254,.32);
-            filter: drop-shadow(0 0 6px rgba(79,172,254,.6));
+            border-top: 1px solid rgba(59,130,246,.28);
+            filter: drop-shadow(0 0 4px rgba(79,172,254,.45));
             pointer-events:none;
           }
 
           .arch-card{
             list-style:none;
             position:relative;
-            border-radius: 18px;
+            border-radius: 14px;
             background: var(--card-bg);
             border: 1px solid var(--card-border);
             box-shadow: var(--card-shadow);
-            padding: clamp(18px, 2.6vw, 30px);
-            transition: transform .35s ease, box-shadow .35s ease, border-color .35s ease;
+            padding: clamp(14px, 2vw, 22px);
+            transition: transform .3s ease, box-shadow .3s ease, border-color .3s ease;
             overflow:visible;
             color: var(--text-primary);
             display:flex;
             flex-direction:column;
-            gap: clamp(14px, 2vw, 20px);
+            gap: clamp(10px, 1.6vw, 16px);
           }
 
           .arch-card::before{
             content:"";
             position:absolute;
-            inset: 10px;
-            border: 1px solid rgba(148,197,255,.25);
-            border-radius: 14px;
-            opacity:.65;
+            inset: 9px;
+            border: 1px solid rgba(148,163,184,.25);
+            border-radius: 12px;
+            opacity:.45;
             pointer-events:none;
           }
 
           .arch-card::after{
             content:"";
             position:absolute;
-            width: 46px;
-            height: 46px;
+            width: 38px;
+            height: 38px;
             border-radius:50%;
-            border: 1px solid rgba(125,211,252,.6);
-            background: radial-gradient(circle at 50% 50%, rgba(148,197,255,.35), transparent 65%);
-            top: 12px;
-            left: 12px;
-            opacity:.45;
+            border: 1px solid rgba(96,165,250,.5);
+            background: radial-gradient(circle at 50% 50%, rgba(148,197,255,.28), transparent 65%);
+            top: 10px;
+            left: 10px;
+            opacity:.4;
             pointer-events:none;
             filter: blur(.4px);
           }
 
           .arch-card[data-arch="model"]::after{ left: 50%; transform: translateX(-50%); }
-          .arch-card[data-arch="inbox"]::after{ left: auto; right: 12px; }
+          .arch-card[data-arch="inbox"]::after{ left: auto; right: 10px; }
 
           .arch-card__header{
             display:flex;
             align-items:center;
-            gap: clamp(16px, 2vw, 22px);
+            gap: clamp(12px, 1.6vw, 18px);
           }
 
           .arch-card__icon{
-            font-size: clamp(1.75rem, 2.3vw, 2.4rem);
-            filter: drop-shadow(0 12px 22px rgba(0,0,0,.45));
+            font-size: clamp(1.45rem, 1.8vw, 1.9rem);
+            filter: drop-shadow(0 10px 18px rgba(15,23,42,.32));
             display:flex;
             align-items:center;
             justify-content:center;
-            width: clamp(52px, 4.2vw, 60px);
-            height: clamp(52px, 4.2vw, 60px);
-            border-radius: 16px;
-            border: 1px solid rgba(148,197,255,.5);
-            background: linear-gradient(145deg, rgba(11,45,86,.95), rgba(5,24,48,.9));
-            box-shadow: inset 0 0 0 1px rgba(148,197,255,.2), 0 18px 30px rgba(3,12,26,.55);
+            width: clamp(44px, 3.4vw, 50px);
+            height: clamp(44px, 3.4vw, 50px);
+            border-radius: 14px;
+            border: 1px solid rgba(59,130,246,.45);
+            background: linear-gradient(145deg, rgba(224,242,254,.95), rgba(191,219,254,.78));
+            box-shadow: inset 0 0 0 1px rgba(59,130,246,.2), 0 14px 26px rgba(59,130,246,.28);
           }
 
           .arch-card__text{
             display:flex;
             flex-direction:column;
-            gap: .5rem;
+            gap: .4rem;
           }
 
           .arch-card__title{
             margin:0;
-            font-size: clamp(1.15rem, 1vw + 1rem, 1.42rem);
-            font-weight:800;
-            letter-spacing:.02em;
-            text-transform:uppercase;
+            font-size: clamp(1.02rem, .65vw + .95rem, 1.18rem);
+            font-weight:700;
+            letter-spacing:.01em;
             color: var(--text-primary);
           }
 
           .arch-card__summary{
             margin:0;
             color: var(--text-muted);
-            font-size: clamp(.96rem, .45vw + .9rem, 1.08rem);
-            line-height:1.55;
+            font-size: clamp(.88rem, .35vw + .86rem, .98rem);
+            line-height:1.45;
           }
 
           .arch-card__body{
             margin-top:0;
-            padding-top: clamp(14px, 1.6vw, 20px);
-            border-top: 1px dashed rgba(148,197,255,.3);
+            padding-top: clamp(12px, 1.2vw, 16px);
+            border-top: 1px dashed rgba(148,163,184,.4);
             display:flex;
             flex-direction:column;
-            gap: .6rem;
+            gap: .55rem;
             max-height:0;
             opacity:0;
             overflow:hidden;
@@ -267,37 +265,37 @@ def _style_block() -> str:
 
           .arch-card__detail{
             margin:0;
-            color: rgba(212,233,255,.96);
-            font-size: clamp(.92rem, .4vw + .92rem, 1.06rem);
-            line-height:1.7;
-            background: rgba(3,17,34,.78);
-            border-radius: 14px;
-            padding: .85rem 1.05rem;
-            box-shadow: inset 0 0 0 1px rgba(125,211,252,.18);
+            color: rgba(30,41,59,.92);
+            font-size: clamp(.86rem, .35vw + .86rem, .98rem);
+            line-height:1.55;
+            background: rgba(255,255,255,.82);
+            border-radius: 12px;
+            padding: .75rem .95rem;
+            box-shadow: inset 0 0 0 1px rgba(148,163,184,.18);
           }
 
           .arch-card:hover{
-            transform: translateY(-4px);
-            border-color: rgba(191,219,254,.75);
-            box-shadow: 0 28px 58px rgba(1,10,26,.68);
+            transform: translateY(-3px);
+            border-color: rgba(59,130,246,.65);
+            box-shadow: 0 20px 38px rgba(59,130,246,.22);
           }
 
           .arch-card.is-highlight{
-            border-color: rgba(125,211,252,.95);
-            box-shadow: 0 32px 60px rgba(56,189,248,.55);
-            background: linear-gradient(180deg, rgba(12,52,95,.9), rgba(7,23,45,.92));
+            border-color: rgba(59,130,246,.75);
+            box-shadow: 0 24px 44px rgba(59,130,246,.28);
+            background: linear-gradient(180deg, rgba(224,242,254,.92), rgba(191,219,254,.88));
           }
 
           .arch-card.is-highlight::before{
-            border-color: rgba(191,219,254,.85);
-            opacity:.9;
+            border-color: rgba(59,130,246,.55);
+            opacity:.65;
           }
 
-          .arch-card.is-highlight .arch-card__title{ color: #f1fbff; }
+          .arch-card.is-highlight .arch-card__title{ color: #0b1f3a; }
 
           .arch-card.is-open .arch-card__body,
           .arch-surface.nerd-on .arch-card.is-open .arch-card__body{
-            max-height: 320px;
+            max-height: 220px;
             opacity:1;
             pointer-events:auto;
           }
