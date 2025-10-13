@@ -110,7 +110,7 @@ from demistifai.modeling import (
 
 from stages.train_stage import render_train_stage
 from ui.animated_logo import render_demai_logo
-from components.ui_command_grid import render_command_grid
+from components.components_cmd import render_ai_act_terminal
 from components.components_mac import render_mac_window
 logger = logging.getLogger(__name__)
 
