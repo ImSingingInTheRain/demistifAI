@@ -1122,7 +1122,7 @@ def set_active_stage(stage_key: str) -> None:
     # Keep the sidebar radio selection aligned with the active stage so the
     # UI immediately reflects navigation triggered by buttons elsewhere.
     if ss.get("sidebar_stage_nav") != stage_key:
-        ss["sidebar_stage_nav"] = stage_key
+        ss["sidebar_stage_nav_pending"] = stage_key
 
     # Mirror the active stage in the URL query parameter for deep-linking and
     # to support refresh persistence.
@@ -1169,6 +1169,11 @@ with st.sidebar:
 
     stage_keys = [stage.key for stage in STAGES]
     active_index = STAGE_INDEX.get(ss.get("active_stage", STAGES[0].key), 0)
+
+    pending_sidebar_nav = ss.pop("sidebar_stage_nav_pending", None)
+    desired_sidebar_nav = pending_sidebar_nav or ss.get("active_stage")
+    if desired_sidebar_nav in stage_keys:
+        ss["sidebar_stage_nav"] = desired_sidebar_nav
 
     st.markdown("<div class='sidebar-nav'>", unsafe_allow_html=True)
     selected_stage = st.radio(
