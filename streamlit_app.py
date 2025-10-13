@@ -1531,6 +1531,25 @@ def render_overview_stage():
     nerd_flag = bool(st.session_state.get("nerd_mode_train") or st.session_state.get("nerd_mode"))
     nerd_enabled = nerd_flag
 
+    overview_columns = st.columns([1, 1], gap="large")
+    with overview_columns[0]:
+        st.text_area(
+            "Overview summary (placeholder)",
+            value="",
+            placeholder="Overview content coming soon…",
+            key="overview_placeholder_notes",
+        )
+    with overview_columns[1]:
+        render_mac_window(
+            st,
+            title="System snapshot",
+            subtitle="Placeholder",
+            columns=1,
+            ratios=(1,),
+            col_html=[None],
+            id_suffix="overview-mac-placeholder",
+        )
+
     with section_surface("section-surface--arch"):
         render_demai_architecture(nerd_mode=nerd_flag, active_stage="overview")
 
