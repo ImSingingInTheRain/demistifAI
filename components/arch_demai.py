@@ -70,37 +70,37 @@ def render_demai_architecture(nerd_mode: bool = False, active_stage: str | None 
 
       .demai-arch__slot {{ display:grid; place-items:center; width:100%; height:100%; padding:4%; }}
 
-      .arch-card {{
+      .demai-arch .arch-card {{
         width: min(520px, 86%); max-width: 520px; background: var(--card);
         border-radius: 14px; box-shadow: var(--shadow); transform-style: preserve-3d;
         perspective: 1000px; cursor: pointer; position: relative;
       }}
-      .arch-card__face {{
+      .demai-arch .arch-card__face {{
         padding: clamp(14px, 2.4vw, 18px) clamp(16px, 2.8vw, 22px);
         backface-visibility: hidden; transition: transform .6s ease, opacity .6s ease;
         border-radius: 14px; position: absolute; inset: 0; display:grid; gap:.35rem;
         align-content:center; text-align:center;
       }}
-      .arch-card__front {{ transform: rotateY(0deg); }}
-      .arch-card__back  {{ transform: rotateY(180deg); opacity: 0; }}
+      .demai-arch .arch-card__front {{ transform: rotateY(0deg); }}
+      .demai-arch .arch-card__back  {{ transform: rotateY(180deg); opacity: 0; }}
 
-      .arch-card.is-flipped .arch-card__front {{ transform: rotateY(180deg); opacity: 0; }}
-      .arch-card.is-flipped .arch-card__back  {{ transform: rotateY(360deg); opacity: 1; }}
+      .demai-arch .arch-card.is-flipped .arch-card__front {{ transform: rotateY(180deg); opacity: 0; }}
+      .demai-arch .arch-card.is-flipped .arch-card__back  {{ transform: rotateY(360deg); opacity: 1; }}
 
-      .arch-card__title {{
+      .demai-arch .arch-card__title {{
         font-weight: 800; color: var(--ink);
         display:inline-flex; gap:.5rem; align-items:center; justify-content:center;
         font-size: clamp(1rem, 1.2vw + .8rem, 1.15rem);
       }}
-      .arch-card__icon {{ font-size: clamp(1.1rem, 1.4vw + .9rem, 1.35rem); }}
-      .arch-card__desc {{ color: var(--muted); line-height:1.55; font-size:.96rem; }}
-      .arch-card__extra {{ margin-top:.35rem; font-size:.86rem; color:rgba(15,23,42,.78); background:rgba(226,232,240,.6); border-radius:8px; padding:.5rem .6rem; }}
+      .demai-arch .arch-card__icon {{ font-size: clamp(1.1rem, 1.4vw + .9rem, 1.35rem); }}
+      .demai-arch .arch-card__desc {{ color: var(--muted); line-height:1.55; font-size:.96rem; }}
+      .demai-arch .arch-card__extra {{ margin-top:.35rem; font-size:.86rem; color:rgba(15,23,42,.78); background:rgba(226,232,240,.6); border-radius:8px; padding:.5rem .6rem; }}
 
       .demai-arch.nerd-on .arch-card {{ cursor: default; }}
       .demai-arch.nerd-on .arch-card .arch-card__front {{ display:none; }}
       .demai-arch.nerd-on .arch-card .arch-card__back  {{ position:relative; transform:none; opacity:1; }}
 
-      .arch-card:focus-visible {{ outline:2px solid rgba(59,130,246,.7); outline-offset:4px; }}
+      .demai-arch .arch-card:focus-visible {{ outline:2px solid rgba(59,130,246,.7); outline-offset:4px; }}
 
       @media (max-width: 680px){{
         .demai-arch__canvas {{ aspect-ratio: 4 / 5; }}
