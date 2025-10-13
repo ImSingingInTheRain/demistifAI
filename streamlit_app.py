@@ -115,6 +115,7 @@ from components.arch_demai import (
     demai_architecture_styles,
 )
 from components.components_cmd import render_ai_act_terminal
+from components.cmd_overview import render_ai_act_terminal as render_overview_ai_act_terminal
 from components.components_mac import render_mac_window
 logger = logging.getLogger(__name__)
 
@@ -1536,12 +1537,7 @@ def render_overview_stage():
 
     overview_columns = st.columns([0.35, 0.65], gap="small")
     with overview_columns[0]:
-        st.text_area(
-            "Overview summary (placeholder)",
-            value="",
-            placeholder="Overview content coming soon…",
-            key="overview_placeholder_notes",
-        )
+        render_overview_ai_act_terminal()
     with overview_columns[1]:
         st.markdown(demai_architecture_styles(), unsafe_allow_html=True)
         render_mac_window(
