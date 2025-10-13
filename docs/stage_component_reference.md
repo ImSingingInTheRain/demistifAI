@@ -7,7 +7,7 @@ numbers use `nl -ba` numbering (1-indexed) for quick cross-checks.
 | Stage key | Function | Line range | Notes |
 | --- | --- | --- | --- |
 | `intro` | `render_intro_stage` | 1242–1534 | Command grid with inline EU AI Act definition, lifecycle primer, and launch controls. |
-| `overview` | `render_overview_stage` | 1536–2242 | EU AI Act framing, autonomy sliders, and walkthrough of the full pipeline. |
+| `overview` | `render_overview_stage` | 1511–2232 | Stage Control Room with EU AI Act framing, system snapshot/status, and mission walkthrough of the pipeline. |
 | `data` | `render_data_stage` | 2243–4010 | Dataset import/generation, linting feedback, and label review utilities. |
 | `evaluate` | `render_evaluate_stage` | 4012–4323 | Evaluation metrics, ROC / confusion matrix views, and governance summary. |
 | `classify` | `render_classify_stage` | 4325–4788 | Live classification console, governance tools, and routing copy. |

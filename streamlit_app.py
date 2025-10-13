@@ -117,6 +117,7 @@ from components.arch_demai import (
 from components.components_cmd import render_ai_act_terminal
 from components.cmd_overview import render_ai_act_terminal as render_overview_ai_act_terminal
 from components.components_mac import render_mac_window
+from components.stage_control_room import stage_control_room
 logger = logging.getLogger(__name__)
 
 st.session_state.setdefault("viewport_is_mobile", False)
@@ -1939,9 +1940,20 @@ def render_overview_stage():
         unsafe_allow_html=True,
     )
 
-    with section_surface():
-        top_left, top_right = st.columns([0.48, 0.52], gap="large")
-        with top_left:
+    dataset_value = f"{dataset_rows:,} labeled emails ready" if dataset_rows else "Starter dataset loading"
+    incoming_value = f"{incoming_count:,} emails queued"
+    if incoming_seed is not None:
+        incoming_value = f"{incoming_value} • seed {incoming_seed}"
+
+    adaptiveness_value = (
+        "Adaptiveness on — confirmations feed future training"
+        if adaptiveness_enabled
+        else "Adaptiveness off — corrections stay manual"
+    )
+
+    def _render_overview_intro(row_slot):
+        intro_left, intro_right = row_slot.columns([0.48, 0.52], gap="large")
+        with intro_left:
             stage_card_html = f"""
                 <div class="overview-intro-card">
                     <div class="overview-intro-card__header">
@@ -1964,31 +1976,12 @@ def render_overview_stage():
                 </div>
             """
             st.markdown(stage_card_html, unsafe_allow_html=True)
-
-            nerd_enabled = render_nerd_mode_toggle(
-                key="nerd_mode",
-                title="Nerd Mode",
-                icon="🧠",
-                description="Toggle to see technical details and extra functionality. You can enable it at any stage to look under the hood.",
+            st.markdown(
+                "<div class='overview-intro-actions'><p class='overview-intro-actions__hint'>Use the navigation controls below when you’re ready to start preparing data. Nerd Mode can be toggled above for extra diagnostics.</p></div>",
+                unsafe_allow_html=True,
             )
 
-            if next_stage_key:
-                st.markdown("<div class='overview-intro-actions'>", unsafe_allow_html=True)
-                st.button(
-                    "📊 Continue to Prepare data",
-                    key="flow_start_machine_cta",
-                    type="primary",
-                    on_click=set_active_stage,
-                    args=(next_stage_key,),
-                    use_container_width=True,
-                )
-                st.markdown(
-                    "<p class='overview-intro-actions__hint'>Next you’ll curate examples so the model learns the right patterns.</p>",
-                    unsafe_allow_html=True,
-                )
-                st.markdown("</div>", unsafe_allow_html=True)
-
-        with top_right:
+        with intro_right:
             machine_panel_html = """
                 <div class="overview-machine-panel">
                     <div class="overview-subheading">
@@ -2011,19 +2004,37 @@ def render_overview_stage():
                     </div>
                 </div>
             """
-
             st.markdown(machine_panel_html, unsafe_allow_html=True)
 
-    dataset_value = f"{dataset_rows:,} labeled emails ready" if dataset_rows else "Starter dataset loading"
-    incoming_value = f"{incoming_count:,} emails queued"
-    if incoming_seed is not None:
-        incoming_value = f"{incoming_value} • seed {incoming_seed}"
+    def _render_overview_status(row_slot):
+        dataset_col, inbox_col, autonomy_col = row_slot.columns(3, gap="large")
+        dataset_col.metric("Labeled dataset", dataset_value, help=dataset_timestamp)
+        dataset_col.caption(dataset_timestamp)
+        inbox_col.metric("Inbox stream", incoming_value)
+        if incoming_seed is not None:
+            inbox_col.caption("Seed controls the synthetic inbox stream — reset it in Use if you need a new batch.")
+        else:
+            inbox_col.caption("Starter queue shown below; incoming batches will appear as you progress.")
+        autonomy_col.metric("Autonomy", autonomy_label)
+        autonomy_col.caption(adaptiveness_value)
 
-    adaptiveness_value = (
-        "Adaptiveness on — confirmations feed future training"
-        if adaptiveness_enabled
-        else "Adaptiveness off — corrections stay manual"
+    prev_clicked, next_clicked, nerd_toggle = stage_control_room(
+        title=f"{stage.icon} {stage.title}",
+        subtitle=stage.description,
+        nerd_state_key="nerd_mode",
+        theme="mac",
+        rows=[_render_overview_intro, _render_overview_status],
+        prev_label="\u2190 EU AI Act brief",
+        next_label="Proceed to Prepare data \u2192",
     )
+
+    if prev_clicked:
+        st.toast("Review the EU AI Act terminal on the left for the legal framing before you continue.", icon="ℹ️")
+
+    if next_clicked and next_stage_key:
+        set_active_stage(next_stage_key)
+
+    nerd_enabled = bool(nerd_toggle)
 
     preview_records: List[Dict[str, Any]] = []
     if incoming_records:
