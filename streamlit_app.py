@@ -1568,11 +1568,15 @@ def render_overview_stage():
             if "viewport_is_mobile" in st.session_state
             else False
         )
-        if is_narrow:
-            with st.expander("Show system diagram"):
+        show_arch = st.checkbox(
+            "Show system diagram", value=True, key="show_arch_overview"
+        )
+        if show_arch:
+            if is_narrow:
+                with st.expander("Show system diagram"):
+                    render_demai_architecture(nerd_mode=nerd_flag, active_stage="overview")
+            else:
                 render_demai_architecture(nerd_mode=nerd_flag, active_stage="overview")
-        else:
-            render_demai_architecture(nerd_mode=nerd_flag, active_stage="overview")
 
     st.markdown(
         """
