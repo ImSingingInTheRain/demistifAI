@@ -1458,6 +1458,7 @@ def render_intro_stage():
                                 use_container_width=True,
                             )
                 </div>
+                </div>
             """
         ).strip()
 
