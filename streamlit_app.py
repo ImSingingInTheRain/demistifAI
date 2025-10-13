@@ -111,7 +111,7 @@ from demistifai.modeling import (
 from stages.train_stage import render_train_stage
 from ui.animated_logo import render_demai_logo
 from components.components_cmd import render_ai_act_terminal
-from components.components_mac import render_mac_window
+from components.components_mac import mac_window_html
 logger = logging.getLogger(__name__)
 
 
@@ -1247,8 +1247,59 @@ def render_intro_stage():
         render_demai_logo()
         render_ai_act_terminal()
 
-        lifecycle_sidecar_html = textwrap.dedent(
-            """
+        cta_button_html = ""
+        cta_bootstrap_html = ""
+
+        if next_stage_key:
+            cta_button_html = textwrap.dedent(
+                """
+                <button id="intro-lifecycle-cta" class="lifecycle-sidecar__cta" type="button">
+                    🚀 Start your machine
+                </button>
+                """
+            ).strip()
+
+            cta_bootstrap_html = textwrap.dedent(
+                """
+                <script>
+                  (function () {
+                    const MAX_ATTEMPTS = 10;
+                    let attempts = 0;
+
+                    function bindCta() {
+                      const btn = document.getElementById("intro-lifecycle-cta");
+                      const streamlit = window.Streamlit;
+                      if (!btn || !streamlit) {
+                        if (attempts < MAX_ATTEMPTS) {
+                          attempts += 1;
+                          window.setTimeout(bindCta, 80);
+                        }
+                        return;
+                      }
+
+                      if (!btn.dataset.bound) {
+                        btn.dataset.bound = "true";
+                        btn.addEventListener("click", function (event) {
+                          event.preventDefault();
+                          streamlit.setComponentValue("start-machine");
+                        });
+                      }
+
+                      streamlit.setFrameHeight(
+                        document.documentElement.scrollHeight || document.body.scrollHeight
+                      );
+                    }
+
+                    window.addEventListener("load", bindCta);
+                    bindCta();
+                  })();
+                </script>
+                """
+            ).strip()
+
+        lifecycle_sidecar_html = (
+            textwrap.dedent(
+                """
             <style>
                 .mw-intro-lifecycle__col .lifecycle-sidecar {
                     display: grid;
@@ -1288,12 +1339,39 @@ def render_intro_stage():
                     font-weight: 700;
                     color: #1d4ed8;
                 }
+                .mw-intro-lifecycle__col .lifecycle-sidecar__cta {
+                    margin-top: 0.35rem;
+                    display: inline-flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 0.4rem;
+                    font-weight: 600;
+                    font-size: 0.95rem;
+                    border-radius: 999px;
+                    padding: 0.6rem 1.3rem;
+                    background: #2563eb;
+                    color: #fff;
+                    border: none;
+                    cursor: pointer;
+                    box-shadow: 0 14px 30px rgba(37, 99, 235, 0.25);
+                    transition: transform 0.15s ease, box-shadow 0.15s ease;
+                    width: 100%;
+                    text-align: center;
+                }
+                .mw-intro-lifecycle__col .lifecycle-sidecar__cta:hover {
+                    transform: translateY(-1px);
+                    box-shadow: 0 18px 32px rgba(37, 99, 235, 0.3);
+                }
+                .mw-intro-lifecycle__col .lifecycle-sidecar__cta:focus-visible {
+                    outline: 3px solid rgba(59, 130, 246, 0.45);
+                    outline-offset: 3px;
+                }
             </style>
             <div class="lifecycle-sidecar" role="complementary" aria-label="Lifecycle guidance">
                 <div class="lifecycle-sidecar__eyebrow">What you'll do</div>
                 <h5 class="lifecycle-sidecar__title">Build and use an AI spam detector</h5>
                 <p class="lifecycle-sidecar__body">
-                    In this interactive journey, you’ll build and use your own AI system, an email spam detector. You will experience the key steps of a development lifecycle, step by step: no technical skills are needed. 
+                    In this interactive journey, you’ll build and use your own AI system, an email spam detector. You will experience the key steps of a development lifecycle, step by step: no technical skills are needed.
                     Along the way, you’ll uncover how AI systems learn, make predictions, while applying in practice key concepts from the EU AI Act.
                 </p>
                 <ul class="lifecycle-sidecar__list">
@@ -1304,14 +1382,17 @@ def render_intro_stage():
                     <li>
                         <strong>Are you ready to make a machine learn?</strong>
                         Click the button below to start your demAI journey!
+                        __CTA_BUTTON__
                     </li>
                 </ul>
             </div>
             """
-        ).strip()
+            )
+            .replace("__CTA_BUTTON__", cta_button_html)
+            .strip()
+        )
 
-        render_mac_window(
-            st,
+        mac_window_markup = mac_window_html(
             title="Your AI system",
             ratios=(0.3, 0.7),
             col_html=[lifecycle_sidecar_html, LIFECYCLE_RING_HTML],
@@ -1319,17 +1400,16 @@ def render_intro_stage():
             id_suffix="intro-lifecycle",
         )
 
-        if next_stage_key:
-            cta_col, _ = st.columns([0.35, 0.65])
-            with cta_col:
-                st.button(
-                    "🚀 Start your machine",
-                    key="flow_start_machine_ready",
-                    type="primary",
-                    on_click=set_active_stage,
-                    args=(next_stage_key,),
-                    use_container_width=True,
-                )
+        mac_window_height = 0 if next_stage_key else 620
+
+        mac_window_response = components.html(
+            f"{mac_window_markup}{cta_bootstrap_html}",
+            height=mac_window_height,
+            key="intro-lifecycle-mac",
+        )
+
+        if mac_window_response == "start-machine" and next_stage_key:
+            set_active_stage(next_stage_key)
 
     ai_act_quote_wrapper_open = """
         <style>
