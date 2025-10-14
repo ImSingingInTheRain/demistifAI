@@ -1545,7 +1545,9 @@ def render_overview_stage():
     autonomy_label = str(ss.get("autonomy", AUTONOMY_LEVELS[0]))
     adaptiveness_enabled = bool(ss.get("adaptive", False))
     nerd_enabled = bool(st.session_state.get("nerd_mode_train") or st.session_state.get("nerd_mode"))
-
+    
+    overview_columns = st.columns([0.65, 0.35], gap="small")
+    with overview_columns[0]:
     cmd_overview_new.render_ai_act_terminal(
         demai_lines=_DEFAULT_DEMAI_LINES,
         speed_type_ms=20,
