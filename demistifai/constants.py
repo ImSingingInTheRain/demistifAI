@@ -1353,120 +1353,18 @@ APP_THEME_CSS = """
 .sidebar-shell {
     display: flex;
     flex-direction: column;
-    gap: 2rem;
+    gap: 1.5rem;
 }
 
-.sidebar-brand {
-    display: flex;
-    flex-direction: column;
-    gap: 0.4rem;
-}
-
-.sidebar-brand .sidebar-title {
-    margin: 0;
-    font-size: 1.18rem;
-    font-weight: 700;
-    color: #1d4ed8;
-}
-
-.sidebar-brand .sidebar-subtitle {
-    margin: 0;
-    color: rgba(248, 250, 252, 0.8);
-    line-height: 1.6;
-    font-size: 0.95rem;
-}
-
-.sidebar-panel {
-    display: grid;
-    gap: 1.2rem;
-}
-
-.sidebar-panel h4 {
-    margin: 0;
-    font-size: 1rem;
-    color: rgba(248, 250, 252, 0.85);
-}
-
-.sidebar-progress {
-    display: flex;
-    flex-direction: column;
-    gap: 0.6rem;
-}
-
-.sidebar-stage-card {
-    display: grid;
-    grid-template-columns: auto minmax(0, 1fr);
-    gap: 0.75rem;
-    align-items: center;
-    padding: 0.8rem 0.9rem;
-    border-radius: 16px;
-    background: rgba(30, 41, 59, 0.5);
-    border: 1px solid rgba(148, 163, 184, 0.18);
-    box-shadow: 0 20px 42px rgba(15, 23, 42, 0.16);
-}
-
-.sidebar-stage-card__icon {
-    display: grid;
-    place-items: center;
-    width: 48px;
-    height: 48px;
-    border-radius: 16px;
-    background: rgba(59, 130, 246, 0.14);
-    color: #1d4ed8;
-    font-size: 1.3rem;
-    box-shadow: inset 0 0 0 1px rgba(59, 130, 246, 0.28);
-}
-
-.sidebar-stage-card__meta {
-    display: flex;
-    flex-direction: column;
-    gap: 0.2rem;
-}
-
-.sidebar-stage-card__eyebrow {
-    font-size: 0.7rem;
-    font-weight: 700;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: rgba(248, 250, 252, 0.65);
-}
-
-.sidebar-stage-card__title {
-    margin: 0;
-    font-size: 1.02rem;
-    font-weight: 700;
-    color: #f8fafc;
-}
-
-.sidebar-stage-card__description {
-    margin: 0;
+.sidebar-placeholder {
+    background: rgba(15, 23, 42, 0.35);
+    border: 1px dashed rgba(148, 163, 184, 0.35);
+    border-radius: 18px;
     color: rgba(248, 250, 252, 0.75);
-    line-height: 1.55;
-    font-size: 0.9rem;
-}
-
-[data-testid="stSidebar"] .stToggle {
-    padding: 0.5rem 0.25rem 0.2rem;
-}
-
-[data-testid="stSidebar"] .stButton > button {
-    width: 100%;
-    border-radius: 14px;
-    border: none;
-    background: linear-gradient(140deg, #1d4ed8, #312e81);
-    color: #f8fafc;
-    font-weight: 600;
-    box-shadow: 0 18px 42px rgba(30, 64, 175, 0.28);
-}
-
-[data-testid="stSidebar"] .stButton > button:hover {
-    background: linear-gradient(140deg, #1e40af, #1d4ed8);
-    box-shadow: 0 22px 48px rgba(30, 64, 175, 0.32);
-}
-
-[data-testid="stSidebar"] .stButton > button:focus-visible {
-    outline: 3px solid rgba(59, 130, 246, 0.55);
-    outline-offset: 2px;
+    font-size: 0.95rem;
+    line-height: 1.6;
+    padding: 1.4rem 1.6rem;
+    text-align: center;
 }
 
 .metric-highlight {

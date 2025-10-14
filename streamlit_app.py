@@ -1153,11 +1153,6 @@ def set_active_stage(stage_key: str) -> None:
         ss["active_stage"] = stage_key
         ss["stage_scroll_to_top"] = True
 
-    # Keep the sidebar radio selection aligned with the active stage so the
-    # UI immediately reflects navigation triggered by buttons elsewhere.
-    if ss.get("sidebar_stage_nav") != stage_key:
-        ss["sidebar_stage_nav_pending"] = stage_key
-
     # Mirror the active stage in the URL query parameter for deep-linking and
     # to support refresh persistence.
     if st.query_params.get_all("stage") != [stage_key]:
@@ -1178,108 +1173,25 @@ def _set_adaptive_state(new_value: bool, *, source: str) -> None:
     ss["adaptive"] = desired_value
     ss["use_adaptiveness"] = desired_value
 
-    if source != "sidebar":
-        ss.pop("adaptive_sidebar", None)
     if source != "stage":
         ss.pop("adaptive_stage", None)
-
-
-def _handle_sidebar_adaptive_change() -> None:
-    _set_adaptive_state(ss.get("adaptive_sidebar", ss.get("adaptive", False)), source="sidebar")
 
 
 ss["use_adaptiveness"] = bool(ss.get("adaptive", False))
 
 with st.sidebar:
-    st.markdown("<div class='sidebar-shell'>", unsafe_allow_html=True)
     st.markdown(
         textwrap.dedent(
             """
-        <div class="sidebar-brand">
-            <p class="sidebar-title">demistifAI control room</p>
-            <p class="sidebar-subtitle">Navigate the lifecycle, review guidance, and manage your session without losing progress.</p>
+        <div class='sidebar-shell'>
+            <div class='sidebar-placeholder'>
+                <p>Sidebar updates are on the way. Stay tuned!</p>
+            </div>
         </div>
         """
         ),
         unsafe_allow_html=True,
     )
-
-    stage_keys = [stage.key for stage in STAGES]
-    active_index = STAGE_INDEX.get(ss.get("active_stage", STAGES[0].key), 0)
-
-    pending_sidebar_nav = ss.pop("sidebar_stage_nav_pending", None)
-    desired_sidebar_nav = pending_sidebar_nav or ss.get("active_stage")
-    if desired_sidebar_nav in stage_keys:
-        ss["sidebar_stage_nav"] = desired_sidebar_nav
-
-    st.markdown("<div class='sidebar-nav'>", unsafe_allow_html=True)
-    selected_stage = st.radio(
-        "Navigate demistifAI",
-        stage_keys,
-        index=active_index,
-        key="sidebar_stage_nav",
-        label_visibility="collapsed",
-        format_func=lambda key: f"{STAGE_BY_KEY[key].icon} {STAGE_BY_KEY[key].title}",
-    )
-    st.markdown("</div>", unsafe_allow_html=True)
-
-    if selected_stage != ss.get("active_stage"):
-        set_active_stage(selected_stage)
-
-    current_stage = STAGE_BY_KEY.get(ss.get("active_stage", selected_stage))
-    if current_stage is not None:
-        st.markdown(
-            """
-            <div class="sidebar-stage-card">
-                <div class="sidebar-stage-card__icon">{icon}</div>
-                <div class="sidebar-stage-card__meta">
-                    <span class="sidebar-stage-card__eyebrow">Current stage</span>
-                    <p class="sidebar-stage-card__title">{title}</p>
-                    <p class="sidebar-stage-card__description">{description}</p>
-                </div>
-            </div>
-            """.format(
-                icon=html.escape(current_stage.icon),
-                title=html.escape(current_stage.title),
-                description=html.escape(current_stage.description),
-            ),
-            unsafe_allow_html=True,
-        )
-
-    st.markdown("<div class='sidebar-section-title'>Session controls</div>", unsafe_allow_html=True)
-    st.toggle(
-        "Learn from my corrections (adaptiveness)",
-        value=ss.get("adaptive", True),
-        key="adaptive_sidebar",
-        help="When enabled, your corrections in the Use stage will update the model during the session.",
-    )
-    _handle_sidebar_adaptive_change()
-
-    if st.button("🔄 Reset demo data", use_container_width=True):
-        ss["labeled"] = starter_dataset_copy()
-        seed = random.randint(1, 1_000_000)
-        ss["incoming_seed"] = seed
-        ss["incoming"] = generate_incoming_batch(n=30, seed=seed, spam_ratio=0.32)
-        ss["model"] = None
-        ss["split_cache"] = None
-        ss["mail_inbox"].clear(); ss["mail_spam"].clear()
-        ss["metrics"] = {"TP": 0, "FP": 0, "TN": 0, "FN": 0}
-        ss["last_classification"] = None
-        ss["numeric_adjustments"] = {feat: 0.0 for feat in FEATURE_ORDER}
-        ss["use_batch_results"] = []
-        ss["use_audit_log"] = []
-        ss["nerd_mode_use"] = False
-        ss["use_high_autonomy"] = ss.get("autonomy", AUTONOMY_LEVELS[0]).startswith("High")
-        ss["adaptive"] = True
-        ss["use_adaptiveness"] = True
-        ss.pop("adaptive_sidebar", None)
-        ss.pop("adaptive_stage", None)
-        st.success("Reset complete.")
-
-    st.caption(
-        "Need a refresher? Use the navigation above to revisit any step without restarting your scenario."
-    )
-    st.markdown("</div>", unsafe_allow_html=True)
 
 
 STAGE_TOP_GRID_CSS = """
