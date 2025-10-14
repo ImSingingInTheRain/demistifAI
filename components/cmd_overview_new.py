@@ -41,7 +41,6 @@ _TERMINAL_STYLE = dedent(f"""
     font-family: 'Fira Code', ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
     border-radius: 12px;
     padding: 1.5rem 1rem 1.3rem;
-    box-shadow: 0 14px 34px rgba(0,0,0,.25);
     position: relative;
     overflow: hidden;
   }}
