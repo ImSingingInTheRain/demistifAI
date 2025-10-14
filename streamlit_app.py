@@ -14,7 +14,8 @@ import re
 from collections import Counter
 from datetime import datetime
 from contextlib import contextmanager
-from typing import Any, Dict, Iterable, List, Optional, Tuple
+from dataclasses import dataclass
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple
 from urllib.parse import urlencode
 from uuid import uuid4
 
@@ -25,6 +26,7 @@ import pandas as pd
 import streamlit as st
 import streamlit.components.v1 as components
 from streamlit.errors import StreamlitAPIException
+from streamlit.delta_generator import DeltaGenerator
 
 from demistifai.constants import (
     APP_THEME_CSS,
@@ -1251,12 +1253,232 @@ with st.sidebar:
     )
     st.markdown("</div>", unsafe_allow_html=True)
 
+
+STAGE_TOP_GRID_CSS = """
+<style>
+.stage-top-grid__placeholder {
+    background: rgba(148, 163, 184, 0.08);
+    border: 1px dashed rgba(30, 41, 59, 0.25);
+    border-radius: 18px;
+    color: rgba(30, 41, 59, 0.75);
+    font-size: 0.94rem;
+    line-height: 1.55;
+    padding: 1.25rem 1.4rem;
+    text-align: center;
+}
+.stage-top-grid__placeholder strong {
+    color: rgba(15, 23, 42, 0.85);
+    display: block;
+    font-size: 1.02rem;
+    margin-bottom: 0.35rem;
+}
+.stage-top-grid__placeholder--compact {
+    font-size: 0.9rem;
+    padding: 1.05rem 1.1rem;
+}
+.stage-top-grid__nav-container {
+    background: linear-gradient(145deg, rgba(96, 165, 250, 0.2), rgba(20, 184, 166, 0.15));
+    border-radius: 18px;
+    box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.08), 0 22px 45px rgba(15, 23, 42, 0.08);
+    padding: 1.25rem 1.4rem 1.4rem;
+}
+.stage-top-grid__nav-stage {
+    color: rgba(30, 41, 59, 0.68);
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+.stage-top-grid__nav-title {
+    color: rgba(15, 23, 42, 0.9);
+    display: flex;
+    flex-wrap: wrap;
+    font-size: 1.3rem;
+    font-weight: 800;
+    gap: 0.45rem;
+    margin-top: 0.45rem;
+}
+.stage-top-grid__nav-description {
+    color: rgba(30, 41, 59, 0.78);
+    font-size: 0.95rem;
+    line-height: 1.6;
+    margin-top: 0.55rem;
+}
+.stage-top-grid__nav-container div[data-testid="stButton"] {
+    margin-top: 0.65rem;
+}
+.stage-top-grid__nav-container div[data-testid="stButton"] button {
+    border-radius: 12px;
+    font-weight: 700;
+    padding: 0.65rem 0.85rem;
+    box-shadow: 0 18px 28px rgba(15, 23, 42, 0.12);
+}
+.stage-top-grid__nav-container div[data-testid="stButton"]:last-of-type button {
+    background: rgba(255, 255, 255, 0.92);
+    color: rgba(15, 23, 42, 0.88);
+    box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.16);
+}
+.stage-top-grid__gap {
+    height: 0.8rem;
+}
+@media (max-width: 900px) {
+    .stage-top-grid__nav-container {
+        padding: 1.1rem 1.2rem 1.25rem;
+    }
+}
+</style>
+"""
+
+
+@dataclass
+class StageTopGridSlots:
+    left: DeltaGenerator
+    right_primary: DeltaGenerator
+    right_secondary: DeltaGenerator
+    prev_clicked: bool
+    next_clicked: bool
+
+
+StageBlockRenderer = Callable[[DeltaGenerator], None]
+
+
+def _stage_navigation_context(stage_key: str) -> tuple[int, int, StageMeta, StageMeta | None, StageMeta | None]:
+    stage_keys = [stage.key for stage in STAGES]
+    total = len(stage_keys)
+    if total == 0 or stage_key not in STAGE_BY_KEY:
+        raise ValueError("Stage navigation requested for unknown stage.")
+
+    index = stage_keys.index(stage_key)
+    stage = STAGE_BY_KEY[stage_key]
+    prev_stage = STAGE_BY_KEY.get(stage_keys[index - 1]) if index > 0 else None
+    next_stage = STAGE_BY_KEY.get(stage_keys[index + 1]) if index < total - 1 else None
+    return index, total, stage, prev_stage, next_stage
+
+
+def _render_stage_navigation_panel(stage_key: str, slot: DeltaGenerator) -> tuple[bool, bool]:
+    try:
+        index, total, stage, prev_stage, next_stage = _stage_navigation_context(stage_key)
+    except ValueError:
+        return False, False
+
+    stage_overview_html = """
+        <div class="stage-top-grid__nav-stage">Stage {stage_number} of {total}</div>
+        <div class="stage-top-grid__nav-title">{icon} {title}</div>
+        <p class="stage-top-grid__nav-description">{description}</p>
+    """.format(
+        stage_number=index + 1,
+        total=total,
+        icon=html.escape(stage.icon),
+        title=html.escape(stage.title),
+        description=html.escape(stage.description),
+    )
+
+    slot.markdown("<div class='stage-top-grid__nav-container'>", unsafe_allow_html=True)
+    slot.markdown(stage_overview_html, unsafe_allow_html=True)
+
+    next_label = "Proceed" if next_stage is None else f"{next_stage.icon} {next_stage.title} \u27a1\ufe0f"
+    prev_label = "Back" if prev_stage is None else f"\u2b05\ufe0f {prev_stage.icon} {prev_stage.title}"
+
+    next_clicked = slot.button(
+        next_label,
+        key=f"stage_grid_next_{stage_key}",
+        use_container_width=True,
+        type="primary",
+        disabled=next_stage is None,
+    )
+    if next_clicked and next_stage is not None:
+        set_active_stage(next_stage.key)
+
+    prev_clicked = slot.button(
+        prev_label,
+        key=f"stage_grid_prev_{stage_key}",
+        use_container_width=True,
+        disabled=prev_stage is None,
+    )
+    if prev_clicked and prev_stage is not None:
+        set_active_stage(prev_stage.key)
+
+    slot.markdown("</div>", unsafe_allow_html=True)
+
+    return prev_clicked, next_clicked
+
+
+def render_stage_top_grid(
+    stage_key: str,
+    *,
+    left_renderer: StageBlockRenderer | None = None,
+    right_first_renderer: StageBlockRenderer | None = None,
+    right_second_renderer: StageBlockRenderer | None = None,
+) -> StageTopGridSlots:
+    st.markdown(STAGE_TOP_GRID_CSS, unsafe_allow_html=True)
+
+    grid_container = st.container()
+    left_col, right_col = grid_container.columns([0.65, 0.35], gap="large")
+
+    left_slot = left_col.container()
+
+    nav_slot = right_col.container()
+    right_col.markdown("<div class='stage-top-grid__gap'></div>", unsafe_allow_html=True)
+    right_first_slot = right_col.container()
+    right_col.markdown("<div class='stage-top-grid__gap'></div>", unsafe_allow_html=True)
+    right_second_slot = right_col.container()
+
+    prev_clicked, next_clicked = _render_stage_navigation_panel(stage_key, nav_slot)
+
+    if left_renderer is not None:
+        left_renderer(left_slot)
+    else:
+        left_slot.markdown(
+            """
+            <div class="stage-top-grid__placeholder">
+                <strong>Stage content placeholder</strong>
+                Customize this area with rich content unique to the current stage.
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+    if right_first_renderer is not None:
+        right_first_renderer(right_first_slot)
+    else:
+        right_first_slot.markdown(
+            """
+            <div class="stage-top-grid__placeholder stage-top-grid__placeholder--compact">
+                Right column placeholder — add supplemental callouts or metrics here.
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+    if right_second_renderer is not None:
+        right_second_renderer(right_second_slot)
+    else:
+        right_second_slot.markdown(
+            """
+            <div class="stage-top-grid__placeholder stage-top-grid__placeholder--compact">
+                Secondary placeholder ready for per-stage widgets or notes.
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+    return StageTopGridSlots(
+        left=left_slot,
+        right_primary=right_first_slot,
+        right_secondary=right_second_slot,
+        prev_clicked=prev_clicked,
+        next_clicked=next_clicked,
+    )
+
+
 def render_intro_stage():
 
     next_stage_key: Optional[str] = None
     intro_index = STAGE_INDEX.get("intro")
     if intro_index is not None and intro_index < len(STAGES) - 1:
         next_stage_key = STAGES[intro_index + 1].key
+
+    render_stage_top_grid("intro")
 
     with section_surface("section-surface--hero"):
         render_demai_logo()
@@ -1545,7 +1767,9 @@ def render_overview_stage():
     autonomy_label = str(ss.get("autonomy", AUTONOMY_LEVELS[0]))
     adaptiveness_enabled = bool(ss.get("adaptive", False))
     nerd_enabled = bool(st.session_state.get("nerd_mode_train") or st.session_state.get("nerd_mode"))
-    
+
+    render_stage_top_grid("overview")
+
     cmd_overview_new.render_ai_act_terminal(
         demai_lines=_DEFAULT_DEMAI_LINES,
         speed_type_ms=20,
@@ -2250,6 +2474,8 @@ def render_overview_stage():
 def render_data_stage():
 
     stage = STAGE_BY_KEY["data"]
+
+    render_stage_top_grid("data")
 
     current_summary = compute_dataset_summary(ss["labeled"])
     ss["dataset_summary"] = current_summary
@@ -4020,6 +4246,8 @@ def render_evaluate_stage():
 
     stage = STAGE_BY_KEY["evaluate"]
 
+    render_stage_top_grid("evaluate")
+
     if not (ss.get("model") and ss.get("split_cache")):
         with section_surface():
             st.subheader(f"{stage.icon} {stage.title} — How well does your spam detector perform?")
@@ -4320,6 +4548,8 @@ def render_evaluate_stage():
 def render_classify_stage():
 
     stage = STAGE_BY_KEY["classify"]
+
+    render_stage_top_grid("classify")
 
     nerd_flag = bool(ss.get("nerd_mode_use") or ss.get("nerd_mode"))
 
@@ -4772,6 +5002,8 @@ def render_classify_stage():
 
 def render_model_card_stage():
 
+    render_stage_top_grid("model_card")
+
 
     with section_surface():
         st.subheader("Model Card — transparency")
@@ -4873,58 +5105,9 @@ These are standardized and combined with the embedding before a linear classifie
             st.code(dataset_config_json, language="json")
 
 
-def render_stage_navigation_controls(active_stage_key: str) -> None:
-    """Display previous/next controls for the staged experience."""
-
-    stage_keys = [stage.key for stage in STAGES]
-    if active_stage_key not in stage_keys:
-        return
-
-    stage_index = stage_keys.index(active_stage_key)
-    current_stage = STAGE_BY_KEY[active_stage_key]
-    previous_stage = STAGE_BY_KEY.get(stage_keys[stage_index - 1]) if stage_index > 0 else None
-    next_stage = (
-        STAGE_BY_KEY.get(stage_keys[stage_index + 1])
-        if stage_index < len(stage_keys) - 1
-        else None
-    )
-
-    prev_col, info_col, next_col = st.columns([1, 2, 1], gap="large")
-
-    with prev_col:
-        if previous_stage is not None:
-            st.button(
-                f"⬅️ {previous_stage.icon} {previous_stage.title}",
-                key=f"stage_nav_prev_{previous_stage.key}",
-                on_click=set_active_stage,
-                args=(previous_stage.key,),
-                use_container_width=True,
-            )
-
-    with info_col:
-        st.markdown(
-            f"""
-            <div class="stage-navigation-info">
-                <div class="stage-navigation-step">Stage {stage_index + 1} of {len(stage_keys)}</div>
-                <div class="stage-navigation-title">{html.escape(current_stage.icon)} {html.escape(current_stage.title)}</div>
-                <p class="stage-navigation-description">{html.escape(current_stage.description)}</p>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-
-    with next_col:
-        if next_stage is not None:
-            st.button(
-                f"{next_stage.icon} {next_stage.title} ➡️",
-                key=f"stage_nav_next_{next_stage.key}",
-                on_click=set_active_stage,
-                args=(next_stage.key,),
-                use_container_width=True,
-            )
-
-
 def _render_train_stage_wrapper() -> None:
+    render_stage_top_grid("train")
+
     render_train_stage(
         ss,
         streamlit_rerun=_streamlit_rerun,
@@ -4971,7 +5154,6 @@ if ss.pop("stage_scroll_to_top", False):
     )
 
 renderer()
-render_stage_navigation_controls(active_stage)
 
 st.markdown("---")
 st.caption("© demistifAI — Built for interactive learning and governance discussions.")
