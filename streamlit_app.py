@@ -857,53 +857,41 @@ def render_nerd_mode_toggle(
     *,
     key: str,
     title: str,
-    description: str,
+    description: Optional[str] = None,
     icon: Optional[str] = "🧠",
     target: DeltaGenerator | None = None,
-    variant: str = "default",
 ) -> bool:
     """Render a consistently styled Nerd Mode toggle block."""
 
     toggle_label = f"{icon} {title}" if icon else title
-    parent = target or st
+    wrapper = target.container() if target is not None else st.container()
+    default_state = bool(ss.get(key, False))
+    icon_html = f"<span class='nerd-toggle__icon'>{html.escape(icon)}</span>" if icon else ""
+    safe_title = html.escape(title)
+    safe_description = html.escape(description) if description else ""
 
-    if variant == "command":
-        wrapper = target.container() if target is not None else st.container()
-        default_state = bool(ss.get(key, False))
-        icon_html = f"<span class='nerd-toggle__icon'>{html.escape(icon)}</span>" if icon else ""
-        safe_title = html.escape(title)
-        safe_description = html.escape(description) if description else ""
-        with wrapper:
-            st.markdown("<div class='nerd-toggle nerd-toggle--command'>", unsafe_allow_html=True)
+    with wrapper:
+        st.markdown("<div class='nerd-toggle'>", unsafe_allow_html=True)
+        content_col, toggle_col = st.columns([4, 1])
+        with content_col:
             st.markdown(
-                """
-                <div class="nerd-toggle__command-line">
-                    <span class="nerd-toggle__command">Nerd Mode Toggle</span>
-                </div>
-                """,
+                f"<div class='nerd-toggle__title'>{icon_html}<span class='nerd-toggle__title-text'>{safe_title}</span></div>",
                 unsafe_allow_html=True,
             )
-            control_col = st.columns([1])
-            with control_col:
-                status_slot = st.container()
-                value = st.toggle(
-                    toggle_label,
-                    key=key,
-                    value=default_state,
-                    label_visibility="collapsed",
-                )
-                status_label = "ACTIVE" if value else "STANDBY"
-                state_class = "nerd-toggle__status-chip--on" if value else "nerd-toggle__status-chip--off"
-                status_slot.markdown(
-                    f"<div class='nerd-toggle__status-chip {state_class}'>STATUS · {status_label}</div>",
+            if description:
+                st.markdown(
+                    f"<div class='nerd-toggle__description'>{safe_description}</div>",
                     unsafe_allow_html=True,
                 )
-            st.markdown("</div>", unsafe_allow_html=True)
-        return value
+        with toggle_col:
+            value = st.toggle(
+                toggle_label,
+                key=key,
+                value=default_state,
+                label_visibility="collapsed",
+            )
+        st.markdown("</div>", unsafe_allow_html=True)
 
-    value = parent.toggle(toggle_label, key=key, value=bool(ss.get(key, False)))
-    if description:
-        parent.caption(description)
     return value
 
 
@@ -1327,7 +1315,7 @@ STAGE_TOP_GRID_CSS = """
 }
 .stage-top-grid__nav-card,
 .stage-top-grid__nav-action,
-.nerd-toggle--command {
+.nerd-toggle {
     position: relative;
     background: linear-gradient(180deg, rgba(13, 17, 23, 0.96), rgba(13, 17, 23, 0.9));
     border-radius: 20px;
@@ -1339,7 +1327,7 @@ STAGE_TOP_GRID_CSS = """
     overflow: hidden;
 }
 .stage-top-grid__nav-card::before,
-.nerd-toggle--command::before {
+.nerd-toggle::before {
     content: '';
     position: absolute;
     inset: 0;
@@ -1361,7 +1349,7 @@ STAGE_TOP_GRID_CSS = """
 }
 .stage-top-grid__nav-card > *,
 .stage-top-grid__nav-action > *,
-.nerd-toggle--command > * {
+.nerd-toggle > * {
     position: relative;
     z-index: 1;
 }
@@ -1407,127 +1395,58 @@ STAGE_TOP_GRID_CSS = """
     font-family: 'Fira Code', ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
     color: rgba(226, 232, 240, 0.92);
 }
-.nerd-toggle--command [data-testid="column"] {
+.nerd-toggle {
     display: flex;
     flex-direction: column;
-    gap: 0.75rem;
+    gap: 1rem;
 }
-.nerd-toggle--command [data-testid="column"]:last-of-type {
-    align-items: flex-end;
-}
-.nerd-toggle__command-line {
+.nerd-toggle [data-testid="column"] {
     display: flex;
-    align-items: center;
-    gap: 0.65rem;
-    font-size: 0.74rem;
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
-    color: rgba(94, 234, 212, 0.78);
-    margin-bottom: 1rem;
-    background: linear-gradient(180deg, rgba(13, 17, 23, 0.96), rgba(13, 17, 23, 0.9));
+    flex-direction: column;
+    gap: 0.55rem;
 }
-.nerd-toggle__prompt {
-    color: rgba(34, 211, 238, 0.85);
-    background: linear-gradient(180deg, rgba(13, 17, 23, 0.96), rgba(13, 17, 23, 0.9));
+.nerd-toggle [data-testid="column"]:first-of-type {
+    align-items: flex-start;
 }
-.nerd-toggle__command {
-    font-weight: 700;
-    background: linear-gradient(180deg, rgba(13, 17, 23, 0.96), rgba(13, 17, 23, 0.9));
-}
-.nerd-toggle__args {
-    color: rgba(148, 163, 184, 0.82);
-    background: linear-gradient(180deg, rgba(13, 17, 23, 0.96), rgba(13, 17, 23, 0.9));
+.nerd-toggle [data-testid="column"]:last-of-type {
+    align-items: flex-end;
+    justify-content: center;
 }
 .nerd-toggle__title {
     display: flex;
     align-items: center;
-    gap: 0.55rem;
-    font-size: 1.05rem;
+    gap: 0.6rem;
+    font-size: 1.12rem;
     font-weight: 700;
     color: #f8fafc;
-    background: linear-gradient(180deg, rgba(13, 17, 23, 0.96), rgba(13, 17, 23, 0.9));
+}
+.nerd-toggle__title-text {
+    display: inline-block;
+    letter-spacing: 0.01em;
 }
 .nerd-toggle__icon {
-    font-size: 1.3rem;
+    font-size: 1.35rem;
     line-height: 1;
-    background: linear-gradient(180deg, rgba(13, 17, 23, 0.96), rgba(13, 17, 23, 0.9));
 }
 .nerd-toggle__description {
-    margin: 0.6rem 0 0;
-    color: rgba(203, 213, 225, 0.9);
+    color: rgba(203, 213, 225, 0.88);
     font-size: 0.9rem;
-    line-height: 1.6;
-    background: linear-gradient(180deg, rgba(13, 17, 23, 0.96), rgba(13, 17, 23, 0.9));
+    line-height: 1.65;
 }
-.nerd-toggle__description::before {
-    content: '//';
-    margin-right: 0.45rem;
-    color: rgba(94, 234, 212, 0.78);
-    background: linear-gradient(180deg, rgba(13, 17, 23, 0.96), rgba(13, 17, 23, 0.9));
-}
-.nerd-toggle__meta-grid {
-    margin-top: 0.85rem;
-    display: grid;
-    gap: 0.45rem;
-    background: linear-gradient(180deg, rgba(13, 17, 23, 0.96), rgba(13, 17, 23, 0.9));
-}
-.nerd-toggle__meta-item {
-    display: flex;
-    gap: 0.6rem;
-    align-items: baseline;
-    background: linear-gradient(180deg, rgba(13, 17, 23, 0.96), rgba(13, 17, 23, 0.9));
-}
-.nerd-toggle__meta-key {
-    font-size: 0.7rem;
-    letter-spacing: 0.16em;
-    text-transform: uppercase;
-    color: rgba(94, 234, 212, 0.78);
-    background: linear-gradient(180deg, rgba(13, 17, 23, 0.96), rgba(13, 17, 23, 0.9));
-}
-.nerd-toggle__meta-value {
-    font-size: 0.82rem;
-    color: rgba(226, 232, 240, 0.85);
-    background: linear-gradient(180deg, rgba(13, 17, 23, 0.96), rgba(13, 17, 23, 0.9));
-}
-.nerd-toggle--command [data-testid="stToggle"] {
+.nerd-toggle [data-testid="stToggle"] {
     display: flex;
     justify-content: flex-end;
 }
-.nerd-toggle--command label[data-testid="stToggle"] {
+.nerd-toggle label[data-testid="stToggle"] {
     justify-content: flex-end;
 }
-.nerd-toggle--command label[data-testid="stToggle"] > div[role="switch"] {
+.nerd-toggle label[data-testid="stToggle"] > div[role="switch"] {
     background: rgba(148, 163, 184, 0.35);
     box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.25);
 }
-.nerd-toggle--command label[data-testid="stToggle"] > div[role="switch"][aria-checked="true"] {
+.nerd-toggle label[data-testid="stToggle"] > div[role="switch"][aria-checked="true"] {
     background: linear-gradient(125deg, rgba(56, 189, 248, 0.85), rgba(59, 130, 246, 0.78));
     box-shadow: inset 0 0 0 1px rgba(226, 232, 240, 0.4);
-}
-.nerd-toggle__status-chip {
-    margin-bottom: 0.9rem;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.45rem;
-    padding: 0.45rem 0.85rem;
-    border-radius: 999px;
-    font-size: 0.72rem;
-    letter-spacing: 0.16em;
-    text-transform: uppercase;
-    border: 1px solid rgba(94, 234, 212, 0.55);
-    color: rgba(94, 234, 212, 0.85);
-    background: rgba(14, 116, 144, 0.28);
-    box-shadow: 0 14px 28px rgba(13, 148, 136, 0.28);
-}
-.nerd-toggle__status-chip--on {
-    box-shadow: 0 18px 32px rgba(13, 148, 136, 0.38);
-}
-.nerd-toggle__status-chip--off {
-    border-color: rgba(148, 163, 184, 0.45);
-    color: rgba(148, 163, 184, 0.78);
-    background: rgba(15, 23, 42, 0.42);
-    box-shadow: none;
 }
 .stage-top-grid__nav-action {
     padding: 1.35rem 1.45rem 1.55rem;
@@ -1584,7 +1503,7 @@ STAGE_TOP_GRID_CSS = """
 }
 @media (max-width: 900px) {
     .stage-top-grid__nav-card,
-    .nerd-toggle--command,
+    .nerd-toggle,
     .stage-top-grid__nav-action {
         padding: 1.1rem 1.2rem 1.2rem;
     }
@@ -2081,7 +2000,6 @@ def render_overview_stage():
             key="nerd_mode",
             title="Nerd Mode — technical overlays",
             target=nerd_toggle_container,
-            variant="command",
         )
         nerd_toggle_container.markdown("</div>", unsafe_allow_html=True)
 
