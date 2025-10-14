@@ -871,7 +871,6 @@ def render_nerd_mode_toggle(
     safe_description = html.escape(description) if description else ""
 
     with wrapper:
-        st.markdown("<div class='nerd-toggle'>", unsafe_allow_html=True)
         content_col, toggle_col = st.columns([4, 1])
         with content_col:
             st.markdown(
@@ -890,7 +889,6 @@ def render_nerd_mode_toggle(
                 value=default_state,
                 label_visibility="collapsed",
             )
-        st.markdown("</div>", unsafe_allow_html=True)
 
     return value
 
@@ -1314,8 +1312,7 @@ STAGE_TOP_GRID_CSS = """
     padding: 1rem 1.15rem 1rem 2rem;
 }
 .stage-top-grid__nav-card,
-.stage-top-grid__nav-action,
-.nerd-toggle {
+.stage-top-grid__nav-action {
     position: relative;
     background: linear-gradient(180deg, rgba(13, 17, 23, 0.96), rgba(13, 17, 23, 0.9));
     border-radius: 20px;
@@ -1326,8 +1323,7 @@ STAGE_TOP_GRID_CSS = """
     font-family: 'Fira Code', ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
     overflow: hidden;
 }
-.stage-top-grid__nav-card::before,
-.nerd-toggle::before {
+.stage-top-grid__nav-card::before {
     content: '';
     position: absolute;
     inset: 0;
@@ -1348,8 +1344,7 @@ STAGE_TOP_GRID_CSS = """
     border-radius: inherit;
 }
 .stage-top-grid__nav-card > *,
-.stage-top-grid__nav-action > *,
-.nerd-toggle > * {
+.stage-top-grid__nav-action > * {
     position: relative;
     z-index: 1;
 }
@@ -1391,24 +1386,39 @@ STAGE_TOP_GRID_CSS = """
 .stage-top-grid__gap {
     height: 0.85rem;
 }
-.stage-top-grid__nerd-toggle {
-    font-family: 'Fira Code', ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+[data-testid="stHorizontalBlock"]:has(.nerd-toggle__title) {
+    position: relative;
+    background: linear-gradient(180deg, rgba(13, 17, 23, 0.96), rgba(13, 17, 23, 0.9));
+    border-radius: 20px;
+    border: 1px solid rgba(56, 189, 248, 0.4);
+    box-shadow: 0 28px 50px rgba(8, 47, 73, 0.45), inset 0 0 0 1px rgba(15, 23, 42, 0.75);
+    padding: 1.4rem 1.5rem 1.55rem;
     color: rgba(226, 232, 240, 0.92);
-}
-.nerd-toggle {
-    display: flex;
-    flex-direction: column;
+    font-family: 'Fira Code', ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+    overflow: hidden;
     gap: 1rem;
 }
-.nerd-toggle [data-testid="column"] {
+[data-testid="stHorizontalBlock"]:has(.nerd-toggle__title)::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at top right, rgba(59, 130, 246, 0.32), transparent 55%),
+        radial-gradient(circle at bottom left, rgba(20, 184, 166, 0.28), transparent 62%);
+    opacity: 0.65;
+    pointer-events: none;
+    border-radius: inherit;
+}
+[data-testid="stHorizontalBlock"]:has(.nerd-toggle__title) > [data-testid="column"] {
+    position: relative;
+    z-index: 1;
     display: flex;
     flex-direction: column;
     gap: 0.55rem;
 }
-.nerd-toggle [data-testid="column"]:first-of-type {
+[data-testid="stHorizontalBlock"]:has(.nerd-toggle__title) > [data-testid="column"]:first-of-type {
     align-items: flex-start;
 }
-.nerd-toggle [data-testid="column"]:last-of-type {
+[data-testid="stHorizontalBlock"]:has(.nerd-toggle__title) > [data-testid="column"]:last-of-type {
     align-items: flex-end;
     justify-content: center;
 }
@@ -1433,18 +1443,18 @@ STAGE_TOP_GRID_CSS = """
     font-size: 0.9rem;
     line-height: 1.65;
 }
-.nerd-toggle [data-testid="stToggle"] {
+[data-testid="stHorizontalBlock"]:has(.nerd-toggle__title) [data-testid="stToggle"] {
     display: flex;
     justify-content: flex-end;
 }
-.nerd-toggle label[data-testid="stToggle"] {
+[data-testid="stHorizontalBlock"]:has(.nerd-toggle__title) label[data-testid="stToggle"] {
     justify-content: flex-end;
 }
-.nerd-toggle label[data-testid="stToggle"] > div[role="switch"] {
+[data-testid="stHorizontalBlock"]:has(.nerd-toggle__title) label[data-testid="stToggle"] > div[role="switch"] {
     background: rgba(148, 163, 184, 0.35);
     box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.25);
 }
-.nerd-toggle label[data-testid="stToggle"] > div[role="switch"][aria-checked="true"] {
+[data-testid="stHorizontalBlock"]:has(.nerd-toggle__title) label[data-testid="stToggle"] > div[role="switch"][aria-checked="true"] {
     background: linear-gradient(125deg, rgba(56, 189, 248, 0.85), rgba(59, 130, 246, 0.78));
     box-shadow: inset 0 0 0 1px rgba(226, 232, 240, 0.4);
 }
@@ -1503,7 +1513,7 @@ STAGE_TOP_GRID_CSS = """
 }
 @media (max-width: 900px) {
     .stage-top-grid__nav-card,
-    .nerd-toggle,
+    [data-testid="stHorizontalBlock"]:has(.nerd-toggle__title),
     .stage-top-grid__nav-action {
         padding: 1.1rem 1.2rem 1.2rem;
     }
@@ -1991,17 +2001,11 @@ def render_overview_stage():
             )
 
     def _render_overview_nerd_toggle(slot: DeltaGenerator) -> None:
-        nerd_toggle_container = slot.container()
-        nerd_toggle_container.markdown(
-            "<div class='stage-top-grid__nerd-toggle'>",
-            unsafe_allow_html=True,
-        )
         render_nerd_mode_toggle(
             key="nerd_mode",
             title="Nerd Mode — technical overlays",
-            target=nerd_toggle_container,
+            target=slot,
         )
-        nerd_toggle_container.markdown("</div>", unsafe_allow_html=True)
 
     render_stage_top_grid(
         "overview",
