@@ -1921,11 +1921,11 @@ def render_overview_stage():
     def _render_overview_nerd_toggle(slot: DeltaGenerator) -> None:
         with slot:
             st.markdown("<div class='stage-top-grid__nerd-toggle'>", unsafe_allow_html=True)
-            render_nerd_mode_toggle(
-                key="nerd_mode",
-                title="Nerd Mode — technical overlays",
-                description="Reveal deeper diagnostics, system internals, and expert tips throughout each stage.",
-            )
+                render_nerd_mode_toggle(
+                    key="nerd_mode",
+                    title="Nerd Mode — technical overlays",
+                    description="Reveal deeper diagnostics, system internals, and expert tips throughout each stage.",
+                )
             st.markdown("</div>", unsafe_allow_html=True)
 
     render_stage_top_grid(
