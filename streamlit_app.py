@@ -1148,7 +1148,8 @@ def set_active_stage(stage_key: str) -> None:
     if stage_key not in STAGE_BY_KEY:
         return
 
-    if ss.get("active_stage") != stage_key:
+    stage_changed = ss.get("active_stage") != stage_key
+    if stage_changed:
         ss["active_stage"] = stage_key
         ss["stage_scroll_to_top"] = True
 
@@ -1161,6 +1162,9 @@ def set_active_stage(stage_key: str) -> None:
     # to support refresh persistence.
     if st.query_params.get_all("stage") != [stage_key]:
         st.query_params["stage"] = stage_key
+
+    if stage_changed:
+        _streamlit_rerun()
 
 
 def _set_adaptive_state(new_value: bool, *, source: str) -> None:
