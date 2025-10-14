@@ -1,4 +1,4 @@
-"""Animated EU AI Act terminal component (non-blocking, client-side)."""
+"""Animated EU AI Act terminal component (non-blocking, auto-resizing, f-string safe)."""
 
 from __future__ import annotations
 from textwrap import dedent
@@ -43,7 +43,6 @@ _TERMINAL_STYLE = dedent(f"""
     box-shadow: 0 14px 34px rgba(0,0,0,.25);
     position: relative;
     overflow: hidden;
-    min-height: 260px;
   }}
   .terminal-{_TERMINAL_SUFFIX}::before {{
     content: '●  ●  ●';
@@ -67,7 +66,6 @@ _TERMINAL_STYLE = dedent(f"""
   .hl-{_TERMINAL_SUFFIX}     {{ color: #a5f3fc; font-weight: 600; }}
   @keyframes blink-{_TERMINAL_SUFFIX} {{ 50% {{ opacity: 0; }} }}
 
-  /* Entrance fade so shell appears smoothly while page continues rendering */
   .terminal-wrap-{_TERMINAL_SUFFIX} {{
     opacity: 0; transform: translateY(6px);
     animation: fadein-{_TERMINAL_SUFFIX} .6s ease forwards;
@@ -86,18 +84,18 @@ _TERMINAL_STYLE = dedent(f"""
 def render_ai_act_terminal(
     demai_lines: Optional[Iterable[str]] = None,
     speed_type_ms: int = 20,
-    speed_delete_ms: int = 14,        # kept for API compatibility; used during backspacing if you add it
-    pause_between_ops_ms: int = 360,  # interpreted as pause between lines
-    height: int = 300,
+    speed_delete_ms: int = 14,        # kept for API compatibility
+    pause_between_ops_ms: int = 360,  # pause between lines
     key: str = "ai_act_terminal",
     show_caret: bool = True,
 ) -> None:
     """
-    Render the animated EU AI Act terminal sequence using a client-side typing loop.
+    Render the animated EU AI Act terminal sequence using a client-side typing loop with auto-resize.
 
     - Non-blocking: the rest of the Streamlit page renders immediately.
-    - Honors `prefers-reduced-motion`: shows the final state with no typing if users opt out.
-    - Keeps your original parameters for easy drop-in replacement.
+    - Auto-resizing: iframe height grows with content while typing.
+    - Honors 'prefers-reduced-motion': final state is shown if motion is reduced.
+    - f-string safe: avoids backslashes inside f-string expressions.
     """
     lines = list(demai_lines) if demai_lines is not None else _DEFAULT_DEMAI_LINES
 
@@ -111,6 +109,9 @@ def render_ai_act_terminal(
         "domId": f"term-{key}",
     }
 
+    # ---- IMPORTANT: precompute noscript text to avoid backslashes inside f-string expressions
+    final_text = "".join((l if str(l).endswith("\n") else f"{l}\n") for l in lines)
+
     components_html(
         f"""
 {_TERMINAL_STYLE}
@@ -120,9 +121,10 @@ def render_ai_act_terminal(
     <span class="caret-{_TERMINAL_SUFFIX}" style="display:{'inline-block' if show_caret else 'none'}"></span>
   </div>
 </div>
+
 <noscript>
   <div class="terminal-{_TERMINAL_SUFFIX}">
-    <pre class="term-body-{_TERMINAL_SUFFIX}">{''.join((l if l.endswith('\\n') else l+'\\n') for l in lines)}</pre>
+    <pre class="term-body-{_TERMINAL_SUFFIX}">{final_text}</pre>
   </div>
 </noscript>
 
@@ -137,44 +139,48 @@ def render_ai_act_terminal(
 
   const rawLines = (cfg.lines || []).map(l => (l == null ? "" : String(l)));
   const toLinesWithNL = (arr) => arr.map(l => l.endsWith("\\n") ? l : (l + "\\n"));
-
-  // Fast escape to avoid XSS and keep monospaced layout intact
   const esc = (s) => s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
 
-  // Simple highlighter aligned with your Python version
   function highlight(line) {{
     const stripped = line.trim();
     if (/^dem[a-z]*ai$/i.test(stripped)) return `<span class="hl-${{cfg.suffix}}">${{esc(line)}}</span>`;
     if (line.startsWith("$ ")) return `<span class="cmdline-${{cfg.suffix}}">${{esc(line)}}</span>`;
     return esc(line);
   }}
-
   function renderHighlighted(raw) {{
     pre.innerHTML = raw.split("\\n").map(highlight).join("\\n");
+    autoResize();
   }}
 
-  // Respect reduced motion: render final state and stop
+  // --- AUTO-RESIZE: notify Streamlit when content height changes ---
+  const autoResize = () => {{
+    const height = root.scrollHeight + 24; // small padding for shadow
+    window.parent.postMessage({{ "type": "streamlit:resize", "height": height }}, "*");
+  }};
+  const resizeObserver = new ResizeObserver(() => autoResize());
+  resizeObserver.observe(root);
+
+  // --- Reduced motion: render final state immediately ---
   const prefersReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   if (prefersReduced || cfg.speedType === 0) {{
     const finalRaw = toLinesWithNL(rawLines).join("");
     renderHighlighted(finalRaw);
     if (caret) caret.style.display = "none";
+    autoResize();
     return;
   }}
 
-  // Typing engine (client-side; non-blocking to Streamlit)
-  const TYPE_DELAY   = Math.max(0, cfg.speedType);
+  // --- Typing engine (client-side, non-blocking) ---
+  const TYPE_DELAY = Math.max(0, cfg.speedType);
   const BETWEEN_LINES = Math.max(0, cfg.pauseBetween);
 
-  let iLine = 0;
-  let iChar = 0;
-  let buffer = "";   // raw text typed so far
+  let iLine = 0, iChar = 0, buffer = "";
 
   function step() {{
     if (iLine >= rawLines.length) {{
-      // Final pass with highlighting; hide caret
       renderHighlighted(buffer);
       if (caret) caret.style.display = "none";
+      autoResize();
       return;
     }}
 
@@ -182,23 +188,22 @@ def render_ai_act_terminal(
 
     if (iChar < target.length) {{
       buffer += target[iChar++];
-      pre.textContent = buffer; // fast while typing
+      pre.textContent = buffer;   // fast during typing
+      autoResize();
       setTimeout(step, TYPE_DELAY);
       return;
     }}
 
-    // Line completed: re-render with highlighting for text so far
+    // End of line: re-render with highlighting for what we have so far
     renderHighlighted(buffer);
-    iLine += 1;
-    iChar = 0;
-
+    iLine += 1; iChar = 0;
     setTimeout(step, BETWEEN_LINES);
   }}
 
-  // Kick off after first paint
+  // Start after first paint
   requestAnimationFrame(step);
 }})();
 </script>
         """,
-        height=height,
+        height=100,  # minimal initial height; JS will grow it dynamically
     )
