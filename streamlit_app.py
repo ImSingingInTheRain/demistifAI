@@ -1455,12 +1455,15 @@ STAGE_TOP_GRID_CSS = """
 }
 .nerd-toggle__prompt {
     color: rgba(34, 211, 238, 0.85);
+    background: linear-gradient(180deg, rgba(13, 17, 23, 0.96), rgba(13, 17, 23, 0.9));
 }
 .nerd-toggle__command {
     font-weight: 700;
+    background: linear-gradient(180deg, rgba(13, 17, 23, 0.96), rgba(13, 17, 23, 0.9));
 }
 .nerd-toggle__args {
     color: rgba(148, 163, 184, 0.82);
+    background: linear-gradient(180deg, rgba(13, 17, 23, 0.96), rgba(13, 17, 23, 0.9));
 }
 .nerd-toggle__title {
     display: flex;
@@ -1469,41 +1472,49 @@ STAGE_TOP_GRID_CSS = """
     font-size: 1.05rem;
     font-weight: 700;
     color: #f8fafc;
+    background: linear-gradient(180deg, rgba(13, 17, 23, 0.96), rgba(13, 17, 23, 0.9));
 }
 .nerd-toggle__icon {
     font-size: 1.3rem;
     line-height: 1;
+    background: linear-gradient(180deg, rgba(13, 17, 23, 0.96), rgba(13, 17, 23, 0.9));
 }
 .nerd-toggle__description {
     margin: 0.6rem 0 0;
     color: rgba(203, 213, 225, 0.9);
     font-size: 0.9rem;
     line-height: 1.6;
+    background: linear-gradient(180deg, rgba(13, 17, 23, 0.96), rgba(13, 17, 23, 0.9));
 }
 .nerd-toggle__description::before {
     content: '//';
     margin-right: 0.45rem;
     color: rgba(94, 234, 212, 0.78);
+    background: linear-gradient(180deg, rgba(13, 17, 23, 0.96), rgba(13, 17, 23, 0.9));
 }
 .nerd-toggle__meta-grid {
     margin-top: 0.85rem;
     display: grid;
     gap: 0.45rem;
+    background: linear-gradient(180deg, rgba(13, 17, 23, 0.96), rgba(13, 17, 23, 0.9));
 }
 .nerd-toggle__meta-item {
     display: flex;
     gap: 0.6rem;
     align-items: baseline;
+    background: linear-gradient(180deg, rgba(13, 17, 23, 0.96), rgba(13, 17, 23, 0.9));
 }
 .nerd-toggle__meta-key {
     font-size: 0.7rem;
     letter-spacing: 0.16em;
     text-transform: uppercase;
     color: rgba(94, 234, 212, 0.78);
+    background: linear-gradient(180deg, rgba(13, 17, 23, 0.96), rgba(13, 17, 23, 0.9));
 }
 .nerd-toggle__meta-value {
     font-size: 0.82rem;
     color: rgba(226, 232, 240, 0.85);
+    background: linear-gradient(180deg, rgba(13, 17, 23, 0.96), rgba(13, 17, 23, 0.9));
 }
 .nerd-toggle--command [data-testid="stToggle"] {
     display: flex;
