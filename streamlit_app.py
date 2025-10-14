@@ -860,14 +860,76 @@ def render_nerd_mode_toggle(
     description: str,
     icon: Optional[str] = "🧠",
     target: DeltaGenerator | None = None,
+    variant: str = "default",
 ) -> bool:
     """Render a consistently styled Nerd Mode toggle block."""
 
     toggle_label = f"{icon} {title}" if icon else title
-    container = target or st
-    value = container.toggle(toggle_label, key=key, value=bool(ss.get(key, False)))
+    parent = target or st
+
+    if variant == "command":
+        wrapper = target.container() if target is not None else st.container()
+        default_state = bool(ss.get(key, False))
+        icon_html = f"<span class='nerd-toggle__icon'>{html.escape(icon)}</span>" if icon else ""
+        safe_title = html.escape(title)
+        safe_description = html.escape(description) if description else ""
+        with wrapper:
+            st.markdown("<div class='nerd-toggle nerd-toggle--command'>", unsafe_allow_html=True)
+            st.markdown(
+                """
+                <div class="nerd-toggle__command-line">
+                    <span class="nerd-toggle__prompt">$</span>
+                    <span class="nerd-toggle__command">nerd_mode.toggle</span>
+                    <span class="nerd-toggle__args">--scope all-stages</span>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+            info_col, control_col = st.columns([0.68, 0.32], gap="large")
+            with info_col:
+                st.markdown(
+                    f"<div class='nerd-toggle__title'>{icon_html}<span>{safe_title}</span></div>",
+                    unsafe_allow_html=True,
+                )
+                if safe_description:
+                    st.markdown(
+                        f"<p class='nerd-toggle__description'>{safe_description}</p>",
+                        unsafe_allow_html=True,
+                    )
+                st.markdown(
+                    """
+                    <div class="nerd-toggle__meta-grid">
+                        <div class="nerd-toggle__meta-item">
+                            <span class="nerd-toggle__meta-key">scope</span>
+                            <span class="nerd-toggle__meta-value">overview · prepare · train · evaluate · use</span>
+                        </div>
+                        <div class="nerd-toggle__meta-item">
+                            <span class="nerd-toggle__meta-key">outputs</span>
+                            <span class="nerd-toggle__meta-value">diagnostics · overlays · expert prompts</span>
+                        </div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
+            with control_col:
+                value = st.toggle(
+                    toggle_label,
+                    key=key,
+                    value=default_state,
+                    label_visibility="collapsed",
+                )
+                status = "active" if value else "standby"
+                state_class = "nerd-toggle__status--on" if value else "nerd-toggle__status--off"
+                st.markdown(
+                    f"<div class='nerd-toggle__status {state_class}'>status: {status}</div>",
+                    unsafe_allow_html=True,
+                )
+            st.markdown("</div>", unsafe_allow_html=True)
+        return value
+
+    value = parent.toggle(toggle_label, key=key, value=bool(ss.get(key, False)))
     if description:
-        container.caption(description)
+        parent.caption(description)
     return value
 
 
@@ -1352,32 +1414,127 @@ STAGE_TOP_GRID_CSS = """
     height: 0.85rem;
 }
 .stage-top-grid__nerd-toggle {
-    position: relative;
-    background: linear-gradient(175deg, rgba(13, 17, 23, 0.95), rgba(15, 23, 42, 0.88));
-    border-radius: 18px;
-    border: 1px solid rgba(56, 189, 248, 0.38);
-    box-shadow: 0 22px 44px rgba(7, 89, 133, 0.4);
-    padding: 1.2rem 1.25rem 1.35rem;
     font-family: 'Fira Code', ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
     color: rgba(226, 232, 240, 0.92);
 }
-.stage-top-grid__nerd-toggle::before {
-    content: 'nerd_mode.toggle';
-    display: block;
-    font-size: 0.74rem;
-    text-transform: uppercase;
-    letter-spacing: 0.18em;
-    color: rgba(94, 234, 212, 0.7);
-    margin-bottom: 0.75rem;
+.stage-top-grid__nerd-toggle .nerd-toggle--command {
+    position: relative;
+    border-radius: 20px;
+    border: 1px solid rgba(56, 189, 248, 0.42);
+    background: linear-gradient(184deg, rgba(13, 17, 23, 0.96), rgba(15, 23, 42, 0.88));
+    box-shadow: 0 28px 52px rgba(7, 89, 133, 0.48);
+    padding: 1.35rem 1.45rem 1.55rem;
+    overflow: hidden;
 }
-.stage-top-grid__nerd-toggle [data-testid="stWidgetLabel"] > div {
+.stage-top-grid__nerd-toggle .nerd-toggle--command::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at top right, rgba(56, 189, 248, 0.32), transparent 55%),
+        radial-gradient(circle at bottom left, rgba(59, 130, 246, 0.28), transparent 62%);
+    opacity: 0.55;
+    pointer-events: none;
+}
+.stage-top-grid__nerd-toggle .nerd-toggle--command > * {
+    position: relative;
+    z-index: 1;
+}
+.stage-top-grid__nerd-toggle .nerd-toggle__command-line {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    font-size: 0.74rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: rgba(94, 234, 212, 0.78);
+    margin-bottom: 1rem;
+}
+.stage-top-grid__nerd-toggle .nerd-toggle__prompt {
+    color: rgba(34, 211, 238, 0.85);
+}
+.stage-top-grid__nerd-toggle .nerd-toggle__command {
     font-weight: 700;
-    font-size: 0.95rem;
+}
+.stage-top-grid__nerd-toggle .nerd-toggle__args {
+    color: rgba(148, 163, 184, 0.82);
+}
+.stage-top-grid__nerd-toggle .nerd-toggle__title {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    font-size: 1.05rem;
+    font-weight: 700;
     color: #f8fafc;
 }
-.stage-top-grid__nerd-toggle p {
-    margin-top: 0.55rem;
-    color: rgba(203, 213, 225, 0.88);
+.stage-top-grid__nerd-toggle .nerd-toggle__icon {
+    font-size: 1.3rem;
+    line-height: 1;
+}
+.stage-top-grid__nerd-toggle .nerd-toggle__description {
+    margin: 0.6rem 0 0;
+    color: rgba(203, 213, 225, 0.9);
+    font-size: 0.9rem;
+    line-height: 1.6;
+}
+.stage-top-grid__nerd-toggle .nerd-toggle__description::before {
+    content: '//';
+    margin-right: 0.45rem;
+    color: rgba(94, 234, 212, 0.78);
+}
+.stage-top-grid__nerd-toggle .nerd-toggle__meta-grid {
+    margin-top: 0.85rem;
+    display: grid;
+    gap: 0.45rem;
+}
+.stage-top-grid__nerd-toggle .nerd-toggle__meta-item {
+    display: flex;
+    gap: 0.6rem;
+    align-items: baseline;
+}
+.stage-top-grid__nerd-toggle .nerd-toggle__meta-key {
+    font-size: 0.7rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: rgba(94, 234, 212, 0.78);
+}
+.stage-top-grid__nerd-toggle .nerd-toggle__meta-value {
+    font-size: 0.82rem;
+    color: rgba(226, 232, 240, 0.85);
+}
+.stage-top-grid__nerd-toggle .nerd-toggle--command [data-testid="stToggle"] {
+    display: flex;
+    justify-content: flex-end;
+}
+.stage-top-grid__nerd-toggle .nerd-toggle--command label[data-testid="stToggle"] {
+    justify-content: flex-end;
+}
+.stage-top-grid__nerd-toggle .nerd-toggle--command label[data-testid="stToggle"] > div[role="switch"] {
+    background: rgba(148, 163, 184, 0.35);
+    box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.25);
+}
+.stage-top-grid__nerd-toggle .nerd-toggle--command label[data-testid="stToggle"] > div[role="switch"][aria-checked="true"] {
+    background: linear-gradient(125deg, rgba(56, 189, 248, 0.85), rgba(59, 130, 246, 0.78));
+    box-shadow: inset 0 0 0 1px rgba(226, 232, 240, 0.4);
+}
+.stage-top-grid__nerd-toggle .nerd-toggle__status {
+    margin-top: 0.85rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    padding: 0.42rem 0.75rem;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    border: 1px solid rgba(94, 234, 212, 0.55);
+    color: rgba(94, 234, 212, 0.85);
+    background: rgba(14, 116, 144, 0.28);
+}
+.stage-top-grid__nerd-toggle .nerd-toggle__status--off {
+    border-color: rgba(148, 163, 184, 0.45);
+    color: rgba(148, 163, 184, 0.78);
+    background: rgba(15, 23, 42, 0.42);
 }
 .stage-top-grid__nav-action {
     position: relative;
@@ -1931,6 +2088,7 @@ def render_overview_stage():
             title="Nerd Mode — technical overlays",
             description="Reveal deeper diagnostics, system internals, and expert tips throughout each stage.",
             target=nerd_toggle_container,
+            variant="command",
         )
         nerd_toggle_container.markdown("</div>", unsafe_allow_html=True)
 
