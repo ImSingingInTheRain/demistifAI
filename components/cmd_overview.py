@@ -228,13 +228,13 @@ def render_ai_act_terminal(
     _ensure_terminal_css()
     container = st.container()
 
-    final_state_key = f"{_FINAL_STATE_KEY}:{hash(tuple(demai_lines))}"
+    prepared_lines = _prepare_lines(demai_lines)
+
+    final_state_key = f"{_FINAL_STATE_KEY}:{hash(tuple(prepared_lines))}"
     final_state = st.session_state.get(final_state_key)
     if final_state:
         _render_terminal_html(container, final_state, show_caret=False)
         return
-
-    prepared_lines = _prepare_lines(demai_lines)
     config = {
         "lines": prepared_lines,
         "speed_type": max(speed_type_ms, 0),
