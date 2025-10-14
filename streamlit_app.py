@@ -1291,6 +1291,10 @@ def render_intro_stage():
                 }
                 .mw-intro-lifecycle__grid {
                     gap: clamp(1rem, 2.5vw, 1.8rem);
+                    padding-left: 5px;
+                    padding-top: 5px;
+                    padding-bottom: 5px;
+">
                 }
                 .mw-intro-lifecycle__col {
                     position: relative;
