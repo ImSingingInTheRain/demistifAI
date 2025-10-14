@@ -2203,12 +2203,6 @@ def render_overview_stage():
         else "Adaptiveness off — corrections stay manual"
     )
 
-    nerd_enabled = bool(nerd_toggle)
-
-    st.markdown(
-        "<div style='margin-top: 1.5rem'></div>",
-        unsafe_allow_html=True,
-    )
     st.markdown(demai_architecture_styles(), unsafe_allow_html=True)
     render_mac_window(
         st,
