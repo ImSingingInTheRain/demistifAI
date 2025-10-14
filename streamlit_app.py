@@ -1257,88 +1257,183 @@ with st.sidebar:
 STAGE_TOP_GRID_CSS = """
 <style>
 .stage-top-grid__placeholder {
-    background: rgba(148, 163, 184, 0.08);
-    border: 1px dashed rgba(30, 41, 59, 0.25);
+    background: linear-gradient(160deg, rgba(15, 23, 42, 0.9), rgba(8, 47, 73, 0.85));
+    border: 1px dashed rgba(56, 189, 248, 0.45);
     border-radius: 18px;
-    color: rgba(30, 41, 59, 0.75);
-    font-size: 0.94rem;
-    line-height: 1.55;
-    padding: 1.25rem 1.4rem;
-    text-align: center;
+    color: rgba(226, 232, 240, 0.88);
+    font-family: 'Fira Code', ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+    font-size: 0.92rem;
+    letter-spacing: 0.01em;
+    line-height: 1.6;
+    padding: 1.25rem 1.4rem 1.25rem 2.25rem;
+    position: relative;
+    text-align: left;
+}
+.stage-top-grid__placeholder::before {
+    content: '▌';
+    color: rgba(56, 189, 248, 0.9);
+    position: absolute;
+    left: 1.2rem;
+    top: 1.2rem;
+    font-size: 0.95rem;
 }
 .stage-top-grid__placeholder strong {
-    color: rgba(15, 23, 42, 0.85);
+    color: #38bdf8;
     display: block;
-    font-size: 1.02rem;
+    font-size: 1rem;
     margin-bottom: 0.35rem;
 }
 .stage-top-grid__placeholder--compact {
-    font-size: 0.9rem;
-    padding: 1.05rem 1.1rem;
+    font-size: 0.88rem;
+    padding: 1rem 1.15rem 1rem 2rem;
 }
-.stage-top-grid__nav-container {
-    background: linear-gradient(145deg, rgba(96, 165, 250, 0.2), rgba(20, 184, 166, 0.15));
-    border-radius: 18px;
-    box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.08), 0 22px 45px rgba(15, 23, 42, 0.08);
-    padding: 1.25rem 1.4rem 1.4rem;
+.stage-top-grid__nav-card {
+    position: relative;
+    background: linear-gradient(180deg, rgba(13, 17, 23, 0.96), rgba(13, 17, 23, 0.9));
+    border-radius: 20px;
+    border: 1px solid rgba(56, 189, 248, 0.4);
+    box-shadow: 0 28px 50px rgba(8, 47, 73, 0.45), inset 0 0 0 1px rgba(15, 23, 42, 0.75);
+    padding: 1.4rem 1.5rem 1.55rem;
+    color: rgba(226, 232, 240, 0.92);
+    font-family: 'Fira Code', ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+    overflow: hidden;
 }
-.stage-top-grid__nav-stage {
-    color: rgba(30, 41, 59, 0.68);
-    font-size: 0.78rem;
-    font-weight: 700;
+.stage-top-grid__nav-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at top right, rgba(59, 130, 246, 0.32), transparent 55%),
+        radial-gradient(circle at bottom left, rgba(20, 184, 166, 0.28), transparent 62%);
+    opacity: 0.65;
+    pointer-events: none;
+}
+.stage-top-grid__nav-card > * {
+    position: relative;
+    z-index: 1;
+}
+.stage-top-grid__nav-card-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+    font-size: 0.8rem;
     letter-spacing: 0.08em;
     text-transform: uppercase;
 }
+.stage-top-grid__nav-prompt {
+    color: rgba(94, 234, 212, 0.82);
+    font-weight: 700;
+}
+.stage-top-grid__nav-stage {
+    color: rgba(148, 163, 184, 0.92);
+    font-weight: 600;
+}
 .stage-top-grid__nav-title {
-    color: rgba(15, 23, 42, 0.9);
     display: flex;
-    flex-wrap: wrap;
-    font-size: 1.3rem;
-    font-weight: 800;
-    gap: 0.45rem;
-    margin-top: 0.45rem;
+    align-items: center;
+    gap: 0.55rem;
+    font-size: 1.22rem;
+    font-weight: 700;
+    margin-top: 0.9rem;
+    color: #f8fafc;
+}
+.stage-top-grid__nav-icon {
+    font-size: 1.4rem;
 }
 .stage-top-grid__nav-description {
-    color: rgba(30, 41, 59, 0.78);
-    font-size: 0.95rem;
-    line-height: 1.6;
-    margin-top: 0.55rem;
-}
-.stage-top-grid__nav-container div[data-testid="stButton"] {
-    margin-top: 0.65rem;
-}
-.stage-top-grid__nav-container div[data-testid="stButton"] button {
-    border-radius: 12px;
-    font-weight: 700;
-    padding: 0.65rem 0.85rem;
-    box-shadow: 0 18px 28px rgba(15, 23, 42, 0.12);
-}
-.stage-top-grid__nav-container div[data-testid="stButton"]:last-of-type button {
-    background: rgba(255, 255, 255, 0.92);
-    color: rgba(15, 23, 42, 0.88);
-    box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.16);
+    margin-top: 0.75rem;
+    color: rgba(203, 213, 225, 0.86);
+    font-size: 0.93rem;
+    line-height: 1.65;
 }
 .stage-top-grid__gap {
-    height: 0.8rem;
+    height: 0.85rem;
 }
 .stage-top-grid__nerd-toggle {
-    background: linear-gradient(140deg, rgba(96, 165, 250, 0.18), rgba(20, 184, 166, 0.16));
-    border-radius: 16px;
-    box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.08), 0 18px 32px rgba(15, 23, 42, 0.08);
-    padding: 1.15rem 1.2rem 1.25rem;
+    position: relative;
+    background: linear-gradient(175deg, rgba(13, 17, 23, 0.95), rgba(15, 23, 42, 0.88));
+    border-radius: 18px;
+    border: 1px solid rgba(56, 189, 248, 0.38);
+    box-shadow: 0 22px 44px rgba(7, 89, 133, 0.4);
+    padding: 1.2rem 1.25rem 1.35rem;
+    font-family: 'Fira Code', ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+    color: rgba(226, 232, 240, 0.92);
+}
+.stage-top-grid__nerd-toggle::before {
+    content: 'nerd_mode.toggle';
+    display: block;
+    font-size: 0.74rem;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    color: rgba(94, 234, 212, 0.7);
+    margin-bottom: 0.75rem;
 }
 .stage-top-grid__nerd-toggle [data-testid="stWidgetLabel"] > div {
     font-weight: 700;
     font-size: 0.95rem;
-    color: rgba(15, 23, 42, 0.92);
+    color: #f8fafc;
 }
 .stage-top-grid__nerd-toggle p {
     margin-top: 0.55rem;
-    color: rgba(15, 23, 42, 0.75);
+    color: rgba(203, 213, 225, 0.88);
+}
+.stage-top-grid__nav-action {
+    position: relative;
+    background: linear-gradient(185deg, rgba(13, 17, 23, 0.96), rgba(8, 47, 73, 0.88));
+    border-radius: 18px;
+    border: 1px solid rgba(59, 130, 246, 0.42);
+    padding: 0.95rem 1.05rem 1.05rem;
+    box-shadow: 0 18px 36px rgba(8, 47, 73, 0.45);
+}
+.stage-top-grid__nav-action::before {
+    content: attr(data-caption);
+    display: block;
+    font-size: 0.74rem;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    color: rgba(94, 234, 212, 0.75);
+    margin-bottom: 0.75rem;
+    font-family: 'Fira Code', ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+}
+.stage-top-grid__nav-action [data-testid="stButton"] {
+    margin: 0;
+}
+.stage-top-grid__nav-action [data-testid="stButton"] > button {
+    width: 100%;
+    border-radius: 14px;
+    font-weight: 700;
+    font-size: 0.95rem;
+    padding: 0.75rem 1.05rem;
+    border: none;
+    font-family: 'Fira Code', ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+    box-shadow: 0 16px 30px rgba(14, 116, 144, 0.45);
+}
+.stage-top-grid__nav-action--next {
+    border-color: rgba(34, 211, 238, 0.6);
+}
+.stage-top-grid__nav-action--next [data-testid="stButton"] > button {
+    background: linear-gradient(120deg, #38bdf8, #22d3ee);
+    color: #0f172a;
+    box-shadow: 0 18px 36px rgba(45, 212, 191, 0.55);
+}
+.stage-top-grid__nav-action--prev [data-testid="stButton"] > button {
+    background: rgba(15, 23, 42, 0.92);
+    color: rgba(226, 232, 240, 0.92);
+    box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.55), 0 16px 32px rgba(15, 23, 42, 0.6);
+}
+.stage-top-grid__nav-action--prev [data-testid="stButton"] > button:hover {
+    background: rgba(30, 41, 59, 0.92);
+}
+.stage-top-grid__nav-action--next [data-testid="stButton"] > button:disabled,
+.stage-top-grid__nav-action--prev [data-testid="stButton"] > button:disabled {
+    opacity: 0.6;
+    box-shadow: none;
 }
 @media (max-width: 900px) {
-    .stage-top-grid__nav-container {
-        padding: 1.1rem 1.2rem 1.25rem;
+    .stage-top-grid__nav-card,
+    .stage-top-grid__nerd-toggle,
+    .stage-top-grid__nav-action {
+        padding: 1.1rem 1.2rem 1.2rem;
     }
 }
 </style>
@@ -1370,16 +1465,29 @@ def _stage_navigation_context(stage_key: str) -> tuple[int, int, StageMeta, Stag
     return index, total, stage, prev_stage, next_stage
 
 
-def _render_stage_navigation_panel(stage_key: str, slot: DeltaGenerator) -> tuple[bool, bool]:
+def _render_stage_navigation_panel(
+    stage_key: str,
+    card_slot: DeltaGenerator,
+    next_slot: DeltaGenerator,
+    prev_slot: DeltaGenerator,
+) -> tuple[bool, bool]:
     try:
         index, total, stage, prev_stage, next_stage = _stage_navigation_context(stage_key)
     except ValueError:
         return False, False
 
     stage_overview_html = """
-        <div class="stage-top-grid__nav-stage">Stage {stage_number} of {total}</div>
-        <div class="stage-top-grid__nav-title">{icon} {title}</div>
-        <p class="stage-top-grid__nav-description">{description}</p>
+        <div class="stage-top-grid__nav-card">
+            <div class="stage-top-grid__nav-card-header">
+                <span class="stage-top-grid__nav-prompt">$ stage.status</span>
+                <span class="stage-top-grid__nav-stage">[{stage_number}/{total}]</span>
+            </div>
+            <div class="stage-top-grid__nav-title">
+                <span class="stage-top-grid__nav-icon">{icon}</span>
+                <span>{title}</span>
+            </div>
+            <p class="stage-top-grid__nav-description">{description}</p>
+        </div>
     """.format(
         stage_number=index + 1,
         total=total,
@@ -1388,32 +1496,42 @@ def _render_stage_navigation_panel(stage_key: str, slot: DeltaGenerator) -> tupl
         description=html.escape(stage.description),
     )
 
-    slot.markdown("<div class='stage-top-grid__nav-container'>", unsafe_allow_html=True)
-    slot.markdown(stage_overview_html, unsafe_allow_html=True)
+    with card_slot:
+        st.markdown(stage_overview_html, unsafe_allow_html=True)
 
     next_label = "Proceed" if next_stage is None else f"{next_stage.icon} {next_stage.title} \u27a1\ufe0f"
     prev_label = "Back" if prev_stage is None else f"\u2b05\ufe0f {prev_stage.icon} {prev_stage.title}"
 
-    next_clicked = slot.button(
-        next_label,
-        key=f"stage_grid_next_{stage_key}",
-        use_container_width=True,
-        type="primary",
-        disabled=next_stage is None,
-    )
+    with next_slot:
+        st.markdown(
+            "<div class='stage-top-grid__nav-action stage-top-grid__nav-action--next' data-caption='next.stage'>",
+            unsafe_allow_html=True,
+        )
+        next_clicked = st.button(
+            next_label,
+            key=f"stage_grid_next_{stage_key}",
+            use_container_width=True,
+            type="primary",
+            disabled=next_stage is None,
+        )
+        st.markdown("</div>", unsafe_allow_html=True)
     if next_clicked and next_stage is not None:
         set_active_stage(next_stage.key)
 
-    prev_clicked = slot.button(
-        prev_label,
-        key=f"stage_grid_prev_{stage_key}",
-        use_container_width=True,
-        disabled=prev_stage is None,
-    )
+    with prev_slot:
+        st.markdown(
+            "<div class='stage-top-grid__nav-action stage-top-grid__nav-action--prev' data-caption='previous.stage'>",
+            unsafe_allow_html=True,
+        )
+        prev_clicked = st.button(
+            prev_label,
+            key=f"stage_grid_prev_{stage_key}",
+            use_container_width=True,
+            disabled=prev_stage is None,
+        )
+        st.markdown("</div>", unsafe_allow_html=True)
     if prev_clicked and prev_stage is not None:
         set_active_stage(prev_stage.key)
-
-    slot.markdown("</div>", unsafe_allow_html=True)
 
     return prev_clicked, next_clicked
 
@@ -1437,8 +1555,17 @@ def render_stage_top_grid(
     right_first_slot = right_col.container()
     right_col.markdown("<div class='stage-top-grid__gap'></div>", unsafe_allow_html=True)
     right_second_slot = right_col.container()
+    right_col.markdown("<div class='stage-top-grid__gap'></div>", unsafe_allow_html=True)
+    next_slot = right_col.container()
+    right_col.markdown("<div class='stage-top-grid__gap'></div>", unsafe_allow_html=True)
+    prev_slot = right_col.container()
 
-    prev_clicked, next_clicked = _render_stage_navigation_panel(stage_key, nav_slot)
+    prev_clicked, next_clicked = _render_stage_navigation_panel(
+        stage_key,
+        nav_slot,
+        next_slot,
+        prev_slot,
+    )
 
     if left_renderer is not None:
         left_renderer(left_slot)
