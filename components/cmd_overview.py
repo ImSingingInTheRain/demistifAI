@@ -24,7 +24,8 @@ _DEFAULT_DEMAI_LINES: List[str] = [
     "",
     "You are already inside a machine-based system: a user interface (software) running in the cloud (hardware). You will be guided you through each stage with interactive prompts like this. Browse this page to discover more information about the demAI machine. Use the control room to advance to different stages and enable a Nerd Mode when you are thirsty for more details.",
     ""
-    "STARING demAI.machine",
+    ""
+    "STARTING demAI.machine",
     "",
     "0% ■■■■■■■■■■■■■■■■■■■■■■■■ 100%",
 ]
