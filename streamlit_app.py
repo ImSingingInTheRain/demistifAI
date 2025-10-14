@@ -1544,31 +1544,13 @@ def render_overview_stage():
     incoming_seed = ss.get("incoming_seed")
     autonomy_label = str(ss.get("autonomy", AUTONOMY_LEVELS[0]))
     adaptiveness_enabled = bool(ss.get("adaptive", False))
-    nerd_flag = bool(st.session_state.get("nerd_mode_train") or st.session_state.get("nerd_mode"))
-    nerd_enabled = nerd_flag
+    nerd_enabled = bool(st.session_state.get("nerd_mode_train") or st.session_state.get("nerd_mode"))
 
-    overview_columns = st.columns([0.70, 0.30], gap="small")
-    with overview_columns[0]:
-        cmd_overview_new.render_ai_act_terminal(
-            demai_lines=_DEFAULT_DEMAI_LINES,
-            speed_type_ms=20,
-            pause_between_ops_ms=360,
-        )
-    with overview_columns[1]:
-        st.markdown(demai_architecture_styles(), unsafe_allow_html=True)
-        render_mac_window(
-            st,
-            title="System snapshot",
-            columns=1,
-            ratios=(1,),
-            col_html=[
-                demai_architecture_markup(
-                    nerd_mode=nerd_flag,
-                    active_stage="overview",
-                )
-            ],
-            id_suffix="overview-mac-placeholder",
-        )
+    cmd_overview_new.render_ai_act_terminal(
+        demai_lines=_DEFAULT_DEMAI_LINES,
+        speed_type_ms=20,
+        pause_between_ops_ms=360,
+    )
 
     st.markdown(
         """
@@ -2050,6 +2032,25 @@ def render_overview_stage():
         set_active_stage(next_stage_key)
 
     nerd_enabled = bool(nerd_toggle)
+
+    st.markdown(
+        "<div style='margin-top: 1.5rem'></div>",
+        unsafe_allow_html=True,
+    )
+    st.markdown(demai_architecture_styles(), unsafe_allow_html=True)
+    render_mac_window(
+        st,
+        title="System snapshot",
+        columns=1,
+        ratios=(1,),
+        col_html=[
+            demai_architecture_markup(
+                nerd_mode=nerd_enabled,
+                active_stage="overview",
+            )
+        ],
+        id_suffix="overview-mac-placeholder",
+    )
 
     preview_records: List[Dict[str, Any]] = []
     if incoming_records:
