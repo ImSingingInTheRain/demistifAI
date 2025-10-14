@@ -1547,7 +1547,7 @@ def render_overview_stage():
     nerd_flag = bool(st.session_state.get("nerd_mode_train") or st.session_state.get("nerd_mode"))
     nerd_enabled = nerd_flag
 
-    overview_columns = st.columns([0.35, 0.65], gap="small")
+    overview_columns = st.columns([0.60, 0.40], gap="small")
     with overview_columns[0]:
         cmd_overview_new.render_ai_act_terminal(
             demai_lines=_DEFAULT_DEMAI_LINES,
