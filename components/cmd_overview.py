@@ -11,14 +11,22 @@ import time
 
 _DEFAULT_DEMAI_LINES: List[str] = [
     "> What is an AI system?",
+    "",
     "LOADING EU AI ACT, Article 3 \n",
+    "",
     "0% ■■■■■■■■■■■■■■■■■■■■■■■■ 100% \n",
+    "",
     "AI system means a machine-based system...",
+    "",
     "> Wait, but what that actually means? \n",
+    "",
     "...",
-    "STARING demAI.machine",
-    "0% ■■■■■■■■■■■■■■■■■■■■■■■■ 100%",
+    "",
     "You are already inside a machine-based system: a user interface (software) running in the cloud (hardware). You will be guided you through each stage with interactive prompts like this. Browse this page to discover more information about the demAI machine. Use the control room to advance to different stages and enable a Nerd Mode when you are thirsty for more details.",
+    ""
+    "STARING demAI.machine",
+    "",
+    "0% ■■■■■■■■■■■■■■■■■■■■■■■■ 100%",
 ]
 
 _TERMINAL_SUFFIX = "ai_act_fullterm"
