@@ -1,14 +1,12 @@
 from __future__ import annotations
 
 import html
-import json
 import re
 from textwrap import dedent
 from typing import Iterable, List
-from uuid import uuid4
 
 import streamlit as st
-from streamlit.components.v1 import html as components_html
+import time
 
 
 _DEFAULT_DEMAI_LINES: List[str] = [
@@ -93,12 +91,11 @@ def _highlight_raw(raw: str) -> str:
     return "".join(highlighted_parts)
 
 
-def _build_terminal_shell(pre_inner: str, caret_visible: bool, mount_id: str | None = None) -> str:
+def _build_terminal_shell(pre_inner: str, caret_visible: bool) -> str:
     caret_style = "display:inline-block;" if caret_visible else "display:none;"
-    mount_attr = f' id="{mount_id}"' if mount_id else ""
     return dedent(
         f"""
-        <div{mount_attr} class="terminal-{_TERMINAL_SUFFIX}">
+        <div class="terminal-{_TERMINAL_SUFFIX}">
           <pre class="term-body-{_TERMINAL_SUFFIX}">{pre_inner}</pre>
           <span class="caret-{_TERMINAL_SUFFIX}" style="{caret_style}"></span>
         </div>
@@ -120,22 +117,6 @@ def _compute_final_state(demai_lines: Iterable[str]) -> str:
     return raw
 
 
-def _estimate_terminal_height(raw: str) -> int:
-    """Return an approximate terminal height for the rendered content."""
-
-    if not raw:
-        return 320
-
-    line_count = raw.count("\n") + 1
-    min_height = 300
-    max_height = 680
-    per_line = 22
-    padding = 140
-
-    estimated = padding + line_count * per_line
-    return max(min_height, min(max_height, estimated))
-
-
 def render_ai_act_terminal(
     demai_lines=None,
     speed_type_ms: int = 20,
@@ -152,122 +133,43 @@ def render_ai_act_terminal(
     final_state_key = f"{_FINAL_STATE_KEY}:{hash(tuple(prepared_lines))}"
     final_state = st.session_state.get(final_state_key)
 
-    final_raw = final_state or _compute_final_state(prepared_lines)
-    target_height = _estimate_terminal_height(final_raw)
+    container = st.container()
+    container.markdown(_TERMINAL_STYLE, unsafe_allow_html=True)
+    shell_slot = container.empty()
+
+    def _render_shell(raw: str, caret_visible: bool) -> None:
+        shell_slot.markdown(
+            _build_terminal_shell(_highlight_raw(raw), caret_visible=caret_visible),
+            unsafe_allow_html=True,
+        )
 
     if final_state:
-        highlighted = _highlight_raw(final_state)
-        static_html = (
-            dedent(
-                """
-                __STYLE__
-                __SHELL__
-                """
-            )
-            .replace("__STYLE__", _TERMINAL_STYLE)
-            .replace("__SHELL__", _build_terminal_shell(highlighted, caret_visible=False))
-        )
-        components_html(static_html, height=target_height)
+        _render_shell(final_state, caret_visible=False)
         return
-    mount_id = f"terminal-{_TERMINAL_SUFFIX}-{uuid4().hex}"
-    config = {
-        "lines": prepared_lines,
-        "typeDelay": max(speed_type_ms, 0),
-        "pauseDelay": max(pause_between_ops_ms, 0),
-    }
-    config_json = json.dumps(config)
-    animated_html = (
-        dedent(
-            """
-            __STYLE__
-            __SHELL__
-            <script>
-              (function() {
-                const mount = document.getElementById('__MOUNT_ID__');
-                if (!mount || mount.dataset.animated === '1') return;
-                mount.dataset.animated = '1';
 
-                const config = __CONFIG_JSON__;
-                const lines = Array.isArray(config.lines) ? config.lines : [];
-                const typeDelay = Math.max(config.typeDelay || 0, 0);
-                const pauseDelay = Math.max(config.pauseDelay || 0, 0);
+    final_raw = _compute_final_state(prepared_lines)
 
-                const pre = mount.querySelector('.term-body-__SUFFIX__');
-                const caret = mount.querySelector('.caret-__SUFFIX__');
-                if (!pre || !caret) return;
+    type_delay_s = max(speed_type_ms, 0) / 1000
+    pause_delay_s = max(pause_between_ops_ms, 0) / 1000
 
-                let raw = '';
+    raw = ""
+    _render_shell(raw, caret_visible=True)
 
-                const esc = (value) => value
-                  .replace(/&/g, '&amp;')
-                  .replace(/</g, '&lt;')
-                  .replace(/>/g, '&gt;')
-                  .replace(/"/g, '&quot;')
-                  .replace(/'/g, '&#x27;');
+    for line in prepared_lines:
+        safe_line = line if isinstance(line, str) else str(line)
+        for char in safe_line:
+            raw += char
+            _render_shell(raw, caret_visible=True)
+            if type_delay_s:
+                time.sleep(type_delay_s)
+        if not safe_line.endswith("\n"):
+            raw += "\n"
+            _render_shell(raw, caret_visible=True)
+            if type_delay_s:
+                time.sleep(type_delay_s)
+        if pause_delay_s:
+            time.sleep(pause_delay_s)
 
-                const highlightChunk = (text) => {
-                  const parts = text.split(/(\n)/);
-                  let out = '';
-                  for (const part of parts) {
-                    if (part === '\n') { out += '\n'; continue; }
-                    const stripped = part.trim();
-                    let safe = esc(part);
-                    if (/^dem[a-z]*ai$/i.test(stripped)) {
-                      safe = '<span class="hl-__SUFFIX__">' + safe + '</span>';
-                    } else if (part.indexOf('$ ') === 0) {
-                      safe = '<span class="cmdline-__SUFFIX__">' + safe + '</span>';
-                    }
-                    out += safe;
-                  }
-                  return out;
-                };
+    _render_shell(raw, caret_visible=False)
 
-                const render = (showCaret) => {
-                  pre.innerHTML = highlightChunk(raw);
-                  caret.style.display = showCaret ? 'inline-block' : 'none';
-                  pre.scrollTop = pre.scrollHeight;
-                };
-
-                const wait = (ms) => ms ? new Promise((resolve) => setTimeout(resolve, ms)) : Promise.resolve();
-
-                const typeText = async (text) => {
-                  for (let i = 0; i < text.length; i += 1) {
-                    raw += text.charAt(i);
-                    render(true);
-                    await wait(typeDelay);
-                  }
-                };
-
-                const appendNewline = async () => {
-                  raw += '\n';
-                  render(true);
-                  await wait(typeDelay);
-                };
-
-                const run = async () => {
-                  render(true);
-                  for (const original of lines) {
-                    const line = typeof original === 'string' ? original : '';
-                    await typeText(line);
-                    if (!line.endsWith('\n')) { await appendNewline(); }
-                    await wait(pauseDelay);
-                  }
-                  render(false);
-                };
-
-                requestAnimationFrame(run);
-              })();
-            </script>
-            """
-        )
-        .replace("__STYLE__", _TERMINAL_STYLE)
-        .replace("__SHELL__", _build_terminal_shell("", caret_visible=True, mount_id=mount_id))
-        .replace("__MOUNT_ID__", mount_id)
-        .replace("__CONFIG_JSON__", config_json)
-        .replace("__SUFFIX__", _TERMINAL_SUFFIX)
-    )
-
-    components_html(animated_html, height=target_height)
-
-    # Cache the fully-materialized final text for quick re-renders
     st.session_state[final_state_key] = final_raw
