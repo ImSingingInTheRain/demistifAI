@@ -34,7 +34,7 @@ _DEFAULT_DEMAI_LINES: List[str] = [
 _TERMINAL_STYLE = dedent(f"""
 <style>
   .terminal-{_TERMINAL_SUFFIX} {{
-    width: 100%;
+    width: 95%;
     background: #0d1117;
     color: #e5e7eb;
     font-family: 'Fira Code', ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
