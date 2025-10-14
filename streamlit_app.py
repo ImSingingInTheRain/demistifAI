@@ -883,18 +883,7 @@ def render_nerd_mode_toggle(
                 """,
                 unsafe_allow_html=True,
             )
-            info_col, control_col = st.columns([0.68, 0.32], gap="large")
-            with info_col:
-                st.markdown(
-                    f"<div class='nerd-toggle__title'>{icon_html}<span>{safe_title}</span></div>",
-                    unsafe_allow_html=True,
-                )
-                if safe_description:
-                    st.markdown(
-                        f"<p class='nerd-toggle__description'>{safe_description}</p>",
-                        unsafe_allow_html=True,
-                    )
-
+            control_col = st.columns([1])
             with control_col:
                 status_slot = st.container()
                 value = st.toggle(
