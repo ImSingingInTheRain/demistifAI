@@ -9,26 +9,31 @@ from streamlit.components.v1 import html as components_html
 _TERMINAL_SUFFIX = "ai_act_fullterm"
 
 _DEFAULT_DEMAI_LINES: List[str] = [
-    "> What is an AI system?",
+    "> bootstrapping demAI control room...",
     "",
-    "LOADING EU AI ACT, Article 3 \n",
+    "$ login --role \"Risk & Compliance\"",
+    "Access granted. Session scoped to EU AI Act workspace.\n",
     "",
-    "0% ■■■■■■■■■■■■■■■■■■■■■■■■ 100% \n",
+    "$ open eu_ai_act --article 3 --topic definition",
+    "Article 3 · Definition of an AI system",
+    "An AI system means a machine-based system designed to operate with varying levels of autonomy and that may deliver outputs such as predictions, recommendations, or decisions.\n",
     "",
-    "AI system means a machine-based system...",
+    "Key compliance cues:",
+    "  - Document intended purpose and context of deployment.",
+    "  - Keep training and evaluation data under documented data governance.",
+    "  - Apply continuous human oversight to maintain accountability.\n",
     "",
-    "> Wait, but what that actually means? \n",
+    "Field application in demAI:",
+    "  • Curate datasets so high-risk behaviours are surfaced before deployment.",
+    "  • Trace model updates to a living risk register.",
+    "  • Capture user feedback to refine safeguards during operation.\n",
     "",
-    "...",
+    "Next checklist items:",
+    "  1. Review the compliance checklist in the control room.",
+    "  2. Enable Nerd Mode for transparency artefacts.",
+    "  3. Confirm high-risk obligations before advancing to the Use stage.\n",
     "",
-    "You are already inside a machine-based system: a user interface (software) running in the cloud (hardware). "
-    "You will be guided you through each stage with interactive prompts like this. Browse this page to discover more "
-    "information about the demAI machine. Use the control room to advance to different stages and enable a Nerd Mode "
-    "when you are thirsty for more details.",
-    "",
-    "STARTING demAI.machine",
-    "",
-    "0% ■■■■■■■■■■■■■■■■■■■■■■■■ 100%",
+    "demAI.status :: READY",
 ]
 
 _TERMINAL_STYLE = dedent(f"""
@@ -64,6 +69,12 @@ _TERMINAL_STYLE = dedent(f"""
   }}
   .cmdline-{_TERMINAL_SUFFIX} {{ color: #93c5fd; }}
   .hl-{_TERMINAL_SUFFIX}     {{ color: #a5f3fc; font-weight: 600; }}
+  .kw-act-{_TERMINAL_SUFFIX}         {{ color: #facc15; font-weight: 600; }}
+  .kw-compliance-{_TERMINAL_SUFFIX}  {{ color: #34d399; font-weight: 600; }}
+  .kw-data-{_TERMINAL_SUFFIX}        {{ color: #60a5fa; font-weight: 600; }}
+  .kw-oversight-{_TERMINAL_SUFFIX}   {{ color: #f472b6; font-weight: 600; }}
+  .kw-risk-{_TERMINAL_SUFFIX}        {{ color: #fb7185; font-weight: 600; }}
+  .kw-transparency-{_TERMINAL_SUFFIX}{{ color: #fbbf24; font-weight: 600; }}
   @keyframes blink-{_TERMINAL_SUFFIX} {{ 50% {{ opacity: 0; }} }}
 
   .terminal-wrap-{_TERMINAL_SUFFIX} {{
@@ -141,11 +152,25 @@ def render_ai_act_terminal(
   const toLinesWithNL = (arr) => arr.map(l => l.endsWith("\\n") ? l : (l + "\\n"));
   const esc = (s) => s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
 
+  const KEYWORD_PATTERNS = [
+    {{ regex: /EU AI Act/gi, cls: "kw-act-" + cfg.suffix }},
+    {{ regex: /AI system/gi, cls: "kw-act-" + cfg.suffix }},
+    {{ regex: /compliance|compliant/gi, cls: "kw-compliance-" + cfg.suffix }},
+    {{ regex: /data governance/gi, cls: "kw-data-" + cfg.suffix }},
+    {{ regex: /human oversight/gi, cls: "kw-oversight-" + cfg.suffix }},
+    {{ regex: /high-risk|risk register/gi, cls: "kw-risk-" + cfg.suffix }},
+    {{ regex: /transparency/gi, cls: "kw-transparency-" + cfg.suffix }},
+  ];
+
   function highlight(line) {{
     const stripped = line.trim();
     if (/^dem[a-z]*ai$/i.test(stripped)) return `<span class="hl-${{cfg.suffix}}">${{esc(line)}}</span>`;
     if (line.startsWith("$ ")) return `<span class="cmdline-${{cfg.suffix}}">${{esc(line)}}</span>`;
-    return esc(line);
+    let escaped = esc(line);
+    KEYWORD_PATTERNS.forEach(({ regex, cls }) => {{
+      escaped = escaped.replace(regex, (match) => `<span class="${{cls}}">${{match}}</span>`);
+    }});
+    return escaped;
   }}
   function renderHighlighted(raw) {{
     pre.innerHTML = raw.split("\\n").map(highlight).join("\\n");
