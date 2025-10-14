@@ -1451,6 +1451,7 @@ STAGE_TOP_GRID_CSS = """
     text-transform: uppercase;
     color: rgba(94, 234, 212, 0.78);
     margin-bottom: 1rem;
+    background: linear-gradient(180deg, rgba(13, 17, 23, 0.96), rgba(13, 17, 23, 0.9));
 }
 .nerd-toggle__prompt {
     color: rgba(34, 211, 238, 0.85);
