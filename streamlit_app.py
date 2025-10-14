@@ -878,9 +878,7 @@ def render_nerd_mode_toggle(
             st.markdown(
                 """
                 <div class="nerd-toggle__command-line">
-                    <span class="nerd-toggle__prompt">$</span>
-                    <span class="nerd-toggle__command">nerd_mode.toggle</span>
-                    <span class="nerd-toggle__args">--scope all-stages</span>
+                    <span class="nerd-toggle__command">Nerd Mode Toggle</span>
                 </div>
                 """,
                 unsafe_allow_html=True,
@@ -896,21 +894,7 @@ def render_nerd_mode_toggle(
                         f"<p class='nerd-toggle__description'>{safe_description}</p>",
                         unsafe_allow_html=True,
                     )
-                st.markdown(
-                    """
-                    <div class="nerd-toggle__meta-grid">
-                        <div class="nerd-toggle__meta-item">
-                            <span class="nerd-toggle__meta-key">scope</span>
-                            <span class="nerd-toggle__meta-value">overview · prepare · train · evaluate · use</span>
-                        </div>
-                        <div class="nerd-toggle__meta-item">
-                            <span class="nerd-toggle__meta-key">outputs</span>
-                            <span class="nerd-toggle__meta-value">diagnostics · overlays · expert prompts</span>
-                        </div>
-                    </div>
-                    """,
-                    unsafe_allow_html=True,
-                )
+
             with control_col:
                 status_slot = st.container()
                 value = st.toggle(
@@ -2107,7 +2091,6 @@ def render_overview_stage():
         render_nerd_mode_toggle(
             key="nerd_mode",
             title="Nerd Mode — technical overlays",
-            description="Reveal deeper diagnostics, system internals, and expert tips throughout each stage.",
             target=nerd_toggle_container,
             variant="command",
         )
