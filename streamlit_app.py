@@ -1546,13 +1546,11 @@ def render_overview_stage():
     adaptiveness_enabled = bool(ss.get("adaptive", False))
     nerd_enabled = bool(st.session_state.get("nerd_mode_train") or st.session_state.get("nerd_mode"))
     
-    overview_columns = st.columns([0.65, 0.35], gap="small")
-        with overview_columns[0]:
-            cmd_overview_new.render_ai_act_terminal(
-                demai_lines=_DEFAULT_DEMAI_LINES,
-                speed_type_ms=20,
-                pause_between_ops_ms=360,
-            )
+    cmd_overview_new.render_ai_act_terminal(
+        demai_lines=_DEFAULT_DEMAI_LINES,
+        speed_type_ms=20,
+        pause_between_ops_ms=360,
+    )
 
     st.markdown(
         """
