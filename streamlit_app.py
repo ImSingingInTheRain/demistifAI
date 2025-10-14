@@ -1335,6 +1335,11 @@ def render_intro_stage():
                     flex-direction: column;
                     gap: 0.85rem;
                     height: 100%;
+                    padding-top: 10px;
+                    padding-left: 10px;
+                    padding-right: 10px;
+                    padding-bottom: 10px;
+
                 }
                 .intro-lifecycle-sidecar__eyebrow {
                     font-size: 0.72rem;
