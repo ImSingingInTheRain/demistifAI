@@ -167,7 +167,7 @@ def render_ai_act_terminal(
     if (/^dem[a-z]*ai$/i.test(stripped)) return `<span class="hl-${{cfg.suffix}}">${{esc(line)}}</span>`;
     if (line.startsWith("$ ")) return `<span class="cmdline-${{cfg.suffix}}">${{esc(line)}}</span>`;
     let escaped = esc(line);
-    KEYWORD_PATTERNS.forEach(({ regex, cls }) => {{
+    KEYWORD_PATTERNS.forEach(({{ regex, cls }}) => {{
       escaped = escaped.replace(regex, (match) => `<span class="${{cls}}">${{match}}</span>`);
     }});
     return escaped;
