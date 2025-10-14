@@ -114,8 +114,8 @@ from components.arch_demai import (
     demai_architecture_markup,
     demai_architecture_styles,
 )
-from components.components_cmd import render_ai_act_terminal
-from components.cmd_overview import render_ai_act_terminal as render_overview_ai_act_terminal
+from components.components_cmd import render_ai_act_terminal as render_intro_ai_act_terminal
+from components import cmd_overview
 from components.components_mac import render_mac_window
 from components.stage_control_room import stage_control_room
 logger = logging.getLogger(__name__)
@@ -1258,7 +1258,7 @@ def render_intro_stage():
 
     with section_surface("section-surface--hero"):
         render_demai_logo()
-        render_ai_act_terminal()
+        render_intro_ai_act_terminal()
 
         window_css = textwrap.dedent(
             """
@@ -1547,7 +1547,7 @@ def render_overview_stage():
 
     overview_columns = st.columns([0.35, 0.65], gap="small")
     with overview_columns[0]:
-        render_overview_ai_act_terminal()
+        cmd_overview.render_ai_act_terminal()
     with overview_columns[1]:
         st.markdown(demai_architecture_styles(), unsafe_allow_html=True)
         render_mac_window(
