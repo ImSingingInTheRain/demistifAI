@@ -1747,7 +1747,7 @@ LIFECYCLE_RING_HTML = dedent(
         <style>
             /* ===== Scoped to #demai-lifecycle =================================== */
             #demai-lifecycle.dlc {
-                --ring-size: min(560px, 82vw);
+                --ring-size: min(300px, 82vw);
                 --square-inset: clamp(16%, calc(50% - 180px), 22%);
                 --elev: 0 14px 30px rgba(15, 23, 42, 0.12);
                 --stroke: inset 0 0 0 1px rgba(15, 23, 42, 0.06);
