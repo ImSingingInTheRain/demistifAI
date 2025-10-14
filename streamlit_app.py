@@ -1298,7 +1298,7 @@ def render_intro_stage():
                 }
                 .mw-intro-lifecycle__col {
                     position: relative;
-                    display: flex;
+                    display: contents;
                     border-radius: 16px;
                     padding: clamp(1rem, 2vw, 1.3rem);
                     background: linear-gradient(180deg, rgba(255, 255, 255, 0.88), rgba(226, 232, 240, 0.68));
