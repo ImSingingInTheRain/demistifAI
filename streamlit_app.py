@@ -2003,7 +2003,7 @@ def render_overview_stage():
     def _render_overview_nerd_toggle(slot: DeltaGenerator) -> None:
         render_nerd_mode_toggle(
             key="nerd_mode",
-            title="Nerd Mode — technical overlays",
+            title="Nerd Mode",
             target=slot,
         )
 
