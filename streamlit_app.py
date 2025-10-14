@@ -912,16 +912,17 @@ def render_nerd_mode_toggle(
                     unsafe_allow_html=True,
                 )
             with control_col:
+                status_slot = st.container()
                 value = st.toggle(
                     toggle_label,
                     key=key,
                     value=default_state,
                     label_visibility="collapsed",
                 )
-                status = "active" if value else "standby"
-                state_class = "nerd-toggle__status--on" if value else "nerd-toggle__status--off"
-                st.markdown(
-                    f"<div class='nerd-toggle__status {state_class}'>status: {status}</div>",
+                status_label = "ACTIVE" if value else "STANDBY"
+                state_class = "nerd-toggle__status-chip--on" if value else "nerd-toggle__status-chip--off"
+                status_slot.markdown(
+                    f"<div class='nerd-toggle__status-chip {state_class}'>STATUS · {status_label}</div>",
                     unsafe_allow_html=True,
                 )
             st.markdown("</div>", unsafe_allow_html=True)
@@ -1351,7 +1352,9 @@ STAGE_TOP_GRID_CSS = """
     font-size: 0.88rem;
     padding: 1rem 1.15rem 1rem 2rem;
 }
-.stage-top-grid__nav-card {
+.stage-top-grid__nav-card,
+.stage-top-grid__nav-action,
+.nerd-toggle--command {
     position: relative;
     background: linear-gradient(180deg, rgba(13, 17, 23, 0.96), rgba(13, 17, 23, 0.9));
     border-radius: 20px;
@@ -1362,7 +1365,8 @@ STAGE_TOP_GRID_CSS = """
     font-family: 'Fira Code', ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
     overflow: hidden;
 }
-.stage-top-grid__nav-card::before {
+.stage-top-grid__nav-card::before,
+.nerd-toggle--command::before {
     content: '';
     position: absolute;
     inset: 0;
@@ -1370,8 +1374,21 @@ STAGE_TOP_GRID_CSS = """
         radial-gradient(circle at bottom left, rgba(20, 184, 166, 0.28), transparent 62%);
     opacity: 0.65;
     pointer-events: none;
+    border-radius: inherit;
 }
-.stage-top-grid__nav-card > * {
+.stage-top-grid__nav-action::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at top right, rgba(59, 130, 246, 0.32), transparent 55%),
+        radial-gradient(circle at bottom left, rgba(20, 184, 166, 0.28), transparent 62%);
+    opacity: 0.6;
+    pointer-events: none;
+    border-radius: inherit;
+}
+.stage-top-grid__nav-card > *,
+.stage-top-grid__nav-action > *,
+.nerd-toggle--command > * {
     position: relative;
     z-index: 1;
 }
@@ -1417,29 +1434,15 @@ STAGE_TOP_GRID_CSS = """
     font-family: 'Fira Code', ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
     color: rgba(226, 232, 240, 0.92);
 }
-.stage-top-grid__nerd-toggle .nerd-toggle--command {
-    position: relative;
-    border-radius: 20px;
-    border: 1px solid rgba(56, 189, 248, 0.42);
-    background: linear-gradient(184deg, rgba(13, 17, 23, 0.96), rgba(15, 23, 42, 0.88));
-    box-shadow: 0 28px 52px rgba(7, 89, 133, 0.48);
-    padding: 1.35rem 1.45rem 1.55rem;
-    overflow: hidden;
+.nerd-toggle--command [data-testid="column"] {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
 }
-.stage-top-grid__nerd-toggle .nerd-toggle--command::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: radial-gradient(circle at top right, rgba(56, 189, 248, 0.32), transparent 55%),
-        radial-gradient(circle at bottom left, rgba(59, 130, 246, 0.28), transparent 62%);
-    opacity: 0.55;
-    pointer-events: none;
+.nerd-toggle--command [data-testid="column"]:last-of-type {
+    align-items: flex-end;
 }
-.stage-top-grid__nerd-toggle .nerd-toggle--command > * {
-    position: relative;
-    z-index: 1;
-}
-.stage-top-grid__nerd-toggle .nerd-toggle__command-line {
+.nerd-toggle__command-line {
     display: flex;
     align-items: center;
     gap: 0.65rem;
@@ -1449,16 +1452,16 @@ STAGE_TOP_GRID_CSS = """
     color: rgba(94, 234, 212, 0.78);
     margin-bottom: 1rem;
 }
-.stage-top-grid__nerd-toggle .nerd-toggle__prompt {
+.nerd-toggle__prompt {
     color: rgba(34, 211, 238, 0.85);
 }
-.stage-top-grid__nerd-toggle .nerd-toggle__command {
+.nerd-toggle__command {
     font-weight: 700;
 }
-.stage-top-grid__nerd-toggle .nerd-toggle__args {
+.nerd-toggle__args {
     color: rgba(148, 163, 184, 0.82);
 }
-.stage-top-grid__nerd-toggle .nerd-toggle__title {
+.nerd-toggle__title {
     display: flex;
     align-items: center;
     gap: 0.55rem;
@@ -1466,63 +1469,63 @@ STAGE_TOP_GRID_CSS = """
     font-weight: 700;
     color: #f8fafc;
 }
-.stage-top-grid__nerd-toggle .nerd-toggle__icon {
+.nerd-toggle__icon {
     font-size: 1.3rem;
     line-height: 1;
 }
-.stage-top-grid__nerd-toggle .nerd-toggle__description {
+.nerd-toggle__description {
     margin: 0.6rem 0 0;
     color: rgba(203, 213, 225, 0.9);
     font-size: 0.9rem;
     line-height: 1.6;
 }
-.stage-top-grid__nerd-toggle .nerd-toggle__description::before {
+.nerd-toggle__description::before {
     content: '//';
     margin-right: 0.45rem;
     color: rgba(94, 234, 212, 0.78);
 }
-.stage-top-grid__nerd-toggle .nerd-toggle__meta-grid {
+.nerd-toggle__meta-grid {
     margin-top: 0.85rem;
     display: grid;
     gap: 0.45rem;
 }
-.stage-top-grid__nerd-toggle .nerd-toggle__meta-item {
+.nerd-toggle__meta-item {
     display: flex;
     gap: 0.6rem;
     align-items: baseline;
 }
-.stage-top-grid__nerd-toggle .nerd-toggle__meta-key {
+.nerd-toggle__meta-key {
     font-size: 0.7rem;
     letter-spacing: 0.16em;
     text-transform: uppercase;
     color: rgba(94, 234, 212, 0.78);
 }
-.stage-top-grid__nerd-toggle .nerd-toggle__meta-value {
+.nerd-toggle__meta-value {
     font-size: 0.82rem;
     color: rgba(226, 232, 240, 0.85);
 }
-.stage-top-grid__nerd-toggle .nerd-toggle--command [data-testid="stToggle"] {
+.nerd-toggle--command [data-testid="stToggle"] {
     display: flex;
     justify-content: flex-end;
 }
-.stage-top-grid__nerd-toggle .nerd-toggle--command label[data-testid="stToggle"] {
+.nerd-toggle--command label[data-testid="stToggle"] {
     justify-content: flex-end;
 }
-.stage-top-grid__nerd-toggle .nerd-toggle--command label[data-testid="stToggle"] > div[role="switch"] {
+.nerd-toggle--command label[data-testid="stToggle"] > div[role="switch"] {
     background: rgba(148, 163, 184, 0.35);
     box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.25);
 }
-.stage-top-grid__nerd-toggle .nerd-toggle--command label[data-testid="stToggle"] > div[role="switch"][aria-checked="true"] {
+.nerd-toggle--command label[data-testid="stToggle"] > div[role="switch"][aria-checked="true"] {
     background: linear-gradient(125deg, rgba(56, 189, 248, 0.85), rgba(59, 130, 246, 0.78));
     box-shadow: inset 0 0 0 1px rgba(226, 232, 240, 0.4);
 }
-.stage-top-grid__nerd-toggle .nerd-toggle__status {
-    margin-top: 0.85rem;
+.nerd-toggle__status-chip {
+    margin-bottom: 0.9rem;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: 0.45rem;
-    padding: 0.42rem 0.75rem;
+    padding: 0.45rem 0.85rem;
     border-radius: 999px;
     font-size: 0.72rem;
     letter-spacing: 0.16em;
@@ -1530,19 +1533,22 @@ STAGE_TOP_GRID_CSS = """
     border: 1px solid rgba(94, 234, 212, 0.55);
     color: rgba(94, 234, 212, 0.85);
     background: rgba(14, 116, 144, 0.28);
+    box-shadow: 0 14px 28px rgba(13, 148, 136, 0.28);
 }
-.stage-top-grid__nerd-toggle .nerd-toggle__status--off {
+.nerd-toggle__status-chip--on {
+    box-shadow: 0 18px 32px rgba(13, 148, 136, 0.38);
+}
+.nerd-toggle__status-chip--off {
     border-color: rgba(148, 163, 184, 0.45);
     color: rgba(148, 163, 184, 0.78);
     background: rgba(15, 23, 42, 0.42);
+    box-shadow: none;
 }
 .stage-top-grid__nav-action {
-    position: relative;
-    background: linear-gradient(185deg, rgba(13, 17, 23, 0.96), rgba(8, 47, 73, 0.88));
-    border-radius: 18px;
-    border: 1px solid rgba(59, 130, 246, 0.42);
-    padding: 0.95rem 1.05rem 1.05rem;
-    box-shadow: 0 18px 36px rgba(8, 47, 73, 0.45);
+    padding: 1.35rem 1.45rem 1.55rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
 }
 .stage-top-grid__nav-action::before {
     content: attr(data-caption);
@@ -1550,9 +1556,12 @@ STAGE_TOP_GRID_CSS = """
     font-size: 0.74rem;
     text-transform: uppercase;
     letter-spacing: 0.16em;
-    color: rgba(94, 234, 212, 0.75);
-    margin-bottom: 0.75rem;
+    color: rgba(94, 234, 212, 0.78);
     font-family: 'Fira Code', ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+    font-weight: 600;
+    position: relative;
+    z-index: 2;
+    margin-bottom: 0.6rem;
 }
 .stage-top-grid__nav-action [data-testid="stButton"] {
     margin: 0;
@@ -1590,7 +1599,7 @@ STAGE_TOP_GRID_CSS = """
 }
 @media (max-width: 900px) {
     .stage-top-grid__nav-card,
-    .stage-top-grid__nerd-toggle,
+    .nerd-toggle--command,
     .stage-top-grid__nav-action {
         padding: 1.1rem 1.2rem 1.2rem;
     }
