@@ -1553,7 +1553,6 @@ def render_overview_stage():
             demai_lines=_DEFAULT_DEMAI_LINES,
             speed_type_ms=20,
             pause_between_ops_ms=360,
-            height=300,
         )
     with overview_columns[1]:
         st.markdown(demai_architecture_styles(), unsafe_allow_html=True)
