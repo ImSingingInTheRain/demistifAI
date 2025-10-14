@@ -1312,7 +1312,8 @@ STAGE_TOP_GRID_CSS = """
     padding: 1rem 1.15rem 1rem 2rem;
 }
 .stage-top-grid__nav-card,
-.stage-top-grid__nav-action {
+[data-testid="element-container"]:has(> div[data-testid="stButton"] > button[title="Jump to the next stage"]),
+[data-testid="element-container"]:has(> div[data-testid="stButton"] > button[title="Return to the previous stage"]) {
     position: relative;
     background: linear-gradient(180deg, rgba(13, 17, 23, 0.96), rgba(13, 17, 23, 0.9));
     border-radius: 20px;
@@ -1322,6 +1323,12 @@ STAGE_TOP_GRID_CSS = """
     color: rgba(226, 232, 240, 0.92);
     font-family: 'Fira Code', ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
     overflow: hidden;
+}
+[data-testid="element-container"]:has(> div[data-testid="stButton"] > button[title="Jump to the next stage"]),
+[data-testid="element-container"]:has(> div[data-testid="stButton"] > button[title="Return to the previous stage"]) {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
 }
 .stage-top-grid__nav-card::before {
     content: '';
@@ -1333,7 +1340,33 @@ STAGE_TOP_GRID_CSS = """
     pointer-events: none;
     border-radius: inherit;
 }
-.stage-top-grid__nav-action::after {
+.stage-top-grid__nav-card > *,
+[data-testid="element-container"]:has(> div[data-testid="stButton"] > button[title="Jump to the next stage"]) > *,
+[data-testid="element-container"]:has(> div[data-testid="stButton"] > button[title="Return to the previous stage"]) > * {
+    position: relative;
+    z-index: 1;
+}
+[data-testid="element-container"]:has(> div[data-testid="stButton"] > button[title="Jump to the next stage"])::before,
+[data-testid="element-container"]:has(> div[data-testid="stButton"] > button[title="Return to the previous stage"])::before {
+    display: block;
+    font-size: 0.74rem;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    color: rgba(94, 234, 212, 0.78);
+    font-family: 'Fira Code', ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+    font-weight: 600;
+    position: relative;
+    z-index: 2;
+    margin-bottom: 0.6rem;
+}
+[data-testid="element-container"]:has(> div[data-testid="stButton"] > button[title="Jump to the next stage"])::before {
+    content: 'next.stage';
+}
+[data-testid="element-container"]:has(> div[data-testid="stButton"] > button[title="Return to the previous stage"])::before {
+    content: 'previous.stage';
+}
+[data-testid="element-container"]:has(> div[data-testid="stButton"] > button[title="Jump to the next stage"])::after,
+[data-testid="element-container"]:has(> div[data-testid="stButton"] > button[title="Return to the previous stage"])::after {
     content: '';
     position: absolute;
     inset: 0;
@@ -1343,10 +1376,40 @@ STAGE_TOP_GRID_CSS = """
     pointer-events: none;
     border-radius: inherit;
 }
-.stage-top-grid__nav-card > *,
-.stage-top-grid__nav-action > * {
+[data-testid="element-container"]:has(> div[data-testid="stButton"] > button[title="Jump to the next stage"]) div[data-testid="stButton"],
+[data-testid="element-container"]:has(> div[data-testid="stButton"] > button[title="Return to the previous stage"]) div[data-testid="stButton"] {
+    margin: 0;
+}
+[data-testid="element-container"]:has(> div[data-testid="stButton"] > button[title="Jump to the next stage"]) div[data-testid="stButton"] > button,
+[data-testid="element-container"]:has(> div[data-testid="stButton"] > button[title="Return to the previous stage"]) div[data-testid="stButton"] > button {
+    width: 100%;
+    border-radius: 14px;
+    font-weight: 700;
+    font-size: 0.95rem;
+    padding: 0.75rem 1.05rem;
+    border: none;
+    font-family: 'Fira Code', ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+    box-shadow: 0 16px 30px rgba(14, 116, 144, 0.45);
     position: relative;
-    z-index: 1;
+    z-index: 2;
+}
+[data-testid="element-container"]:has(> div[data-testid="stButton"] > button[title="Jump to the next stage"]) div[data-testid="stButton"] > button {
+    background: linear-gradient(120deg, #38bdf8, #22d3ee);
+    color: #0f172a;
+    box-shadow: 0 18px 36px rgba(45, 212, 191, 0.55);
+}
+[data-testid="element-container"]:has(> div[data-testid="stButton"] > button[title="Return to the previous stage"]) div[data-testid="stButton"] > button {
+    background: rgba(15, 23, 42, 0.92);
+    color: rgba(226, 232, 240, 0.92);
+    box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.55), 0 16px 32px rgba(15, 23, 42, 0.6);
+}
+[data-testid="element-container"]:has(> div[data-testid="stButton"] > button[title="Return to the previous stage"]) div[data-testid="stButton"] > button:hover {
+    background: rgba(30, 41, 59, 0.92);
+}
+[data-testid="element-container"]:has(> div[data-testid="stButton"] > button[title="Jump to the next stage"]) div[data-testid="stButton"] > button:disabled,
+[data-testid="element-container"]:has(> div[data-testid="stButton"] > button[title="Return to the previous stage"]) div[data-testid="stButton"] > button:disabled {
+    opacity: 0.6;
+    box-shadow: none;
 }
 .stage-top-grid__nav-card-header {
     display: flex;
@@ -1458,63 +1521,11 @@ STAGE_TOP_GRID_CSS = """
     background: linear-gradient(125deg, rgba(56, 189, 248, 0.85), rgba(59, 130, 246, 0.78));
     box-shadow: inset 0 0 0 1px rgba(226, 232, 240, 0.4);
 }
-.stage-top-grid__nav-action {
-    padding: 1.35rem 1.45rem 1.55rem;
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-}
-.stage-top-grid__nav-action::before {
-    content: attr(data-caption);
-    display: block;
-    font-size: 0.74rem;
-    text-transform: uppercase;
-    letter-spacing: 0.16em;
-    color: rgba(94, 234, 212, 0.78);
-    font-family: 'Fira Code', ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
-    font-weight: 600;
-    position: relative;
-    z-index: 2;
-    margin-bottom: 0.6rem;
-}
-.stage-top-grid__nav-action [data-testid="stButton"] {
-    margin: 0;
-}
-.stage-top-grid__nav-action [data-testid="stButton"] > button {
-    width: 100%;
-    border-radius: 14px;
-    font-weight: 700;
-    font-size: 0.95rem;
-    padding: 0.75rem 1.05rem;
-    border: none;
-    font-family: 'Fira Code', ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
-    box-shadow: 0 16px 30px rgba(14, 116, 144, 0.45);
-}
-.stage-top-grid__nav-action--next {
-    border-color: rgba(34, 211, 238, 0.6);
-}
-.stage-top-grid__nav-action--next [data-testid="stButton"] > button {
-    background: linear-gradient(120deg, #38bdf8, #22d3ee);
-    color: #0f172a;
-    box-shadow: 0 18px 36px rgba(45, 212, 191, 0.55);
-}
-.stage-top-grid__nav-action--prev [data-testid="stButton"] > button {
-    background: rgba(15, 23, 42, 0.92);
-    color: rgba(226, 232, 240, 0.92);
-    box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.55), 0 16px 32px rgba(15, 23, 42, 0.6);
-}
-.stage-top-grid__nav-action--prev [data-testid="stButton"] > button:hover {
-    background: rgba(30, 41, 59, 0.92);
-}
-.stage-top-grid__nav-action--next [data-testid="stButton"] > button:disabled,
-.stage-top-grid__nav-action--prev [data-testid="stButton"] > button:disabled {
-    opacity: 0.6;
-    box-shadow: none;
-}
 @media (max-width: 900px) {
     .stage-top-grid__nav-card,
     [data-testid="stHorizontalBlock"]:has(.nerd-toggle__title),
-    .stage-top-grid__nav-action {
+    [data-testid="element-container"]:has(> div[data-testid="stButton"] > button[title="Jump to the next stage"]),
+    [data-testid="element-container"]:has(> div[data-testid="stButton"] > button[title="Return to the previous stage"]) {
         padding: 1.1rem 1.2rem 1.2rem;
     }
 }
@@ -1584,34 +1595,26 @@ def _render_stage_navigation_panel(
     next_label = "Proceed" if next_stage is None else f"{next_stage.icon} {next_stage.title} \u27a1\ufe0f"
     prev_label = "Back" if prev_stage is None else f"\u2b05\ufe0f {prev_stage.icon} {prev_stage.title}"
 
-    next_container = next_slot.container()
-    next_container.markdown(
-        "<div class='stage-top-grid__nav-action stage-top-grid__nav-action--next' data-caption='next.stage'>",
-        unsafe_allow_html=True,
-    )
-    next_clicked = next_container.button(
+    next_help = "Jump to the next stage"
+    next_clicked = next_slot.button(
         next_label,
         key=f"stage_grid_next_{stage_key}",
         use_container_width=True,
         type="primary",
         disabled=next_stage is None,
+        help=next_help,
     )
-    next_container.markdown("</div>", unsafe_allow_html=True)
     if next_clicked and next_stage is not None:
         set_active_stage(next_stage.key)
 
-    prev_container = prev_slot.container()
-    prev_container.markdown(
-        "<div class='stage-top-grid__nav-action stage-top-grid__nav-action--prev' data-caption='previous.stage'>",
-        unsafe_allow_html=True,
-    )
-    prev_clicked = prev_container.button(
+    prev_help = "Return to the previous stage"
+    prev_clicked = prev_slot.button(
         prev_label,
         key=f"stage_grid_prev_{stage_key}",
         use_container_width=True,
         disabled=prev_stage is None,
+        help=prev_help,
     )
-    prev_container.markdown("</div>", unsafe_allow_html=True)
     if prev_clicked and prev_stage is not None:
         set_active_stage(prev_stage.key)
 
