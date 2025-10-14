@@ -205,5 +205,5 @@ def render_ai_act_terminal(
 }})();
 </script>
         """,
-        height=100,  # minimal initial height; JS will grow it dynamically
+        height=500,  # minimal initial height; JS will grow it dynamically
     )
