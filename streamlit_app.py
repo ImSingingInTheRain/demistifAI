@@ -859,13 +859,15 @@ def render_nerd_mode_toggle(
     title: str,
     description: str,
     icon: Optional[str] = "🧠",
+    target: DeltaGenerator | None = None,
 ) -> bool:
     """Render a consistently styled Nerd Mode toggle block."""
 
     toggle_label = f"{icon} {title}" if icon else title
-    value = st.toggle(toggle_label, key=key, value=bool(ss.get(key, False)))
+    container = target or st
+    value = container.toggle(toggle_label, key=key, value=bool(ss.get(key, False)))
     if description:
-        st.caption(description)
+        container.caption(description)
     return value
 
 
@@ -1502,34 +1504,34 @@ def _render_stage_navigation_panel(
     next_label = "Proceed" if next_stage is None else f"{next_stage.icon} {next_stage.title} \u27a1\ufe0f"
     prev_label = "Back" if prev_stage is None else f"\u2b05\ufe0f {prev_stage.icon} {prev_stage.title}"
 
-    with next_slot:
-        st.markdown(
-            "<div class='stage-top-grid__nav-action stage-top-grid__nav-action--next' data-caption='next.stage'>",
-            unsafe_allow_html=True,
-        )
-        next_clicked = st.button(
-            next_label,
-            key=f"stage_grid_next_{stage_key}",
-            use_container_width=True,
-            type="primary",
-            disabled=next_stage is None,
-        )
-        st.markdown("</div>", unsafe_allow_html=True)
+    next_container = next_slot.container()
+    next_container.markdown(
+        "<div class='stage-top-grid__nav-action stage-top-grid__nav-action--next' data-caption='next.stage'>",
+        unsafe_allow_html=True,
+    )
+    next_clicked = next_container.button(
+        next_label,
+        key=f"stage_grid_next_{stage_key}",
+        use_container_width=True,
+        type="primary",
+        disabled=next_stage is None,
+    )
+    next_container.markdown("</div>", unsafe_allow_html=True)
     if next_clicked and next_stage is not None:
         set_active_stage(next_stage.key)
 
-    with prev_slot:
-        st.markdown(
-            "<div class='stage-top-grid__nav-action stage-top-grid__nav-action--prev' data-caption='previous.stage'>",
-            unsafe_allow_html=True,
-        )
-        prev_clicked = st.button(
-            prev_label,
-            key=f"stage_grid_prev_{stage_key}",
-            use_container_width=True,
-            disabled=prev_stage is None,
-        )
-        st.markdown("</div>", unsafe_allow_html=True)
+    prev_container = prev_slot.container()
+    prev_container.markdown(
+        "<div class='stage-top-grid__nav-action stage-top-grid__nav-action--prev' data-caption='previous.stage'>",
+        unsafe_allow_html=True,
+    )
+    prev_clicked = prev_container.button(
+        prev_label,
+        key=f"stage_grid_prev_{stage_key}",
+        use_container_width=True,
+        disabled=prev_stage is None,
+    )
+    prev_container.markdown("</div>", unsafe_allow_html=True)
     if prev_clicked and prev_stage is not None:
         set_active_stage(prev_stage.key)
 
@@ -1919,14 +1921,18 @@ def render_overview_stage():
             )
 
     def _render_overview_nerd_toggle(slot: DeltaGenerator) -> None:
-        with slot:
-            st.markdown("<div class='stage-top-grid__nerd-toggle'>", unsafe_allow_html=True)
-            render_nerd_mode_toggle(
-                key="nerd_mode",
-                title="Nerd Mode — technical overlays",
-                description="Reveal deeper diagnostics, system internals, and expert tips throughout each stage.",
-            )
-            st.markdown("</div>", unsafe_allow_html=True)
+        nerd_toggle_container = slot.container()
+        nerd_toggle_container.markdown(
+            "<div class='stage-top-grid__nerd-toggle'>",
+            unsafe_allow_html=True,
+        )
+        render_nerd_mode_toggle(
+            key="nerd_mode",
+            title="Nerd Mode — technical overlays",
+            description="Reveal deeper diagnostics, system internals, and expert tips throughout each stage.",
+            target=nerd_toggle_container,
+        )
+        nerd_toggle_container.markdown("</div>", unsafe_allow_html=True)
 
     render_stage_top_grid(
         "overview",
