@@ -35,13 +35,16 @@ def stage_control_room(
     rows: list[StageRowRenderer] | None = None,
     prev_label: str = "\u2190 Previous",
     next_label: str = "Next \u2192",
+    show_nerd_toggle: bool = True,
 ) -> tuple[bool, bool, bool]:
     """Render a stacked Stage Control Room surface.
 
     Parameters mirror the UX contract described in the design brief. Each
     callable in ``rows`` receives a fresh :class:`~streamlit.delta_generator.DeltaGenerator`
     container so that callers can compose arbitrary Streamlit widgets without
-    leaking layout concerns back into this helper.
+    leaking layout concerns back into this helper. Set ``show_nerd_toggle`` to
+    ``False`` when the Nerd Mode control is rendered elsewhere but its state
+    should still be read and returned.
 
     Returns
     -------
@@ -179,13 +182,19 @@ def stage_control_room(
             unsafe_allow_html=True,
         )
 
-        st.markdown('<div class="hub__toolbar">', unsafe_allow_html=True)
-        left_col, right_col = st.columns([1, 1], gap="small")
-        with left_col:
-            nerd_on = st.toggle("Nerd Mode", key=nerd_state_key)
-        with right_col:
-            right_col.empty()
-        st.markdown('</div>', unsafe_allow_html=True)
+        nerd_on = bool(st.session_state.get(nerd_state_key, False))
+        if show_nerd_toggle:
+            st.markdown('<div class="hub__toolbar">', unsafe_allow_html=True)
+            left_col, right_col = st.columns([1, 1], gap="small")
+            with left_col:
+                nerd_on = st.toggle(
+                    "Nerd Mode",
+                    key=nerd_state_key,
+                    value=nerd_on,
+                )
+            with right_col:
+                right_col.empty()
+            st.markdown('</div>', unsafe_allow_html=True)
 
         st.markdown('<div class="hub__rows">', unsafe_allow_html=True)
         for render_row in rows:

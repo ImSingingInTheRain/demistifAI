@@ -1321,6 +1321,21 @@ STAGE_TOP_GRID_CSS = """
 .stage-top-grid__gap {
     height: 0.8rem;
 }
+.stage-top-grid__nerd-toggle {
+    background: linear-gradient(140deg, rgba(96, 165, 250, 0.18), rgba(20, 184, 166, 0.16));
+    border-radius: 16px;
+    box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.08), 0 18px 32px rgba(15, 23, 42, 0.08);
+    padding: 1.15rem 1.2rem 1.25rem;
+}
+.stage-top-grid__nerd-toggle [data-testid="stWidgetLabel"] > div {
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: rgba(15, 23, 42, 0.92);
+}
+.stage-top-grid__nerd-toggle p {
+    margin-top: 0.55rem;
+    color: rgba(15, 23, 42, 0.75);
+}
 @media (max-width: 900px) {
     .stage-top-grid__nav-container {
         padding: 1.1rem 1.2rem 1.25rem;
@@ -1768,12 +1783,28 @@ def render_overview_stage():
     adaptiveness_enabled = bool(ss.get("adaptive", False))
     nerd_enabled = bool(st.session_state.get("nerd_mode_train") or st.session_state.get("nerd_mode"))
 
-    render_stage_top_grid("overview")
+    def _render_overview_terminal(slot: DeltaGenerator) -> None:
+        with slot:
+            cmd_overview_new.render_ai_act_terminal(
+                demai_lines=_DEFAULT_DEMAI_LINES,
+                speed_type_ms=20,
+                pause_between_ops_ms=360,
+            )
 
-    cmd_overview_new.render_ai_act_terminal(
-        demai_lines=_DEFAULT_DEMAI_LINES,
-        speed_type_ms=20,
-        pause_between_ops_ms=360,
+    def _render_overview_nerd_toggle(slot: DeltaGenerator) -> None:
+        with slot:
+            st.markdown("<div class='stage-top-grid__nerd-toggle'>", unsafe_allow_html=True)
+            render_nerd_mode_toggle(
+                key="nerd_mode",
+                title="Nerd Mode — technical overlays",
+                description="Reveal deeper diagnostics, system internals, and expert tips throughout each stage.",
+            )
+            st.markdown("</div>", unsafe_allow_html=True)
+
+    render_stage_top_grid(
+        "overview",
+        left_renderer=_render_overview_terminal,
+        right_first_renderer=_render_overview_nerd_toggle,
     )
 
     st.markdown(
@@ -2247,6 +2278,7 @@ def render_overview_stage():
         rows=[_render_overview_intro, _render_overview_status],
         prev_label="\u2190 EU AI Act brief",
         next_label="Proceed to Prepare data \u2192",
+        show_nerd_toggle=False,
     )
 
     if prev_clicked:
