@@ -117,6 +117,7 @@ from components.arch_demai import (
 from components.components_cmd import render_ai_act_terminal as render_intro_ai_act_terminal
 from components import cmd_overview
 from components import cmd_overview_new
+from components.cmd_overview_new import _DEFAULT_DEMAI_LINES
 from components.components_mac import render_mac_window
 from components.stage_control_room import stage_control_room
 logger = logging.getLogger(__name__)
