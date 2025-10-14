@@ -8,7 +8,7 @@ from typing import Iterable, List
 from uuid import uuid4
 
 import streamlit as st
-import streamlit.components.v1 as components
+from streamlit.components.v1 import html as components_html
 
 
 _DEFAULT_DEMAI_LINES: List[str] = [
@@ -24,55 +24,50 @@ _DEFAULT_DEMAI_LINES: List[str] = [
 ]
 
 _TERMINAL_SUFFIX = "ai_act_fullterm"
-_CSS_KEY = "_ai_act_terminal_css_injected"
 _FINAL_STATE_KEY = "_ai_act_terminal_final_raw"
 
-
-def _ensure_terminal_css() -> None:
-    if st.session_state.get(_CSS_KEY):
-        return
-
-    css = dedent(
-        f"""
-        <style>
-          .terminal-{_TERMINAL_SUFFIX} {{
-            width: 100%;
-            background: #0d1117;
-            color: #e5e7eb;
-            font-family: 'Fira Code', ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
-            border-radius: 12px;
-            padding: 1.5rem 1rem 1.3rem;
-            box-shadow: 0 14px 34px rgba(0,0,0,.25);
-            position: relative;
-            overflow: hidden;
-            min-height: 260px;
-          }}
-          .terminal-{_TERMINAL_SUFFIX}::before {{
-            content: '●  ●  ●';
-            position: absolute; top: 8px; left: 12px;
-            color: #ef4444cc; letter-spacing: 6px; font-size: .9rem;
-          }}
-          .term-body-{_TERMINAL_SUFFIX} {{
-            margin-top: .8rem;
-            white-space: pre-wrap;
-            word-wrap: break-word;
-            line-height: 1.6;
-            font-size: .96rem;
-          }}
-          .caret-{_TERMINAL_SUFFIX} {{
-            margin-left: 2px;
-            display:inline-block; width:6px; height:1rem;
-            background:#22d3ee; vertical-align:-0.18rem;
-            animation: blink-{_TERMINAL_SUFFIX} .85s steps(1,end) infinite;
-          }}
-          .cmdline-{_TERMINAL_SUFFIX} {{ color: #93c5fd; }}
-          .hl-{_TERMINAL_SUFFIX}     {{ color: #a5f3fc; font-weight: 600; }}
-          @keyframes blink-{_TERMINAL_SUFFIX} {{ 50% {{ opacity: 0; }} }}
-        </style>
-        """
-    )
-    st.markdown(css, unsafe_allow_html=True)
-    st.session_state[_CSS_KEY] = True
+_TERMINAL_STYLE = dedent(
+    f"""
+    <style>
+      .terminal-{_TERMINAL_SUFFIX} {{
+        width: 100%;
+        background: #0d1117;
+        color: #e5e7eb;
+        font-family: 'Fira Code', ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+        border-radius: 12px;
+        padding: 1.5rem 1rem 1.3rem;
+        box-shadow: 0 14px 34px rgba(0,0,0,.25);
+        position: relative;
+        overflow: hidden;
+        min-height: 260px;
+      }}
+      .terminal-{_TERMINAL_SUFFIX}::before {{
+        content: '●  ●  ●';
+        position: absolute; top: 8px; left: 12px;
+        color: #ef4444cc; letter-spacing: 6px; font-size: .9rem;
+      }}
+      .term-body-{_TERMINAL_SUFFIX} {{
+        margin-top: .8rem;
+        white-space: pre-wrap;
+        word-wrap: break-word;
+        line-height: 1.6;
+        font-size: .96rem;
+      }}
+      .caret-{_TERMINAL_SUFFIX} {{
+        margin-left: 2px;
+        display:inline-block; width:6px; height:1rem;
+        background:#22d3ee; vertical-align:-0.18rem;
+        animation: blink-{_TERMINAL_SUFFIX} .85s steps(1,end) infinite;
+      }}
+      .cmdline-{_TERMINAL_SUFFIX} {{ color: #93c5fd; }}
+      .hl-{_TERMINAL_SUFFIX}     {{ color: #a5f3fc; font-weight: 600; }}
+      @keyframes blink-{_TERMINAL_SUFFIX} {{ 50% {{ opacity: 0; }} }}
+      @media (prefers-reduced-motion: reduce) {{
+        .caret-{_TERMINAL_SUFFIX} {{ animation: none; }}
+      }}
+    </style>
+    """
+)
 
 
 def _highlight_line(line: str) -> str:
@@ -85,8 +80,8 @@ def _highlight_line(line: str) -> str:
     return safe
 
 
-def _render_terminal_html(placeholder, raw: str, show_caret: bool) -> None:
-    highlighted_parts = []
+def _highlight_raw(raw: str) -> str:
+    highlighted_parts: List[str] = []
     for segment in raw.splitlines(keepends=True):
         if segment.endswith("\n"):
             content = segment[:-1]
@@ -95,18 +90,20 @@ def _render_terminal_html(placeholder, raw: str, show_caret: bool) -> None:
             content = segment
             suffix = ""
         highlighted_parts.append(_highlight_line(content) + suffix)
+    return "".join(highlighted_parts)
 
-    highlighted = "".join(highlighted_parts)
-    caret_style = "display:inline-block;" if show_caret else "display:none;"
-    html_payload = dedent(
+
+def _build_terminal_shell(pre_inner: str, caret_visible: bool, mount_id: str | None = None) -> str:
+    caret_style = "display:inline-block;" if caret_visible else "display:none;"
+    mount_attr = f' id="{mount_id}"' if mount_id else ""
+    return dedent(
         f"""
-        <div class="terminal-{_TERMINAL_SUFFIX}">
-          <pre class="term-body-{_TERMINAL_SUFFIX}">{highlighted}</pre>
+        <div{mount_attr} class="terminal-{_TERMINAL_SUFFIX}">
+          <pre class="term-body-{_TERMINAL_SUFFIX}">{pre_inner}</pre>
           <span class="caret-{_TERMINAL_SUFFIX}" style="{caret_style}"></span>
         </div>
         """
     )
-    placeholder.markdown(html_payload, unsafe_allow_html=True)
 
 
 def _prepare_lines(lines: Iterable[str]) -> List[str]:
@@ -123,97 +120,6 @@ def _compute_final_state(demai_lines: Iterable[str]) -> str:
     return raw
 
 
-def _build_inline_mount_markup(config: dict, mount_id: str) -> str:
-    config_attr = html.escape(json.dumps(config), quote=True)
-    return dedent(
-        f"""
-        <div id="{mount_id}" class="terminal-{_TERMINAL_SUFFIX}" data-config='{config_attr}' data-animated="0">
-          <pre class="term-body-{_TERMINAL_SUFFIX}"></pre>
-          <span class="caret-{_TERMINAL_SUFFIX}"></span>
-        </div>
-        """
-    )
-
-
-def _build_inline_bootstrap(mount_id: str) -> str:
-    # JS now only types the provided lines (no ops).
-    script = dedent(
-        """
-        <script>
-          (function() {
-            var doc = document;
-            try { if (window.parent && window.parent.document) { doc = window.parent.document; } } catch (err) {}
-
-            var mount = doc.getElementById("__MOUNT_ID__");
-            if (!mount || mount.dataset.animated === "1") return;
-            mount.dataset.animated = "1";
-
-            var config = {};
-            try { config = JSON.parse(mount.dataset.config || "{}"); } catch (err) { config = {}; }
-
-            var lines       = Array.isArray(config.lines) ? config.lines : [];
-            var typeDelay   = Math.max(config.speed_type || 0, 0);
-            var pauseDelay  = Math.max(config.pause_between_ops || 0, 0); // reuse as per-line pause
-
-            var pre   = mount.querySelector(".term-body-__SUFFIX__");
-            var caret = mount.querySelector(".caret-__SUFFIX__");
-            if (!pre || !caret) return;
-
-            var raw = "";
-
-            function esc(v){
-              return v.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#x27;");
-            }
-            function highlightChunk(text){
-              var parts = text.split(/(\\n)/), out = "";
-              for (var i=0;i<parts.length;i++){
-                var p = parts[i];
-                if (p === "\\n"){ out += "\\n"; continue; }
-                var stripped = p.trim();
-                var safe = esc(p);
-                if (/^dem[a-z]*ai$/i.test(stripped)) {
-                  safe = '<span class="hl-__SUFFIX__">' + safe + '</span>';
-                } else if (p.indexOf("$ ") === 0) {
-                  safe = '<span class="cmdline-__SUFFIX__">' + safe + '</span>';
-                }
-                out += safe;
-              }
-              return out;
-            }
-            function render(showCaret){
-              pre.innerHTML = highlightChunk(raw);
-              caret.style.display = showCaret ? "inline-block" : "none";
-              pre.scrollTop = pre.scrollHeight;
-            }
-            function wait(ms){ return ms ? new Promise(r=>setTimeout(r,ms)) : Promise.resolve(); }
-
-            async function typeText(t){
-              for (var i=0;i<t.length;i++){
-                raw += t.charAt(i);
-                render(true);
-                await wait(typeDelay);
-              }
-            }
-
-            async function run(){
-              render(true);
-              for (var i=0;i<lines.length;i++){
-                var line = typeof lines[i] === "string" ? lines[i] : "";
-                await typeText(line);
-                if (!line.endsWith("\\n")) await typeText("\\n");
-                await wait(pauseDelay);
-              }
-              render(false);
-            }
-
-            run();
-          })();
-        </script>
-        """
-    )
-    return script.replace("__MOUNT_ID__", mount_id).replace("__SUFFIX__", _TERMINAL_SUFFIX)
-
-
 def render_ai_act_terminal(
     demai_lines=None,
     speed_type_ms: int = 20,
@@ -225,28 +131,123 @@ def render_ai_act_terminal(
     if demai_lines is None:
         demai_lines = _DEFAULT_DEMAI_LINES
 
-    _ensure_terminal_css()
-    container = st.container()
-
     prepared_lines = _prepare_lines(demai_lines)
 
     final_state_key = f"{_FINAL_STATE_KEY}:{hash(tuple(prepared_lines))}"
     final_state = st.session_state.get(final_state_key)
     if final_state:
-        _render_terminal_html(container, final_state, show_caret=False)
+        highlighted = _highlight_raw(final_state)
+        static_html = (
+            dedent(
+                """
+                __STYLE__
+                __SHELL__
+                """
+            )
+            .replace("__STYLE__", _TERMINAL_STYLE)
+            .replace("__SHELL__", _build_terminal_shell(highlighted, caret_visible=False))
+        )
+        components_html(static_html, height=0)
         return
+    mount_id = f"terminal-{_TERMINAL_SUFFIX}-{uuid4().hex}"
     config = {
         "lines": prepared_lines,
-        "speed_type": max(speed_type_ms, 0),
-        # keep the same name so existing callers don't change:
-        "pause_between_ops": max(pause_between_ops_ms, 0),
+        "typeDelay": max(speed_type_ms, 0),
+        "pauseDelay": max(pause_between_ops_ms, 0),
     }
-    mount_id = f"terminal-{_TERMINAL_SUFFIX}-{uuid4().hex}"
-    mount_markup = _build_inline_mount_markup(config, mount_id)
-    bootstrap = _build_inline_bootstrap(mount_id)
+    config_json = json.dumps(config)
+    animated_html = (
+        dedent(
+            """
+            __STYLE__
+            __SHELL__
+            <script>
+              (function() {
+                const mount = document.getElementById('__MOUNT_ID__');
+                if (!mount || mount.dataset.animated === '1') return;
+                mount.dataset.animated = '1';
 
-    container.markdown(mount_markup, unsafe_allow_html=True)
-    components.html(bootstrap, height=0)
+                const config = __CONFIG_JSON__;
+                const lines = Array.isArray(config.lines) ? config.lines : [];
+                const typeDelay = Math.max(config.typeDelay || 0, 0);
+                const pauseDelay = Math.max(config.pauseDelay || 0, 0);
+
+                const pre = mount.querySelector('.term-body-__SUFFIX__');
+                const caret = mount.querySelector('.caret-__SUFFIX__');
+                if (!pre || !caret) return;
+
+                let raw = '';
+
+                const esc = (value) => value
+                  .replace(/&/g, '&amp;')
+                  .replace(/</g, '&lt;')
+                  .replace(/>/g, '&gt;')
+                  .replace(/"/g, '&quot;')
+                  .replace(/'/g, '&#x27;');
+
+                const highlightChunk = (text) => {
+                  const parts = text.split(/(\n)/);
+                  let out = '';
+                  for (const part of parts) {
+                    if (part === '\n') { out += '\n'; continue; }
+                    const stripped = part.trim();
+                    let safe = esc(part);
+                    if (/^dem[a-z]*ai$/i.test(stripped)) {
+                      safe = '<span class="hl-__SUFFIX__">' + safe + '</span>';
+                    } else if (part.indexOf('$ ') === 0) {
+                      safe = '<span class="cmdline-__SUFFIX__">' + safe + '</span>';
+                    }
+                    out += safe;
+                  }
+                  return out;
+                };
+
+                const render = (showCaret) => {
+                  pre.innerHTML = highlightChunk(raw);
+                  caret.style.display = showCaret ? 'inline-block' : 'none';
+                  pre.scrollTop = pre.scrollHeight;
+                };
+
+                const wait = (ms) => ms ? new Promise((resolve) => setTimeout(resolve, ms)) : Promise.resolve();
+
+                const typeText = async (text) => {
+                  for (let i = 0; i < text.length; i += 1) {
+                    raw += text.charAt(i);
+                    render(true);
+                    await wait(typeDelay);
+                  }
+                };
+
+                const appendNewline = async () => {
+                  raw += '\n';
+                  render(true);
+                  await wait(typeDelay);
+                };
+
+                const run = async () => {
+                  render(true);
+                  for (const original of lines) {
+                    const line = typeof original === 'string' ? original : '';
+                    await typeText(line);
+                    if (!line.endsWith('\n')) { await appendNewline(); }
+                    await wait(pauseDelay);
+                  }
+                  render(false);
+                };
+
+                requestAnimationFrame(run);
+              })();
+            </script>
+            """
+        )
+        .replace("__STYLE__", _TERMINAL_STYLE)
+        .replace("__SHELL__", _build_terminal_shell("", caret_visible=True, mount_id=mount_id))
+        .replace("__MOUNT_ID__", mount_id)
+        .replace("__CONFIG_JSON__", config_json)
+        .replace("__SUFFIX__", _TERMINAL_SUFFIX)
+    )
+
+    components_html(animated_html, height=0)
 
     # Cache the fully-materialized final text for quick re-renders
     st.session_state[final_state_key] = _compute_final_state(prepared_lines)
