@@ -120,6 +120,22 @@ def _compute_final_state(demai_lines: Iterable[str]) -> str:
     return raw
 
 
+def _estimate_terminal_height(raw: str) -> int:
+    """Return an approximate terminal height for the rendered content."""
+
+    if not raw:
+        return 320
+
+    line_count = raw.count("\n") + 1
+    min_height = 300
+    max_height = 680
+    per_line = 22
+    padding = 140
+
+    estimated = padding + line_count * per_line
+    return max(min_height, min(max_height, estimated))
+
+
 def render_ai_act_terminal(
     demai_lines=None,
     speed_type_ms: int = 20,
@@ -135,6 +151,10 @@ def render_ai_act_terminal(
 
     final_state_key = f"{_FINAL_STATE_KEY}:{hash(tuple(prepared_lines))}"
     final_state = st.session_state.get(final_state_key)
+
+    final_raw = final_state or _compute_final_state(prepared_lines)
+    target_height = _estimate_terminal_height(final_raw)
+
     if final_state:
         highlighted = _highlight_raw(final_state)
         static_html = (
@@ -147,7 +167,7 @@ def render_ai_act_terminal(
             .replace("__STYLE__", _TERMINAL_STYLE)
             .replace("__SHELL__", _build_terminal_shell(highlighted, caret_visible=False))
         )
-        components_html(static_html, height=0)
+        components_html(static_html, height=target_height)
         return
     mount_id = f"terminal-{_TERMINAL_SUFFIX}-{uuid4().hex}"
     config = {
@@ -247,7 +267,7 @@ def render_ai_act_terminal(
         .replace("__SUFFIX__", _TERMINAL_SUFFIX)
     )
 
-    components_html(animated_html, height=0)
+    components_html(animated_html, height=target_height)
 
     # Cache the fully-materialized final text for quick re-renders
-    st.session_state[final_state_key] = _compute_final_state(prepared_lines)
+    st.session_state[final_state_key] = final_raw
