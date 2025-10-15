@@ -559,7 +559,10 @@ def render_intro_stage():
                 }
                 .mw-intro-lifecycle__grid {
                     gap: clamp(1rem, 2.6vw, 1.9rem);
-                    padding: 0;
+                    padding-top: 10px;
+                    padding-left: 10px;
+                    padding-right: 10px;
+                    padding-bottom: 10px;
                     align-items: stretch;
                 }
                 .mw-intro-lifecycle__col {
@@ -602,6 +605,10 @@ def render_intro_stage():
                     display: flex;
                     flex-direction: column;
                     gap: clamp(0.8rem, 1.8vw, 1.2rem);
+                    padding-top: 10px;
+                    padding-left: 10px;
+                    padding-right: 10px;
+                    padding-bottom: 10px;
                 }
                 .mw-intro-lifecycle .intro-lifecycle-sidecar__eyebrow {
                     font-size: 0.72rem;
