@@ -115,11 +115,8 @@ from demistifai.modeling import (
     top_token_importances,
     verdict_label,
 )
-from demistifai.styles.css_blocks import (
-    GUARDRAIL_PANEL_STYLE,
-    PII_INDICATOR_STYLE,
-)
-from demistifai.styles.inject import inject_css_once
+from demistifai.styles.css_blocks import GUARDRAIL_PANEL_STYLE
+from demistifai.components.pii_indicators import render_pii_indicators
 
 from stages.train_stage import render_train_stage
 from ui.animated_logo import render_demai_logo
@@ -3002,26 +2999,13 @@ def render_data_stage():
         if ss.get("pii_open"):
             with section_surface():
                 st.markdown("### 🔐 Personal Data Cleanup")
-                inject_css_once(PII_INDICATOR_STYLE)
                 remaining_to_clean = len(flagged_ids)
-                indicator_values = [
-                    ("Score", int(ss.get("pii_score", 0) or 0)),
-                    ("Cleaned", int(ss.get("pii_cleaned_count", 0) or 0)),
-                    ("PII to be cleaned", remaining_to_clean),
-                ]
-                indicators_html = "".join(
-                    (
-                        "<div class='pii-indicator'>"
-                        f"<div class='pii-indicator__label'>{label}</div>"
-                        f"<div class='pii-indicator__value'>{value}</div>"
-                        "</div>"
-                    )
-                    for label, value in indicator_values
-                )
-                st.markdown(
-                    f"<div class='pii-indicators'>{indicators_html}</div>",
-                    unsafe_allow_html=True,
-                )
+                pii_counts_dict = {
+                    "Score": int(ss.get("pii_score", 0) or 0),
+                    "Cleaned": int(ss.get("pii_cleaned_count", 0) or 0),
+                    "PII to be cleaned": remaining_to_clean,
+                }
+                render_pii_indicators(counts=pii_counts_dict)
 
                 if not flagged_ids:
                     st.success("No PII left to clean in the preview. 🎉")
