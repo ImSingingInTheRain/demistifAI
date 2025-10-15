@@ -45,6 +45,12 @@ from demistifai.constants import (
     URGENCY,
     StageMeta,
 )
+from demistifai.core.constants import (
+    TOKEN_POLICY,
+    PII_DISPLAY_LABELS,
+    PII_CHIP_CONFIG,
+)
+from demistifai.core.utils import streamlit_rerun
 from demistifai.dataset import (
     ATTACHMENT_MIX_PRESETS,
     ATTACHMENT_TYPES,
@@ -141,45 +147,6 @@ def callable_or_attr(target: Any, attr: str | None = None) -> bool:
 from sklearn.decomposition import PCA
 from sklearn.metrics import accuracy_score, confusion_matrix, f1_score, precision_recall_fscore_support
 from sklearn.model_selection import train_test_split
-
-
-TOKEN_POLICY = {
-    "email": "{{EMAIL}}",
-    "phone": "{{PHONE}}",
-    "iban": "{{IBAN}}",
-    "card16": "{{CARD_16}}",
-    "otp6": "{{OTP_6}}",
-    "url": "{{URL_SUSPICIOUS}}",
-}
-
-
-def _streamlit_rerun() -> None:
-    rerun_fn = getattr(st, "rerun", None) or getattr(st, "experimental_rerun", None)
-    if rerun_fn is None:
-        raise AttributeError("Streamlit rerun function unavailable")
-    rerun_fn()
-
-
-PII_DISPLAY_LABELS = [
-    ("iban", "IBAN"),
-    ("credit_card", "Card"),
-    ("email", "Emails"),
-    ("phone", "Phones"),
-    ("otp6", "OTPs"),
-    ("url", "Suspicious URLs"),
-]
-
-
-PII_CHIP_CONFIG = [
-    ("credit_card", "💳", "Credit card"),
-    ("iban", "🏦", "IBAN"),
-    ("email", "📧", "Emails"),
-    ("phone", "☎️", "Phones"),
-    ("otp6", "🔐", "OTPs"),
-    ("url", "🌐", "Suspicious URLs"),
-]
-
-
 PII_INDICATOR_STYLE = """
 <style>
 .pii-indicators {
@@ -1160,7 +1127,7 @@ def set_active_stage(stage_key: str) -> None:
         st.query_params["stage"] = stage_key
 
     if stage_changed:
-        _streamlit_rerun()
+        streamlit_rerun()
 
 
 def _set_adaptive_state(new_value: bool, *, source: str) -> None:
@@ -2949,7 +2916,7 @@ def render_data_stage():
                 )
                 _set_advanced_knob_state(ss["dataset_config"], force=True)
                 if ss.get("_needs_advanced_knob_rerun"):
-                    _streamlit_rerun()
+                    streamlit_rerun()
                 current_summary = baseline_summary
                 delta_summary = ss.get("dataset_compare_delta")
                 delta_text = explain_config_change(ss.get("dataset_config", DEFAULT_DATASET_CONFIG))
@@ -3241,7 +3208,7 @@ def render_data_stage():
                                 "field": field,
                                 "token": token,
                             }
-                            _streamlit_rerun()
+                            streamlit_rerun()
 
                         with token_columns[0]:
                             if st.button("{{EMAIL}}", key=f"pii_token_email_{row_id}"):
@@ -3287,12 +3254,12 @@ def render_data_stage():
                                 ss["pii_hits_map"][row_id] = {"title": relinted_title, "body": relinted_body}
                                 ss["pii_score"] = max(0, ss.get("pii_score", 0) - 2)
                                 st.toast("Still detecting PII — try replacing with tokens.", icon="⚠️")
-                            _streamlit_rerun()
+                            streamlit_rerun()
 
                         if skip_row:
                             if flagged_ids:
                                 ss["pii_queue_idx"] = (idx + 1) % len(flagged_ids)
-                            _streamlit_rerun()
+                            streamlit_rerun()
 
                         if finish_cleanup:
                             updated_detailed = lint_dataset_detailed(preview_rows)
@@ -3565,7 +3532,7 @@ def render_data_stage():
 
                         _set_advanced_knob_state(config, force=True)
                         if ss.get("_needs_advanced_knob_rerun"):
-                            _streamlit_rerun()
+                            streamlit_rerun()
 
             if discard_col.button("Discard preview", type="secondary", use_container_width=True):
                 _discard_preview()
@@ -3768,7 +3735,7 @@ def render_data_stage():
                                 )
                             _set_advanced_knob_state(config, force=True)
                             if ss.get("_needs_advanced_knob_rerun"):
-                                _streamlit_rerun()
+                                streamlit_rerun()
             else:
                 st.caption("No snapshots yet. Save one after curating your first dataset.")
     
@@ -4957,7 +4924,7 @@ def _render_train_stage_wrapper() -> None:
 
     render_train_stage(
         ss,
-        streamlit_rerun=_streamlit_rerun,
+        streamlit_rerun=streamlit_rerun,
         has_embed=has_embed,
         has_langdetect=has_langdetect,
         render_eu_ai_quote=render_eu_ai_quote,
