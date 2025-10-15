@@ -86,7 +86,13 @@ from demistifai.core.state import (
     _apply_pending_advanced_knob_state,
     _push_data_stage_flash,
 )
-from demistifai.core.utils import streamlit_rerun
+from demistifai.core.utils import (
+    streamlit_rerun,
+    _count_suspicious_links,
+    _has_suspicious_tld,
+    _caps_ratio,
+    _count_money_mentions,
+)
 from demistifai.dataset import (
     ATTACHMENT_MIX_PRESETS,
     ATTACHMENT_TYPES,
@@ -109,10 +115,6 @@ from demistifai.dataset import (
     lint_dataset_detailed,
     lint_dataset,
     lint_text_spans,
-    _caps_ratio,
-    _count_money_mentions,
-    _count_suspicious_links,
-    _has_suspicious_tld,
 )
 from demistifai.modeling import (
     FEATURE_DISPLAY_NAMES,
