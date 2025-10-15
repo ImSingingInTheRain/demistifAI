@@ -1402,7 +1402,7 @@ APP_THEME_CSS = """
 }
 
 /* Stage command grid + navigation controls */
-.stage-top-grid-shell {
+div[data-testid="stHorizontalBlock"]:has(.stage-top-grid__nav-card) {
     position: relative;
     margin-bottom: clamp(1.6rem, 2vw, 2.4rem);
     padding: clamp(1.8rem, 3vw, 2.6rem);
@@ -1411,9 +1411,12 @@ APP_THEME_CSS = """
     background: linear-gradient(155deg, rgba(15, 23, 42, 0.96), rgba(8, 47, 73, 0.9));
     box-shadow: 0 32px 64px rgba(8, 47, 73, 0.45);
     overflow: hidden;
+    z-index: 0;
+    gap: clamp(1.4rem, 3vw, 2.4rem);
+    align-items: stretch;
 }
 
-.stage-top-grid-shell::before {
+div[data-testid="stHorizontalBlock"]:has(.stage-top-grid__nav-card)::before {
     content: '';
     position: absolute;
     inset: 0;
@@ -1423,14 +1426,12 @@ APP_THEME_CSS = """
     pointer-events: none;
 }
 
-.stage-top-grid-shell > div[data-testid="stHorizontalBlock"] {
+div[data-testid="stHorizontalBlock"]:has(.stage-top-grid__nav-card) > div[data-testid="column"] {
     position: relative;
     z-index: 1;
-    gap: clamp(1.4rem, 3vw, 2.4rem);
-    align-items: stretch;
 }
 
-.stage-top-grid-shell [data-testid="column"] > div[data-testid="stVerticalBlock"] {
+div[data-testid="stHorizontalBlock"]:has(.stage-top-grid__nav-card) > div[data-testid="column"] > div[data-testid="stVerticalBlock"] {
     background: transparent;
     border: none;
     padding: 0;
