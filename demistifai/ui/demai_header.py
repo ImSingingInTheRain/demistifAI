@@ -130,62 +130,6 @@ _CUSTOM_HEADER_HTML = dedent(
     """
 )
 
-_RELOCATION_SCRIPT = dedent(
-    f"""
-    <script>
-    (function () {{
-      const FRAME_SELECTOR = 'iframe[data-demai-logo-marker="{_FRAME_MARKER}"]';
-      const SLOT_ID = 'demai-custom-header-logo';
-      const PLACEHOLDER_ATTR = 'data-demai-logo-placeholder';
-      const rootWindow = window.parent || window;
-      const rootDocument = rootWindow.document;
-      const raf = rootWindow.requestAnimationFrame.bind(rootWindow);
-      const state = rootWindow['{_STATE_KEY}'] || (rootWindow['{_STATE_KEY}'] = {{}});
-
-      function relocate() {{
-        const frame = rootDocument.querySelector(FRAME_SELECTOR);
-        const slot = rootDocument.getElementById(SLOT_ID);
-
-        if (!frame || !slot) {{
-          raf(relocate);
-          return;
-        }}
-
-        frame.classList.add('demai-custom-header__logo-frame');
-
-        const placeholder = frame.closest('div[data-testid="stElementContainer"]');
-        if (placeholder && placeholder.getAttribute(PLACEHOLDER_ATTR) !== 'true') {{
-          placeholder.setAttribute(PLACEHOLDER_ATTR, 'true');
-        }}
-
-        if (frame.parentElement !== slot) {{
-          slot.replaceChildren(frame);
-        }}
-      }}
-
-      if (state.relocatorObserver) {{
-        state.relocatorObserver.disconnect();
-      }}
-
-      function ensureBody() {{
-        if (!rootDocument.body) {{
-          raf(ensureBody);
-          return;
-        }}
-
-        relocate();
-
-        const observer = new MutationObserver(relocate);
-        observer.observe(rootDocument.body, {{ childList: true, subtree: true }});
-        state.relocatorObserver = observer;
-      }}
-
-      ensureBody();
-    }})();
-    </script>
-    """
-)
-
 
 @lru_cache(maxsize=1)
 def _header_css() -> str:
