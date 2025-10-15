@@ -164,10 +164,8 @@ from demistifai.core.routing import route_decision
 from demistifai.core.downloads import download_text
 
 from stages.train_stage import render_train_stage
-from demistifai.ui.animated_logo import (
-    mount_demai_header_logo,
-    render_demai_logo,
-)
+from demistifai.ui.animated_logo import render_demai_logo
+from demistifai.ui.demai_header import mount_demai_header_logo
 from demistifai.ui_components.arch_demai import (
     demai_architecture_markup,
     demai_architecture_styles,
