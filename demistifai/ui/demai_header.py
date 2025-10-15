@@ -50,6 +50,7 @@ _HEADER_CSS = dedent(
         align-items: center;
         justify-content: space-between;
         gap: clamp(0.5rem, 2vw, 1.5rem);
+        padding-right: 100px
         padding: clamp(0.6rem, 1.8vw, 1rem) clamp(1rem, 3.2vw, 1.75rem);
         margin-bottom: clamp(1rem, 2.8vw, 1.8rem);
         background: linear-gradient(90deg, rgba(15, 23, 42, 0.92), rgba(15, 118, 110, 0.92));
