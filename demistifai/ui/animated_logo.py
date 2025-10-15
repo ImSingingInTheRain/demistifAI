@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+from functools import lru_cache
+from pathlib import Path
+
 import streamlit as st
 from streamlit.components.v1 import html as components_html
 
@@ -106,80 +109,6 @@ def render_demai_logo(height: int = 50, *, frame_marker: str = "") -> None:
 
 
 _CUSTOM_HEADER_HTML = """
-<style>
-header, [data-testid="stHeader"] {
-    visibility: hidden;
-}
-
-[data-testid="stHeader"] {
-    display: none;
-}
-
-div[data-demai-logo-wrapper="true"] {
-    height: 0 !important;
-    margin: 0 !important;
-    padding: 0 !important;
-}
-
-.demai-custom-header {
-    position: sticky;
-    top: 0;
-    z-index: 1000;
-    width: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: clamp(0.5rem, 2vw, 1.5rem);
-    padding: clamp(0.6rem, 1.8vw, 1rem) clamp(1rem, 3.2vw, 1.75rem);
-    background: linear-gradient(90deg, rgba(15, 23, 42, 0.92), rgba(15, 118, 110, 0.92));
-    backdrop-filter: blur(12px);
-    border-bottom: 1px solid rgba(148, 163, 184, 0.35);
-    box-shadow: 0 6px 18px rgba(15, 23, 42, 0.08);
-}
-
-.demai-custom-header__logo-frame {
-    width: clamp(9.8rem, 16vw, 14.5rem) !important;
-    height: clamp(3.2rem, 5vw, 4.6rem) !important;
-    border: none !important;
-    background: transparent !important;
-    pointer-events: none;
-}
-
-.demai-custom-header__meta {
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
-    color: rgba(241, 245, 249, 0.92);
-    text-align: right;
-}
-
-.demai-custom-header__meta-title {
-    font-size: clamp(0.92rem, 2.2vw, 1.05rem);
-    font-weight: 600;
-    letter-spacing: 0.4px;
-}
-
-.demai-custom-header__meta-caption {
-    font-size: clamp(0.75rem, 1.6vw, 0.88rem);
-    opacity: 0.85;
-}
-
-[data-testid="stAppViewContainer"] > .main {
-    padding-top: clamp(0.2rem, 1vw, 0.75rem);
-}
-
-@media (max-width: 768px) {
-    .demai-custom-header {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 0.65rem;
-    }
-
-    .demai-custom-header__meta {
-        text-align: left;
-    }
-}
-</style>
 <div class="demai-custom-header" data-testid="demai-custom-header">
   <div class="demai-custom-header__logo-slot" id="demai-custom-header-logo"></div>
   <div class="demai-custom-header__meta">
@@ -225,8 +154,16 @@ div[data-demai-logo-wrapper="true"] {
 """
 
 
+@lru_cache(maxsize=1)
+def _load_header_css() -> str:
+    """Return the CSS required to style the custom header."""
+
+    return Path(__file__).with_name("demai_header.css").read_text(encoding="utf-8")
+
+
 def mount_demai_header_logo(height: int = 96) -> None:
     """Render the animated demAI logo inside a bespoke Streamlit header."""
 
     render_demai_logo(height=height, frame_marker="custom-header")
+    st.markdown(f"<style>{_load_header_css()}</style>", unsafe_allow_html=True)
     st.markdown(_CUSTOM_HEADER_HTML, unsafe_allow_html=True)
