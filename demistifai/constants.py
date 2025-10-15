@@ -27,14 +27,16 @@ APP_THEME_CSS = """
 }
 
 [data-testid="stMainBlock"] {
-    padding-top: 0.5rem;
-    padding-bottom: 0.5rem;
+    padding-top: 0;
+    padding-bottom: 0.25rem;
 }
 
-.main .block-container {
+[data-testid="stMainBlockContainer"] {
     max-width: 1200px;
-    padding-left: 1.5rem;
+    padding-top: 1.5rem !important;
     padding-right: 1.5rem;
+    padding-bottom: 3rem !important;
+    padding-left: 1.5rem;
 }
 
 .section-surface {
