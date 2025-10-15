@@ -1218,7 +1218,7 @@ def render_intro_stage():
     if intro_index is not None and intro_index < len(STAGES) - 1:
         next_stage_key = STAGES[intro_index + 1].key
 
-    def render_demai_logo(height=112)
+    render_demai_logo(height=112)
 
     def _render_intro_terminal(slot: DeltaGenerator) -> None:
         with slot:
