@@ -164,7 +164,10 @@ from demistifai.core.routing import route_decision
 from demistifai.core.downloads import download_text
 
 from stages.train_stage import render_train_stage
-from demistifai.ui.animated_logo import render_demai_logo
+from demistifai.ui.animated_logo import (
+    mount_demai_header_logo,
+    render_demai_logo,
+)
 from demistifai.ui_components.arch_demai import (
     demai_architecture_markup,
     demai_architecture_styles,
@@ -217,6 +220,7 @@ st.set_page_config(page_title="demistifAI", page_icon="📧", layout="wide")
 st.markdown(APP_THEME_CSS, unsafe_allow_html=True)
 st.markdown(STAGE_TEMPLATE_CSS, unsafe_allow_html=True)
 st.markdown(EMAIL_INBOX_TABLE_CSS, unsafe_allow_html=True)
+mount_demai_header_logo()
 
 
 @contextmanager
