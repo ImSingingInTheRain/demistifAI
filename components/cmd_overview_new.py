@@ -9,7 +9,7 @@ from streamlit.components.v1 import html as components_html
 _TERMINAL_SUFFIX = "ai_act_fullterm"
 
 _DEFAULT_DEMAI_LINES: List[str] = [
-    "$ ai-act fetch --article 3 --term \'AI system'\n",
+    "$ ai-act fetch --article 3 --term--AI_system\n",
     "[...] Retrieving definition… OK\n",
     "",
     "'AI system means a machine-based system [...]'\n",
