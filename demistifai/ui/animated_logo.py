@@ -1,12 +1,11 @@
-"""Animated demAI logo helpers."""
+"""Minimal animated demAI logo (returns raw HTML)."""
 
 from __future__ import annotations
 
-from html import escape
-
 from streamlit.components.v1 import html as components_html
 
-_DEMAI_LOGO_HTML = '''
+
+_LOGO_HTML_TEMPLATE = """
 <div class="demai-hero" role="banner" aria-label="demAI animated title">
   <h1 class="demai-title">
     <span id="demai-base">dem</span><span id="demai-dyn"></span><span class="demai-caret" aria-hidden="true"></span>
@@ -15,103 +14,106 @@ _DEMAI_LOGO_HTML = '''
 </div>
 
 <style>
-  .demai-hero{
-    display:flex;align-items:center;justify-content:flex-start;
-    padding:0; margin:0;
+  .demai-hero {
+    display: flex;
+    align-items: center;
+    padding: 0;
+    margin: 0;
   }
-  .demai-title{
-    --grad: linear-gradient(90deg,#111827 0%,#0f172a 30%,#1e3a8a 60%,#0ea5e9 100%);
-    font-size: clamp(2.0rem, 4.8vw, 3.4rem);
-    line-height:1.05;margin:0;font-weight:800;letter-spacing:.5px;
-    background: var(--grad);
-    -webkit-background-clip:text;background-clip:text;color:transparent;
-    position:relative;white-space:nowrap;
+  .demai-title {
+    font-size: clamp(1.6rem, 4vw, 2.4rem);
+    line-height: 1.1;
+    margin: 0;
+    font-weight: 800;
+    letter-spacing: .5px;
+    background: linear-gradient(90deg, #111827 0%, #0f172a 30%, #1e3a8a 60%, #0ea5e9 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    background-size: 200% 100%;
+    animation: sheen 5s ease-in-out infinite;
+    white-space: nowrap;
   }
-  /* gentle moving sheen */
-  .demai-title{background-size:200% 100%;animation:de-sheen 5s ease-in-out infinite;}
-  @keyframes de-sheen{
-    0%,20% {background-position:0% 0%}
-    50%    {background-position:100% 0%}
-    100%   {background-position:0% 0%}
+  @keyframes sheen {
+    0%, 20% { background-position: 0% 0% }
+    50%      { background-position: 100% 0% }
+    100%     { background-position: 0% 0% }
   }
-  /* caret */
-  .demai-caret{width:.08em;height:1.05em;background:currentColor;display:inline-block;
-    transform:translateY(.12em);margin-left:.08em;animation:blink 1.05s steps(1) infinite;}
-  @keyframes blink{0%,60%{opacity:1}61%,100%{opacity:0}}
-  /* dark mode support: inherit color from parent if gradients disabled */
-  @media (prefers-reduced-motion: reduce){
-    .demai-title{animation:none}
-    .demai-caret{animation:none}
+  .demai-caret {
+    width: .08em;
+    height: 1.05em;
+    background: currentColor;
+    display: inline-block;
+    transform: translateY(.12em);
+    margin-left: .08em;
+    animation: blink 1.05s steps(1) infinite;
   }
-  .noscript{color:inherit;background:none}
-  .demai-hero{opacity:0;transform:translateY(6px);animation:fadein .6s ease forwards}
-  @keyframes fadein{to{opacity:1;transform:translateY(0)}}
+  @keyframes blink { 0%,60%{opacity:1} 61%,100%{opacity:0} }
+  @media (prefers-reduced-motion: reduce) {
+    .demai-title, .demai-caret { animation: none; }
+  }
+  .noscript { color: inherit; background: none; }
 </style>
 
 <script>
-(function(){
-  const FRAME_MARKER = "__FRAME_MARKER__";
+(function() {
   try {
-    const frame = window.frameElement;
-    if (frame && FRAME_MARKER) {
-      frame.setAttribute('data-demai-logo-marker', FRAME_MARKER);
+    if (window.frameElement && "__FRAME_MARKER__") {
+      window.frameElement.setAttribute("data-demai-logo-marker", "__FRAME_MARKER__");
     }
-  } catch (err) {
-    /* ignore */
-  }
+  } catch (e) {}
 
   const dyn = document.getElementById('demai-dyn');
-  const base = document.getElementById('demai-base');
-  if(!dyn || !base) return;
+  if (!dyn) return;
 
   const steps = [
-    { type: "onstrateAI", hold: 800, backToDem: true  },
-    { type: "istifyAI",   hold: 800, backToDem: true  },
-    { type: "ocratizeAI", hold: 900, backToDem: true  },
-    { type: "AI",         hold: 900, backToDem: false }
+    { t: "onstrateAI", hold: 700, back: true },
+    { t: "istifyAI",   hold: 700, back: true },
+    { t: "ocratizeAI", hold: 800, back: true },
+    { t: "AI",         hold: 900, back: false }
   ];
 
-  const TYPE_DELAY = 55;     // ms per char typed
-  const ERASE_DELAY = 35;    // ms per char deleted
-  const BETWEEN_STEPS = 280; // ms pause between steps
-
+  const typeDelay = 55, eraseDelay = 35, between = 220;
   const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
-  async function typeText(t){
-    for(const ch of t){ dyn.textContent += ch; await sleep(TYPE_DELAY); }
-  }
-  async function backToDem(){
-    while(dyn.textContent.length){
-      dyn.textContent = dyn.textContent.slice(0,-1);
-      await sleep(ERASE_DELAY);
+  async function type(s) {
+    for (const ch of s) {
+      dyn.textContent += ch;
+      await sleep(typeDelay);
     }
   }
-  async function run(){
-    for(const step of steps){
-      await typeText(step.type);
+
+  async function erase() {
+    while (dyn.textContent) {
+      dyn.textContent = dyn.textContent.slice(0, -1);
+      await sleep(eraseDelay);
+    }
+  }
+
+  async function run() {
+    for (const step of steps) {
+      await type(step.t);
       await sleep(step.hold);
-      if(step.backToDem){ await backToDem(); await sleep(BETWEEN_STEPS); }
+      if (step.back) {
+        await erase();
+        await sleep(between);
+      }
     }
   }
-  requestAnimationFrame(run);
+
+  run();
 })();
 </script>
-'''
+"""
 
 
-def demai_logo_srcdoc(*, frame_marker: str = "") -> str:
-    """Return the ``srcdoc`` payload for the animated demAI logo iframe."""
-
-    html = _DEMAI_LOGO_HTML.replace("__FRAME_MARKER__", frame_marker)
-    return escape(html, quote=True)
+def demai_logo_html(frame_marker: str = "demai-header") -> str:
+    """Return raw HTML for the animated demAI logo."""
+    return _LOGO_HTML_TEMPLATE.replace("__FRAME_MARKER__", frame_marker)
 
 
-def render_demai_logo(height: int = 50, *, frame_marker: str = "") -> None:
-    """Render the animated demAI title as a Streamlit component."""
-
-    components_html(
-        _DEMAI_LOGO_HTML.replace("__FRAME_MARKER__", frame_marker),
-        height=height,
-    )
+def render_demai_logo(height: int = 56, *, frame_marker: str = "demai-inline") -> None:
+    """Optional: render the logo as a Streamlit component (if you ever need it inline)."""
+    components_html(demai_logo_html(frame_marker), height=height)
 
 
