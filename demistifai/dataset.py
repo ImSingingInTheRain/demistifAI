@@ -21,6 +21,12 @@ from .constants import (
     URGENCY,
 )
 from .incoming_generator import generate_incoming_batch
+from .core.utils import (
+    _caps_ratio,
+    _count_money_mentions,
+    _count_suspicious_links,
+    _has_suspicious_tld,
+)
 
 
 __all__ = [
@@ -49,10 +55,6 @@ __all__ = [
     "dataset_summary_delta",
     "dataset_delta_story",
     "explain_config_change",
-    "_count_suspicious_links",
-    "_count_money_mentions",
-    "_caps_ratio",
-    "_has_suspicious_tld",
 ]
 
 
@@ -678,32 +680,6 @@ def starter_dataset_copy() -> List[Dict[str, str]]:
     """Return a deep-ish copy of the starter labeled dataset."""
 
     return [row.copy() for row in STARTER_LABELED]
-
-
-def _count_suspicious_links(text: str) -> int:
-    urls = re.findall(r"https?://[^\s]+", text, re.IGNORECASE)
-    return sum(1 for url in urls if any(tld in url for tld in SUSPICIOUS_TLD_SUFFIXES))
-
-
-def _count_money_mentions(text: str) -> int:
-    patterns = [r"€\s?\d+", r"\$\s?\d+", r"£\s?\d+", r"wire", r"bank", r"transfer", r"invoice"]
-    text_lower = text.lower()
-    return sum(len(re.findall(pattern, text_lower)) for pattern in patterns)
-
-
-def _caps_ratio(text: str) -> float:
-    words = text.split()
-    if not words:
-        return 0.0
-    total = len(words)
-    caps = sum(1 for word in words if len(word) > 2 and word.isupper())
-    return caps / total
-
-
-def _has_suspicious_tld(text: str) -> bool:
-    return any(tld in text for tld in SUSPICIOUS_TLD_SUFFIXES)
-
-
 def lint_dataset(rows: List[Dict[str, str]]) -> Dict[str, int]:
     counts = {"credit_card": 0, "iban": 0, "email": 0}
     for row in rows:
