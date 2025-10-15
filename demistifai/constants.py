@@ -27,7 +27,7 @@ APP_THEME_CSS = """
 }
 
 [data-testid="stMainBlock"] {
-    padding-top: 2.5rem;
+    padding-top: 0.5rem;
     padding-bottom: 3rem;
 }
 
