@@ -136,7 +136,7 @@ _RELOCATION_SCRIPT = dedent(
     (function () {{
       const FRAME_SELECTOR = 'iframe[data-demai-logo-marker="{_FRAME_MARKER}"]';
       const SLOT_ID = 'demai-custom-header-logo';
-      const WRAPPER_ATTR = 'data-demai-logo-wrapper';
+      const PLACEHOLDER_ATTR = 'data-demai-logo-placeholder';
       const rootWindow = window.parent || window;
       const rootDocument = rootWindow.document;
       const raf = rootWindow.requestAnimationFrame.bind(rootWindow);
@@ -153,9 +153,9 @@ _RELOCATION_SCRIPT = dedent(
 
         frame.classList.add('demai-custom-header__logo-frame');
 
-        const wrapper = frame.closest('div[data-testid="stVerticalBlock"]');
-        if (wrapper && wrapper.getAttribute(WRAPPER_ATTR) !== 'true') {{
-          wrapper.setAttribute(WRAPPER_ATTR, 'true');
+        const placeholder = frame.closest('div[data-testid="stElementContainer"]');
+        if (placeholder && placeholder.getAttribute(PLACEHOLDER_ATTR) !== 'true') {{
+          placeholder.setAttribute(PLACEHOLDER_ATTR, 'true');
         }}
 
         if (frame.parentElement !== slot) {{
