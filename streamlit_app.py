@@ -68,11 +68,20 @@ from demistifai.core.guardrails import (
     _guardrail_badges_html,
     extract_candidate_spans,
 )
+from demistifai.core.dataset import _evaluate_dataset_health
+from demistifai.core.audit import _append_audit
+from demistifai.core.export import _export_batch_df
+from demistifai.core.embeddings import _compute_cached_embeddings
 from demistifai.core.language import (
     HAS_LANGDETECT,
     summarize_language_mix,
     format_language_mix_summary,
     render_language_mix_chip_rows,
+)
+from demistifai.core.state import (
+    _set_advanced_knob_state,
+    _apply_pending_advanced_knob_state,
+    _push_data_stage_flash,
 )
 from demistifai.core.utils import streamlit_rerun
 from demistifai.dataset import (
@@ -118,10 +127,10 @@ from demistifai.modeling import (
     assess_performance,
     cache_train_embeddings,
     combine_text,
+    encode_texts,
     compute_confusion,
     compute_numeric_features,
     df_confusion,
-    encode_texts,
     embedding_backend_info,
     extract_urls,
     _counts,
@@ -243,63 +252,6 @@ def render_eu_ai_quote(text: str, label: str = "From the EU AI Act, Article 3") 
     st.markdown(eu_ai_quote_box(text, label), unsafe_allow_html=True)
 
 
-def _evaluate_dataset_health(
-    summary: Dict[str, Any] | None,
-    lint_counts: Optional[Dict[str, int]],
-) -> Dict[str, Any]:
-    summary = summary or {}
-    if lint_counts is None:
-        lint_counts = {}
-        lint_label = "Unknown"
-    else:
-        lint_flags = sum(int(v or 0) for v in lint_counts.values())
-        lint_label = "Clean" if lint_flags == 0 else f"{lint_flags} flag{'s' if lint_flags != 1 else ''}"
-    lint_flags = sum(int(v or 0) for v in lint_counts.values())
-    spam_ratio = summary.get("spam_ratio")
-    total_rows = summary.get("total")
-
-    badge_text = None
-    health_emoji = None
-    spam_pct = None
-    failures = 0
-    missing_required = spam_ratio is None or total_rows is None
-
-    if not missing_required:
-        try:
-            spam_pct = max(0.0, min(100.0, float(spam_ratio) * 100.0))
-        except (TypeError, ValueError):
-            missing_required = True
-        if not isinstance(total_rows, (int, float)):
-            missing_required = True
-        else:
-            if total_rows < 300:
-                failures += 1
-        if spam_pct is not None and not (40.0 <= spam_pct <= 60.0):
-            failures += 1
-        if lint_counts and lint_flags > 0:
-            failures += 1
-
-    if not missing_required:
-        if failures == 0:
-            badge_text = "🟢 Good"
-            health_emoji = "🟢"
-        elif failures <= 2:
-            badge_text = "🟡 Needs work"
-            health_emoji = "🟡"
-        else:
-            badge_text = "🔴 Risky"
-            health_emoji = "🔴"
-
-    return {
-        "badge_text": badge_text,
-        "health_emoji": health_emoji,
-        "spam_pct": spam_pct,
-        "total_rows": total_rows,
-        "lint_label": lint_label,
-        "lint_flags": lint_flags,
-    }
-
-
 def render_nerd_mode_toggle(
     *,
     key: str,
@@ -398,113 +350,6 @@ def render_mailbox_panel(
         else:
             df_display = df_box
         st.dataframe(df_display, hide_index=True, width="stretch")
-
-
-def _append_audit(event: str, details: Optional[Dict[str, Any]] = None) -> None:
-    """Record an audit log entry for the current session."""
-
-    entry = {
-        "timestamp": datetime.now().isoformat(timespec="seconds"),
-        "event": event,
-    }
-    if details:
-        entry["details"] = details
-
-    log = ss.setdefault("use_audit_log", [])
-    log.append(entry)
-
-
-def _export_batch_df(rows: Optional[List[Dict[str, Any]]]) -> pd.DataFrame:
-    """Normalize batch result rows into a consistent DataFrame for export."""
-
-    base_cols = ["title", "body", "pred", "p_spam", "p_safe", "action", "routed_to"]
-    if not rows:
-        return pd.DataFrame(columns=base_cols)
-
-    df_rows = pd.DataFrame(rows)
-    for col in base_cols:
-        if col not in df_rows.columns:
-            df_rows[col] = None
-    return df_rows[base_cols]
-
-
-def _set_advanced_knob_state(config: Dict[str, Any] | DatasetConfig, *, force: bool = False) -> None:
-    """Ensure Nerd Mode advanced knob widgets reflect the active configuration."""
-
-    if not isinstance(config, dict):
-        config = DEFAULT_DATASET_CONFIG
-
-    try:
-        links_level = int(str(config.get("susp_link_level", "1")))
-    except (TypeError, ValueError):
-        links_level = 1
-    tld_level = str(config.get("susp_tld_level", "med"))
-    caps_level = str(config.get("caps_intensity", "med"))
-    money_level = str(config.get("money_urgency", "low"))
-    current_mix = config.get("attachments_mix", DEFAULT_ATTACHMENT_MIX)
-    attachment_choice = next(
-        (name for name, mix in ATTACHMENT_MIX_PRESETS.items() if mix == current_mix),
-        "Balanced",
-    )
-    try:
-        noise_pct = float(config.get("label_noise_pct", 0.0))
-    except (TypeError, ValueError):
-        noise_pct = 0.0
-    try:
-        seed_value = int(config.get("seed", 42))
-    except (TypeError, ValueError):
-        seed_value = 42
-    poison_demo = bool(config.get("poison_demo", False))
-
-    adv_state = {
-        "adv_links_level": links_level,
-        "adv_tld_level": tld_level,
-        "adv_caps_level": caps_level,
-        "adv_money_level": money_level,
-        "adv_attachment_choice": attachment_choice,
-        "adv_label_noise_pct": noise_pct,
-        "adv_seed": seed_value,
-        "adv_poison_demo": poison_demo,
-    }
-
-    for key, value in adv_state.items():
-        if force or key not in st.session_state:
-            try:
-                st.session_state[key] = value
-            except StreamlitAPIException:
-                pending = st.session_state.setdefault("_pending_advanced_knob_state", {})
-                pending[key] = value
-                st.session_state["_needs_advanced_knob_rerun"] = True
-
-
-def _apply_pending_advanced_knob_state() -> None:
-    """Apply any queued advanced knob updates before widgets instantiate."""
-
-    pending = st.session_state.pop("_pending_advanced_knob_state", None)
-    if not pending:
-        return
-
-    for key, value in pending.items():
-        st.session_state[key] = value
-
-    st.session_state.pop("_needs_advanced_knob_rerun", None)
-
-
-def _push_data_stage_flash(level: str, message: str) -> None:
-    """Queue a flash message to render at the top of the data stage."""
-
-    if not message:
-        return
-
-    queue = st.session_state.setdefault("data_stage_flash_queue", [])
-    queue.append({"level": level, "message": message})
-
-
-@st.cache_data(show_spinner=False)
-def _compute_cached_embeddings(dataset_hash: str, texts: tuple[str, ...]) -> np.ndarray:
-    if not texts:
-        return np.empty((0, 0), dtype=np.float32)
-    return encode_texts(list(texts))
 
 
 ss = st.session_state
