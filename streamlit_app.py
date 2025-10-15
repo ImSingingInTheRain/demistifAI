@@ -1366,6 +1366,16 @@ def render_intro_stage():
     if intro_index is not None and intro_index < len(STAGES) - 1:
         next_stage_key = STAGES[intro_index + 1].key
 
+    def _render_intro_terminal(slot: DeltaGenerator) -> None:
+        with slot:
+            cmd_welcome.render_ai_act_terminal(
+                demai_lines=_WELCOME_LINES,
+                speed_type_ms=20,
+                pause_between_ops_ms=360,
+            )
+
+    render_stage_top_grid("intro", left_renderer=_render_intro_terminal)
+
     with section_surface("section-surface--hero intro-hero-surface"):
         hero_css = textwrap.dedent(
             """
@@ -1619,16 +1629,6 @@ def render_intro_stage():
             col_html=[left_col_html, right_col_html],
             id_suffix="intro-lifecycle",
         )
-
-    def _render_intro_terminal(slot: DeltaGenerator) -> None:
-        with slot:
-            cmd_welcome.render_ai_act_terminal(
-                demai_lines=_WELCOME_LINES,
-                speed_type_ms=20,
-                pause_between_ops_ms=360,
-            )
-
-    render_stage_top_grid("intro", left_renderer=_render_intro_terminal)
 
     ai_act_quote_wrapper_open = """
         <style>
