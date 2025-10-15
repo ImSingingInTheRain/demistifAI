@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from base64 import b64encode
 from textwrap import dedent
 
 import streamlit as st
@@ -69,14 +70,14 @@ def mount_demai_header(logo_height: int = 56) -> None:
         unsafe_allow_html=True,
     )
 
-    # 2) HTML: fixed header with the animated logo embedded via iframe srcdoc
-    # We escape the HTML so it can't "break out" and show raw CSS in your page.
+    # 2) HTML: fixed header with the animated logo embedded via iframe ``src``.
+    # ``srcdoc`` proved brittle with complex markup because Streamlit re-renders
+    # the Markdown block frequently, which occasionally surfaced the raw text
+    # instead of the rendered iframe. Using a ``data:`` URL keeps the markup
+    # encapsulated without relying on inline escaping.
     raw_logo_html = demai_logo_html(frame_marker="demai-header")
-    # ``srcdoc`` requires valid HTML but we also need to keep the attribute quoted
-    # properly. Escaping via ``html.escape`` turns the markup into literal text,
-    # which is what triggered raw CSS/JS appearing in the iframe. Instead we only
-    # escape the characters that would otherwise terminate the attribute.
-    safe_srcdoc = raw_logo_html.replace("\"", "&quot;")
+    encoded_logo = b64encode(raw_logo_html.encode("utf-8")).decode("ascii")
+    data_url = f"data:text/html;base64,{encoded_logo}"
 
     st.markdown(
         dedent(
@@ -85,7 +86,7 @@ def mount_demai_header(logo_height: int = 56) -> None:
               <iframe
                 class="demai-header__logo-frame"
                 title="demAI animated logo"
-                srcdoc="{safe_srcdoc}"
+                src="{data_url}"
                 scrolling="no"
                 frameborder="0"
               ></iframe>
