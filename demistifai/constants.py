@@ -1402,6 +1402,41 @@ APP_THEME_CSS = """
 }
 
 /* Stage command grid + navigation controls */
+.stage-top-grid-shell {
+    position: relative;
+    margin-bottom: clamp(1.6rem, 2vw, 2.4rem);
+    padding: clamp(1.8rem, 3vw, 2.6rem);
+    border-radius: 28px;
+    border: 1px solid rgba(56, 189, 248, 0.32);
+    background: linear-gradient(155deg, rgba(15, 23, 42, 0.96), rgba(8, 47, 73, 0.9));
+    box-shadow: 0 32px 64px rgba(8, 47, 73, 0.45);
+    overflow: hidden;
+}
+
+.stage-top-grid-shell::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at top right, rgba(59, 130, 246, 0.32), transparent 55%),
+        radial-gradient(circle at bottom left, rgba(20, 184, 166, 0.28), transparent 60%);
+    opacity: 0.65;
+    pointer-events: none;
+}
+
+.stage-top-grid-shell > div[data-testid="stHorizontalBlock"] {
+    position: relative;
+    z-index: 1;
+    gap: clamp(1.4rem, 3vw, 2.4rem);
+    align-items: stretch;
+}
+
+.stage-top-grid-shell [data-testid="column"] > div[data-testid="stVerticalBlock"] {
+    background: transparent;
+    border: none;
+    padding: 0;
+    box-shadow: none;
+}
+
 .stage-top-grid__placeholder {
     background: linear-gradient(160deg, rgba(15, 23, 42, 0.9), rgba(8, 47, 73, 0.85));
     border: 1px dashed rgba(56, 189, 248, 0.45);

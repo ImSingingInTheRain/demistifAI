@@ -1292,6 +1292,10 @@ def render_stage_top_grid(
 ) -> StageTopGridSlots:
 
     grid_container = st.container()
+    grid_container.markdown(
+        f"<div class='stage-top-grid-shell stage-top-grid-shell--{stage_key}'>",
+        unsafe_allow_html=True,
+    )
     left_col, right_col = grid_container.columns([0.65, 0.35], gap="large")
 
     left_slot = left_col.container()
@@ -1350,6 +1354,8 @@ def render_stage_top_grid(
             unsafe_allow_html=True,
         )
 
+    grid_container.markdown("</div>", unsafe_allow_html=True)
+
     return StageTopGridSlots(
         left=left_slot,
         right_primary=right_first_slot,
@@ -1366,12 +1372,7 @@ def render_intro_stage():
     if intro_index is not None and intro_index < len(STAGES) - 1:
         next_stage_key = STAGES[intro_index + 1].key
 
-    render_stage_top_grid("intro")
-
-    with section_surface("section-surface--hero"):
-        render_demai_logo()
-        
-        def _render_overview_terminal(slot: DeltaGenerator) -> None:
+    def _render_intro_terminal(slot: DeltaGenerator) -> None:
         with slot:
             cmd_welcome.render_ai_act_terminal(
                 demai_lines=_WELCOME_LINES,
@@ -1379,6 +1380,11 @@ def render_intro_stage():
                 pause_between_ops_ms=360,
             )
 
+    render_stage_top_grid("intro", left_renderer=_render_intro_terminal)
+
+    with section_surface("section-surface--hero"):
+        render_demai_logo()
+        
         window_css = textwrap.dedent(
             """
             <style>
