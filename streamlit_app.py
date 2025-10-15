@@ -14,8 +14,7 @@ import re
 from collections import Counter
 from datetime import datetime
 from contextlib import contextmanager
-from dataclasses import dataclass
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 from urllib.parse import urlencode
 from uuid import uuid4
 
@@ -43,7 +42,6 @@ from demistifai.constants import (
     STAGE_TEMPLATE_CSS,
     STAGES,
     URGENCY,
-    StageMeta,
 )
 from demistifai.core.constants import (
     TOKEN_POLICY,
@@ -77,6 +75,11 @@ from demistifai.core.language import (
     summarize_language_mix,
     format_language_mix_summary,
     render_language_mix_chip_rows,
+)
+from demistifai.core.nav import (
+    StageBlockRenderer,
+    StageTopGridSlots,
+    render_stage_top_grid,
 )
 from demistifai.core.state import (
     _set_advanced_knob_state,
@@ -483,170 +486,6 @@ with st.sidebar:
         """
         ),
         unsafe_allow_html=True,
-    )
-
-
-@dataclass
-class StageTopGridSlots:
-    left: DeltaGenerator
-    right_primary: DeltaGenerator
-    right_secondary: DeltaGenerator
-    prev_clicked: bool
-    next_clicked: bool
-
-
-StageBlockRenderer = Callable[[DeltaGenerator], None]
-
-
-def _stage_navigation_context(stage_key: str) -> tuple[int, int, StageMeta, StageMeta | None, StageMeta | None]:
-    stage_keys = [stage.key for stage in STAGES]
-    total = len(stage_keys)
-    if total == 0 or stage_key not in STAGE_BY_KEY:
-        raise ValueError("Stage navigation requested for unknown stage.")
-
-    index = stage_keys.index(stage_key)
-    stage = STAGE_BY_KEY[stage_key]
-    prev_stage = STAGE_BY_KEY.get(stage_keys[index - 1]) if index > 0 else None
-    next_stage = STAGE_BY_KEY.get(stage_keys[index + 1]) if index < total - 1 else None
-    return index, total, stage, prev_stage, next_stage
-
-
-def _render_stage_navigation_panel(
-    stage_key: str,
-    card_slot: DeltaGenerator,
-    next_slot: DeltaGenerator,
-    prev_slot: DeltaGenerator,
-) -> tuple[bool, bool]:
-    try:
-        index, total, stage, prev_stage, next_stage = _stage_navigation_context(stage_key)
-    except ValueError:
-        return False, False
-
-    stage_overview_html = """
-        <div class="stage-top-grid__nav-card">
-            <div class="stage-top-grid__nav-card-header">
-                <span class="stage-top-grid__nav-prompt">$ stage.status</span>
-                <span class="stage-top-grid__nav-stage">[{stage_number}/{total}]</span>
-            </div>
-            <div class="stage-top-grid__nav-title">
-                <span class="stage-top-grid__nav-icon">{icon}</span>
-                <span>{title}</span>
-            </div>
-            <p class="stage-top-grid__nav-description">{description}</p>
-        </div>
-    """.format(
-        stage_number=index + 1,
-        total=total,
-        icon=html.escape(stage.icon),
-        title=html.escape(stage.title),
-        description=html.escape(stage.description),
-    )
-
-    with card_slot:
-        st.markdown(stage_overview_html, unsafe_allow_html=True)
-
-    next_label = "Proceed" if next_stage is None else f"{next_stage.icon} {next_stage.title} \u27a1\ufe0f"
-    prev_label = "Back" if prev_stage is None else f"\u2b05\ufe0f {prev_stage.icon} {prev_stage.title}"
-
-    next_help = "Jump to the next stage"
-    next_clicked = next_slot.button(
-        next_label,
-        key=f"stage_grid_next_{stage_key}",
-        use_container_width=True,
-        type="primary",
-        disabled=next_stage is None,
-        help=next_help,
-    )
-    if next_clicked and next_stage is not None:
-        set_active_stage(next_stage.key)
-
-    prev_help = "Return to the previous stage"
-    prev_clicked = prev_slot.button(
-        prev_label,
-        key=f"stage_grid_prev_{stage_key}",
-        use_container_width=True,
-        disabled=prev_stage is None,
-        help=prev_help,
-    )
-    if prev_clicked and prev_stage is not None:
-        set_active_stage(prev_stage.key)
-
-    return prev_clicked, next_clicked
-
-
-def render_stage_top_grid(
-    stage_key: str,
-    *,
-    left_renderer: StageBlockRenderer | None = None,
-    right_first_renderer: StageBlockRenderer | None = None,
-    right_second_renderer: StageBlockRenderer | None = None,
-) -> StageTopGridSlots:
-
-    grid_container = st.container()
-    left_col, right_col = grid_container.columns([0.65, 0.35], gap="large")
-
-    left_slot = left_col.container()
-
-    nav_slot = right_col.container()
-    right_col.markdown("<div class='stage-top-grid__gap'></div>", unsafe_allow_html=True)
-    right_first_slot = right_col.container()
-    right_col.markdown("<div class='stage-top-grid__gap'></div>", unsafe_allow_html=True)
-    right_second_slot = right_col.container()
-    right_col.markdown("<div class='stage-top-grid__gap'></div>", unsafe_allow_html=True)
-    next_slot = right_col.container()
-    right_col.markdown("<div class='stage-top-grid__gap'></div>", unsafe_allow_html=True)
-    prev_slot = right_col.container()
-
-    prev_clicked, next_clicked = _render_stage_navigation_panel(
-        stage_key,
-        nav_slot,
-        next_slot,
-        prev_slot,
-    )
-
-    if left_renderer is not None:
-        left_renderer(left_slot)
-    else:
-        left_slot.markdown(
-            """
-            <div class="stage-top-grid__placeholder">
-                <strong>Stage content placeholder</strong>
-                Customize this area with rich content unique to the current stage.
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-
-    if right_first_renderer is not None:
-        right_first_renderer(right_first_slot)
-    else:
-        right_first_slot.markdown(
-            """
-            <div class="stage-top-grid__placeholder stage-top-grid__placeholder--compact">
-                Right column placeholder — add supplemental callouts or metrics here.
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-
-    if right_second_renderer is not None:
-        right_second_renderer(right_second_slot)
-    else:
-        right_second_slot.markdown(
-            """
-            <div class="stage-top-grid__placeholder stage-top-grid__placeholder--compact">
-                Secondary placeholder ready for per-stage widgets or notes.
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-
-    return StageTopGridSlots(
-        left=left_slot,
-        right_primary=right_first_slot,
-        right_secondary=right_second_slot,
-        prev_clicked=prev_clicked,
-        next_clicked=next_clicked,
     )
 
 
