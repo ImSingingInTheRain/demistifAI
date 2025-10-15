@@ -1,0 +1,80 @@
+header, [data-testid="stHeader"] {
+    visibility: hidden;
+}
+
+[data-testid="stHeader"] {
+    display: none;
+}
+
+[data-testid="stAppViewContainer"] > .main {
+    padding-top: 0 !important;
+}
+
+[data-testid="stMainBlock"] {
+    padding-top: 0 !important;
+}
+
+[data-testid="stMainBlock"] > .block-container {
+    padding-top: clamp(4.6rem, 6vw, 6.25rem);
+}
+
+div[data-demai-logo-wrapper="true"] {
+    height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+.demai-custom-header {
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: clamp(0.5rem, 2vw, 1.5rem);
+    padding: clamp(0.6rem, 1.8vw, 1rem) clamp(1rem, 3.2vw, 1.75rem);
+    background: linear-gradient(90deg, rgba(15, 23, 42, 0.92), rgba(15, 118, 110, 0.92));
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(148, 163, 184, 0.35);
+    box-shadow: 0 6px 18px rgba(15, 23, 42, 0.08);
+}
+
+.demai-custom-header__logo-frame {
+    width: clamp(9.8rem, 16vw, 14.5rem) !important;
+    height: clamp(3.2rem, 5vw, 4.6rem) !important;
+    border: none !important;
+    background: transparent !important;
+    pointer-events: none;
+}
+
+.demai-custom-header__meta {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    color: rgba(241, 245, 249, 0.92);
+    text-align: right;
+}
+
+.demai-custom-header__meta-title {
+    font-size: clamp(0.92rem, 2.2vw, 1.05rem);
+    font-weight: 600;
+    letter-spacing: 0.4px;
+}
+
+.demai-custom-header__meta-caption {
+    font-size: clamp(0.75rem, 1.6vw, 0.88rem);
+    opacity: 0.85;
+}
+
+@media (max-width: 768px) {
+    .demai-custom-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.65rem;
+    }
+
+    .demai-custom-header__meta {
+        text-align: left;
+    }
+}
