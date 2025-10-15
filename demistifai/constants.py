@@ -1400,6 +1400,448 @@ APP_THEME_CSS = """
     font-size: 0.85rem;
     font-weight: 600;
 }
+
+/* Stage command grid + navigation controls */
+.stage-top-grid__placeholder {
+    background: linear-gradient(160deg, rgba(15, 23, 42, 0.9), rgba(8, 47, 73, 0.85));
+    border: 1px dashed rgba(56, 189, 248, 0.45);
+    border-radius: 18px;
+    color: rgba(226, 232, 240, 0.88);
+    font-family: 'Fira Code', ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+    font-size: 0.92rem;
+    letter-spacing: 0.01em;
+    line-height: 1.6;
+    padding: 1.25rem 1.4rem 1.25rem 2.25rem;
+    position: relative;
+    text-align: left;
+}
+
+.stage-top-grid__placeholder::before {
+    content: '▌';
+    color: rgba(56, 189, 248, 0.9);
+    position: absolute;
+    left: 1.2rem;
+    top: 1.2rem;
+    font-size: 0.95rem;
+}
+
+.stage-top-grid__placeholder strong {
+    color: #38bdf8;
+    display: block;
+    font-size: 1rem;
+    margin-bottom: 0.35rem;
+}
+
+.stage-top-grid__placeholder--compact {
+    font-size: 0.88rem;
+    padding: 1rem 1.15rem 1rem 2rem;
+}
+
+.stage-top-grid__nav-card,
+[data-testid="element-container"]:has(> div[data-testid="stButton"] > button[title="Jump to the next stage"]),
+[data-testid="element-container"]:has(> div[data-testid="stButton"] > button[title="Return to the previous stage"]) {
+    position: relative;
+    background: linear-gradient(180deg, rgba(13, 17, 23, 0.96), rgba(13, 17, 23, 0.9));
+    border-radius: 20px;
+    border: 1px solid rgba(56, 189, 248, 0.4);
+    box-shadow: 0 28px 50px rgba(8, 47, 73, 0.45), inset 0 0 0 1px rgba(15, 23, 42, 0.75);
+    padding: 1.4rem 1.5rem 1.55rem;
+    color: rgba(226, 232, 240, 0.92);
+    font-family: 'Fira Code', ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+    overflow: hidden;
+}
+
+[data-testid="element-container"]:has(> div[data-testid="stButton"] > button[title="Jump to the next stage"]),
+[data-testid="element-container"]:has(> div[data-testid="stButton"] > button[title="Return to the previous stage"]) {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.stage-top-grid__nav-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at top right, rgba(59, 130, 246, 0.32), transparent 55%),
+        radial-gradient(circle at bottom left, rgba(20, 184, 166, 0.28), transparent 62%);
+    opacity: 0.65;
+    pointer-events: none;
+    border-radius: inherit;
+}
+
+.stage-top-grid__nav-card > *,
+[data-testid="element-container"]:has(> div[data-testid="stButton"] > button[title="Jump to the next stage"]) > *,
+[data-testid="element-container"]:has(> div[data-testid="stButton"] > button[title="Return to the previous stage"]) > * {
+    position: relative;
+    z-index: 1;
+}
+
+[data-testid="element-container"]:has(> div[data-testid="stButton"] > button[title="Jump to the next stage"])::before,
+[data-testid="element-container"]:has(> div[data-testid="stButton"] > button[title="Return to the previous stage"])::before {
+    display: block;
+    font-size: 0.74rem;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    color: rgba(94, 234, 212, 0.78);
+    font-family: 'Fira Code', ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+    font-weight: 600;
+    position: relative;
+    z-index: 2;
+    margin-bottom: 0.6rem;
+}
+
+[data-testid="element-container"]:has(> div[data-testid="stButton"] > button[title="Jump to the next stage"])::before {
+    content: 'next.stage';
+}
+
+[data-testid="element-container"]:has(> div[data-testid="stButton"] > button[title="Return to the previous stage"])::before {
+    content: 'previous.stage';
+}
+
+[data-testid="element-container"]:has(> div[data-testid="stButton"] > button[title="Jump to the next stage"])::after,
+[data-testid="element-container"]:has(> div[data-testid="stButton"] > button[title="Return to the previous stage"])::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at top right, rgba(59, 130, 246, 0.32), transparent 55%),
+        radial-gradient(circle at bottom left, rgba(20, 184, 166, 0.28), transparent 62%);
+    opacity: 0.6;
+    pointer-events: none;
+    border-radius: inherit;
+}
+
+[data-testid="element-container"]:has(> div[data-testid="stButton"] > button[title="Jump to the next stage"]) div[data-testid="stButton"],
+[data-testid="element-container"]:has(> div[data-testid="stButton"] > button[title="Return to the previous stage"]) div[data-testid="stButton"] {
+    margin: 0;
+}
+
+[data-testid="element-container"]:has(> div[data-testid="stButton"] > button[title="Jump to the next stage"]) div[data-testid="stButton"] > button,
+[data-testid="element-container"]:has(> div[data-testid="stButton"] > button[title="Return to the previous stage"]) div[data-testid="stButton"] > button {
+    width: 100%;
+    border-radius: 16px;
+    font-weight: 700;
+    font-size: 0.92rem;
+    padding: 0.9rem 1.2rem;
+    border: none;
+    font-family: 'Fira Code', ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+    position: relative;
+    z-index: 2;
+    display: inline-flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.8rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    line-height: 1.1;
+    box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.25), 0 22px 40px rgba(8, 47, 73, 0.55);
+    transition: transform 0.18s ease, box-shadow 0.18s ease, filter 0.18s ease;
+}
+
+[data-testid="element-container"]:has(> div[data-testid="stButton"] > button[title="Jump to the next stage"]) div[data-testid="stButton"] > button::after,
+[data-testid="element-container"]:has(> div[data-testid="stButton"] > button[title="Return to the previous stage"]) div[data-testid="stButton"] > button::after {
+    content: '';
+    position: absolute;
+    inset: 1px;
+    border-radius: 15px;
+    pointer-events: none;
+    background: linear-gradient(140deg, rgba(148, 163, 184, 0.15), transparent 55%);
+}
+
+[data-testid="element-container"]:has(> div[data-testid="stButton"] > button[title="Jump to the next stage"]) div[data-testid="stButton"] > button {
+    background: linear-gradient(125deg, rgba(34, 211, 238, 0.95), rgba(59, 130, 246, 0.9));
+    color: rgba(15, 23, 42, 0.92);
+    text-shadow: 0 0 12px rgba(226, 232, 240, 0.28);
+    box-shadow: inset 0 0 0 1px rgba(226, 232, 240, 0.32), 0 26px 52px rgba(14, 165, 233, 0.45);
+}
+
+[data-testid="element-container"]:has(> div[data-testid="stButton"] > button[title="Jump to the next stage"]) div[data-testid="stButton"] > button:hover {
+    transform: translateY(-1px);
+    box-shadow: inset 0 0 0 1px rgba(226, 232, 240, 0.38), 0 32px 60px rgba(14, 165, 233, 0.52);
+}
+
+[data-testid="element-container"]:has(> div[data-testid="stButton"] > button[title="Return to the previous stage"]) div[data-testid="stButton"] > button {
+    background: linear-gradient(130deg, rgba(10, 18, 35, 0.95), rgba(15, 23, 42, 0.92));
+    color: rgba(226, 232, 240, 0.9);
+    box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.4), 0 18px 42px rgba(2, 6, 23, 0.72);
+}
+
+[data-testid="element-container"]:has(> div[data-testid="stButton"] > button[title="Return to the previous stage"]) div[data-testid="stButton"] > button:hover {
+    transform: translateY(-1px);
+    box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.55), 0 24px 52px rgba(2, 6, 23, 0.75);
+    filter: brightness(1.05);
+}
+
+[data-testid="element-container"]:has(> div[data-testid="stButton"] > button[title="Jump to the next stage"]) div[data-testid="stButton"] > button:focus-visible,
+[data-testid="element-container"]:has(> div[data-testid="stButton"] > button[title="Return to the previous stage"]) div[data-testid="stButton"] > button:focus-visible {
+    outline: 2px solid rgba(94, 234, 212, 0.7);
+    outline-offset: 3px;
+}
+
+[data-testid="element-container"]:has(> div[data-testid="stButton"] > button[title="Jump to the next stage"]) div[data-testid="stButton"] > button:disabled,
+[data-testid="element-container"]:has(> div[data-testid="stButton"] > button[title="Return to the previous stage"]) div[data-testid="stButton"] > button:disabled {
+    opacity: 0.55;
+    box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.2);
+    filter: grayscale(12%);
+}
+
+.stage-top-grid__nav-card-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+    font-size: 0.8rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.stage-top-grid__nav-prompt {
+    color: rgba(94, 234, 212, 0.82);
+    font-weight: 700;
+}
+
+.stage-top-grid__nav-stage {
+    color: rgba(148, 163, 184, 0.92);
+    font-weight: 600;
+}
+
+.stage-top-grid__nav-title {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    font-size: 1.22rem;
+    font-weight: 700;
+    margin-top: 0.9rem;
+    color: #f8fafc;
+}
+
+.stage-top-grid__nav-icon {
+    font-size: 1.4rem;
+}
+
+.stage-top-grid__nav-description {
+    margin-top: 0.75rem;
+    color: rgba(203, 213, 225, 0.86);
+    font-size: 0.93rem;
+    line-height: 1.65;
+}
+
+.stage-top-grid__gap {
+    height: 0.85rem;
+}
+
+[data-testid="stHorizontalBlock"]:has(.nerd-toggle__title) {
+    position: relative;
+    background: linear-gradient(182deg, rgba(8, 16, 29, 0.96), rgba(12, 25, 46, 0.92));
+    border-radius: 20px;
+    border: 1px solid rgba(56, 189, 248, 0.42);
+    box-shadow: 0 32px 60px rgba(8, 47, 73, 0.5), inset 0 0 0 1px rgba(15, 23, 42, 0.82);
+    padding: 1.45rem 1.65rem 1.55rem;
+    color: rgba(226, 232, 240, 0.94);
+    font-family: 'Fira Code', ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+    overflow: hidden;
+    gap: 1.1rem;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+[data-testid="stHorizontalBlock"]:has(.nerd-toggle__title)::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at top right, rgba(59, 130, 246, 0.35), transparent 58%),
+        radial-gradient(circle at bottom left, rgba(20, 184, 166, 0.32), transparent 64%);
+    opacity: 0.75;
+    pointer-events: none;
+    border-radius: inherit;
+}
+
+[data-testid="stHorizontalBlock"]:has(.nerd-toggle__title)::after {
+    content: '';
+    position: absolute;
+    inset: 2px;
+    border-radius: 18px;
+    border: 1px solid rgba(148, 163, 184, 0.14);
+    pointer-events: none;
+}
+
+[data-testid="stHorizontalBlock"]:has(.nerd-toggle__title) > [data-testid="column"] {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+    flex: 1 1 260px;
+}
+
+[data-testid="stHorizontalBlock"]:has(.nerd-toggle__title) > [data-testid="column"]:first-of-type {
+    align-items: flex-start;
+    min-width: 0;
+}
+
+[data-testid="stHorizontalBlock"]:has(.nerd-toggle__title) > [data-testid="column"]:last-of-type {
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+}
+
+.nerd-toggle__title {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    font-size: 1.12rem;
+    font-weight: 700;
+    color: #f8fafc;
+}
+
+.nerd-toggle__title-text {
+    display: inline-block;
+    letter-spacing: 0.01em;
+}
+
+.nerd-toggle__icon {
+    font-size: 1.35rem;
+    line-height: 1;
+}
+
+.nerd-toggle__description {
+    color: rgba(203, 213, 225, 0.88);
+    font-size: 0.9rem;
+    line-height: 1.65;
+}
+
+[data-testid="stHorizontalBlock"]:has(.nerd-toggle__title) [data-testid="stToggle"] {
+    display: flex;
+    justify-content: flex-end;
+}
+
+[data-testid="stHorizontalBlock"]:has(.nerd-toggle__title) label[data-testid="stToggle"] {
+    justify-content: flex-end;
+    align-items: center;
+    padding: 0.35rem 0.75rem;
+    border-radius: 999px;
+    background: rgba(13, 23, 38, 0.68);
+    border: 1px solid rgba(56, 189, 248, 0.36);
+    box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.88), 0 14px 32px rgba(7, 89, 133, 0.48);
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+[data-testid="stHorizontalBlock"]:has(.nerd-toggle__title) label[data-testid="stToggle"]:hover {
+    transform: translateY(-1px);
+    box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.85), 0 18px 36px rgba(7, 89, 133, 0.52);
+    border-color: rgba(94, 234, 212, 0.45);
+}
+
+[data-testid="stHorizontalBlock"]:has(.nerd-toggle__title) label[data-testid="stToggle"]:focus-within {
+    outline: 2px solid rgba(94, 234, 212, 0.62);
+    outline-offset: 2px;
+}
+
+[data-testid="stHorizontalBlock"]:has(.nerd-toggle__title) label[data-testid="stToggle"] > div[role="switch"] {
+    position: relative;
+    width: 3.4rem;
+    height: 1.92rem;
+    border-radius: 999px;
+    background: linear-gradient(160deg, rgba(30, 41, 59, 0.85), rgba(15, 23, 42, 0.9));
+    box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.28), inset 0 -6px 12px rgba(15, 23, 42, 0.92);
+    transition: background 0.25s ease, box-shadow 0.25s ease;
+}
+
+[data-testid="stHorizontalBlock"]:has(.nerd-toggle__title) label[data-testid="stToggle"] > div[role="switch"]::before {
+    content: 'OFF';
+    position: absolute;
+    left: 0.6rem;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.58rem;
+    letter-spacing: 0.14em;
+    font-weight: 600;
+    color: rgba(148, 163, 184, 0.78);
+    transition: opacity 0.2s ease;
+}
+
+[data-testid="stHorizontalBlock"]:has(.nerd-toggle__title) label[data-testid="stToggle"] > div[role="switch"] > div {
+    width: 1.26rem;
+    height: 1.26rem;
+    margin: 0.32rem;
+    border-radius: 999px;
+    background: linear-gradient(145deg, rgba(226, 232, 240, 0.95), rgba(148, 163, 184, 0.9));
+    box-shadow: 0 3px 8px rgba(15, 23, 42, 0.55);
+    transition: transform 0.25s ease, background 0.25s ease, box-shadow 0.25s ease;
+}
+
+[data-testid="stHorizontalBlock"]:has(.nerd-toggle__title) label[data-testid="stToggle"] > div[role="switch"][aria-checked="true"] {
+    background: linear-gradient(135deg, rgba(56, 189, 248, 0.9), rgba(59, 130, 246, 0.82));
+    box-shadow: inset 0 0 0 1px rgba(226, 232, 240, 0.42), inset 0 -6px 16px rgba(37, 99, 235, 0.55);
+}
+
+[data-testid="stHorizontalBlock"]:has(.nerd-toggle__title) label[data-testid="stToggle"] > div[role="switch"][aria-checked="true"]::before {
+    content: 'ON';
+    left: auto;
+    right: 0.65rem;
+    color: rgba(15, 23, 42, 0.82);
+}
+
+[data-testid="stHorizontalBlock"]:has(.nerd-toggle__title) label[data-testid="stToggle"] > div[role="switch"][aria-checked="true"] > div {
+    background: linear-gradient(145deg, rgba(248, 250, 252, 0.98), rgba(191, 219, 254, 0.95));
+    box-shadow: 0 4px 10px rgba(30, 64, 175, 0.55);
+}
+
+@media (max-width: 900px) {
+    .stage-top-grid__nav-card,
+    [data-testid="element-container"]:has(> div[data-testid="stButton"] > button[title="Jump to the next stage"]),
+    [data-testid="element-container"]:has(> div[data-testid="stButton"] > button[title="Return to the previous stage"]) {
+        padding: 1.1rem 1.2rem 1.2rem;
+    }
+    [data-testid="stHorizontalBlock"]:has(.nerd-toggle__title) {
+        padding: 1.2rem 1.3rem 1.3rem;
+        gap: 1rem;
+    }
+    [data-testid="stHorizontalBlock"]:has(.nerd-toggle__title) > [data-testid="column"] {
+        flex: 1 1 100%;
+        align-items: flex-start;
+    }
+    [data-testid="stHorizontalBlock"]:has(.nerd-toggle__title) > [data-testid="column"]:last-of-type {
+        width: 100%;
+        align-items: stretch;
+    }
+    [data-testid="stHorizontalBlock"]:has(.nerd-toggle__title) [data-testid="stToggle"] {
+        justify-content: flex-start;
+        width: 100%;
+    }
+    [data-testid="stHorizontalBlock"]:has(.nerd-toggle__title) label[data-testid="stToggle"] {
+        width: 100%;
+        justify-content: space-between;
+        padding: 0.4rem 0.8rem;
+    }
+}
+
+@media (max-width: 600px) {
+    [data-testid="stHorizontalBlock"]:has(.nerd-toggle__title) {
+        padding: 1.05rem 1.1rem 1.15rem;
+        border-radius: 18px;
+    }
+    [data-testid="stHorizontalBlock"]:has(.nerd-toggle__title)::after {
+        inset: 1.5px;
+        border-radius: 16px;
+    }
+    .nerd-toggle__title {
+        font-size: 1.05rem;
+    }
+    .nerd-toggle__description {
+        font-size: 0.86rem;
+    }
+    [data-testid="stHorizontalBlock"]:has(.nerd-toggle__title) label[data-testid="stToggle"] > div[role="switch"] {
+        width: 3.2rem;
+        height: 1.8rem;
+    }
+    [data-testid="stHorizontalBlock"]:has(.nerd-toggle__title) label[data-testid="stToggle"] > div[role="switch"] > div {
+        margin: 0.28rem;
+        width: 1.18rem;
+        height: 1.18rem;
+    }
+}
+
 </style>
 """
 
