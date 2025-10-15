@@ -6,8 +6,8 @@ from typing import Iterable, List, Sequence
 import streamlit as st
 import streamlit.components.v1 as components
 
-from components.components_cmd import render_ai_act_terminal
-from components.ui_typing_quote import (
+from .components_cmd import render_ai_act_terminal
+from .ui_typing_quote import (
     get_eu_ai_act_typing_inline_bootstrap,
     get_eu_ai_act_typing_inline_markup,
 )
