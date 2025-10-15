@@ -107,6 +107,10 @@ def render_demai_logo(height: int = 50, *, frame_marker: str = "") -> None:
 
 _HEADER_LOGO_CSS = """
 <style>
+:root {
+    --demai-header-toggle-gap: 3.25rem;
+}
+
 /* Remove layout gap for the header-mounted iframe */
 div[data-testid="stVerticalBlock"]:has(iframe[data-demai-logo-marker="header"]) {
     height: 0 !important;
@@ -118,7 +122,7 @@ div[data-testid="stVerticalBlock"]:has(iframe[data-demai-logo-marker="header"]) 
 iframe[data-demai-logo-marker="header"] {
     position: fixed;
     top: clamp(0.5rem, 1.6vw, 1.05rem);
-    left: clamp(0.7rem, 2.1vw, 1.6rem);
+    left: calc(clamp(0.7rem, 2.1vw, 1.6rem) + var(--demai-header-toggle-gap));
     width: clamp(9.8rem, 14vw, 13.8rem) !important;
     height: clamp(3.2rem, 4.4vw, 4.5rem) !important;
     pointer-events: none;
@@ -128,7 +132,7 @@ iframe[data-demai-logo-marker="header"] {
 }
 
 header[data-testid="stHeader"] {
-    padding-left: clamp(6.6rem, 13vw, 10.8rem);
+    padding-left: calc(clamp(6.6rem, 13vw, 10.8rem) + var(--demai-header-toggle-gap));
     padding-right: clamp(1rem, 3vw, 1.8rem);
     min-height: 72px;
     display: flex;
@@ -144,25 +148,31 @@ header[data-testid="stHeader"] .stAppToolbar > div {
 }
 
 @media (max-width: 992px) {
+    :root {
+        --demai-header-toggle-gap: 3rem;
+    }
     iframe[data-demai-logo-marker="header"] {
         width: clamp(8.4rem, 26vw, 11.4rem) !important;
         height: clamp(2.8rem, 6vw, 3.6rem) !important;
     }
     header[data-testid="stHeader"] {
-        padding-left: clamp(5.6rem, 18vw, 7.6rem);
+        padding-left: calc(clamp(5.6rem, 18vw, 7.6rem) + var(--demai-header-toggle-gap));
         min-height: 68px;
     }
 }
 
 @media (max-width: 640px) {
+    :root {
+        --demai-header-toggle-gap: 2.8rem;
+    }
     iframe[data-demai-logo-marker="header"] {
         top: 0.32rem;
-        left: clamp(0.42rem, 4vw, 0.9rem);
+        left: calc(clamp(0.42rem, 4vw, 0.9rem) + var(--demai-header-toggle-gap));
         transform: scale(0.82);
         transform-origin: top left;
     }
     header[data-testid="stHeader"] {
-        padding-left: clamp(4.8rem, 30vw, 6.2rem);
+        padding-left: calc(clamp(4.8rem, 30vw, 6.2rem) + var(--demai-header-toggle-gap));
         min-height: 64px;
     }
 }
