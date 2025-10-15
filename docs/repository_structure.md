@@ -12,11 +12,11 @@ This document provides a guided tour of the repository so contributors can quick
 - `.devcontainer/` – Development container configuration for GitHub Codespaces or VS Code remote environments (see below).
 - `requirements.txt` – Application dependencies spanning Streamlit, scikit-learn, transformers, visualization, and language-detection libraries.【F:requirements.txt†L1-L12】
 - `streamlit_app.py` – Streamlit entry point that imports constants, core helpers, datasets, and modeling utilities to render each lifecycle stage of the lab.【F:streamlit_app.py†L1-L80】
-- `components/` – Shared presentation components for the welcome experience and Stage Control Room (detailed below).
-- `demistifai/` – Primary Python package with constants, dataset/model logic, and nested subpackages for core utilities, styles, and component fragments (detailed below).
+- `demistifai/` – Primary Python package with constants, dataset/model logic, high-level UI components, and nested subpackages for core utilities and styles (detailed below).
+- `demistifai/ui_components/` – Shared presentation components for the welcome experience and Stage Control Room (detailed below).
+- `demistifai/ui/` – Lightweight UI widgets that complement the main components (detailed below).
 - `docs/` – Project documentation, including stage/component references and this structure map.【F:docs/stage_component_reference.md†L1-L39】
 - `stages/` – Stage-specific Streamlit flows that plug into the main app (detailed below).
-- `ui/` – Lightweight UI widgets that complement the main components (detailed below).
 
 ## Hidden configuration
 ### `.github/`
@@ -25,16 +25,16 @@ This document provides a guided tour of the repository so contributors can quick
 ### `.devcontainer/`
 - `devcontainer.json` – Defines the Python base image, recommended VS Code extensions, automated dependency installation, and the Streamlit command executed after attaching to the container, along with forwarded port metadata.【F:.devcontainer/devcontainer.json†L1-L26】
 
-## Application components (`components/`)
-- `arch_demai.py` – Dataclass-driven architecture cards and styling that render the demAI system diagram within Streamlit.【F:components/arch_demai.py†L1-L75】
-- `cmd_overview.py` – Animated command-line style welcome terminal that types the EU AI Act definition and demAI guidance for the classic intro experience.【F:components/cmd_overview.py†L1-L76】
-- `cmd_overview_new.py` – Alternate terminal script that frames the "demAI machine" boot sequence with staged prompts and Nerd Mode hints.【F:components/cmd_overview_new.py†L1-L79】
-- `cmd_welcome.py` – Variation of the animated terminal emphasising the Article 3 definition and demAI's mission pillars.【F:components/cmd_welcome.py†L1-L79】
-- `components_cmd.py` – Shared helpers for rendering terminal sequences, including CSS injection, typing operations, and highlight logic.【F:components/components_cmd.py†L1-L118】
-- `components_mac.py` – Utility for generating scoped macOS-style window shells with configurable columns and theming.【F:components/components_mac.py†L1-L80】
-- `stage_control_room.py` – Reusable Stage Control Room surface that standardises headers, Nerd Mode toggles, and navigation CTAs across stages.【F:components/stage_control_room.py†L1-L120】
-- `ui_command_grid.py` – Welcome-stage layout combining the animated terminal with a typing quote panel and responsive styling.【F:components/ui_command_grid.py†L1-L80】
-- `ui_typing_quote.py` – Inline typing effect that animates and highlights a key EU AI Act sentence for the welcome panels.【F:components/ui_typing_quote.py†L1-L120】
+## Application components (`demistifai/ui_components/`)
+- `arch_demai.py` – Dataclass-driven architecture cards and styling that render the demAI system diagram within Streamlit.【F:demistifai/ui_components/arch_demai.py†L1-L75】
+- `cmd_overview.py` – Animated command-line style welcome terminal that types the EU AI Act definition and demAI guidance for the classic intro experience.【F:demistifai/ui_components/cmd_overview.py†L1-L76】
+- `cmd_overview_new.py` – Alternate terminal script that frames the "demAI machine" boot sequence with staged prompts and Nerd Mode hints.【F:demistifai/ui_components/cmd_overview_new.py†L1-L79】
+- `cmd_welcome.py` – Variation of the animated terminal emphasising the Article 3 definition and demAI's mission pillars.【F:demistifai/ui_components/cmd_welcome.py†L1-L79】
+- `components_cmd.py` – Shared helpers for rendering terminal sequences, including CSS injection, typing operations, and highlight logic.【F:demistifai/ui_components/components_cmd.py†L1-L118】
+- `components_mac.py` – Utility for generating scoped macOS-style window shells with configurable columns and theming.【F:demistifai/ui_components/components_mac.py†L1-L80】
+- `stage_control_room.py` – Reusable Stage Control Room surface that standardises headers, Nerd Mode toggles, and navigation CTAs across stages.【F:demistifai/ui_components/stage_control_room.py†L1-L120】
+- `ui_command_grid.py` – Welcome-stage layout combining the animated terminal with a typing quote panel and responsive styling.【F:demistifai/ui_components/ui_command_grid.py†L1-L80】
+- `ui_typing_quote.py` – Inline typing effect that animates and highlights a key EU AI Act sentence for the welcome panels.【F:demistifai/ui_components/ui_typing_quote.py†L1-L120】
 
 ## Core package (`demistifai/`)
 ### Package root
@@ -78,6 +78,6 @@ This document provides a guided tour of the repository so contributors can quick
 - `train_helpers.py` – Shared utilities for the training stage, including feature explanations, meaning maps, and Altair selection helpers.【F:stages/train_helpers.py†L1-L80】
 - `__init__.py` – Package marker for stage modules.【F:stages/__init__.py†L1-L1】
 
-## UI helpers (`ui/`)
-- `animated_logo.py` – Renders the animated "demAI" hero logo with scripted typing/erasing of the mission pillars.【F:ui/animated_logo.py†L1-L80】
-- `__init__.py` – Declares the UI helper namespace (currently exporting nothing).【F:ui/__init__.py†L1-L3】
+## UI helpers (`demistifai/ui/`)
+- `animated_logo.py` – Renders the animated "demAI" hero logo with scripted typing/erasing of the mission pillars.【F:demistifai/ui/animated_logo.py†L1-L80】
+- `__init__.py` – Declares the UI helper namespace and re-exports the hero logo renderer.【F:demistifai/ui/__init__.py†L1-L5】

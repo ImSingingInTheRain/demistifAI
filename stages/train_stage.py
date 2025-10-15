@@ -20,7 +20,7 @@ import streamlit as st
 from sklearn.metrics import accuracy_score, confusion_matrix, f1_score, precision_recall_fscore_support
 from sklearn.model_selection import train_test_split
 
-from components.arch_demai import render_demai_architecture
+from demistifai.ui_components.arch_demai import render_demai_architecture
 from demistifai.constants import STAGE_BY_KEY, STAGE_INDEX, StageMeta
 from demistifai.dataset import (
     DEFAULT_DATASET_CONFIG,

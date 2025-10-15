@@ -164,18 +164,20 @@ from demistifai.core.routing import route_decision
 from demistifai.core.downloads import download_text
 
 from stages.train_stage import render_train_stage
-from ui.animated_logo import render_demai_logo
-from components.arch_demai import (
+from demistifai.ui.animated_logo import render_demai_logo
+from demistifai.ui_components.arch_demai import (
     demai_architecture_markup,
     demai_architecture_styles,
 )
-from components.components_cmd import render_ai_act_terminal as render_intro_ai_act_terminal
-from components import cmd_welcome
-from components.cmd_welcome import _WELCOME_LINES
-from components import cmd_overview_new
-from components.cmd_overview_new import _DEFAULT_DEMAI_LINES
-from components.components_mac import render_mac_window
-from components.stage_control_room import stage_control_room
+from demistifai.ui_components.components_cmd import (
+    render_ai_act_terminal as render_intro_ai_act_terminal,
+)
+from demistifai.ui_components import cmd_welcome
+from demistifai.ui_components.cmd_welcome import _WELCOME_LINES
+from demistifai.ui_components import cmd_overview_new
+from demistifai.ui_components.cmd_overview_new import _DEFAULT_DEMAI_LINES
+from demistifai.ui_components.components_mac import render_mac_window
+from demistifai.ui_components.stage_control_room import stage_control_room
 logger = logging.getLogger(__name__)
 
 st.session_state.setdefault("viewport_is_mobile", False)
