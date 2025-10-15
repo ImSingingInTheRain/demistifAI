@@ -8,26 +8,26 @@ from streamlit.components.v1 import html as components_html
 
 _TERMINAL_SUFFIX = "ai_act_fullterm"
 
-_DEFAULT_DEMAI_LINES: List[str] = [
+_WELCOME_LINES: List[str] = [
     "$ ai-act fetch --article 3 --term--AI_system\n",
-    "[...] Retrieving definition… OK\n",
-    "",
-    "'AI system means a machine-based system [...]'\n",
-    "",
-    "> Are you wondering what that means?\n",
-    "",
-    "$ demAI start --module machine\n",
-    "[...] Initializing demAI.machine…\n",
-    "[...] Loading components: ui ▸ model ▸ infrastructure\n",
+    " ‘AI system’ means a machine-based system that is designed to operate with varying levels of autonomy and that may exhibit adaptiveness after deployment, and that, for explicit or implicit objectives, infers, from the input it receives, how to generate outputs such as predictions, content, recommendations, or decisions that can influence physical or virtual environments; \n\n",
+    ">...That's a lot to unpack, right?\n\n",
+    "$ pip install demAI\n\n",
+    "[...] Initializing demAI.welcome…\n",
+    "[...] Loading components: welcome ▸ mission statement\n",
     "[...] Progress 0%   [░░░░░░░░░░░░░░░░░░░░]\n",
     "[... Progress 45%  [██████████░░░░░░░░░░]\n",
     "[...] Progress 100% [████████████████████]\n",
+    "Welcome to demAI — an interactive experience where you will build and operate an AI system, while discovering and applying key concepts from the EU AI Act.\n",
     "",
-    "You are already inside a machine-based system: a user interface (software) running in the cloud (hardware).",
-    "In each stage, this window will guide you with prompts and key information. Use the control room to jump between",
-    "stages and enable Nerd Mode for deeper details.\n",
+    "demonstrateAI",
+    "Experience how an AI system actually works, step by step — from data preparation to predictions — through an interactive, hands-on journey.\n",
     "",
-    ":help Scroll this page to find out more about the demAI machine.\n",
+    "demistifyAI",
+    "Break down complex AI concepts into clear, tangible actions so that anyone can understand what’s behind the model’s decisions.\n",
+    "",
+    "democratizeAI",
+    "Empower everyone to engage responsibly with AI, making transparency and trust accessible to all.",
 ]
 
 _TERMINAL_STYLE = dedent(f"""
@@ -102,7 +102,7 @@ def render_ai_act_terminal(
     - Honors 'prefers-reduced-motion': final state is shown if motion is reduced.
     - f-string safe: avoids backslashes inside f-string expressions.
     """
-    lines = list(demai_lines) if demai_lines is not None else _DEFAULT_DEMAI_LINES
+    lines = list(demai_lines) if demai_lines is not None else _WELCOME_LINES
 
     payload = {
         "lines": lines,
