@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from html import escape
 from textwrap import dedent
 
 import streamlit as st
@@ -73,7 +72,11 @@ def mount_demai_header(logo_height: int = 56) -> None:
     # 2) HTML: fixed header with the animated logo embedded via iframe srcdoc
     # We escape the HTML so it can't "break out" and show raw CSS in your page.
     raw_logo_html = demai_logo_html(frame_marker="demai-header")
-    safe_srcdoc = escape(raw_logo_html, quote=True)
+    # ``srcdoc`` requires valid HTML but we also need to keep the attribute quoted
+    # properly. Escaping via ``html.escape`` turns the markup into literal text,
+    # which is what triggered raw CSS/JS appearing in the iframe. Instead we only
+    # escape the characters that would otherwise terminate the attribute.
+    safe_srcdoc = raw_logo_html.replace("\"", "&quot;")
 
     st.markdown(
         f"""
