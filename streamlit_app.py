@@ -1442,7 +1442,6 @@ def render_intro_stage():
         )
 
         st.markdown(hero_css, unsafe_allow_html=True)
-        render_demai_logo(height=112)
 
         left_col_html = textwrap.dedent(
             """
