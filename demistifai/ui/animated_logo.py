@@ -105,198 +105,128 @@ def render_demai_logo(height: int = 50, *, frame_marker: str = "") -> None:
     components_html(html, height=height)
 
 
-_HEADER_LOGO_CSS = """
+_CUSTOM_HEADER_HTML = """
 <style>
-:root {
-    --demai-header-logo-gap: clamp(0.6rem, 2.2vw, 1.05rem);
-    --demai-header-logo-width: clamp(9.8rem, 14vw, 13.8rem);
-    --demai-header-logo-height: clamp(3.2rem, 4.4vw, 4.5rem);
-    --demai-header-logo-width-sm: clamp(8.4rem, 26vw, 11.4rem);
-    --demai-header-logo-height-sm: clamp(2.8rem, 6vw, 3.6rem);
+header, [data-testid="stHeader"] {
+    visibility: hidden;
 }
 
-/* Remove layout gap for the header-mounted iframe wrapper */
+[data-testid="stHeader"] {
+    display: none;
+}
+
 div[data-demai-logo-wrapper="true"] {
     height: 0 !important;
     margin: 0 !important;
     padding: 0 !important;
-    overflow: visible !important;
 }
 
-iframe[data-demai-logo-marker="header"].demai-header-logo-frame {
-    width: var(--demai-header-logo-width) !important;
-    height: var(--demai-header-logo-height) !important;
-    pointer-events: none;
+.demai-custom-header {
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: clamp(0.5rem, 2vw, 1.5rem);
+    padding: clamp(0.6rem, 1.8vw, 1rem) clamp(1rem, 3.2vw, 1.75rem);
+    background: linear-gradient(90deg, rgba(15, 23, 42, 0.92), rgba(15, 118, 110, 0.92));
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(148, 163, 184, 0.35);
+    box-shadow: 0 6px 18px rgba(15, 23, 42, 0.08);
+}
+
+.demai-custom-header__logo-frame {
+    width: clamp(9.8rem, 16vw, 14.5rem) !important;
+    height: clamp(3.2rem, 5vw, 4.6rem) !important;
     border: none !important;
     background: transparent !important;
-    flex: 0 0 auto;
-    z-index: 1200;
+    pointer-events: none;
 }
 
-header[data-testid="stHeader"] > iframe[data-demai-logo-marker="header"].demai-header-logo-frame:first-child {
-    margin-left: 0;
-}
-
-header[data-testid="stHeader"] {
-    position: relative;
+.demai-custom-header__meta {
     display: flex;
-    align-items: center;
-    gap: var(--demai-header-logo-gap);
-    padding: clamp(0.5rem, 1.6vw, 1.05rem) clamp(1rem, 3vw, 1.8rem);
-    min-height: 72px;
+    flex-direction: column;
+    gap: 0.25rem;
+    color: rgba(241, 245, 249, 0.92);
+    text-align: right;
 }
 
-header[data-testid="stHeader"] [data-testid="collapsedControl"] {
-    display: flex;
-    align-items: center;
+.demai-custom-header__meta-title {
+    font-size: clamp(0.92rem, 2.2vw, 1.05rem);
+    font-weight: 600;
+    letter-spacing: 0.4px;
 }
 
-header[data-testid="stHeader"] .stAppToolbar {
-    flex: 1 1 auto;
+.demai-custom-header__meta-caption {
+    font-size: clamp(0.75rem, 1.6vw, 0.88rem);
+    opacity: 0.85;
 }
 
-header[data-testid="stHeader"] .stAppToolbar > div {
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    gap: var(--demai-header-logo-gap);
+[data-testid="stAppViewContainer"] > .main {
+    padding-top: clamp(0.2rem, 1vw, 0.75rem);
 }
 
-header[data-testid="stHeader"] .stAppToolbar > div > iframe[data-demai-logo-marker="header"].demai-header-logo-frame {
-    margin: 0;
-}
-
-@media (max-width: 992px) {
-    :root {
-        --demai-header-logo-gap: clamp(0.45rem, 2vw, 0.8rem);
+@media (max-width: 768px) {
+    .demai-custom-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.65rem;
     }
-    iframe[data-demai-logo-marker="header"].demai-header-logo-frame {
-        width: var(--demai-header-logo-width-sm) !important;
-        height: var(--demai-header-logo-height-sm) !important;
-    }
-    header[data-testid="stHeader"] {
-        min-height: 68px;
-    }
-}
 
-@media (max-width: 640px) {
-    :root {
-        --demai-header-logo-gap: clamp(0.32rem, 2.6vw, 0.6rem);
-    }
-    iframe[data-demai-logo-marker="header"].demai-header-logo-frame {
-        transform: scale(0.82);
-        transform-origin: top left;
-    }
-    header[data-testid="stHeader"] {
-        min-height: 64px;
+    .demai-custom-header__meta {
+        text-align: left;
     }
 }
 </style>
+<div class="demai-custom-header" data-testid="demai-custom-header">
+  <div class="demai-custom-header__logo-slot" id="demai-custom-header-logo"></div>
+  <div class="demai-custom-header__meta">
+    <span class="demai-custom-header__meta-title">demistifAI Lab</span>
+    <span class="demai-custom-header__meta-caption">Walking the EU AI Act journey together</span>
+  </div>
+</div>
 <script>
 (function () {
-  const STATE_KEY = "__demaiHeaderLogoState";
-  const FRAME_SELECTOR = 'iframe[data-demai-logo-marker="header"]';
-  const HEADER_SELECTOR = 'header[data-testid="stHeader"]';
-  const TOGGLE_SELECTOR = `${HEADER_SELECTOR} [data-testid="collapsedControl"]`;
-  const SHARE_BUTTON_SELECTORS = [
-    `${HEADER_SELECTOR} button[aria-label="Share"]`,
-    `${HEADER_SELECTOR} button[data-testid="baseButton-primary"]`,
-  ];
+  const FRAME_SELECTOR = 'iframe[data-demai-logo-marker="custom-header"]';
+  const SLOT_ID = 'demai-custom-header-logo';
+  const STATE_KEY = '__demaiCustomHeaderState';
   const state = window[STATE_KEY] || (window[STATE_KEY] = {});
 
-  function ensureWrapperMarked(state, frame) {
-    if (state.wrapper && document.body.contains(state.wrapper)) {
+  function relocateFrame() {
+    const frame = document.querySelector(FRAME_SELECTOR);
+    const slot = document.getElementById(SLOT_ID);
+
+    if (!frame || !slot) {
+      window.requestAnimationFrame(relocateFrame);
       return;
     }
 
-    const wrapper = frame?.parentElement?.closest('div[data-testid="stVerticalBlock"]');
+    if (!frame.classList.contains('demai-custom-header__logo-frame')) {
+      frame.classList.add('demai-custom-header__logo-frame');
+    }
+
+    const wrapper = frame.parentElement?.closest('div[data-testid="stVerticalBlock"]');
     if (wrapper && wrapper.getAttribute('data-demai-logo-wrapper') !== 'true') {
       wrapper.setAttribute('data-demai-logo-wrapper', 'true');
       state.wrapper = wrapper;
     }
-  }
 
-  function findShareButton(header) {
-    for (const selector of SHARE_BUTTON_SELECTORS) {
-      const button = header.querySelector(selector);
-      if (button) {
-        return button;
-      }
-    }
-
-    const buttons = header.querySelectorAll('button');
-    for (const button of buttons) {
-      const label = (button.textContent || '').trim();
-      if (label && /^share$/i.test(label)) {
-        return button;
-      }
-    }
-
-    return null;
-  }
-
-  function mountFrame() {
-    const frame = document.querySelector(FRAME_SELECTOR);
-    const header = document.querySelector(HEADER_SELECTOR);
-
-    if (!frame || !header) {
-      return false;
-    }
-
-    ensureWrapperMarked(state, frame);
-
-    if (!frame.classList.contains('demai-header-logo-frame')) {
-      frame.classList.add('demai-header-logo-frame');
-      frame.style.position = 'relative';
-      frame.style.top = 'auto';
-      frame.style.left = 'auto';
-    }
-
-    const shareButton = findShareButton(header);
-    if (shareButton) {
-      const shareParent = shareButton.parentElement || header;
-      if (shareParent && shareParent !== frame.parentElement) {
-        shareParent.insertBefore(frame, shareButton);
-      } else if (shareParent && shareButton.previousSibling !== frame) {
-        shareParent.insertBefore(frame, shareButton);
-      }
-
-      return true;
-    }
-
-    const toggle = header.querySelector(TOGGLE_SELECTOR);
-    if (toggle) {
-      if (toggle.nextSibling !== frame) {
-        toggle.insertAdjacentElement('afterend', frame);
-      }
-    } else if (header.firstChild !== frame) {
-      header.insertAdjacentElement('afterbegin', frame);
-    }
-
-    return true;
-  }
-
-  function scheduleMount() {
-    if (!mountFrame()) {
-      window.requestAnimationFrame(scheduleMount);
+    if (frame.parentElement !== slot) {
+      slot.innerHTML = '';
+      slot.appendChild(frame);
     }
   }
 
-  state.mount = mountFrame;
-
-  if (!state.observer) {
-    state.observer = new MutationObserver(mountFrame);
-    state.observer.observe(document.body, { childList: true, subtree: true });
-  }
-
-  scheduleMount();
+  relocateFrame();
 })();
 </script>
 """
 
 
 def mount_demai_header_logo(height: int = 96) -> None:
-    """Render the animated demAI logo fixed to the Streamlit header."""
+    """Render the animated demAI logo inside a bespoke Streamlit header."""
 
-    render_demai_logo(height=height, frame_marker="header")
-    st.markdown(_HEADER_LOGO_CSS, unsafe_allow_html=True)
+    render_demai_logo(height=height, frame_marker="custom-header")
+    st.markdown(_CUSTOM_HEADER_HTML, unsafe_allow_html=True)
