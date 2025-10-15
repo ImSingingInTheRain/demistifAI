@@ -1292,10 +1292,6 @@ def render_stage_top_grid(
 ) -> StageTopGridSlots:
 
     grid_container = st.container()
-    grid_container.markdown(
-        f"<div class='stage-top-grid-shell stage-top-grid-shell--{stage_key}'>",
-        unsafe_allow_html=True,
-    )
     left_col, right_col = grid_container.columns([0.65, 0.35], gap="large")
 
     left_slot = left_col.container()
@@ -1353,8 +1349,6 @@ def render_stage_top_grid(
             """,
             unsafe_allow_html=True,
         )
-
-    grid_container.markdown("</div>", unsafe_allow_html=True)
 
     return StageTopGridSlots(
         left=left_slot,
