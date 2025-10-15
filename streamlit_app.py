@@ -115,7 +115,7 @@ from demistifai.modeling import (
     top_token_importances,
     verdict_label,
 )
-from demistifai.styles.css_blocks import GUARDRAIL_PANEL_STYLE
+from demistifai.components.guardrail_panel import render_guardrail_panel
 from demistifai.components.pii_indicators import render_pii_indicators
 
 from stages.train_stage import render_train_stage
@@ -4098,14 +4098,141 @@ def render_evaluate_stage():
         with st.expander("📌 Suggestions to improve your model"):
             st.markdown(
                 """
-- Add more labeled emails, especially tricky edge cases
-- Balance the dataset between spam and safe
-- Use diverse wording in your examples
-- Tune the spam threshold for your needs
-- Review the confusion matrix to spot mistakes
-- Ensure emails have enough meaningful content
-"""
+  - Add more labeled emails, especially tricky edge cases
+  - Balance the dataset between spam and safe
+  - Use diverse wording in your examples
+  - Tune the spam threshold for your needs
+  - Review the confusion matrix to spot mistakes
+  - Ensure emails have enough meaningful content
+  """
             )
+
+    with section_surface():
+        st.markdown("### Guardrail audit (borderline emails)")
+
+        guardrail_cards: list[dict[str, str]] = []
+        guardrail_counts: Counter[str] = Counter()
+
+        if len(p_spam) == 0:
+            st.caption("Evaluation set empty — guardrail audit unavailable.")
+        else:
+            margin_window = 0.15
+            max_cards = 8
+            sorted_indices = sorted(
+                range(len(p_spam)),
+                key=lambda i: abs(float(p_spam[i]) - current_thr),
+            )
+
+            for idx in sorted_indices:
+                if len(guardrail_cards) >= max_cards:
+                    break
+
+                prob_val = float(p_spam[idx])
+                margin = abs(prob_val - current_thr)
+                if margin > margin_window:
+                    continue
+
+                subject_raw = ""
+                body_raw = ""
+                if X_te_t is not None and X_te_b is not None:
+                    if idx < len(X_te_t):
+                        subject_raw = X_te_t[idx]
+                    if idx < len(X_te_b):
+                        body_raw = X_te_b[idx]
+                else:
+                    text_val = texts_test[idx] if idx < len(texts_test) else ""
+                    text_str = text_val if isinstance(text_val, str) else str(text_val or "")
+                    parts = text_str.split("\n", 1)
+                    subject_raw = parts[0] if parts else ""
+                    body_raw = parts[1] if len(parts) > 1 else ""
+
+                subject_raw = str(subject_raw or "").strip()
+                body_raw = str(body_raw or "").strip()
+
+                signals = _guardrail_signals(subject_raw, body_raw)
+                active_keys = [key for key, flag in signals.items() if flag]
+                if not active_keys:
+                    continue
+
+                guardrail_counts.update(active_keys)
+
+                subject_display = html.escape(
+                    _shorten_text(subject_raw or "(no subject)", limit=100)
+                )
+                pred_label = "spam" if prob_val >= current_thr else "safe"
+                icon = GUARDRAIL_LABEL_ICONS.get(pred_label, "✉️")
+
+                try:
+                    true_label_raw = y_te[idx]
+                except Exception:
+                    true_label_raw = ""
+                true_label_clean = str(true_label_raw or "").strip().title()
+
+                meta_left = html.escape(
+                    f"P(spam) {prob_val:.2f} • Δ {prob_val - current_thr:+.2f}"
+                )
+                meta_right_parts = [f"{icon} {pred_label.title()}"]
+                if true_label_clean:
+                    meta_right_parts.append(f"True: {true_label_clean}")
+                meta_right = html.escape(" • ".join(meta_right_parts))
+
+                excerpt = (
+                    _shorten_text(body_raw or "", limit=220)
+                    .replace("\n", " ")
+                    .strip()
+                )
+                excerpt_html = html.escape(excerpt) if excerpt else "No body text."
+                badges_html = _guardrail_badges_html(signals)
+                body_html = "".join(
+                    [
+                        badges_html,
+                        f"<div style=\"margin-top:0.4rem; color: rgba(55, 65, 81, 0.85);\">{excerpt_html}</div>",
+                    ]
+                )
+
+                guardrail_cards.append(
+                    {
+                        "subject": subject_display,
+                        "meta_left": meta_left,
+                        "meta_right": meta_right,
+                        "body": body_html,
+                    }
+                )
+
+            if not guardrail_cards:
+                st.caption(
+                    "No borderline emails triggered guardrail signals in the test set."
+                )
+            else:
+                chart_obj = None
+                counts_sorted = guardrail_counts.most_common()
+                if counts_sorted:
+                    guardrail_df = pd.DataFrame(
+                        counts_sorted, columns=["guardrail", "count"]
+                    )
+                    guardrail_chart = (
+                        alt.Chart(guardrail_df)
+                        .mark_bar(cornerRadiusTopLeft=6, cornerRadiusTopRight=6)
+                        .encode(
+                            x=alt.X("count:Q", title="Emails flagged"),
+                            y=alt.Y(
+                                "guardrail:N",
+                                sort="-x",
+                                title="Signal",
+                            ),
+                            color=alt.Color("guardrail:N", legend=None),
+                            tooltip=[
+                                alt.Tooltip("guardrail:N", title="Signal"),
+                                alt.Tooltip("count:Q", title="Emails"),
+                            ],
+                        )
+                        .properties(height=220)
+                    )
+                    chart_obj = st.altair_chart(
+                        guardrail_chart, use_container_width=True
+                    )
+
+                render_guardrail_panel(chart=chart_obj, cards=guardrail_cards)
 
     ss["last_eval_results"] = {
         "accuracy": acc_cur,
