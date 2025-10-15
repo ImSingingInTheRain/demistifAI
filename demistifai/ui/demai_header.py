@@ -6,12 +6,10 @@ from functools import lru_cache
 from textwrap import dedent
 
 import streamlit as st
-from streamlit.components.v1 import html as components_html
 
-from .animated_logo import render_demai_logo
+from .animated_logo import demai_logo_srcdoc
 
 _FRAME_MARKER = "custom-header"
-_STATE_KEY = "__demaiCustomHeaderState"
 
 _HEADER_CSS = dedent(
     """
@@ -33,15 +31,6 @@ _HEADER_CSS = dedent(
 
     [data-testid="stMainBlock"] > .block-container {
         padding-top: 0 !important;
-    }
-
-    div[data-demai-logo-wrapper="true"],
-    div[data-demai-logo-wrapper="true"] > [data-testid="stVerticalBlock"],
-    div[data-demai-logo-wrapper="true"] [data-testid="stElementContainer"] {
-        height: 0 !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        display: none !important;
     }
 
     .demai-custom-header {
@@ -118,17 +107,32 @@ _HEADER_CSS = dedent(
     """
 )
 
-_CUSTOM_HEADER_HTML = dedent(
-    """
-    <div class="demai-custom-header" data-testid="demai-custom-header">
-      <div class="demai-custom-header__logo-slot" id="demai-custom-header-logo"></div>
-      <div class="demai-custom-header__meta">
-        <span class="demai-custom-header__meta-title">demistifAI Lab</span>
-        <span class="demai-custom-header__meta-caption">Walking the EU AI Act journey together</span>
-      </div>
-    </div>
-    """
-)
+def _custom_header_html(*, logo_height: int) -> str:
+    """Return the HTML wrapper that hosts the custom header."""
+
+    logo_srcdoc = demai_logo_srcdoc(frame_marker=_FRAME_MARKER)
+    return dedent(
+        f"""
+        <div class="demai-custom-header" data-testid="demai-custom-header">
+          <div class="demai-custom-header__logo-slot">
+            <iframe
+              class="demai-custom-header__logo-frame"
+              title="demAI animated logo"
+              srcdoc="{logo_srcdoc}"
+              data-demai-logo-marker="{_FRAME_MARKER}"
+              scrolling="no"
+              frameborder="0"
+              height="{logo_height}"
+              width="100%"
+            ></iframe>
+          </div>
+          <div class="demai-custom-header__meta">
+            <span class="demai-custom-header__meta-title">demistifAI Lab</span>
+            <span class="demai-custom-header__meta-caption">Walking the EU AI Act journey together</span>
+          </div>
+        </div>
+        """
+    )
 
 
 @lru_cache(maxsize=1)
@@ -138,24 +142,15 @@ def _header_css() -> str:
     return _HEADER_CSS
 
 
-@lru_cache(maxsize=1)
-def _header_html() -> str:
+@lru_cache(maxsize=None)
+def _header_html(logo_height: int) -> str:
     """Return the HTML wrapper that hosts the custom header."""
 
-    return _CUSTOM_HEADER_HTML
-
-
-@lru_cache(maxsize=1)
-def _relocation_script() -> str:
-    """Return the JavaScript that relocates the logo iframe into the header."""
-
-    return _RELOCATION_SCRIPT
+    return _custom_header_html(logo_height=logo_height)
 
 
 def mount_demai_header_logo(*, logo_height: int = 96) -> None:
     """Render the animated demAI logo inside the sticky header."""
 
-    render_demai_logo(height=logo_height, frame_marker=_FRAME_MARKER)
     st.markdown(f"<style>{_header_css()}</style>", unsafe_allow_html=True)
-    st.markdown(_header_html(), unsafe_allow_html=True)
-    components_html(_relocation_script(), height=0, width=0)
+    st.markdown(_header_html(logo_height), unsafe_allow_html=True)
