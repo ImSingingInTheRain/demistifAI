@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from html import escape
+
 from streamlit.components.v1 import html as components_html
 
 _DEMAI_LOGO_HTML = '''
@@ -97,10 +99,19 @@ _DEMAI_LOGO_HTML = '''
 '''
 
 
+def demai_logo_srcdoc(*, frame_marker: str = "") -> str:
+    """Return the ``srcdoc`` payload for the animated demAI logo iframe."""
+
+    html = _DEMAI_LOGO_HTML.replace("__FRAME_MARKER__", frame_marker)
+    return escape(html, quote=True)
+
+
 def render_demai_logo(height: int = 50, *, frame_marker: str = "") -> None:
     """Render the animated demAI title as a Streamlit component."""
 
-    html = _DEMAI_LOGO_HTML.replace("__FRAME_MARKER__", frame_marker)
-    components_html(html, height=height)
+    components_html(
+        _DEMAI_LOGO_HTML.replace("__FRAME_MARKER__", frame_marker),
+        height=height,
+    )
 
 
