@@ -19,7 +19,7 @@ _DEFAULT_DEMAI_LINES: List[str] = [
     "",
     "$ demAI start --module machine\n",
     "[...] Initializing demAI.machine…\n",
-    "[...] Loading components: ui ▸ model ▸ data ▸ infra\n",
+    "[...] Loading components: ui ▸ model ▸ infrastructure\n",
     "[...] Progress 0%   [░░░░░░░░░░░░░░░░░░░░]\n",
     "[... Progress 45%  [██████████░░░░░░░░░░]\n",
     "[...] Progress 100% [████████████████████]\n",
