@@ -48,7 +48,7 @@ def mount_demai_header(logo_height: int = 56) -> None:
                 gap: 12px;
 
                 height: {logo_height + 12}px;
-                padding: 6px 14px;
+                padding: 0px 14px;
                 box-sizing: border-box;
 
                 background: rgba(15, 23, 42, 0.92);
