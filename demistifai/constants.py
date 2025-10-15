@@ -1438,8 +1438,8 @@ APP_THEME_CSS = """
 }
 
 .stage-top-grid__nav-card,
-[data-testid="element-container"]:has(> div[data-testid="stButton"] > button[title="Jump to the next stage"]),
-[data-testid="element-container"]:has(> div[data-testid="stButton"] > button[title="Return to the previous stage"]) {
+:is([data-testid="stElementContainer"], [data-testid="element-container"])[class*="st-key-stage_grid_next_"],
+:is([data-testid="stElementContainer"], [data-testid="element-container"])[class*="st-key-stage_grid_prev_"] {
     position: relative;
     background: linear-gradient(180deg, rgba(13, 17, 23, 0.96), rgba(13, 17, 23, 0.9));
     border-radius: 20px;
@@ -1451,8 +1451,8 @@ APP_THEME_CSS = """
     overflow: hidden;
 }
 
-[data-testid="element-container"]:has(> div[data-testid="stButton"] > button[title="Jump to the next stage"]),
-[data-testid="element-container"]:has(> div[data-testid="stButton"] > button[title="Return to the previous stage"]) {
+:is([data-testid="stElementContainer"], [data-testid="element-container"])[class*="st-key-stage_grid_next_"],
+:is([data-testid="stElementContainer"], [data-testid="element-container"])[class*="st-key-stage_grid_prev_"] {
     display: flex;
     flex-direction: column;
     gap: 1rem;
@@ -1470,14 +1470,14 @@ APP_THEME_CSS = """
 }
 
 .stage-top-grid__nav-card > *,
-[data-testid="element-container"]:has(> div[data-testid="stButton"] > button[title="Jump to the next stage"]) > *,
-[data-testid="element-container"]:has(> div[data-testid="stButton"] > button[title="Return to the previous stage"]) > * {
+:is([data-testid="stElementContainer"], [data-testid="element-container"])[class*="st-key-stage_grid_next_"] > *,
+:is([data-testid="stElementContainer"], [data-testid="element-container"])[class*="st-key-stage_grid_prev_"] > * {
     position: relative;
     z-index: 1;
 }
 
-[data-testid="element-container"]:has(> div[data-testid="stButton"] > button[title="Jump to the next stage"])::before,
-[data-testid="element-container"]:has(> div[data-testid="stButton"] > button[title="Return to the previous stage"])::before {
+:is([data-testid="stElementContainer"], [data-testid="element-container"])[class*="st-key-stage_grid_next_"]::before,
+:is([data-testid="stElementContainer"], [data-testid="element-container"])[class*="st-key-stage_grid_prev_"]::before {
     display: block;
     font-size: 0.74rem;
     text-transform: uppercase;
@@ -1490,16 +1490,16 @@ APP_THEME_CSS = """
     margin-bottom: 0.6rem;
 }
 
-[data-testid="element-container"]:has(> div[data-testid="stButton"] > button[title="Jump to the next stage"])::before {
+:is([data-testid="stElementContainer"], [data-testid="element-container"])[class*="st-key-stage_grid_next_"]::before {
     content: 'next.stage';
 }
 
-[data-testid="element-container"]:has(> div[data-testid="stButton"] > button[title="Return to the previous stage"])::before {
+:is([data-testid="stElementContainer"], [data-testid="element-container"])[class*="st-key-stage_grid_prev_"]::before {
     content: 'previous.stage';
 }
 
-[data-testid="element-container"]:has(> div[data-testid="stButton"] > button[title="Jump to the next stage"])::after,
-[data-testid="element-container"]:has(> div[data-testid="stButton"] > button[title="Return to the previous stage"])::after {
+:is([data-testid="stElementContainer"], [data-testid="element-container"])[class*="st-key-stage_grid_next_"]::after,
+:is([data-testid="stElementContainer"], [data-testid="element-container"])[class*="st-key-stage_grid_prev_"]::after {
     content: '';
     position: absolute;
     inset: 0;
@@ -1510,13 +1510,13 @@ APP_THEME_CSS = """
     border-radius: inherit;
 }
 
-[data-testid="element-container"]:has(> div[data-testid="stButton"] > button[title="Jump to the next stage"]) div[data-testid="stButton"],
-[data-testid="element-container"]:has(> div[data-testid="stButton"] > button[title="Return to the previous stage"]) div[data-testid="stButton"] {
+:is([data-testid="stElementContainer"], [data-testid="element-container"])[class*="st-key-stage_grid_next_"] div[data-testid="stButton"],
+:is([data-testid="stElementContainer"], [data-testid="element-container"])[class*="st-key-stage_grid_prev_"] div[data-testid="stButton"] {
     margin: 0;
 }
 
-[data-testid="element-container"]:has(> div[data-testid="stButton"] > button[title="Jump to the next stage"]) div[data-testid="stButton"] > button,
-[data-testid="element-container"]:has(> div[data-testid="stButton"] > button[title="Return to the previous stage"]) div[data-testid="stButton"] > button {
+:is([data-testid="stElementContainer"], [data-testid="element-container"])[class*="st-key-stage_grid_next_"] div[data-testid="stButton"] > button,
+:is([data-testid="stElementContainer"], [data-testid="element-container"])[class*="st-key-stage_grid_prev_"] div[data-testid="stButton"] > button {
     width: 100%;
     border-radius: 16px;
     font-weight: 700;
@@ -1537,8 +1537,8 @@ APP_THEME_CSS = """
     transition: transform 0.18s ease, box-shadow 0.18s ease, filter 0.18s ease;
 }
 
-[data-testid="element-container"]:has(> div[data-testid="stButton"] > button[title="Jump to the next stage"]) div[data-testid="stButton"] > button::after,
-[data-testid="element-container"]:has(> div[data-testid="stButton"] > button[title="Return to the previous stage"]) div[data-testid="stButton"] > button::after {
+:is([data-testid="stElementContainer"], [data-testid="element-container"])[class*="st-key-stage_grid_next_"] div[data-testid="stButton"] > button::after,
+:is([data-testid="stElementContainer"], [data-testid="element-container"])[class*="st-key-stage_grid_prev_"] div[data-testid="stButton"] > button::after {
     content: '';
     position: absolute;
     inset: 1px;
@@ -1547,42 +1547,44 @@ APP_THEME_CSS = """
     background: linear-gradient(140deg, rgba(148, 163, 184, 0.15), transparent 55%);
 }
 
-[data-testid="element-container"]:has(> div[data-testid="stButton"] > button[title="Jump to the next stage"]) div[data-testid="stButton"] > button {
+:is([data-testid="stElementContainer"], [data-testid="element-container"])[class*="st-key-stage_grid_next_"] div[data-testid="stButton"] > button {
     background: linear-gradient(125deg, rgba(34, 211, 238, 0.95), rgba(59, 130, 246, 0.9));
     color: rgba(15, 23, 42, 0.92);
     text-shadow: 0 0 12px rgba(226, 232, 240, 0.28);
     box-shadow: inset 0 0 0 1px rgba(226, 232, 240, 0.32), 0 26px 52px rgba(14, 165, 233, 0.45);
 }
 
-[data-testid="element-container"]:has(> div[data-testid="stButton"] > button[title="Jump to the next stage"]) div[data-testid="stButton"] > button:hover {
+:is([data-testid="stElementContainer"], [data-testid="element-container"])[class*="st-key-stage_grid_next_"] div[data-testid="stButton"] > button:hover {
     transform: translateY(-1px);
     box-shadow: inset 0 0 0 1px rgba(226, 232, 240, 0.38), 0 32px 60px rgba(14, 165, 233, 0.52);
 }
 
-[data-testid="element-container"]:has(> div[data-testid="stButton"] > button[title="Return to the previous stage"]) div[data-testid="stButton"] > button {
+:is([data-testid="stElementContainer"], [data-testid="element-container"])[class*="st-key-stage_grid_prev_"] div[data-testid="stButton"] > button {
     background: linear-gradient(130deg, rgba(10, 18, 35, 0.95), rgba(15, 23, 42, 0.92));
     color: rgba(226, 232, 240, 0.9);
     box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.4), 0 18px 42px rgba(2, 6, 23, 0.72);
 }
 
-[data-testid="element-container"]:has(> div[data-testid="stButton"] > button[title="Return to the previous stage"]) div[data-testid="stButton"] > button:hover {
+:is([data-testid="stElementContainer"], [data-testid="element-container"])[class*="st-key-stage_grid_prev_"] div[data-testid="stButton"] > button:hover {
     transform: translateY(-1px);
     box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.55), 0 24px 52px rgba(2, 6, 23, 0.75);
     filter: brightness(1.05);
 }
 
-[data-testid="element-container"]:has(> div[data-testid="stButton"] > button[title="Jump to the next stage"]) div[data-testid="stButton"] > button:focus-visible,
-[data-testid="element-container"]:has(> div[data-testid="stButton"] > button[title="Return to the previous stage"]) div[data-testid="stButton"] > button:focus-visible {
+:is([data-testid="stElementContainer"], [data-testid="element-container"])[class*="st-key-stage_grid_next_"] div[data-testid="stButton"] > button:focus-visible,
+:is([data-testid="stElementContainer"], [data-testid="element-container"])[class*="st-key-stage_grid_prev_"] div[data-testid="stButton"] > button:focus-visible {
     outline: 2px solid rgba(94, 234, 212, 0.7);
     outline-offset: 3px;
 }
 
-[data-testid="element-container"]:has(> div[data-testid="stButton"] > button[title="Jump to the next stage"]) div[data-testid="stButton"] > button:disabled,
-[data-testid="element-container"]:has(> div[data-testid="stButton"] > button[title="Return to the previous stage"]) div[data-testid="stButton"] > button:disabled {
+:is([data-testid="stElementContainer"], [data-testid="element-container"])[class*="st-key-stage_grid_next_"] div[data-testid="stButton"] > button:disabled,
+:is([data-testid="stElementContainer"], [data-testid="element-container"])[class*="st-key-stage_grid_prev_"] div[data-testid="stButton"] > button:disabled {
     opacity: 0.55;
     box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.2);
     filter: grayscale(12%);
 }
+
+
 
 .stage-top-grid__nav-card-header {
     display: flex;
@@ -1789,8 +1791,8 @@ APP_THEME_CSS = """
 
 @media (max-width: 900px) {
     .stage-top-grid__nav-card,
-    [data-testid="element-container"]:has(> div[data-testid="stButton"] > button[title="Jump to the next stage"]),
-    [data-testid="element-container"]:has(> div[data-testid="stButton"] > button[title="Return to the previous stage"]) {
+    :is([data-testid="stElementContainer"], [data-testid="element-container"])[class*="st-key-stage_grid_next_"],
+    :is([data-testid="stElementContainer"], [data-testid="element-container"])[class*="st-key-stage_grid_prev_"] {
         padding: 1.1rem 1.2rem 1.2rem;
     }
     [data-testid="stHorizontalBlock"]:has(.nerd-toggle__title) {
