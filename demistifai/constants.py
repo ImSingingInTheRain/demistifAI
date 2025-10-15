@@ -28,7 +28,7 @@ APP_THEME_CSS = """
 
 [data-testid="stMainBlock"] {
     padding-top: 0.5rem;
-    padding-bottom: 3rem;
+    padding-bottom: 0.5rem;
 }
 
 .main .block-container {
