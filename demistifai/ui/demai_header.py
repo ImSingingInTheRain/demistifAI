@@ -35,10 +35,13 @@ _HEADER_CSS = dedent(
         padding-top: 0 !important;
     }
 
-    div[data-demai-logo-wrapper="true"] {
+    div[data-demai-logo-wrapper="true"],
+    div[data-demai-logo-wrapper="true"] > [data-testid="stVerticalBlock"],
+    div[data-demai-logo-wrapper="true"] [data-testid="stElementContainer"] {
         height: 0 !important;
         margin: 0 !important;
         padding: 0 !important;
+        display: none !important;
     }
 
     .demai-custom-header {
