@@ -561,7 +561,7 @@ def render_intro_stage():
                     gap: clamp(1rem, 2.6vw, 1.9rem);
                     padding-top: 10px;
                     padding-left: 10px;
-                    padding-right: 10px;
+                    padding-right: 30px;
                     padding-bottom: 10px;
                     align-items: stretch;
                 }
