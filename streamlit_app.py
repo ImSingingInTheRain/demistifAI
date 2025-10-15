@@ -141,6 +141,13 @@ from demistifai.modeling import (
 )
 from demistifai.components.guardrail_panel import render_guardrail_panel
 from demistifai.components.pii_indicators import render_pii_indicators
+from demistifai.core.validation import (
+    VALID_LABELS,
+    _normalize_label,
+    _validate_csv_schema,
+)
+from demistifai.core.routing import route_decision
+from demistifai.core.downloads import download_text
 
 from stages.train_stage import render_train_stage
 from ui.animated_logo import render_demai_logo
@@ -234,45 +241,6 @@ def eu_ai_quote_box(text: str, label: str = "EU AI Act") -> str:
 
 def render_eu_ai_quote(text: str, label: str = "From the EU AI Act, Article 3") -> None:
     st.markdown(eu_ai_quote_box(text, label), unsafe_allow_html=True)
-
-
-VALID_LABELS = {"spam", "safe"}
-
-
-def _normalize_label(x: str) -> str:
-    if not isinstance(x, str):
-        return ""
-    x = x.strip().lower()
-    if x in {"ham", "legit", "legitimate"}:
-        return "safe"
-    return x
-
-
-def _validate_csv_schema(df: pd.DataFrame) -> tuple[bool, str]:
-    required = {"title", "body", "label"}
-    missing = required - set(map(str.lower, df.columns))
-    if missing:
-        return False, f"Missing required columns: {', '.join(sorted(missing))}"
-    return True, ""
-
-
-def route_decision(autonomy: str, y_hat: str, pspam: Optional[float], threshold: float):
-    routed = None
-    if pspam is not None:
-        to_spam = pspam >= threshold
-    else:
-        to_spam = y_hat == "spam"
-
-    if autonomy.startswith("High"):
-        routed = "Spam" if to_spam else "Inbox"
-        action = f"Auto-routed to **{routed}** (threshold={threshold:.2f})"
-    else:
-        action = f"Recommend: {'Spam' if to_spam else 'Inbox'} (threshold={threshold:.2f})"
-    return action, routed
-
-def download_text(text: str, filename: str, label: str = "Download"):
-    b64 = base64.b64encode(text.encode("utf-8")).decode()
-    st.markdown(f'<a href="data:text/plain;base64,{b64}" download="{filename}">{label}</a>', unsafe_allow_html=True)
 
 
 def _evaluate_dataset_health(
