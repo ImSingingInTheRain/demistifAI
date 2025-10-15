@@ -10,15 +10,13 @@ _TERMINAL_SUFFIX = "ai_act_fullterm"
 
 _WELCOME_LINES: List[str] = [
     "> What is an AI system?\n"
-    "$ ai-act fetch --article 3 --term--AI_system\n",
+    "$ fetch EU.AI_ACT.article_3 --AI_system_definition\n",
+    ""
     " ‘AI system’ means a machine-based system that is designed to operate with varying levels of autonomy and that may exhibit adaptiveness after deployment, and that, for explicit or implicit objectives, infers, from the input it receives, how to generate outputs such as predictions, content, recommendations, or decisions that can influence physical or virtual environments; \n\n",
     ">...That's a lot to unpack, right?\n\n",
     "$ pip install demAI\n\n",
-    "[...] Initializing demAI.welcome…\n",
-    "[...] Loading components: welcome ▸ mission statement\n",
-    "[...] Progress 0%   [░░░░░░░░░░░░░░░░░░░░]\n",
-    "[... Progress 45%  [██████████░░░░░░░░░░]\n",
-    "[...] Progress 100% [████████████████████]\n",
+    "[...] Progress 0%   [████████████████████]100%\n",
+    ""
     "Welcome to demAI — an interactive experience where you will build and operate an AI system, while discovering and applying key concepts from the EU AI Act.\n",
     "",
     "demonstrateAI",
