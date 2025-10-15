@@ -42,7 +42,7 @@ _HEADER_CSS = dedent(
     }
 
     .demai-custom-header {
-        position: sticky;
+        position: fixed;
         top: 0;
         z-index: 1000;
         width: 100%;
