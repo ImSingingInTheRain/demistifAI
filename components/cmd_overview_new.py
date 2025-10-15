@@ -9,13 +9,12 @@ from streamlit.components.v1 import html as components_html
 _TERMINAL_SUFFIX = "ai_act_fullterm"
 
 _DEFAULT_DEMAI_LINES: List[str] = [
-    "$ ai-act fetch --article 3 --term \"AI system\"\n",
-    "[...] Connecting to EU AI Act repository… OK\n",
-    "[...] Retrieving Article 3 definition… OK\n",
+    "$ ai-act fetch --article 3 --term \"AI system"\n",
+    "[...] Retrieving definition… OK\n",
     "",
-    "AI system means a machine-based system [...]\n",
+    "'AI system means a machine-based system [...]'\n",
     "",
-    "> What does that mean?\n",
+    "> Are you wondering what that means?\n",
     "",
     "$ demAI start --module machine\n",
     "[...] Initializing demAI.machine…\n",
