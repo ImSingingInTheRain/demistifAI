@@ -26,7 +26,13 @@ _LOGO_HTML_TEMPLATE = """
     margin: 0;
     font-weight: 800;
     letter-spacing: .5px;
-    background: linear-gradient(90deg, #111827 0%, #0f172a 30%, #1e3a8a 60%, #0ea5e9 100%);
+    background: linear-gradient(
+      90deg,
+      #ffffff 0%,
+      #e0f2fe 15%,
+      #1e3a8a 55%,
+      #0ea5e9 100%
+    );
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
