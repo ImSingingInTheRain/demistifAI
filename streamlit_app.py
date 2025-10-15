@@ -117,7 +117,8 @@ from components.arch_demai import (
     demai_architecture_styles,
 )
 from components.components_cmd import render_ai_act_terminal as render_intro_ai_act_terminal
-from components import cmd_overview
+from components import cmd_welcome
+from components.cmd_welcome import _WELCOME_LINES
 from components import cmd_overview_new
 from components.cmd_overview_new import _DEFAULT_DEMAI_LINES
 from components.components_mac import render_mac_window
@@ -1369,7 +1370,14 @@ def render_intro_stage():
 
     with section_surface("section-surface--hero"):
         render_demai_logo()
-        render_intro_ai_act_terminal()
+        
+        def _render_overview_terminal(slot: DeltaGenerator) -> None:
+        with slot:
+            cmd_welcome.render_ai_act_terminal(
+                demai_lines=_WELCOME_LINES,
+                speed_type_ms=20,
+                pause_between_ops_ms=360,
+            )
 
         window_css = textwrap.dedent(
             """
