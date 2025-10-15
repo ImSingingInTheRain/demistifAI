@@ -156,7 +156,14 @@ header[data-testid="stHeader"] .stAppToolbar {
 }
 
 header[data-testid="stHeader"] .stAppToolbar > div {
+    display: flex;
+    align-items: center;
     justify-content: flex-end;
+    gap: var(--demai-header-logo-gap);
+}
+
+header[data-testid="stHeader"] .stAppToolbar > div > iframe[data-demai-logo-marker="header"].demai-header-logo-frame {
+    margin: 0;
 }
 
 @media (max-width: 992px) {
@@ -191,6 +198,10 @@ header[data-testid="stHeader"] .stAppToolbar > div {
   const FRAME_SELECTOR = 'iframe[data-demai-logo-marker="header"]';
   const HEADER_SELECTOR = 'header[data-testid="stHeader"]';
   const TOGGLE_SELECTOR = `${HEADER_SELECTOR} [data-testid="collapsedControl"]`;
+  const SHARE_BUTTON_SELECTORS = [
+    `${HEADER_SELECTOR} button[aria-label="Share"]`,
+    `${HEADER_SELECTOR} button[data-testid="baseButton-primary"]`,
+  ];
   const state = window[STATE_KEY] || (window[STATE_KEY] = {});
 
   function ensureWrapperMarked(state, frame) {
@@ -203,6 +214,25 @@ header[data-testid="stHeader"] .stAppToolbar > div {
       wrapper.setAttribute('data-demai-logo-wrapper', 'true');
       state.wrapper = wrapper;
     }
+  }
+
+  function findShareButton(header) {
+    for (const selector of SHARE_BUTTON_SELECTORS) {
+      const button = header.querySelector(selector);
+      if (button) {
+        return button;
+      }
+    }
+
+    const buttons = header.querySelectorAll('button');
+    for (const button of buttons) {
+      const label = (button.textContent || '').trim();
+      if (label && /^share$/i.test(label)) {
+        return button;
+      }
+    }
+
+    return null;
   }
 
   function mountFrame() {
@@ -220,6 +250,18 @@ header[data-testid="stHeader"] .stAppToolbar > div {
       frame.style.position = 'relative';
       frame.style.top = 'auto';
       frame.style.left = 'auto';
+    }
+
+    const shareButton = findShareButton(header);
+    if (shareButton) {
+      const shareParent = shareButton.parentElement || header;
+      if (shareParent && shareParent !== frame.parentElement) {
+        shareParent.insertBefore(frame, shareButton);
+      } else if (shareParent && shareButton.previousSibling !== frame) {
+        shareParent.insertBefore(frame, shareButton);
+      }
+
+      return true;
     }
 
     const toggle = header.querySelector(TOGGLE_SELECTOR);
