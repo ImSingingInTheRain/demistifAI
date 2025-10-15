@@ -79,16 +79,18 @@ def mount_demai_header(logo_height: int = 56) -> None:
     safe_srcdoc = raw_logo_html.replace("\"", "&quot;")
 
     st.markdown(
-        f"""
-        <div class="demai-header" data-testid="demai-header">
-          <iframe
-            class="demai-header__logo-frame"
-            title="demAI animated logo"
-            srcdoc="{safe_srcdoc}"
-            scrolling="no"
-            frameborder="0"
-          ></iframe>
-        </div>
-        """,
+        dedent(
+            f"""
+            <div class="demai-header" data-testid="demai-header">
+              <iframe
+                class="demai-header__logo-frame"
+                title="demAI animated logo"
+                srcdoc="{safe_srcdoc}"
+                scrolling="no"
+                frameborder="0"
+              ></iframe>
+            </div>
+            """
+        ),
         unsafe_allow_html=True,
     )
