@@ -115,6 +115,11 @@ from demistifai.modeling import (
     top_token_importances,
     verdict_label,
 )
+from demistifai.styles.css_blocks import (
+    GUARDRAIL_PANEL_STYLE,
+    PII_INDICATOR_STYLE,
+)
+from demistifai.styles.inject import inject_css_once
 
 from stages.train_stage import render_train_stage
 from ui.animated_logo import render_demai_logo
@@ -147,123 +152,6 @@ def callable_or_attr(target: Any, attr: str | None = None) -> bool:
 from sklearn.decomposition import PCA
 from sklearn.metrics import accuracy_score, confusion_matrix, f1_score, precision_recall_fscore_support
 from sklearn.model_selection import train_test_split
-PII_INDICATOR_STYLE = """
-<style>
-.pii-indicators {
-    display: grid;
-    gap: 0.75rem;
-    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-    margin-bottom: 0.5rem;
-}
-.pii-indicator {
-    background: var(--secondary-background-color, rgba(250, 250, 250, 0.85));
-    border-radius: 0.75rem;
-    border: 1px solid rgba(49, 51, 63, 0.15);
-    box-shadow: 0 2px 6px rgba(15, 23, 42, 0.08);
-    padding: 0.75rem 1rem;
-    text-align: center;
-}
-.pii-indicator__label {
-    color: rgba(49, 51, 63, 0.65);
-    font-size: 0.75rem;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-}
-.pii-indicator__value {
-    color: var(--text-color, #0d0d0d);
-    font-size: 1.75rem;
-    font-weight: 600;
-    margin-top: 0.35rem;
-}
-</style>
-"""
-
-
-GUARDRAIL_PANEL_STYLE = """
-<style>
-.guardrail-panel {
-    display: grid;
-    gap: 1.5rem;
-}
-.guardrail-panel__chart {
-    background: var(--secondary-background-color, rgba(248, 250, 252, 0.85));
-    border-radius: 1rem;
-    border: 1px solid rgba(148, 163, 184, 0.35);
-    padding: 1rem;
-}
-.guardrail-card-list {
-    max-height: 320px;
-    overflow-y: auto;
-    padding-right: 0.5rem;
-    display: grid;
-    gap: 0.75rem;
-}
-.guardrail-card {
-    background: rgba(255, 255, 255, 0.82);
-    border-radius: 0.85rem;
-    border: 1px solid rgba(148, 163, 184, 0.4);
-    box-shadow: 0 4px 18px rgba(15, 23, 42, 0.08);
-    padding: 0.85rem 1rem;
-}
-.guardrail-card__subject {
-    font-weight: 600;
-    color: var(--text-color, #111827);
-    margin-bottom: 0.35rem;
-    line-height: 1.3;
-}
-.guardrail-card__meta {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    font-size: 0.8rem;
-    color: rgba(55, 65, 81, 0.85);
-    margin-bottom: 0.5rem;
-    gap: 0.75rem;
-}
-.guardrail-card__label {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.3rem;
-    font-weight: 500;
-}
-.guardrail-card__label--spam {
-    color: #b91c1c;
-}
-.guardrail-card__label--safe {
-    color: #1d4ed8;
-}
-.guardrail-card__badges {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.4rem;
-}
-.guardrail-badge {
-    border-radius: 999px;
-    padding: 0.25rem 0.65rem;
-    font-size: 0.8rem;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.35rem;
-    border: 1px solid rgba(148, 163, 184, 0.55);
-}
-.guardrail-badge--on {
-    background: rgba(250, 204, 21, 0.25);
-    border-color: rgba(234, 179, 8, 0.8);
-    color: #854d0e;
-}
-.guardrail-badge--off {
-    background: rgba(226, 232, 240, 0.35);
-    color: rgba(71, 85, 105, 0.75);
-}
-.guardrail-panel__example {
-    font-size: 0.85rem;
-    color: rgba(55, 65, 81, 0.9);
-    background: rgba(226, 232, 240, 0.45);
-    border-radius: 0.75rem;
-    padding: 0.65rem 0.85rem;
-}
-</style>
-"""
 
 
 GUARDRAIL_BADGE_DEFS = [
@@ -3114,7 +3002,7 @@ def render_data_stage():
         if ss.get("pii_open"):
             with section_surface():
                 st.markdown("### 🔐 Personal Data Cleanup")
-                st.markdown(PII_INDICATOR_STYLE, unsafe_allow_html=True)
+                inject_css_once(PII_INDICATOR_STYLE)
                 remaining_to_clean = len(flagged_ids)
                 indicator_values = [
                     ("Score", int(ss.get("pii_score", 0) or 0)),
