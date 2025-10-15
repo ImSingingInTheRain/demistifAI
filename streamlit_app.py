@@ -871,7 +871,7 @@ def render_nerd_mode_toggle(
     safe_description = html.escape(description) if description else ""
 
     with wrapper:
-        content_col, toggle_col = st.columns([4, 1])
+        content_col, toggle_col = st.columns([1, 0.32], gap="large")
         with content_col:
             st.markdown(
                 f"<div class='nerd-toggle__title'>{icon_html}<span class='nerd-toggle__title-text'>{safe_title}</span></div>",
@@ -1367,25 +1367,36 @@ STAGE_TOP_GRID_CSS = """
 }
 [data-testid="stHorizontalBlock"]:has(.nerd-toggle__title) {
     position: relative;
-    background: linear-gradient(180deg, rgba(13, 17, 23, 0.96), rgba(13, 17, 23, 0.9));
+    background: linear-gradient(182deg, rgba(8, 16, 29, 0.96), rgba(12, 25, 46, 0.92));
     border-radius: 20px;
-    border: 1px solid rgba(56, 189, 248, 0.4);
-    box-shadow: 0 28px 50px rgba(8, 47, 73, 0.45), inset 0 0 0 1px rgba(15, 23, 42, 0.75);
-    padding: 1.4rem 1.5rem 1.55rem;
-    color: rgba(226, 232, 240, 0.92);
+    border: 1px solid rgba(56, 189, 248, 0.42);
+    box-shadow: 0 32px 60px rgba(8, 47, 73, 0.5), inset 0 0 0 1px rgba(15, 23, 42, 0.82);
+    padding: 1.45rem 1.65rem 1.55rem;
+    color: rgba(226, 232, 240, 0.94);
     font-family: 'Fira Code', ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
     overflow: hidden;
-    gap: 1rem;
+    gap: 1.1rem;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
 }
 [data-testid="stHorizontalBlock"]:has(.nerd-toggle__title)::before {
     content: '';
     position: absolute;
     inset: 0;
-    background: radial-gradient(circle at top right, rgba(59, 130, 246, 0.32), transparent 55%),
-        radial-gradient(circle at bottom left, rgba(20, 184, 166, 0.28), transparent 62%);
-    opacity: 0.65;
+    background: radial-gradient(circle at top right, rgba(59, 130, 246, 0.35), transparent 58%),
+        radial-gradient(circle at bottom left, rgba(20, 184, 166, 0.32), transparent 64%);
+    opacity: 0.75;
     pointer-events: none;
     border-radius: inherit;
+}
+[data-testid="stHorizontalBlock"]:has(.nerd-toggle__title)::after {
+    content: '';
+    position: absolute;
+    inset: 2px;
+    border-radius: 18px;
+    border: 1px solid rgba(148, 163, 184, 0.14);
+    pointer-events: none;
 }
 [data-testid="stHorizontalBlock"]:has(.nerd-toggle__title) > [data-testid="column"] {
     position: relative;
@@ -1393,12 +1404,15 @@ STAGE_TOP_GRID_CSS = """
     display: flex;
     flex-direction: column;
     gap: 0.55rem;
+    flex: 1 1 260px;
 }
 [data-testid="stHorizontalBlock"]:has(.nerd-toggle__title) > [data-testid="column"]:first-of-type {
     align-items: flex-start;
+    min-width: 0;
 }
 [data-testid="stHorizontalBlock"]:has(.nerd-toggle__title) > [data-testid="column"]:last-of-type {
-    align-items: flex-end;
+    flex: 0 0 auto;
+    align-items: center;
     justify-content: center;
 }
 .nerd-toggle__title {
@@ -1428,21 +1442,119 @@ STAGE_TOP_GRID_CSS = """
 }
 [data-testid="stHorizontalBlock"]:has(.nerd-toggle__title) label[data-testid="stToggle"] {
     justify-content: flex-end;
+    align-items: center;
+    padding: 0.35rem 0.75rem;
+    border-radius: 999px;
+    background: rgba(13, 23, 38, 0.68);
+    border: 1px solid rgba(56, 189, 248, 0.36);
+    box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.88), 0 14px 32px rgba(7, 89, 133, 0.48);
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+[data-testid="stHorizontalBlock"]:has(.nerd-toggle__title) label[data-testid="stToggle"]:hover {
+    transform: translateY(-1px);
+    box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.85), 0 18px 36px rgba(7, 89, 133, 0.52);
+    border-color: rgba(94, 234, 212, 0.45);
+}
+[data-testid="stHorizontalBlock"]:has(.nerd-toggle__title) label[data-testid="stToggle"]:focus-within {
+    outline: 2px solid rgba(94, 234, 212, 0.62);
+    outline-offset: 2px;
 }
 [data-testid="stHorizontalBlock"]:has(.nerd-toggle__title) label[data-testid="stToggle"] > div[role="switch"] {
-    background: rgba(148, 163, 184, 0.35);
-    box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.25);
+    position: relative;
+    width: 3.4rem;
+    height: 1.92rem;
+    border-radius: 999px;
+    background: linear-gradient(160deg, rgba(30, 41, 59, 0.85), rgba(15, 23, 42, 0.9));
+    box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.28), inset 0 -6px 12px rgba(15, 23, 42, 0.92);
+    transition: background 0.25s ease, box-shadow 0.25s ease;
+}
+[data-testid="stHorizontalBlock"]:has(.nerd-toggle__title) label[data-testid="stToggle"] > div[role="switch"]::before {
+    content: 'OFF';
+    position: absolute;
+    left: 0.6rem;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.58rem;
+    letter-spacing: 0.14em;
+    font-weight: 600;
+    color: rgba(148, 163, 184, 0.78);
+    transition: opacity 0.2s ease;
+}
+[data-testid="stHorizontalBlock"]:has(.nerd-toggle__title) label[data-testid="stToggle"] > div[role="switch"] > div {
+    width: 1.26rem;
+    height: 1.26rem;
+    margin: 0.32rem;
+    border-radius: 999px;
+    background: linear-gradient(145deg, rgba(226, 232, 240, 0.95), rgba(148, 163, 184, 0.9));
+    box-shadow: 0 3px 8px rgba(15, 23, 42, 0.55);
+    transition: transform 0.25s ease, background 0.25s ease, box-shadow 0.25s ease;
 }
 [data-testid="stHorizontalBlock"]:has(.nerd-toggle__title) label[data-testid="stToggle"] > div[role="switch"][aria-checked="true"] {
-    background: linear-gradient(125deg, rgba(56, 189, 248, 0.85), rgba(59, 130, 246, 0.78));
-    box-shadow: inset 0 0 0 1px rgba(226, 232, 240, 0.4);
+    background: linear-gradient(135deg, rgba(56, 189, 248, 0.9), rgba(59, 130, 246, 0.82));
+    box-shadow: inset 0 0 0 1px rgba(226, 232, 240, 0.42), inset 0 -6px 16px rgba(37, 99, 235, 0.55);
+}
+[data-testid="stHorizontalBlock"]:has(.nerd-toggle__title) label[data-testid="stToggle"] > div[role="switch"][aria-checked="true"]::before {
+    content: 'ON';
+    left: auto;
+    right: 0.65rem;
+    color: rgba(15, 23, 42, 0.82);
+}
+[data-testid="stHorizontalBlock"]:has(.nerd-toggle__title) label[data-testid="stToggle"] > div[role="switch"][aria-checked="true"] > div {
+    background: linear-gradient(145deg, rgba(248, 250, 252, 0.98), rgba(191, 219, 254, 0.95));
+    box-shadow: 0 4px 10px rgba(30, 64, 175, 0.55);
+}
 }
 @media (max-width: 900px) {
     .stage-top-grid__nav-card,
-    [data-testid="stHorizontalBlock"]:has(.nerd-toggle__title),
     [data-testid="element-container"]:has(> div[data-testid="stButton"] > button[title="Jump to the next stage"]),
     [data-testid="element-container"]:has(> div[data-testid="stButton"] > button[title="Return to the previous stage"]) {
         padding: 1.1rem 1.2rem 1.2rem;
+    }
+    [data-testid="stHorizontalBlock"]:has(.nerd-toggle__title) {
+        padding: 1.2rem 1.3rem 1.3rem;
+        gap: 1rem;
+    }
+    [data-testid="stHorizontalBlock"]:has(.nerd-toggle__title) > [data-testid="column"] {
+        flex: 1 1 100%;
+        align-items: flex-start;
+    }
+    [data-testid="stHorizontalBlock"]:has(.nerd-toggle__title) > [data-testid="column"]:last-of-type {
+        width: 100%;
+        align-items: stretch;
+    }
+    [data-testid="stHorizontalBlock"]:has(.nerd-toggle__title) [data-testid="stToggle"] {
+        justify-content: flex-start;
+        width: 100%;
+    }
+    [data-testid="stHorizontalBlock"]:has(.nerd-toggle__title) label[data-testid="stToggle"] {
+        width: 100%;
+        justify-content: space-between;
+        padding: 0.4rem 0.8rem;
+    }
+}
+@media (max-width: 600px) {
+    [data-testid="stHorizontalBlock"]:has(.nerd-toggle__title) {
+        padding: 1.05rem 1.1rem 1.15rem;
+        border-radius: 18px;
+    }
+    [data-testid="stHorizontalBlock"]:has(.nerd-toggle__title)::after {
+        inset: 1.5px;
+        border-radius: 16px;
+    }
+    .nerd-toggle__title {
+        font-size: 1.05rem;
+    }
+    .nerd-toggle__description {
+        font-size: 0.86rem;
+    }
+    [data-testid="stHorizontalBlock"]:has(.nerd-toggle__title) label[data-testid="stToggle"] > div[role="switch"] {
+        width: 3.2rem;
+        height: 1.8rem;
+    }
+    [data-testid="stHorizontalBlock"]:has(.nerd-toggle__title) label[data-testid="stToggle"] > div[role="switch"] > div {
+        margin: 0.28rem;
+        width: 1.18rem;
+        height: 1.18rem;
     }
 }
 </style>
