@@ -3,7 +3,7 @@
 from streamlit.components.v1 import html as components_html
 
 
-def render_demai_logo(height: int = 80) -> None:
+def render_demai_logo(height: int = 50) -> None:
     """
     Render the animated 'demAI' title.
     - No external dependencies.
