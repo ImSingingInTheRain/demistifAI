@@ -2,10 +2,6 @@
 
 from __future__ import annotations
 
-from functools import lru_cache
-from pathlib import Path
-
-import streamlit as st
 from streamlit.components.v1 import html as components_html
 
 _DEMAI_LOGO_HTML = '''
@@ -108,62 +104,3 @@ def render_demai_logo(height: int = 50, *, frame_marker: str = "") -> None:
     components_html(html, height=height)
 
 
-_CUSTOM_HEADER_HTML = """
-<div class="demai-custom-header" data-testid="demai-custom-header">
-  <div class="demai-custom-header__logo-slot" id="demai-custom-header-logo"></div>
-  <div class="demai-custom-header__meta">
-    <span class="demai-custom-header__meta-title">demistifAI Lab</span>
-    <span class="demai-custom-header__meta-caption">Walking the EU AI Act journey together</span>
-  </div>
-</div>
-<script>
-(function () {
-  const FRAME_SELECTOR = 'iframe[data-demai-logo-marker="custom-header"]';
-  const SLOT_ID = 'demai-custom-header-logo';
-  const STATE_KEY = '__demaiCustomHeaderState';
-  const state = window[STATE_KEY] || (window[STATE_KEY] = {});
-
-  function relocateFrame() {
-    const frame = document.querySelector(FRAME_SELECTOR);
-    const slot = document.getElementById(SLOT_ID);
-
-    if (!frame || !slot) {
-      window.requestAnimationFrame(relocateFrame);
-      return;
-    }
-
-    if (!frame.classList.contains('demai-custom-header__logo-frame')) {
-      frame.classList.add('demai-custom-header__logo-frame');
-    }
-
-    const wrapper = frame.parentElement?.closest('div[data-testid="stVerticalBlock"]');
-    if (wrapper && wrapper.getAttribute('data-demai-logo-wrapper') !== 'true') {
-      wrapper.setAttribute('data-demai-logo-wrapper', 'true');
-      state.wrapper = wrapper;
-    }
-
-    if (frame.parentElement !== slot) {
-      slot.innerHTML = '';
-      slot.appendChild(frame);
-    }
-  }
-
-  relocateFrame();
-})();
-</script>
-"""
-
-
-@lru_cache(maxsize=1)
-def _load_header_css() -> str:
-    """Return the CSS required to style the custom header."""
-
-    return Path(__file__).with_name("demai_header.css").read_text(encoding="utf-8")
-
-
-def mount_demai_header_logo(height: int = 96) -> None:
-    """Render the animated demAI logo inside a bespoke Streamlit header."""
-
-    render_demai_logo(height=height, frame_marker="custom-header")
-    st.markdown(f"<style>{_load_header_css()}</style>", unsafe_allow_html=True)
-    st.markdown(_CUSTOM_HEADER_HTML, unsafe_allow_html=True)
