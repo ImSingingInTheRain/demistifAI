@@ -32,7 +32,7 @@ _HEADER_CSS = dedent(
     }
 
     [data-testid="stMainBlock"] > .block-container {
-        padding-top: clamp(4.6rem, 6vw, 6.25rem);
+        padding-top: 0 !important;
     }
 
     div[data-demai-logo-wrapper="true"] {
@@ -51,6 +51,7 @@ _HEADER_CSS = dedent(
         justify-content: space-between;
         gap: clamp(0.5rem, 2vw, 1.5rem);
         padding: clamp(0.6rem, 1.8vw, 1rem) clamp(1rem, 3.2vw, 1.75rem);
+        margin-bottom: clamp(1rem, 2.8vw, 1.8rem);
         background: linear-gradient(90deg, rgba(15, 23, 42, 0.92), rgba(15, 118, 110, 0.92));
         backdrop-filter: blur(12px);
         border-bottom: 1px solid rgba(148, 163, 184, 0.35);
