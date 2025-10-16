@@ -284,9 +284,10 @@ def mount_demai_header(logo_height: int = 56, max_inner_width: int = 1200) -> No
                 .demai-header-inner {{
                   display: flex;
                   align-items: center;
-                  justify-content: space-between;
-                  gap: 10px;
+                  justify-content: flex-start;
+                  gap: 8px;
                   min-height: var(--demai-header-h);
+                  flex-wrap: wrap;
                 }}
                 .demai-stage-wrap {{
                   display: none;
@@ -296,14 +297,16 @@ def mount_demai_header(logo_height: int = 56, max_inner_width: int = 1200) -> No
                   flex: 0 0 auto;
                 }}
                 .demai-actions {{
-                  margin-left: auto;
+                  margin-left: 0;
                   gap: 6px;
                   align-items: center;
-                  flex-wrap: nowrap;
+                  justify-content: flex-start;
+                  flex-wrap: wrap;
+                  flex: 0 0 auto;
                 }}
                 .demai-actions .demai-btn {{
                   min-height: calc(var(--demai-btn-min-h) - 6px);
-                  padding: 0 .8rem;
+                  padding: 0 .7rem;
                   border-radius: 14px;
                 }}
                 .demai-btn .label {{
@@ -323,7 +326,7 @@ def mount_demai_header(logo_height: int = 56, max_inner_width: int = 1200) -> No
                 .demai-actions {{ gap: 4px; }}
                 .demai-actions .demai-btn {{
                   min-height: calc(var(--demai-btn-min-h) - 8px);
-                  padding: 0 .7rem;
+                  padding: 0 .62rem;
                   border-radius: 12px;
                 }}
                 .demai-btn .label {{
