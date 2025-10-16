@@ -159,7 +159,7 @@ def mount_demai_header(logo_height: int = 56, max_inner_width: int = 1200) -> No
               }}
 
               /* Spacer pushes app below fixed bar */
-              .demai-header-spacer {{ height: var(--demai-header-h); }}
+              .demai-header-spacer {{ height: 0px; }}
 
               .demai-logo-frame {{
                 border: 0; background: transparent; height: var(--demai-logo-h); width: auto;
