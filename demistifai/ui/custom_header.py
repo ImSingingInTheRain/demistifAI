@@ -1,5 +1,5 @@
 """Minimal custom header: hides Streamlit's default header and shows the animated demAI logo with stage nav.
-   Sticky-in-flow version (no :has(), no fixed positioning)."""
+   Sticky-in-flow version with Streamlit query-param compatibility (no :has(), no fixed positioning)."""
 
 from __future__ import annotations
 
@@ -15,6 +15,37 @@ from demistifai.core.utils import streamlit_rerun
 from .animated_logo import demai_logo_html
 
 
+# --- Query param compatibility layer -----------------------------------------
+def _qp_get_all(key: str) -> list[str]:
+    """Return list of values for a query param across Streamlit versions."""
+    qp = getattr(st, "query_params", None)
+    if qp is not None:
+        # New API (Streamlit ≥ 1.33)
+        get_all = getattr(qp, "get_all", None)
+        if callable(get_all):
+            return get_all(key)
+        # Fallback: mapping semantics
+        val = qp.get(key)
+        return val if isinstance(val, list) else ([val] if val is not None else [])
+    # Old API
+    params = st.experimental_get_query_params()  # type: ignore[attr-defined]
+    val = params.get(key)
+    return val if isinstance(val, list) else ([] if val is None else [val])
+
+
+def _qp_set(**kwargs) -> None:
+    """Set query params across Streamlit versions."""
+    qp = getattr(st, "query_params", None)
+    if qp is not None:
+        # New API supports item assignment
+        for k, v in kwargs.items():
+            qp[k] = v
+        return
+    # Old API
+    st.experimental_set_query_params(**kwargs)  # type: ignore[attr-defined]
+
+
+# --- Stage helpers ------------------------------------------------------------
 def _resolve_stage_context() -> dict:
     if not STAGES:
         return {"active_key": None, "index": 0, "total": 0, "stage": None, "prev_stage": None, "next_stage": None}
@@ -31,7 +62,14 @@ def _resolve_stage_context() -> dict:
     stage = STAGES[index]
     prev_stage: Optional[StageMeta] = STAGES[index - 1] if index > 0 else None
     next_stage: Optional[StageMeta] = STAGES[index + 1] if index < total - 1 else None
-    return {"active_key": active_key, "index": index, "total": total, "stage": stage, "prev_stage": prev_stage, "next_stage": next_stage}
+    return {
+        "active_key": active_key,
+        "index": index,
+        "total": total,
+        "stage": stage,
+        "prev_stage": prev_stage,
+        "next_stage": next_stage,
+    }
 
 
 def _set_active_stage(stage_key: str | None) -> None:
@@ -44,13 +82,14 @@ def _set_active_stage(stage_key: str | None) -> None:
         ss["active_stage"] = stage_key
         ss["stage_scroll_to_top"] = True
 
-    if st.query_params.get_all("stage") != [stage_key]:
-        st.query_params["stage"] = stage_key
+    if _qp_get_all("stage") != [stage_key]:
+        _qp_set(stage=stage_key)
 
     if changed:
         streamlit_rerun()
 
 
+# --- Header -------------------------------------------------------------------
 def mount_demai_header(logo_height: int = 56) -> None:
     """Sticky header that remains within the page flow for robust desktop/mobile rendering."""
 
@@ -61,7 +100,7 @@ def mount_demai_header(logo_height: int = 56) -> None:
     index = int(ctx["index"])
     total = int(ctx["total"])
 
-    # 1) Global CSS: hide Streamlit native header; style sticky header block.
+    # Global CSS: hide Streamlit native header; style sticky header block.
     st.markdown(
         dedent(
             f"""
@@ -72,18 +111,16 @@ def mount_demai_header(logo_height: int = 56) -> None:
               /* Sticky header block – in flow (no position:fixed) */
               .demai-header {{
                 position: sticky;
-                top: 0;                 /* pins under browser chrome / safe area */
-                z-index: 1000;          /* above app content */
+                top: 0;
+                z-index: 1000;
                 background: rgba(15,23,42,0.92);
                 backdrop-filter: blur(10px);
-                -webkit-backdrop-filter: blur(10px); /* iOS Safari */
+                -webkit-backdrop-filter: blur(10px);
                 border-bottom: 1px solid rgba(94,234,212,0.24);
                 box-shadow: 0 8px 18px rgba(8,15,33,0.22);
                 padding: 10px 16px;
-                border-radius: 0;       /* full-width bar feel */
-              }
+              }}
 
-              /* Make the header grid look tidy regardless of page width */
               .demai-header .demai-row {{
                 display: grid;
                 grid-template-columns: auto minmax(0,1fr) auto;
@@ -108,13 +145,10 @@ def mount_demai_header(logo_height: int = 56) -> None:
                 font-weight: 700; font-size: 1rem; white-space: normal; line-height: 1.25;
               }}
 
-              /* Streamlit buttons in the header */
               .demai-header [data-testid="stButton"] > button {{
-                border-radius: 12px; font-weight: 600; min-height: 36px;
-                padding-inline: 10px;
+                border-radius: 12px; font-weight: 600; min-height: 36px; padding-inline: 10px;
               }}
 
-              /* Small phones: compress gaps and shrink logo a touch */
               @media (max-width: 420px) {{
                 .demai-header {{ padding: 8px 12px; }}
                 .demai-row {{ gap: 8px; }}
@@ -122,10 +156,11 @@ def mount_demai_header(logo_height: int = 56) -> None:
                 .demai-stage .title {{ font-size: 0.95rem; }}
               }}
 
-              /* Respect safe-area insets on notched devices */
               @supports (padding: max(0px)) {{
-                .demai-header {{ padding-left: max(16px, env(safe-area-inset-left));
-                                 padding-right: max(16px, env(safe-area-inset-right)); }}
+                .demai-header {{
+                  padding-left: max(16px, env(safe-area-inset-left));
+                  padding-right: max(16px, env(safe-area-inset-right));
+                }}
               }}
             </style>
             """
@@ -133,12 +168,11 @@ def mount_demai_header(logo_height: int = 56) -> None:
         unsafe_allow_html=True,
     )
 
-    # 2) Build the sticky header as the first container in the page.
-    #    Because it's in-flow (sticky), the page reserves space and nothing slides under it.
+    # Build sticky header as first container (in normal flow).
     with st.container():
         st.markdown('<div class="demai-header"><div class="demai-row">', unsafe_allow_html=True)
 
-        # Left: animated logo (iframe with data: URL keeps it self-contained)
+        # Left: animated logo
         raw_logo_html = demai_logo_html(frame_marker="demai-header")
         data_url = f"data:text/html;base64,{b64encode(raw_logo_html.encode('utf-8')).decode('ascii')}"
         left, middle, right = st.columns([1.1, 2.8, 1.2], gap="small")
@@ -174,7 +208,7 @@ def mount_demai_header(logo_height: int = 56) -> None:
                     if st.button("⬅️", key="demai_header_back", use_container_width=True, help=f"Back to {prev_stage.title}"):
                         _set_active_stage(prev_stage.key)
                 else:
-                    st.write("")  # keeps height
+                    st.write("")  # reserve height
             with c2:
                 if isinstance(next_stage, StageMeta):
                     if st.button(
