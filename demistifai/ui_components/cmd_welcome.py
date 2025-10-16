@@ -1,4 +1,4 @@
-"""Animated EU AI Act terminal component (per-char colored typing, skip, reduced-motion)."""
+"""Animated EU AI Act terminal component (per-char colored typing, skip, reduced-motion, progressive post-install)."""
 
 from __future__ import annotations
 from textwrap import dedent
@@ -8,24 +8,18 @@ from streamlit.components.v1 import html as components_html
 
 _TERMINAL_SUFFIX = "ai_act_fullterm"
 
-# --- Refined, lighter script ---------------------------------------------------
 _WELCOME_LINES: List[str] = [
-    # Hook
     "> What is an AI system?\n",
     "$ fetch EU_AI_ACT.AI_system_definition\n",
     "“AI system” means a machine-based system designed to operate with varying levels of autonomy and that may exhibit adaptiveness after deployment, and that, for explicit or implicit objectives, infers—\n",
     "[…stream truncated…]\n",
     "ERROR 422: Definition overload — too many concepts at once.\n",
     "HINT: Let’s learn it by doing.\n",
-
-    # demAI setup (short + clear)
     "$ pip install demAI\n",
     "Resolving dependencies… ✓\n",
     "Setting up interactive labs… ✓\n",
     "Verifying examples… ✓\n",
     "Progress 0%   [████████████████████] 100%\n",
-
-    # Welcome + three pillars (one-liners)
     "\nWelcome to demAI — a hands-on way to see how AI works and how the EU AI Act applies in practice.\n",
     "> demonstrateAI\n",
     "Build and run a tiny AI system — from data to predictions — step by step.\n",
@@ -69,22 +63,19 @@ _TERMINAL_STYLE = dedent(f"""
   }}
   @keyframes blink-{_TERMINAL_SUFFIX} {{ 50% {{ opacity: 0; }} }}
 
-  /* Color system (used while typing, so no flash) */
   .cmdline-{_TERMINAL_SUFFIX} {{ color: #93c5fd; }}
-  .kw-act-{_TERMINAL_SUFFIX} {{ color: #facc15; font-weight: 600; }}         /* EU AI Act / AI system */
-  .kw-hint-{_TERMINAL_SUFFIX} {{ color: #34d399; font-weight: 600; }}        /* HINT lines */
-  .kw-error-{_TERMINAL_SUFFIX}{{ color: #fb7185; font-weight: 700; }}        /* ERROR 422 */
-  .kw-progress-{_TERMINAL_SUFFIX} {{ color: #a5f3fc; font-weight: 600; }}    /* progress line */
-  .hl-{_TERMINAL_SUFFIX}       {{ color: #fbbf24; font-weight: 700; }}       /* demo* lines */
+  .kw-act-{_TERMINAL_SUFFIX} {{ color: #facc15; font-weight: 600; }}
+  .kw-hint-{_TERMINAL_SUFFIX} {{ color: #34d399; font-weight: 600; }}
+  .kw-error-{_TERMINAL_SUFFIX}{{ color: #fb7185; font-weight: 700; }}
+  .kw-progress-{_TERMINAL_SUFFIX} {{ color: #a5f3fc; font-weight: 600; }}
+  .hl-{_TERMINAL_SUFFIX}       {{ color: #fbbf24; font-weight: 700; }}
 
-  /* Container entrance */
   .terminal-wrap-{_TERMINAL_SUFFIX} {{
     opacity: 0; transform: translateY(6px);
     animation: fadein-{_TERMINAL_SUFFIX} .6s ease forwards;
   }}
   @keyframes fadein-{_TERMINAL_SUFFIX} {{ to {{ opacity: 1; transform: translateY(0) }} }}
 
-  /* Skip button */
   .skip-{_TERMINAL_SUFFIX} {{
     position: absolute; top: 10px; right: 10px;
     background: #111827; color: #e5e7eb; border: 1px solid #374151;
@@ -101,22 +92,14 @@ _TERMINAL_STYLE = dedent(f"""
 
 def render_ai_act_terminal(
     demai_lines: Optional[Iterable[str]] = None,
-    speed_type_ms: int = 20,          # ~45–55ms feels comfy for non-technical users
-    speed_delete_ms: int = 14,        # kept for API compatibility (unused)
-    pause_between_ops_ms: int = 360,  # 250–400ms between lines
+    speed_type_ms: int = 20,
+    speed_delete_ms: int = 14,        # API compatibility (unused)
+    pause_between_ops_ms: int = 360,
     key: str = "ai_act_terminal",
     show_caret: bool = True,
     show_skip: bool = True,
-    max_total_duration_ms: int = 12000,  # hard cap; switch to final state if exceeded
+    max_total_duration_ms: int = 12000,
 ) -> None:
-    """
-    Render the animated EU AI Act terminal sequence with per-char colored typing.
-
-    - Non-blocking: page renders immediately.
-    - Auto-resizing: iframe grows with content.
-    - Reduced motion: final state shown immediately.
-    - f-string safe: no backslashes in expressions.
-    """
     lines = list(demai_lines) if demai_lines is not None else _WELCOME_LINES
 
     payload = {
@@ -160,12 +143,10 @@ def render_ai_act_terminal(
   const caret = root.querySelector(".caret-" + cfg.suffix);
   const skipBtn = root.querySelector(".skip-" + cfg.suffix);
 
-  // Utilities
   const rawLines = (cfg.lines || []).map(l => (l == null ? "" : String(l)));
   const toLinesWithNL = (arr) => arr.map(l => l.endsWith("\\n") ? l : (l + "\\n"));
   const esc = (s) => s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
 
-  // Color rules (applied BEFORE typing, so characters appear colored as they come)
   const RULES = [
     {{ name: "cmd",    test: (line) => line.startsWith("$ "),            cls: "cmdline-" + cfg.suffix, fullLine: true }},
     {{ name: "hint",   test: (line) => /^HINT:/i.test(line.trim()),      cls: "kw-hint-" + cfg.suffix }},
@@ -174,13 +155,50 @@ def render_ai_act_terminal(
     {{ name: "progress", test: (line) => /\\[█+\\]/.test(line),           cls: "kw-progress-" + cfg.suffix }},
   ];
 
-  // Token patterns inside a line (non-overlapping preference by order)
   const TOKEN_PATTERNS = [
     {{ regex: /EU AI Act/gi,             cls: "kw-act-" + cfg.suffix }},
     {{ regex: /AI system/gi,             cls: "kw-act-" + cfg.suffix }},
   ];
 
-  // Pre-tokenize a line into non-overlapping segments with classes.
+  /* ---------- NEW: Expand lines for progressive post-install ---------- */
+
+  // Per-line pause overrides (after completing each line)
+  const LINE_PAUSE_OVERRIDES = [
+    {{ regex: /^Resolving dependencies… ✓\\s*$/ }},
+    {{ regex: /^Setting up interactive labs… ✓\\s*$/ }},
+    {{ regex: /^Verifying examples… ✓\\s*$/ }},
+  ];
+  const EXTRA_PAUSE_MS = 420; // extra time after each of the above
+
+  // Progress animation generator: turns a single "Progress 0% [...] 100%" into frames
+  function expandProgressFrames(line) {{
+    if (!/^Progress\\s+0%/.test(line)) return null;
+    const frames = [
+      "Progress 0%    [█...................] 0%\\n",
+      "Progress 35%   [███████.............] 35%\\n",
+      "Progress 70%   [██████████████......] 70%\\n",
+      "Progress 100%  [████████████████████] 100%\\n",
+    ];
+    return frames;
+  }}
+
+  // Build expanded lines + pause map
+  const expanded = [];
+  const pauseAfter = [];  // extra pause (ms) after each expanded line
+  for (const line of toLinesWithNL(rawLines)) {{
+    const prog = expandProgressFrames(line);
+    if (prog) {{
+      for (const f of prog) {{ expanded.push(f); pauseAfter.push(240); }} // small pauses between frames
+      continue;
+    }
+    expanded.push(line);
+    // add extra pause for the three "✓" lines
+    const needsExtra = LINE_PAUSE_OVERRIDES.some(p => p.regex.test(line.trim()));
+    pauseAfter.push(needsExtra ? EXTRA_PAUSE_MS : 0);
+  }}
+
+  /* ---------- Coloring/tokenization (same as before, but applied to expanded) ---------- */
+
   function segmentsForLine(line) {{
     const segments = [];
     const fullLineRule = RULES.find(r => r.fullLine && r.test(line));
@@ -188,24 +206,19 @@ def render_ai_act_terminal(
       segments.push({{ text: line, cls: fullLineRule.cls }});
       return segments;
     }}
-
-    // Build mask for per-token highlighting
     const marks = new Array(line.length).fill(null);
     TOKEN_PATTERNS.forEach(p => {{
       let m;
       const re = new RegExp(p.regex.source, p.regex.flags);
       while ((m = re.exec(line)) !== null) {{
         for (let i = m.index; i < m.index + m[0].length; i++) {{
-          if (marks[i] == null) marks[i] = p.cls; // first-come priority
+          if (marks[i] == null) marks[i] = p.cls;
         }}
       }}
     }});
-
-    // Secondary line-wide rules (non-fullLine) e.g., HINT/ERROR/PROGRESS
     const lineWide = RULES.find(r => !r.fullLine && r.test(line));
     const baseCls = lineWide ? lineWide.cls : null;
 
-    // Emit segments
     let i = 0;
     while (i < line.length) {{
       const cls = marks[i] || baseCls;
@@ -218,7 +231,6 @@ def render_ai_act_terminal(
     return segments;
   }}
 
-  // Render helper to join lines as HTML
   function renderHTMLFromBuffer(linesSegs) {{
     const htmlLines = linesSegs.map(segs => segs.map(s =>
       s.cls ? `<span class="${{s.cls}}">${{esc(s.text)}}</span>` : esc(s.text)
@@ -227,7 +239,6 @@ def render_ai_act_terminal(
     autoResize();
   }}
 
-  // Auto resize
   const autoResize = () => {{
     const height = root.scrollHeight + 24;
     window.parent.postMessage({{ "type": "streamlit:resize", "height": height }}, "*");
@@ -235,34 +246,28 @@ def render_ai_act_terminal(
   const ro = new ResizeObserver(() => autoResize());
   ro.observe(root);
 
-  // Reduced motion or zero speed => render final immediately
   const prefersReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   if (prefersReduced || cfg.speedType === 0) {{
-    const segsAll = toLinesWithNL(rawLines).map(segmentsForLine);
+    const segsAll = expanded.map(segmentsForLine);
     renderHTMLFromBuffer(segsAll);
     if (caret) caret.style.display = "none";
     return;
   }}
 
-  // Precompute segments (so we can color during typing)
-  const LINES_SEGS = toLinesWithNL(rawLines).map(segmentsForLine);
+  const LINES_SEGS = expanded.map(segmentsForLine);
 
-  // Typing engine (per-char, colored)
   const TYPE_DELAY = Math.max(0, cfg.speedType);
   const BETWEEN_LINES = Math.max(0, cfg.pauseBetween);
   const END_AT = Date.now() + Math.max(0, cfg.maxDuration || 0);
 
-  let li = 0;               // line index
-  let si = 0;               // segment index within line
-  let ci = 0;               // char index within segment
-  const rendered = [];      // fully rendered previous lines (segments)
-  let current = [];         // segments for current line (partially typed)
+  let li = 0, si = 0, ci = 0;
+  const rendered = [];
+  let current = [];
 
   function flush() {{ renderHTMLFromBuffer(rendered.concat([current])); }}
 
   function finishAll() {{
-    const all = LINES_SEGS;
-    renderHTMLFromBuffer(all);
+    renderHTMLFromBuffer(LINES_SEGS);
     if (caret) caret.style.display = "none";
   }}
 
@@ -278,42 +283,37 @@ def render_ai_act_terminal(
 
   function step() {{
     if (Date.now() > END_AT) return finishAll();
-
     if (li >= LINES_SEGS.length) {{
       if (caret) caret.style.display = "none";
       return;
     }}
 
-    // Done with all segments in this line?
     if (si >= current.length) {{
-      // Commit line and advance
+      // line complete: commit & pause (with override if any)
       rendered.push(current.map(s => ({{ text: s._full, cls: s.cls }})));
+      const extra = pauseAfter[li] || 0;
       li += 1; si = 0; ci = 0;
-      setTimeout(nextLine, BETWEEN_LINES);
+      setTimeout(nextLine, BETWEEN_LINES + extra);
       return;
     }}
 
     const seg = current[si];
     const full = seg._full;
-    // Type one char (or a small chunk for speed)
-    const CHUNK = 1; // increase to 2–3 for slightly faster typing
+    const CHUNK = 1; // keep per-char; set to 2–3 if you want a bit faster
     const nextIdx = Math.min(full.length, ci + CHUNK);
     seg.text = full.slice(0, nextIdx);
     ci = nextIdx;
 
-    // If segment complete, move to next
     if (ci >= full.length) {{ si += 1; ci = 0; }}
 
     flush();
     setTimeout(step, TYPE_DELAY);
   }}
 
-  // Skip button -> final state instantly
   if (skipBtn) {{
     skipBtn.addEventListener("click", () => finishAll());
   }}
 
-  // Kick off
   nextLine();
 }})();
 </script>
