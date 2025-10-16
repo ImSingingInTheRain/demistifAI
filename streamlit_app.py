@@ -183,6 +183,7 @@ from demistifai.ui.components.terminal.boot_sequence import (
 from demistifai.ui.components.terminal.data_prep import render_prepare_terminal
 from demistifai.ui.components.terminal.evaluate import render_evaluate_terminal
 from demistifai.ui.components.terminal.train import render_train_terminal
+from demistifai.ui.components.terminal.use import render_use_terminal
 logger = logging.getLogger(__name__)
 
 st.session_state.setdefault("viewport_is_mobile", False)
@@ -3650,7 +3651,11 @@ def render_classify_stage():
 
     stage = STAGE_BY_KEY["classify"]
 
-    render_stage_top_grid("classify")
+    def _render_use_terminal(slot: DeltaGenerator) -> None:
+        with slot:
+            render_use_terminal()
+
+    render_stage_top_grid("classify", left_renderer=_render_use_terminal)
 
     nerd_flag = bool(ss.get("nerd_mode_use") or ss.get("nerd_mode"))
 
