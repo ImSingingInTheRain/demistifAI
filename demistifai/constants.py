@@ -2072,7 +2072,7 @@ LIFECYCLE_RING_HTML = dedent(
         <style>
             /* ===== Scoped to #demai-lifecycle =================================== */
             #demai-lifecycle.dlc {
-                --ring-size: min(300px, 82vw);
+                --ring-size: clamp(260px, min(42vw, calc(100% - 2.5rem)), 460px);
                 --square-inset: clamp(16%, calc(50% - 180px), 22%);
                 --elev: 0 14px 30px rgba(15, 23, 42, 0.12);
                 --stroke: inset 0 0 0 1px rgba(15, 23, 42, 0.06);
@@ -2090,9 +2090,10 @@ LIFECYCLE_RING_HTML = dedent(
             /* Ring */
             #demai-lifecycle .ring {
                 position: relative;
-                width: var(--ring-size);
+                width: min(var(--ring-size), 100%);
+                max-width: min(var(--ring-size), 100%);
                 aspect-ratio: 1 / 1;
-                margin: 1.1rem auto 0;
+                margin: clamp(0.8rem, 2vw, 1.1rem) auto 0;
                 border-radius: 50%;
                 background: radial-gradient(92% 92% at 50% 50%, rgba(99, 102, 241, 0.10), rgba(14, 165, 233, 0.06));
                 box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.06);
@@ -2317,9 +2318,14 @@ LIFECYCLE_RING_HTML = dedent(
                     grid-template-columns: repeat(2, minmax(0, 1fr));
                 }
             }
+            @media (max-width: 900px) {
+                #demai-lifecycle {
+                    --ring-size: clamp(220px, min(64vw, calc(100% - 2rem)), 360px);
+                }
+            }
             @media (max-width: 768px) {
                 #demai-lifecycle {
-                    --ring-size: 86vw;
+                    --ring-size: clamp(200px, min(70vw, calc(100% - 1.5rem)), 320px);
                     --r-node: 39%;
                 }
                 #demai-lifecycle .node {
@@ -2339,6 +2345,11 @@ LIFECYCLE_RING_HTML = dedent(
                 #demai-lifecycle .legend {
                     grid-template-columns: repeat(2, minmax(0, 1fr));
                     gap: 0.75rem;
+                }
+            }
+            @media (max-width: 540px) {
+                #demai-lifecycle {
+                    --ring-size: clamp(150px, 74vw, 220px);
                 }
             }
             @media (max-width: 360px) {

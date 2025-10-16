@@ -587,6 +587,7 @@ def render_intro_stage():
                     background: linear-gradient(180deg, rgba(37, 99, 235, 0.18), rgba(14, 116, 144, 0.1));
                     border: 1px solid rgba(37, 99, 235, 0.32);
                     box-shadow: 0 26px 56px rgba(37, 99, 235, 0.22);
+                    align-items: center;
                 }
                 .mw-intro-lifecycle__col:has(> .intro-lifecycle-map)::before {
                     background: radial-gradient(circle at center, rgba(96, 165, 250, 0.42), transparent 72%);
@@ -682,10 +683,13 @@ def render_intro_stage():
                     flex-direction: column;
                     gap: 0.75rem;
                     min-height: 100%;
+                    align-items: center;
+                    width: 100%;
                 }
                 .mw-intro-lifecycle .intro-lifecycle-map #demai-lifecycle.dlc {
                     flex: 1;
-                    width: 100%;
+                    width: min(100%, 520px);
+                    margin-inline: auto;
                 }
                 @media (max-width: 1024px) {
                     .section-surface.section-surface--hero > div[data-testid="stVerticalBlock"] {
@@ -701,9 +705,6 @@ def render_intro_stage():
                     }
                     .mw-intro-lifecycle__col {
                         padding: clamp(1rem, 4vw, 1.45rem);
-                    }
-                    .mw-intro-lifecycle .intro-lifecycle-map #demai-lifecycle.dlc {
-                        --ring-size: 86vw;
                     }
                 }
                 @media (max-width: 680px) {
