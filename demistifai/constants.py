@@ -1548,8 +1548,6 @@ div[data-testid="stHorizontalBlock"]:has(.stage-top-grid__nav-card) > div[data-t
     content: '';
     position: absolute;
     inset: 0;
-    background: radial-gradient(circle at top right, rgba(59, 130, 246, 0.32), transparent 55%),
-        radial-gradient(circle at bottom left, rgba(20, 184, 166, 0.28), transparent 62%);
     opacity: 0.6;
     pointer-events: none;
     border-radius: inherit;
