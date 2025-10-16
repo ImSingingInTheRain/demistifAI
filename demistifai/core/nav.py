@@ -57,15 +57,38 @@ def _render_stage_navigation_panel(stage_key: str, card_slot: DeltaGenerator, ne
     next_label = "Proceed" if next_stage is None else f"{next_stage.icon} {next_stage.title} ➡️"
     prev_label = "Back" if prev_stage is None else f"⬅️ {prev_stage.icon} {prev_stage.title}"
 
+    sentinel_next_id = f"demai-stage-nav-next-sentinel-{stage_key}"
+    sentinel_prev_id = f"demai-stage-nav-prev-sentinel-{stage_key}"
+
     next_clicked = next_slot.button(
         next_label, key=f"stage_grid_next_{stage_key}",
         use_container_width=True, type="primary", disabled=next_stage is None, help="Jump to the next stage"
     )
     if next_clicked and next_stage is not None:
         st.session_state["active_stage"] = next_stage.key
+        st.session_state["stage_scroll_to_top"] = True
         st.query_params["stage"] = next_stage.key
         from demistifai.core.utils import streamlit_rerun
         streamlit_rerun()
+
+    next_slot.markdown(
+        f"""
+        <div id="{sentinel_next_id}" data-stage-key="{html.escape(stage_key)}"></div>
+        <script>
+          (function tagStageNext() {{
+            const sentinel = document.getElementById('{sentinel_next_id}');
+            if (!sentinel) return;
+            const container = sentinel.closest('[data-testid="stVerticalBlock"]') || sentinel.parentElement;
+            if (!container) return;
+            const btn = container.querySelector('button');
+            if (!btn) return;
+            btn.id = 'demai-stage-nav-next-btn';
+            btn.dataset.stageKey = '{html.escape(stage_key)}';
+          }})();
+        </script>
+        """,
+        unsafe_allow_html=True,
+    )
 
     prev_clicked = prev_slot.button(
         prev_label, key=f"stage_grid_prev_{stage_key}",
@@ -73,9 +96,29 @@ def _render_stage_navigation_panel(stage_key: str, card_slot: DeltaGenerator, ne
     )
     if prev_clicked and prev_stage is not None:
         st.session_state["active_stage"] = prev_stage.key
+        st.session_state["stage_scroll_to_top"] = True
         st.query_params["stage"] = prev_stage.key
         from demistifai.core.utils import streamlit_rerun
         streamlit_rerun()
+
+    prev_slot.markdown(
+        f"""
+        <div id="{sentinel_prev_id}" data-stage-key="{html.escape(stage_key)}"></div>
+        <script>
+          (function tagStagePrev() {{
+            const sentinel = document.getElementById('{sentinel_prev_id}');
+            if (!sentinel) return;
+            const container = sentinel.closest('[data-testid="stVerticalBlock"]') || sentinel.parentElement;
+            if (!container) return;
+            const btn = container.querySelector('button');
+            if (!btn) return;
+            btn.id = 'demai-stage-nav-prev-btn';
+            btn.dataset.stageKey = '{html.escape(stage_key)}';
+          }})();
+        </script>
+        """,
+        unsafe_allow_html=True,
+    )
 
     return prev_clicked, next_clicked
 
