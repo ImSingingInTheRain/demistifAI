@@ -4225,49 +4225,104 @@ def _render_train_stage_wrapper() -> None:
 
     render_stage_top_grid("train", left_renderer=_render_train_terminal)
 
-    training_animation_fig = build_training_animation_figure()
-    training_animation_html = training_animation_fig.to_html(
-        include_plotlyjs="cdn",
-        full_html=False,
-        config={"displayModeBar": False},
-    )
-    animation_col_html = textwrap.dedent(
-        f"""
+    training_animation_error: Optional[str] = None
+    try:
+        training_animation_fig = build_training_animation_figure()
+    except RuntimeError as exc:
+        training_animation_fig = None
+        training_animation_error = str(exc)
+
+    if training_animation_fig is not None:
+        training_animation_html = training_animation_fig.to_html(
+            include_plotlyjs="cdn",
+            full_html=False,
+            config={"displayModeBar": False},
+        )
+    else:
+        training_animation_html = None
+
+    animation_styles = textwrap.dedent(
+        """
         <style>
-          .mw-train-animation__col .train-animation__body {{
+          .mw-train-animation__col .train-animation__body {
             display: grid;
             gap: 0.75rem;
-          }}
-          .mw-train-animation__col .train-animation__title {{
+          }
+          .mw-train-animation__col .train-animation__title {
             margin: 0;
             font-size: 1.05rem;
             font-weight: 700;
             color: #0f172a;
-          }}
-          .mw-train-animation__col .train-animation__caption {{
+          }
+          .mw-train-animation__col .train-animation__caption {
             margin: 0;
             font-size: 0.92rem;
             line-height: 1.45;
             color: rgba(15, 23, 42, 0.74);
-          }}
-          .mw-train-animation__col .train-animation__plotly {{
+          }
+          .mw-train-animation__col .train-animation__plotly {
             width: 100%;
-          }}
-          .mw-train-animation__col .train-animation__plotly > div {{
+          }
+          .mw-train-animation__col .train-animation__plotly > div {
             width: 100% !important;
-          }}
+          }
+          .mw-train-animation__col .train-animation__fallback-card {
+            padding: 0.85rem 1rem;
+            border-radius: 0.75rem;
+            background: rgba(15, 23, 42, 0.06);
+            border: 1px dashed rgba(15, 23, 42, 0.15);
+          }
+          .mw-train-animation__col .train-animation__fallback-card p {
+            margin: 0;
+          }
+          .mw-train-animation__col .train-animation__fallback-card p + p {
+            margin-top: 0.5rem;
+          }
+          .mw-train-animation__col .train-animation__fallback-detail {
+            font-size: 0.85rem;
+            color: rgba(15, 23, 42, 0.72);
+          }
         </style>
-        <div class="train-animation__body">
-          <h4 class="train-animation__title">How miniLM learns a meaning space</h4>
-          <p class="train-animation__caption">
-            Watch the embedding points move into spam-like and work-like regions as epochs progress.
-          </p>
-          <div class="train-animation__plotly">
-            {training_animation_html}
-          </div>
-        </div>
         """
     ).strip()
+
+    if training_animation_html is not None:
+        animation_body = textwrap.dedent(
+            f"""
+            <div class="train-animation__body">
+              <h4 class="train-animation__title">How miniLM learns a meaning space</h4>
+              <p class="train-animation__caption">
+                Watch the embedding points move into spam-like and work-like regions as epochs progress.
+              </p>
+              <div class="train-animation__plotly">
+                {training_animation_html}
+              </div>
+            </div>
+            """
+        ).strip()
+    else:
+        safe_error = html.escape(
+            training_animation_error
+            or "Install the optional dependency plotly to enable this animation."
+        )
+        animation_body = textwrap.dedent(
+            f"""
+            <div class="train-animation__body">
+              <h4 class="train-animation__title">How miniLM learns a meaning space</h4>
+              <p class="train-animation__caption">
+                Watch the embedding points move into spam-like and work-like regions as epochs progress.
+              </p>
+              <div class="train-animation__plotly train-animation__fallback">
+                <div class="train-animation__fallback-card">
+                  <p>We couldn't load the training animation right now.</p>
+                  <p class="train-animation__fallback-detail">{safe_error}</p>
+                </div>
+              </div>
+            </div>
+            """
+        ).strip()
+
+    animation_col_html = f"{animation_styles}\n{animation_body}"
 
     render_mac_window(
         st,
