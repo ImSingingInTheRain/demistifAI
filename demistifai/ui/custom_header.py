@@ -101,6 +101,16 @@ def mount_demai_header(logo_height: int = 56, max_inner_width: int = 1200) -> No
     sm_vpad = 8
     sm_header_h = sm_logo_h + (sm_vpad * 2)
 
+    # Compact (phone) sizes used when navigation collapses beside the logo
+    compact_logo_h = max(38, base_logo_h - 14)
+    compact_vpad = max(6, sm_vpad - 1)
+    compact_header_h = compact_logo_h + (compact_vpad * 2)
+
+    # Extra-small refinement for very narrow viewports
+    xs_logo_h = max(34, compact_logo_h - 4)
+    xs_vpad = max(4, compact_vpad - 2)
+    xs_header_h = xs_logo_h + (xs_vpad * 2)
+
     # Logo iframe content
     raw_logo_html = demai_logo_html(frame_marker="demai-header")
     logo_data_url = f"data:text/html;base64,{b64encode(raw_logo_html.encode('utf-8')).decode('ascii')}"
@@ -265,60 +275,62 @@ def mount_demai_header(logo_height: int = 56, max_inner_width: int = 1200) -> No
               }}
 
               @media (max-width: 640px) {{
+                :root {{
+                  --demai-logo-h: {compact_logo_h}px;
+                  --demai-header-vpad: {compact_vpad}px;
+                  --demai-header-h: {compact_header_h}px;
+                  --demai-gap: 10px;
+                }}
                 .demai-header-inner {{
-                  grid-template-columns: auto minmax(0,1fr);
-                  grid-template-areas:
-                    "logo stage"
-                    "actions actions";
-                  column-gap: 12px;
-                  row-gap: 8px;
+                  display: flex;
                   align-items: center;
+                  justify-content: space-between;
+                  gap: 10px;
+                  min-height: var(--demai-header-h);
                 }}
-                .demai-logo {{ justify-content: flex-start; }}
                 .demai-stage-wrap {{
-                  text-align: left;
-                  width: 100%;
+                  display: none;
                 }}
-                .demai-stage {{
+                .demai-logo {{
                   justify-content: flex-start;
-                  text-align: left;
-                  flex-direction: column;
-                  align-items: flex-start;
-                  gap: 4px;
-                  padding: 6px 0;
+                  flex: 0 0 auto;
                 }}
-                .demai-stage .progress {{ font-size: .68rem; letter-spacing: .12em; opacity: .85; }}
-                .demai-stage .title {{ font-size: 1.05rem; gap: 6px; }}
-                .demai-stage .title .icon {{ font-size: 1.1rem; }}
-                .demai-stage .title .name {{ max-width: none; }}
                 .demai-actions {{
-                  width: 100%;
-                  justify-content: center;
+                  margin-left: auto;
+                  gap: 6px;
+                  align-items: center;
+                  flex-wrap: nowrap;
                 }}
                 .demai-actions .demai-btn {{
-                  flex: 1 1 0;
-                  max-width: 180px;
-                  justify-content: center;
+                  min-height: calc(var(--demai-btn-min-h) - 6px);
+                  padding: 0 .8rem;
+                  border-radius: 14px;
                 }}
-                .demai-btn .label {{ font-size: .7rem; }}
+                .demai-btn .label {{
+                  font-size: .64rem;
+                  letter-spacing: .14em;
+                }}
+                .demai-btn .arrow-icon {{ font-size: .88rem; }}
               }}
 
               @media (max-width: 420px) {{
                 :root {{
-                  --demai-logo-h: {sm_logo_h}px;
-                  --demai-header-vpad: {sm_vpad}px;
-                  --demai-header-h: {sm_header_h}px;
-                  --demai-gap: 8px;
+                  --demai-logo-h: {xs_logo_h}px;
+                  --demai-header-vpad: {xs_vpad}px;
+                  --demai-header-h: {xs_header_h}px;
+                  --demai-gap: 6px;
                 }}
-                .demai-stage {{ gap: 3px; }}
-                .demai-stage .title {{ font-size: .98rem; gap: 5px; }}
-                .demai-stage .title .icon {{ font-size: 1.05rem; }}
-                .demai-actions {{ gap: 6px; }}
+                .demai-actions {{ gap: 4px; }}
                 .demai-actions .demai-btn {{
-                  border-radius: 16px;
-                  padding: 0 .9rem;
+                  min-height: calc(var(--demai-btn-min-h) - 8px);
+                  padding: 0 .7rem;
+                  border-radius: 12px;
                 }}
-                .demai-btn .arrow-icon {{ font-size: .92rem; }}
+                .demai-btn .label {{
+                  font-size: .6rem;
+                  letter-spacing: .12em;
+                }}
+                .demai-btn .arrow-icon {{ font-size: .84rem; }}
               }}
             </style>
             """
