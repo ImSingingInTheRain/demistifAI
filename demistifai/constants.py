@@ -2072,7 +2072,7 @@ LIFECYCLE_RING_HTML = dedent(
         <style>
             /* ===== Scoped to #demai-lifecycle =================================== */
             #demai-lifecycle.dlc {
-                --ring-size: clamp(260px, min(42vw, calc(100% - 2.5rem)), 460px);
+                --ring-size: clamp(250px, min(40vw, calc(100% - 2rem)), 460px);
                 --square-inset: clamp(16%, calc(50% - 180px), 22%);
                 --elev: 0 14px 30px rgba(15, 23, 42, 0.12);
                 --stroke: inset 0 0 0 1px rgba(15, 23, 42, 0.06);
@@ -2131,8 +2131,8 @@ LIFECYCLE_RING_HTML = dedent(
                 display: grid;
                 place-items: center;
                 gap: 0.25rem;
-                padding: 0.7rem 0.95rem;
-                min-width: 140px;
+                padding: 0.65rem 0.9rem;
+                min-width: 136px;
                 text-align: center;
                 background: #fff;
                 border-radius: 1rem;
@@ -2141,11 +2141,12 @@ LIFECYCLE_RING_HTML = dedent(
                 cursor: pointer;
             }
             #demai-lifecycle .node .icon {
-                font-size: 1.35rem;
+                font-size: 1.28rem;
             }
             #demai-lifecycle .node .title {
                 font-weight: 800;
                 color: #0f172a;
+                font-size: 0.98rem;
             }
             #demai-lifecycle .node:hover,
             #demai-lifecycle .node:focus-visible,
@@ -2228,7 +2229,7 @@ LIFECYCLE_RING_HTML = dedent(
                 inset: var(--tip-top, auto) auto var(--tip-bottom, -0.6rem) 50%;
                 transform: translate(var(--tip-translate-x, -50%), var(--tip-translate-y, 100%));
                 width: min(var(--tip-max-width, 240px), 88vw);
-                padding: 0.6rem 0.75rem;
+                padding: 0.6rem 0.7rem;
                 border-radius: 0.65rem;
                 background: #0f172a;
                 color: #fff;
@@ -2320,23 +2321,28 @@ LIFECYCLE_RING_HTML = dedent(
                     grid-template-columns: repeat(2, minmax(0, 1fr));
                 }
             }
-            @media (max-width: 900px) {
+            @media (max-width: 860px) {
                 #demai-lifecycle {
-                    --ring-size: clamp(220px, min(64vw, calc(100% - 2rem)), 360px);
+                    --ring-size: clamp(230px, min(58vw, calc(100% - 1.6rem)), 360px);
+                    --square-inset: clamp(18%, calc(50% - 165px), 26%);
                 }
             }
-            @media (max-width: 768px) {
+            @media (max-width: 720px) {
                 #demai-lifecycle {
-                    --ring-size: clamp(200px, min(70vw, calc(100% - 1.5rem)), 320px);
-                    --r-node: 39%;
+                    --ring-size: clamp(220px, min(66vw, calc(100% - 1.3rem)), 340px);
+                    --square-inset: clamp(20%, calc(50% - 150px), 28%);
                     --tip-max-width: 220px;
                 }
                 #demai-lifecycle .node {
-                    min-width: 122px;
-                    padding: 0.55rem 0.75rem;
+                    min-width: 120px;
+                    padding: 0.56rem 0.72rem;
+                    gap: 0.2rem;
                 }
                 #demai-lifecycle .node .icon {
-                    font-size: 1.15rem;
+                    font-size: 1.12rem;
+                }
+                #demai-lifecycle .node .title {
+                    font-size: 0.88rem;
                 }
                 #demai-lifecycle .arrow {
                     width: 32px;
@@ -2347,9 +2353,47 @@ LIFECYCLE_RING_HTML = dedent(
                     gap: 0.75rem;
                 }
             }
-            @media (max-width: 540px) {
+            @media (max-width: 560px) {
                 #demai-lifecycle {
-                    --ring-size: clamp(150px, 74vw, 220px);
+                    --ring-size: clamp(205px, min(78vw, calc(100% - 1rem)), 310px);
+                    --square-inset: clamp(23%, calc(50% - 130px), 31%);
+                    --tip-max-width: 214px;
+                }
+                #demai-lifecycle .node {
+                    min-width: 108px;
+                    padding: 0.5rem 0.62rem;
+                    border-radius: 0.9rem;
+                }
+                #demai-lifecycle .node .icon {
+                    font-size: 1.02rem;
+                }
+                #demai-lifecycle .node .title {
+                    font-size: 0.8rem;
+                }
+                #demai-lifecycle .tip {
+                    font-size: 0.72rem;
+                    line-height: 1.4;
+                    border-radius: 0.58rem;
+                    padding: 0.5rem 0.6rem;
+                }
+            }
+            @media (max-width: 440px) {
+                #demai-lifecycle {
+                    --ring-size: clamp(192px, min(88vw, calc(100% - 0.75rem)), 270px);
+                    --square-inset: clamp(27%, calc(50% - 112px), 34%);
+                    --tip-max-width: 200px;
+                }
+                #demai-lifecycle .node {
+                    min-width: 100px;
+                    padding: 0.46rem 0.55rem;
+                    gap: 0.16rem;
+                }
+                #demai-lifecycle .node .icon {
+                    font-size: 0.95rem;
+                }
+                #demai-lifecycle .node .title {
+                    font-size: 0.76rem;
+                    letter-spacing: -0.01em;
                 }
             }
             @media (max-width: 360px) {
@@ -2357,10 +2401,7 @@ LIFECYCLE_RING_HTML = dedent(
                     --tip-max-width: 180px;
                 }
                 #demai-lifecycle .node {
-                    min-width: 110px;
-                }
-                #demai-lifecycle .node .title {
-                    font-size: 0.95rem;
+                    min-width: 96px;
                 }
                 #demai-lifecycle .legend {
                     grid-template-columns: 1fr;
@@ -2432,6 +2473,7 @@ LIFECYCLE_RING_HTML = dedent(
 
                 const nodes = Array.from(root.querySelectorAll('.node[data-stage]'));
                 const cards = Array.from(root.querySelectorAll('.legend .item[data-stage]'));
+                const compactQuery = window.matchMedia('(max-width: 600px)');
                 const alreadyBound = root.dataset.lifecycleBound === '1';
                 let activeStage = '';
 
@@ -2442,6 +2484,7 @@ LIFECYCLE_RING_HTML = dedent(
                     tip.style.removeProperty('--tip-bottom');
                     tip.style.removeProperty('--tip-translate-x');
                     tip.style.removeProperty('--tip-translate-y');
+                    tip.style.removeProperty('--tip-max-width');
                 }
 
                 function positionTip(node) {
@@ -2454,9 +2497,16 @@ LIFECYCLE_RING_HTML = dedent(
                     const rootRect = root.getBoundingClientRect();
                     const nodeCenterY = nodeRect.top + nodeRect.height / 2;
                     const rootCenterY = rootRect.top + rootRect.height / 2;
-                    const orientAbove = nodeCenterY > rootCenterY;
+                    let orientAbove = nodeCenterY > rootCenterY;
+                    const isCompact = compactQuery.matches;
 
-                    if (orientAbove) {
+                    if (isCompact) {
+                        orientAbove = false;
+                        tip.style.setProperty('--tip-bottom', '-0.45rem');
+                        tip.style.setProperty('--tip-translate-y', 'calc(100% + 6px)');
+                        tip.style.setProperty('--tip-translate-x', '-50%');
+                        tip.style.setProperty('--tip-max-width', 'min(200px, 90vw)');
+                    } else if (orientAbove) {
                         tip.style.setProperty('--tip-top', '-0.6rem');
                         tip.style.setProperty('--tip-bottom', 'auto');
                         tip.style.setProperty('--tip-translate-y', '-100%');
@@ -2487,16 +2537,21 @@ LIFECYCLE_RING_HTML = dedent(
                         const viewportBottom = window.innerHeight - padding;
                         const overflowTop = Math.max(0, viewportTop - rect.top);
                         const overflowBottom = Math.max(0, rect.bottom - viewportBottom);
-                        let translateY = tip.style.getPropertyValue('--tip-translate-y') || (orientAbove ? '-100%' : '100%');
+                        const baseTranslate = orientAbove ? '-100%' : (isCompact ? 'calc(100% + 6px)' : '100%');
+                        let translateY = tip.style.getPropertyValue('--tip-translate-y') || baseTranslate;
 
                         if (overflowTop > 0) {
                             translateY = orientAbove
                                 ? `calc(-100% + ${overflowTop}px)`
-                                : `calc(100% + ${overflowTop}px)`;
+                                : (isCompact
+                                    ? `calc(100% + 6px + ${overflowTop}px)`
+                                    : `calc(100% + ${overflowTop}px)`);
                         } else if (overflowBottom > 0) {
                             translateY = orientAbove
                                 ? `calc(-100% - ${overflowBottom}px)`
-                                : `calc(100% - ${overflowBottom}px)`;
+                                : (isCompact
+                                    ? `calc(100% + 6px - ${overflowBottom}px)`
+                                    : `calc(100% - ${overflowBottom}px)`);
                         }
                         tip.style.setProperty('--tip-translate-y', translateY);
                     });
@@ -2566,6 +2621,11 @@ LIFECYCLE_RING_HTML = dedent(
 
                 window.addEventListener('resize', positionActiveTip, { passive: true });
                 window.addEventListener('scroll', positionActiveTip, { passive: true });
+                if (typeof compactQuery.addEventListener === 'function') {
+                    compactQuery.addEventListener('change', positionActiveTip);
+                } else if (typeof compactQuery.addListener === 'function') {
+                    compactQuery.addListener(positionActiveTip);
+                }
 
                 // Start with "Prepare" highlighted on large screens; none on small
                 const isSmall = window.matchMedia('(max-width:768px)').matches;
