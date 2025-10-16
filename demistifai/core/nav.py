@@ -1,6 +1,6 @@
 from __future__ import annotations
 from dataclasses import dataclass
-from typing import Callable, Tuple
+from typing import Callable, Dict, Tuple
 import html
 import streamlit as st
 from streamlit.delta_generator import DeltaGenerator
@@ -21,6 +21,31 @@ class StageTopGridSlots:
     prev_clicked: bool
     next_clicked: bool
 
+
+@dataclass(frozen=True)
+class StageTopCardContent:
+    eyebrow: str
+    title: str
+    description: str
+
+
+def _build_default_stage_top_card_content() -> Dict[str, StageTopCardContent]:
+    placeholders: Dict[str, StageTopCardContent] = {}
+    if STAGES:
+        for stage in STAGES:
+            placeholders[stage.key] = StageTopCardContent(
+                eyebrow=f"{stage.summary} placeholder",
+                title=f"{stage.title} highlight headline",
+                description=(
+                    f"Share stage-specific context or reminders for the {stage.title.lower()} step here."
+                ),
+            )
+    return placeholders
+
+
+STAGE_TOP_CARD_CONTENT: Dict[str, StageTopCardContent] = _build_default_stage_top_card_content()
+
+
 def _stage_navigation_context(stage_key: str):
     stage_keys = [stage.key for stage in STAGES]
     total = len(stage_keys)
@@ -32,27 +57,47 @@ def _stage_navigation_context(stage_key: str):
     next_stage = STAGE_BY_KEY.get(stage_keys[index + 1]) if index < total - 1 else None
     return index, total, stage, prev_stage, next_stage
 
-def _render_stage_navigation_panel(stage_key: str, card_slot: DeltaGenerator, next_slot: DeltaGenerator, prev_slot: DeltaGenerator):
+def _stage_top_card_content(stage_key: str) -> StageTopCardContent:
+    if stage_key in STAGE_TOP_CARD_CONTENT:
+        return STAGE_TOP_CARD_CONTENT[stage_key]
+
+    stage = STAGE_BY_KEY.get(stage_key)
+    if stage is not None:
+        return StageTopCardContent(
+            eyebrow=f"{stage.summary} placeholder",
+            title=f"{stage.title} highlight headline",
+            description="Use this card to summarize the focus of this stage.",
+        )
+
+    return StageTopCardContent(
+        eyebrow="Stage highlight placeholder",
+        title="Customize this stage highlight title",
+        description="Add a short description to orient builders to this step.",
+    )
+
+
+def _render_stage_top_card(stage_key: str, slot: DeltaGenerator) -> None:
+    content = _stage_top_card_content(stage_key)
+    html_card = f"""
+      <div class="stage-top-grid__nav-card">
+        <div class="stage-top-grid__nav-card-header">
+          <span class="stage-top-grid__nav-prompt">{html.escape(content.eyebrow)}</span>
+        </div>
+        <div class="stage-top-grid__nav-title stage-top-grid__nav-title--highlight">
+          <span>{html.escape(content.title)}</span>
+        </div>
+        <p class="stage-top-grid__nav-description">{html.escape(content.description)}</p>
+      </div>
+    """
+    with slot:
+        st.markdown(html_card, unsafe_allow_html=True)
+
+
+def _render_stage_navigation_controls(stage_key: str, next_slot: DeltaGenerator, prev_slot: DeltaGenerator):
     try:
         index, total, stage, prev_stage, next_stage = _stage_navigation_context(stage_key)
     except ValueError:
         return False, False
-
-    html_card = f"""
-      <div class="stage-top-grid__nav-card">
-        <div class="stage-top-grid__nav-card-header">
-          <span class="stage-top-grid__nav-prompt">$ stage.status</span>
-          <span class="stage-top-grid__nav-stage">[{index+1}/{total}]</span>
-        </div>
-        <div class="stage-top-grid__nav-title">
-          <span class="stage-top-grid__nav-icon">{html.escape(stage.icon)}</span>
-          <span>{html.escape(stage.title)}</span>
-        </div>
-        <p class="stage-top-grid__nav-description">{html.escape(stage.description)}</p>
-      </div>
-    """
-    with card_slot:
-        st.markdown(html_card, unsafe_allow_html=True)
 
     next_label = "Proceed" if next_stage is None else f"{next_stage.icon} {next_stage.title} ➡️"
     prev_label = "Back" if prev_stage is None else f"⬅️ {prev_stage.icon} {prev_stage.title}"
@@ -96,6 +141,28 @@ def _render_stage_navigation_panel(stage_key: str, card_slot: DeltaGenerator, ne
         unsafe_allow_html=True,
     )
 
+    prev_slot.markdown(
+        f"""
+        <style>
+        button[title="Return to the previous stage"] {{
+            position: absolute !important;
+            width: 1px !important;
+            height: 1px !important;
+            padding: 0 !important;
+            margin: -1px !important;
+            overflow: hidden !important;
+            clip: rect(0, 0, 0, 0) !important;
+            white-space: nowrap !important;
+            border: 0 !important;
+        }}
+        #{sentinel_prev_id} {{
+            display: none !important;
+        }}
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
     return prev_clicked, next_clicked
 
 def render_stage_top_grid(stage_key: str, *, left_renderer: StageBlockRenderer | None = None,
@@ -104,7 +171,7 @@ def render_stage_top_grid(stage_key: str, *, left_renderer: StageBlockRenderer |
     grid_container = st.container()
     left_col, right_col = grid_container.columns([0.65, 0.35], gap="large")
     left_slot = left_col.container()
-    nav_slot = right_col.container()
+    highlight_slot = right_col.container()
     right_col.markdown("<div class='stage-top-grid__gap'></div>", unsafe_allow_html=True)
     right_first_slot = right_col.container()
     right_col.markdown("<div class='stage-top-grid__gap'></div>", unsafe_allow_html=True)
@@ -114,7 +181,8 @@ def render_stage_top_grid(stage_key: str, *, left_renderer: StageBlockRenderer |
     right_col.markdown("<div class='stage-top-grid__gap'></div>", unsafe_allow_html=True)
     prev_slot = right_col.container()
 
-    prev_clicked, next_clicked = _render_stage_navigation_panel(stage_key, nav_slot, next_slot, prev_slot)
+    _render_stage_top_card(stage_key, highlight_slot)
+    prev_clicked, next_clicked = _render_stage_navigation_controls(stage_key, next_slot, prev_slot)
 
     if left_renderer is not None:
         left_renderer(left_slot)
