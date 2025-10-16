@@ -111,11 +111,20 @@ def mount_demai_header(logo_height: int = 56, max_inner_width: int = 1200) -> No
         title = html.escape(stage.title)
         progress = f"Stage {index + 1} of {total}" if total else f"Stage {index + 1}"
         stage_html = (
-            f'<div class="demai-stage"><span class="progress">{progress}</span>'
-            f'<span class="title">{icon} {title}</span></div>'
+            "<div class=\"demai-stage\">"
+            f'<span class="progress">{progress}</span>'
+            f'<span class="title"><span class="icon" aria-hidden="true">{icon}</span>'
+            f'<span class="name">{title}</span></span>'
+            "</div>"
         )
     else:
-        stage_html = '<div class="demai-stage"><span class="progress">Stage</span><span class="title">Loading…</span></div>'
+        stage_html = (
+            "<div class=\"demai-stage\">"
+            '<span class="progress">Stage</span>'
+            '<span class="title"><span class="icon" aria-hidden="true">…</span>'
+            '<span class="name">Loading…</span></span>'
+            "</div>"
+        )
 
     # ---------- CSS ----------
     st.markdown(
@@ -172,17 +181,24 @@ def mount_demai_header(logo_height: int = 56, max_inner_width: int = 1200) -> No
               }}
 
               .demai-stage {{
-                display: inline-flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap;
-                color: rgba(226,232,240,0.92);
+                display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+                flex-wrap: wrap; color: rgba(226,232,240,0.92);
                 min-height: max(var(--demai-logo-h), var(--demai-btn-min-h));
-                line-height: 1.2;
-                text-align: center;
+                line-height: 1.2; text-align: center;
               }}
               .demai-stage .progress {{
                 font-weight: 600; letter-spacing: .06em; text-transform: uppercase;
                 font-size: .74rem; color: rgba(226,232,240,.72);
               }}
-              .demai-stage .title {{ font-weight: 700; font-size: 1rem; }}
+              .demai-stage .title {{
+                display: inline-flex; align-items: center; gap: 8px;
+                font-weight: 700; font-size: 1rem;
+              }}
+              .demai-stage .title .icon {{
+                display: inline-flex; align-items: center; justify-content: center;
+                font-size: 1.05rem;
+              }}
+              .demai-stage .title .name {{ display: inline-block; max-width: 20ch; }}
 
               /* Visible header buttons (HTML) */
               .demai-btn {{
@@ -250,18 +266,40 @@ def mount_demai_header(logo_height: int = 56, max_inner_width: int = 1200) -> No
 
               @media (max-width: 640px) {{
                 .demai-header-inner {{
-                  grid-template-columns: minmax(0,1fr);
+                  grid-template-columns: auto minmax(0,1fr);
                   grid-template-areas:
-                    "logo"
-                    "stage"
-                    "actions";
-                  row-gap: 10px;
+                    "logo stage"
+                    "actions actions";
+                  column-gap: 12px;
+                  row-gap: 8px;
+                  align-items: center;
                 }}
-                .demai-logo {{ justify-content: center; }}
-                .demai-stage {{ justify-content: center; text-align: center; }}
-                .demai-stage-wrap {{ text-align: center; }}
-                .demai-actions {{ width: 100%; justify-content: center; }}
-                .demai-actions .demai-btn {{ flex: 1 1 0; max-width: 160px; justify-content: center; }}
+                .demai-logo {{ justify-content: flex-start; }}
+                .demai-stage-wrap {{
+                  text-align: left;
+                  width: 100%;
+                }}
+                .demai-stage {{
+                  justify-content: flex-start;
+                  text-align: left;
+                  flex-direction: column;
+                  align-items: flex-start;
+                  gap: 4px;
+                  padding: 6px 0;
+                }}
+                .demai-stage .progress {{ font-size: .68rem; letter-spacing: .12em; opacity: .85; }}
+                .demai-stage .title {{ font-size: 1.05rem; gap: 6px; }}
+                .demai-stage .title .icon {{ font-size: 1.1rem; }}
+                .demai-stage .title .name {{ max-width: none; }}
+                .demai-actions {{
+                  width: 100%;
+                  justify-content: center;
+                }}
+                .demai-actions .demai-btn {{
+                  flex: 1 1 0;
+                  max-width: 180px;
+                  justify-content: center;
+                }}
                 .demai-btn .label {{ font-size: .7rem; }}
               }}
 
@@ -272,7 +310,9 @@ def mount_demai_header(logo_height: int = 56, max_inner_width: int = 1200) -> No
                   --demai-header-h: {sm_header_h}px;
                   --demai-gap: 8px;
                 }}
-                .demai-stage .title {{ font-size: .95rem; }}
+                .demai-stage {{ gap: 3px; }}
+                .demai-stage .title {{ font-size: .98rem; gap: 5px; }}
+                .demai-stage .title .icon {{ font-size: 1.05rem; }}
                 .demai-actions {{ gap: 6px; }}
                 .demai-actions .demai-btn {{
                   border-radius: 16px;
