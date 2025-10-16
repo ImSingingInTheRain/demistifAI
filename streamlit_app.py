@@ -184,7 +184,7 @@ from demistifai.ui.components.terminal.data_prep import render_prepare_terminal
 from demistifai.ui.components.terminal.evaluate import render_evaluate_terminal
 from demistifai.ui.components.terminal.train import render_train_terminal
 from demistifai.ui.components.terminal.use import render_use_terminal
-from demistifai.ui.train_animation import build_training_animation_figure
+from demistifai.ui.train_animation import build_training_animation_column
 logger = logging.getLogger(__name__)
 
 st.session_state.setdefault("viewport_is_mobile", False)
@@ -4225,104 +4225,45 @@ def _render_train_stage_wrapper() -> None:
 
     render_stage_top_grid("train", left_renderer=_render_train_terminal)
 
-    training_animation_error: Optional[str] = None
-    try:
-        training_animation_fig = build_training_animation_figure()
-    except RuntimeError as exc:
-        training_animation_fig = None
-        training_animation_error = str(exc)
+    animation_column = build_training_animation_column()
 
-    if training_animation_fig is not None:
-        training_animation_html = training_animation_fig.to_html(
-            include_plotlyjs="cdn",
-            full_html=False,
-            config={"displayModeBar": False},
-        )
-    else:
-        training_animation_html = None
-
-    animation_styles = textwrap.dedent(
+    training_notes_html = textwrap.dedent(
         """
         <style>
-          .mw-train-animation__col .train-animation__body {
+          .train-animation__notes {
             display: grid;
             gap: 0.75rem;
           }
-          .mw-train-animation__col .train-animation__title {
+          .train-animation__notes h4 {
             margin: 0;
-            font-size: 1.05rem;
+            font-size: 1.0rem;
             font-weight: 700;
             color: #0f172a;
           }
-          .mw-train-animation__col .train-animation__caption {
+          .train-animation__notes ul {
             margin: 0;
-            font-size: 0.92rem;
+            padding-left: 1.15rem;
+            display: grid;
+            gap: 0.45rem;
+            font-size: 0.95rem;
             line-height: 1.45;
-            color: rgba(15, 23, 42, 0.74);
+            color: rgba(15, 23, 42, 0.78);
           }
-          .mw-train-animation__col .train-animation__plotly {
-            width: 100%;
-          }
-          .mw-train-animation__col .train-animation__plotly > div {
-            width: 100% !important;
-          }
-          .mw-train-animation__col .train-animation__fallback-card {
-            padding: 0.85rem 1rem;
-            border-radius: 0.75rem;
-            background: rgba(15, 23, 42, 0.06);
-            border: 1px dashed rgba(15, 23, 42, 0.15);
-          }
-          .mw-train-animation__col .train-animation__fallback-card p {
-            margin: 0;
-          }
-          .mw-train-animation__col .train-animation__fallback-card p + p {
-            margin-top: 0.5rem;
-          }
-          .mw-train-animation__col .train-animation__fallback-detail {
-            font-size: 0.85rem;
-            color: rgba(15, 23, 42, 0.72);
+          .train-animation__notes li strong {
+            color: #1d4ed8;
           }
         </style>
+        <div class="train-animation__notes">
+          <h4>Training loop snapshot</h4>
+          <ul>
+            <li><strong>MiniLM embeddings</strong> map emails into a 384D space.</li>
+            <li><strong>Logistic regression</strong> learns a separating boundary.</li>
+            <li><strong>Epoch playback</strong> shows how spam/work clusters settle.</li>
+            <li>Toggle Nerd Mode to inspect features and weights in detail.</li>
+          </ul>
+        </div>
         """
     ).strip()
-
-    if training_animation_html is not None:
-        animation_body = textwrap.dedent(
-            f"""
-            <div class="train-animation__body">
-              <h4 class="train-animation__title">How miniLM learns a meaning space</h4>
-              <p class="train-animation__caption">
-                Watch the embedding points move into spam-like and work-like regions as epochs progress.
-              </p>
-              <div class="train-animation__plotly">
-                {training_animation_html}
-              </div>
-            </div>
-            """
-        ).strip()
-    else:
-        safe_error = html.escape(
-            training_animation_error
-            or "Install the optional dependency plotly to enable this animation."
-        )
-        animation_body = textwrap.dedent(
-            f"""
-            <div class="train-animation__body">
-              <h4 class="train-animation__title">How miniLM learns a meaning space</h4>
-              <p class="train-animation__caption">
-                Watch the embedding points move into spam-like and work-like regions as epochs progress.
-              </p>
-              <div class="train-animation__plotly train-animation__fallback">
-                <div class="train-animation__fallback-card">
-                  <p>We couldn't load the training animation right now.</p>
-                  <p class="train-animation__fallback-detail">{safe_error}</p>
-                </div>
-              </div>
-            </div>
-            """
-        ).strip()
-
-    animation_col_html = f"{animation_styles}\n{animation_body}"
 
     render_mac_window(
         st,
@@ -4330,8 +4271,9 @@ def _render_train_stage_wrapper() -> None:
         subtitle="MiniLM organising emails by meaning",
         columns=2,
         ratios=(0.3, 0.7),
-        col_html=[None, animation_col_html],
+        col_html=[training_notes_html, animation_column.html],
         id_suffix="train-animation",
+        fallback_height=animation_column.fallback_height,
     )
 
     render_train_stage(

@@ -2,18 +2,13 @@
 
 from __future__ import annotations
 
+import textwrap
+from dataclasses import dataclass
 from typing import Optional
 
 import numpy as np
+import plotly.graph_objects as go
 import streamlit as st
-
-try:  # Optional dependency: Plotly drives the training animation
-    import plotly.graph_objects as go
-except ModuleNotFoundError:  # pragma: no cover - import guard
-    go = None  # type: ignore[assignment]
-    PLOTLY_AVAILABLE = False
-else:
-    PLOTLY_AVAILABLE = True
 
 # --------- Tunables ----------
 MAP_X = (-3.0, 3.0)
@@ -36,6 +31,14 @@ CLUSTERS = [
 
 CLASS_TO_COLOR = {"spam": "#E55B3C", "work": "#3C7BE5"}  # red / blue
 CLASS_PROBS = {"spam": 0.55, "work": 0.45}               # tweak if needed
+
+
+@dataclass(frozen=True)
+class TrainingAnimationColumn:
+    """Encapsulate the mac window column markup for the training animation."""
+
+    html: str
+    fallback_height: int = 720
 
 def _sample_targets(rng: np.random.Generator, n: int):
     """Assign each point a class and a target cluster center."""
@@ -76,11 +79,6 @@ def _interpolate(x0, y0, x1, y1, t):
 
 def build_training_animation_figure(*, seed: Optional[int] = None) -> go.Figure:
     """Return the Plotly figure used in the training animation."""
-
-    if not PLOTLY_AVAILABLE:
-        raise RuntimeError(
-            "Plotly is required for the training animation but is not installed."
-        )
 
     rng = np.random.default_rng(RANDOM_SEED if seed is None else seed)
 
@@ -188,15 +186,64 @@ def build_training_animation_figure(*, seed: Optional[int] = None) -> go.Figure:
     return fig
 
 
+def build_training_animation_column(
+    *, seed: Optional[int] = None
+) -> TrainingAnimationColumn:
+    base_styles = textwrap.dedent(
+        """
+        <style>
+          .train-animation__body {
+            display: grid;
+            gap: 0.75rem;
+          }
+          .train-animation__title {
+            margin: 0;
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: #0f172a;
+          }
+          .train-animation__caption {
+            margin: 0;
+            font-size: 0.92rem;
+            line-height: 1.45;
+            color: rgba(15, 23, 42, 0.74);
+          }
+          .train-animation__plotly {
+            width: 100%;
+          }
+          .train-animation__plotly > div {
+            width: 100% !important;
+          }
+        </style>
+        """
+    ).strip()
+
+    fig = build_training_animation_figure(seed=seed)
+    interactive_html = fig.to_html(
+        include_plotlyjs="inline",
+        full_html=False,
+        config={"displayModeBar": False},
+    )
+
+    body_html = textwrap.dedent(
+        f"""
+        <div class="train-animation__body">
+          <h4 class="train-animation__title">How miniLM learns a meaning space</h4>
+          <p class="train-animation__caption">
+            Watch the embedding points move into spam-like and work-like regions as epochs progress.
+          </p>
+          <div class="train-animation__plotly">
+            {interactive_html}
+          </div>
+        </div>
+        """
+    ).strip()
+
+    return TrainingAnimationColumn(html=f"{base_styles}\n{body_html}")
+
+
 def render_training_animation():
     st.subheader("How miniLM learns a meaning space")
-
-    if not PLOTLY_AVAILABLE:
-        st.info(
-            "Install the optional dependency `plotly` to view the training animation."
-        )
-        return
-
     fig = build_training_animation_figure()
 
     st.plotly_chart(fig, use_container_width=True)
