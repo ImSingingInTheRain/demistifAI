@@ -181,6 +181,7 @@ from demistifai.ui.components.terminal.boot_sequence import (
     render_ai_act_terminal as render_boot_sequence_terminal,
 )
 from demistifai.ui.components.terminal.data_prep import render_prepare_terminal
+from demistifai.ui.components.terminal.train import render_train_terminal
 logger = logging.getLogger(__name__)
 
 st.session_state.setdefault("viewport_is_mobile", False)
@@ -4201,7 +4202,14 @@ These are standardized and combined with the embedding before a linear classifie
 
 
 def _render_train_stage_wrapper() -> None:
-    render_stage_top_grid("train")
+    def _render_train_terminal(slot: DeltaGenerator) -> None:
+        with slot:
+            render_train_terminal(
+                speed_type_ms=22,
+                pause_between_lines_ms=320,
+            )
+
+    render_stage_top_grid("train", left_renderer=_render_train_terminal)
 
     render_train_stage(
         ss,
