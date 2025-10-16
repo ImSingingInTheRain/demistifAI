@@ -4,9 +4,6 @@ import html
 import uuid
 from textwrap import dedent, indent
 
-import streamlit.components.v1 as components
-
-
 def mac_window_html(
     title: str = "demAI",
     subtitle: str | None = None,
@@ -215,16 +212,9 @@ def render_mac_window(st, **kwargs):
     fallback_height = kwargs.pop("fallback_height", None)
     html_str = mac_window_html(**kwargs)
 
-    # Streamlit 1.50 introduced ``st.html`` which properly renders rich HTML and
-    # scripts without escaping them back to text. Use it when available so the
-    # lifecycle map (and other interactive payloads) execute as intended.
-    render_html = getattr(st, "html", None)
-    if callable(render_html):
-        render_html(html_str)
-        return
-
-    # Fall back to components.html so scripts (e.g., Plotly animations) run on
-    # older Streamlit releases that lack ``st.html``.
+    # ``components.html`` ensures rich HTML (including scripts like the training
+    # animation) render without sanitisation. Always prefer it so interactive
+    # payloads behave consistently across Streamlit versions.
     if fallback_height is None:
         # ``components.html`` requires an explicit height; without it, the iframe
         # collapses to 0px which hides rich content like the training animation.
@@ -232,4 +222,4 @@ def render_mac_window(st, **kwargs):
         # still allowing call sites to opt in to a custom height when needed.
         fallback_height = 720
 
-    components.html(html_str, height=fallback_height, scrolling=True)
+    st.components.v1.html(html_str, height=fallback_height, scrolling=True)
