@@ -14,6 +14,7 @@ from textwrap import dedent
 from typing import Optional
 
 import streamlit as st
+import streamlit.components.v1 as components
 
 from demistifai.constants import STAGES, STAGE_INDEX, StageMeta
 from demistifai.core.utils import streamlit_rerun
@@ -235,37 +236,46 @@ def mount_demai_header(logo_height: int = 56, max_inner_width: int = 1200) -> No
     )
 
     # ---------- JS bridge: visible header buttons -> stage grid buttons ----------
-    st.markdown(
+    components.html(
         f"""
         <script>
           (function wireHeaderNav() {{
-            function byId(id) {{ return document.getElementById(id); }}
+            const doc = window.parent && window.parent.document ? window.parent.document : document;
+            function byId(id) {{ return doc.getElementById(id); }}
+            function resolveNavTarget(targetId) {{
+              const direct = byId(targetId);
+              if (direct) return direct;
+              const sentinel = doc.querySelector(`[data-demai-target="${'{'}targetId{'}'}"]`);
+              if (!sentinel) return null;
+              const container = sentinel.closest('[data-testid="stVerticalBlock"]') || sentinel.parentElement;
+              if (!container) return null;
+              const button = container.querySelector('button');
+              return button || null;
+            }}
             function bind(vId, hId) {{
-              const v = byId(vId);
-              if (!v || v.dataset.boundTarget === hId) return false;
-              function attach() {{
-                const h = byId(hId);
-                if (!h) return false;
+              function attempt() {{
+                const v = byId(vId);
+                if (!v) return false;
+                if (v.dataset.boundTarget === hId) return true;
+                const target = resolveNavTarget(hId);
+                if (!target) return false;
                 v.addEventListener('click', function(e) {{
                   if (v.getAttribute('aria-disabled') === 'true') return;
-                  const target = byId(hId);
-                  if (!target) return;
+                  const btn = resolveNavTarget(hId);
+                  if (!btn) return;
                   e.preventDefault(); e.stopPropagation();
-                  target.click();
+                  btn.click();
                 }});
                 v.dataset.boundTarget = hId;
                 return true;
               }}
-              // Wait for the stage grid nav button to be tagged with the expected id
-              let n=0; const t=setInterval(function(){{
-                if (attach() || ++n>25) clearInterval(t);
-              }}, 120);
-              return true;
+              attempt();
+              setInterval(attempt, 400);
             }}
             bind('{prev_visible_id}', '{hidden_prev_id}');
             bind('{next_visible_id}', '{hidden_next_id}');
           }})();
         </script>
         """,
-        unsafe_allow_html=True,
+        height=0,
     )
