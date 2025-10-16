@@ -33,15 +33,16 @@ _DEFAULT_DEMAI_LINES: List[str] = [
 _TERMINAL_STYLE = dedent(f"""
 <style>
   .terminal-{_TERMINAL_SUFFIX} {{
-    width: 95%;
-    height: 95%;
+    width: min(100%, 680px);
+    height: auto;
     background: #0d1117;
     color: #e5e7eb;
     font-family: 'Fira Code', ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
     border-radius: 12px;
-    padding: 1.5rem 1rem 1.3rem;
+    padding: 1.5rem 1.2rem 1.3rem;
     position: relative;
     overflow: hidden;
+    margin: 0 auto;
   }}
   .terminal-{_TERMINAL_SUFFIX}::before {{
     content: '●  ●  ●';
@@ -82,6 +83,16 @@ _TERMINAL_STYLE = dedent(f"""
   @media (prefers-reduced-motion: reduce) {{
     .caret-{_TERMINAL_SUFFIX} {{ animation: none; }}
     .terminal-wrap-{_TERMINAL_SUFFIX} {{ animation: none; opacity:1; transform:none; }}
+  }}
+
+  @media (max-width: 640px) {{
+    .terminal-{_TERMINAL_SUFFIX} {{
+      border-radius: 10px;
+      padding: clamp(1rem, 5vw, 1.35rem);
+    }}
+    .term-body-{_TERMINAL_SUFFIX} {{
+      font-size: .9rem;
+    }}
   }}
 </style>
 """)

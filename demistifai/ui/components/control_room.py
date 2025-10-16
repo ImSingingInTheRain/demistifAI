@@ -66,7 +66,8 @@ def stage_control_room(
             --ring1: rgba(99,102,241,.08); --ring2: rgba(14,165,233,.06);
             --card:#fff; --stroke:rgba(15,23,42,.10);
             border-radius:16px; padding: clamp(12px, 2.2vw, 20px);
-            margin: .25rem 0 1rem 0;
+            margin: .25rem auto 1rem auto;
+            width: min(100%, 760px);
           }
           .hub--glass {
             background: radial-gradient(130% 120% at 50% 0%, var(--ring1), var(--ring2));
@@ -142,6 +143,39 @@ def stage_control_room(
             box-shadow: inset 0 0 0 1px rgba(15,23,42,.12);
           }
           .hub--terminal .hub__btn--ghost { background:#111827; color:#e5e7eb; }
+
+          @media (max-width: 720px) {
+            .hub {
+              border-radius: 14px;
+              padding: clamp(16px, 5vw, 22px);
+              width: 100%;
+            }
+            .hub__toolbar {
+              flex-direction: column;
+              align-items: stretch;
+              gap: .8rem;
+            }
+            .hub__right {
+              width: 100%;
+              justify-content: flex-end;
+            }
+            .hub__rows {
+              gap: clamp(12px, 4vw, 16px);
+            }
+            .hub__row {
+              padding: clamp(12px, 5vw, 18px);
+            }
+            .hub__footer {
+              flex-direction: column;
+              align-items: stretch;
+            }
+            .hub__btn,
+            .hub__btn--ghost {
+              width: 100%;
+              justify-content: center;
+              font-size: .98rem;
+            }
+          }
         </style>
         """
     )

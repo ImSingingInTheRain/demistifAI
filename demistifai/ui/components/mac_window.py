@@ -104,6 +104,8 @@ def mac_window_html(
             overflow: hidden;
             box-shadow: var(--shadow);
             background: var(--body-bg);
+            width: min(100%, 960px);
+            margin: 0 auto;
           }}
           .mw-{suf}__chrome {{
             display: grid;
@@ -179,6 +181,32 @@ def mac_window_html(
           /* Responsive */
           @media (max-width: 920px){{
             .mw-{suf}__grid {{ grid-template-columns: 1fr; }}
+          }}
+
+          @media (max-width: 720px){{
+            .mw-{suf} {{
+              --radius: 12px;
+              box-shadow: 0 14px 32px rgba(15,23,42,.12);
+            }}
+            .mw-{suf}__chrome {{
+              padding: .55rem .85rem;
+              grid-template-columns: 1fr;
+              row-gap: .5rem;
+            }}
+            .mw-{suf}__lights {{
+              order: 2;
+              justify-self: start;
+            }}
+            .mw-{suf}__body {{
+              padding: clamp(.85rem, 5vw, 1.15rem);
+            }}
+            .mw-{suf}__grid {{
+              gap: clamp(.75rem, 4.5vw, 1rem);
+            }}
+            .mw-{suf}__col {{
+              min-height: 0;
+              padding: clamp(.85rem, 5vw, 1.2rem);
+            }}
           }}
         </style>
 
