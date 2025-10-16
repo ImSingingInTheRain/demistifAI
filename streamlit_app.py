@@ -590,7 +590,6 @@ def render_intro_stage():
                     border: 1px solid rgba(37, 99, 235, 0.32);
                     box-shadow: 0 26px 56px rgba(37, 99, 235, 0.22);
                     align-items: center;
-                    min-height: clamp(340px, 52vh, 460px);
                 }
                 .mw-intro-lifecycle__col:has(> .intro-lifecycle-map)::before {
                     background: radial-gradient(circle at center, rgba(96, 165, 250, 0.42), transparent 72%);
@@ -691,7 +690,7 @@ def render_intro_stage():
                 }
                 .mw-intro-lifecycle .intro-lifecycle-map #demai-lifecycle.dlc {
                     flex: 1;
-                    width: min(100%, 560px);
+                    width: min(100%, 520px);
                     margin-inline: auto;
                 }
                 @media (max-width: 1024px) {

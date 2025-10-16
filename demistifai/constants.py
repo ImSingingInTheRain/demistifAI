@@ -2072,7 +2072,7 @@ LIFECYCLE_RING_HTML = dedent(
         <style>
             /* ===== Scoped to #demai-lifecycle =================================== */
             #demai-lifecycle.dlc {
-                --ring-size: clamp(280px, min(46vw, calc(100% - 2.5rem)), 520px);
+                --ring-size: clamp(260px, min(42vw, calc(100% - 2.5rem)), 460px);
                 --square-inset: clamp(16%, calc(50% - 180px), 22%);
                 --elev: 0 14px 30px rgba(15, 23, 42, 0.12);
                 --stroke: inset 0 0 0 1px rgba(15, 23, 42, 0.06);
@@ -2322,12 +2322,12 @@ LIFECYCLE_RING_HTML = dedent(
             }
             @media (max-width: 900px) {
                 #demai-lifecycle {
-                    --ring-size: clamp(230px, min(70vw, calc(100% - 2rem)), 380px);
+                    --ring-size: clamp(220px, min(64vw, calc(100% - 2rem)), 360px);
                 }
             }
             @media (max-width: 768px) {
                 #demai-lifecycle {
-                    --ring-size: clamp(200px, min(74vw, calc(100% - 1.5rem)), 330px);
+                    --ring-size: clamp(200px, min(70vw, calc(100% - 1.5rem)), 320px);
                     --r-node: 39%;
                     --tip-max-width: 220px;
                 }
@@ -2349,8 +2349,7 @@ LIFECYCLE_RING_HTML = dedent(
             }
             @media (max-width: 540px) {
                 #demai-lifecycle {
-                    --ring-size: clamp(160px, 78vw, 240px);
-                    --tip-max-width: 200px;
+                    --ring-size: clamp(150px, 74vw, 220px);
                 }
             }
             @media (max-width: 360px) {
