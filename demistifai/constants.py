@@ -34,9 +34,9 @@ APP_THEME_CSS = """
 [data-testid="stMainBlockContainer"] {
     max-width: 1200px;
     padding-top: 1.5rem !important;
-    padding-right: 1.5rem;
+    padding-right: clamp(0.75rem, 3.5vw, 1.5rem);
     padding-bottom: 3rem !important;
-    padding-left: 1.5rem;
+    padding-left: clamp(0.75rem, 3.5vw, 1.5rem);
 }
 
 .section-surface {
@@ -53,7 +53,7 @@ APP_THEME_CSS = """
     border: 1px solid var(--surface-border);
     background: var(--surface-gradient);
     box-shadow: var(--surface-shadow);
-    padding: clamp(1.4rem, 1.4vw + 1rem, 2.1rem);
+    padding: clamp(1.15rem, 1.4vw + 0.85rem, 2.1rem);
     overflow: hidden;
     color: #0f172a;
 }
@@ -238,7 +238,7 @@ APP_THEME_CSS = """
     position: relative;
     display: grid;
     gap: clamp(1.3rem, 2vw, 1.9rem);
-    padding: clamp(1.8rem, 3.2vw, 2.5rem);
+    padding: clamp(1.4rem, 3.2vw, 2.5rem);
     border-radius: 1.8rem;
     background: linear-gradient(135deg, rgba(59, 130, 246, 0.16), rgba(236, 72, 153, 0.12));
     border: 1px solid rgba(15, 23, 42, 0.08);
@@ -451,6 +451,17 @@ APP_THEME_CSS = """
 }
 
 @media (max-width: 640px) {
+    [data-testid="stMainBlockContainer"] {
+        padding-right: clamp(0.65rem, 4vw, 1rem);
+        padding-left: clamp(0.65rem, 4vw, 1rem);
+    }
+
+    .section-surface > div[data-testid="stVerticalBlock"],
+    .section-surface-block {
+        border-radius: 20px;
+        padding: clamp(1rem, 5vw + 0.35rem, 1.35rem);
+    }
+
     .hero-feature-card__body--animation .eu-typing {
         padding: 0.85rem 0.95rem;
     }
@@ -471,7 +482,7 @@ APP_THEME_CSS = """
     gap: clamp(1.4rem, 2.2vw, 1.9rem);
     background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(224, 242, 254, 0.72));
     border-radius: 1.6rem;
-    padding: clamp(1.4rem, 2.4vw, 2rem);
+    padding: clamp(1.2rem, 2.4vw, 2rem);
     border: 1px solid rgba(37, 99, 235, 0.22);
     box-shadow: 0 22px 48px rgba(37, 99, 235, 0.18);
     overflow: hidden;
