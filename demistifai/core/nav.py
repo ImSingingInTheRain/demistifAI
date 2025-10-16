@@ -7,7 +7,7 @@ from streamlit.delta_generator import DeltaGenerator
 
 # Expect STAGES, STAGE_BY_KEY in app scope; import if you have a module for them.
 try:
-    from demistifai.core.constants import STAGES, STAGE_BY_KEY  # type: ignore
+    from demistifai.config.app import STAGES, STAGE_BY_KEY  # type: ignore
 except Exception:
     STAGES, STAGE_BY_KEY = [], {}
 

@@ -43,7 +43,7 @@ from demistifai.constants import (
     STAGES,
     URGENCY,
 )
-from demistifai.core.constants import (
+from demistifai.config.tokens import (
     TOKEN_POLICY,
     PII_DISPLAY_LABELS,
     PII_CHIP_CONFIG,

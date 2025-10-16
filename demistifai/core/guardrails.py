@@ -3,10 +3,10 @@ import html, re
 from typing import Any, Dict, List, Tuple
 
 # If these exist in your constants module, import them:
-# from demistifai.core.constants import URGENCY, URGENCY_TERMS
+# from demistifai.config.app import URGENCY, URGENCY_TERMS
 # Otherwise, keep these two lists here or pass them in via a setup function.
 try:
-    from demistifai.core.constants import URGENCY, URGENCY_TERMS  # type: ignore
+    from demistifai.config.app import URGENCY, URGENCY_TERMS  # type: ignore
 except Exception:
     URGENCY, URGENCY_TERMS = [], []  # fallback to empty
 
