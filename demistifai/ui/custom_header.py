@@ -93,14 +93,14 @@ def mount_demai_header(logo_height: int = 56) -> None:
             f"""
             <style>
               /* Hide default Streamlit header */
-              header, [data-testid="stHeader"] {{
+              header[data-testid="stHeader"], [data-testid="stHeader"] {{
                 display: none !important;
                 visibility: hidden !important;
               }}
 
               /* Ensure main content has room under our fixed header */
               [data-testid="stAppViewContainer"] .main .block-container {{
-                padding-top: {logo_height + 28}px !important; /* header height + gap */
+                padding-top: {logo_height + 24}px !important; /* header height + gap */
               }}
 
               /* Fixed header bar */
@@ -113,10 +113,10 @@ def mount_demai_header(logo_height: int = 56) -> None:
 
                 display: flex;
                 align-items: center;
-                gap: 16px;
+                gap: 18px;
 
-                min-height: {logo_height + 10}px;
-                padding: 6px 18px;
+                min-height: {logo_height + 12}px;
+                padding: 8px 16px;
                 box-sizing: border-box;
 
                 background: rgba(15, 23, 42, 0.92);
@@ -134,108 +134,57 @@ def mount_demai_header(logo_height: int = 56) -> None:
               }}
 
               .demai-header__nav {{
-                flex: 1 1 auto;
+                margin-left: auto;
                 display: flex;
-                align-items: center;
-                justify-content: space-between;
-                gap: 20px;
-                min-width: 0;
-              }}
-
-              .demai-header__nav [data-testid="stHorizontalBlock"] {{
+                flex-direction: column;
+                gap: 6px;
                 width: 100%;
-              }}
-
-              .demai-header__nav [data-testid="column"] {{
-                padding: 0 !important;
+                max-width: 480px;
               }}
 
               .demai-header__stage {{
                 display: flex;
-                flex-direction: column;
-                justify-content: center;
-                color: rgba(226, 232, 240, 0.9);
-                font-size: 0.84rem;
-                min-width: 0;
+                justify-content: space-between;
+                align-items: baseline;
+                gap: 12px;
+                color: rgba(226, 232, 240, 0.92);
+                font-size: 0.9rem;
               }}
 
               .demai-header__stage-progress {{
                 font-weight: 500;
                 text-transform: uppercase;
-                letter-spacing: 0.16em;
-                font-size: 0.64rem;
-                color: rgba(148, 163, 184, 0.88);
-                margin-bottom: 1px;
+                letter-spacing: 0.08em;
+                font-size: 0.72rem;
+                color: rgba(226, 232, 240, 0.72);
               }}
 
               .demai-header__stage-name {{
-                font-weight: 600;
-                font-size: 0.96rem;
+                font-weight: 700;
+                font-size: 1rem;
                 white-space: nowrap;
-                overflow: hidden;
-                text-overflow: ellipsis;
               }}
 
               .demai-header__controls {{
                 display: flex;
-                align-items: center;
-                justify-content: flex-end;
                 gap: 8px;
+              }}
+
+              .demai-header__controls [data-testid="stVerticalBlock"] {{
                 width: 100%;
               }}
 
               .demai-header__controls [data-testid="stButton"] {{
-                width: auto;
+                width: 100%;
               }}
 
               .demai-header__controls [data-testid="stButton"] > button {{
-                display: inline-flex;
-                align-items: center;
-                justify-content: center;
-                height: 28px;
-                padding: 0 14px;
-                line-height: 1;
                 border-radius: 999px;
-                border: 1px solid rgba(94, 234, 212, 0.45);
-                background: linear-gradient(135deg, rgba(15, 23, 42, 0.52), rgba(30, 64, 175, 0.24));
-                color: rgba(226, 239, 255, 0.92);
-                font-weight: 600;
-                font-size: 0.72rem;
-                letter-spacing: 0.02em;
-                box-shadow: none;
-                transition: background 120ms ease, border-color 120ms ease, transform 120ms ease, color 120ms ease;
+                font-weight: 700;
               }}
 
-              .demai-header__controls [data-testid="stButton"] > button:hover {{
-                background: linear-gradient(135deg, rgba(14, 116, 144, 0.6), rgba(37, 99, 235, 0.32));
-                border-color: rgba(94, 234, 212, 0.75);
-                transform: translateY(-1px);
-              }}
-
-              .demai-header__controls [data-testid="stButton"] > button:active {{
-                transform: translateY(0);
-              }}
-
-              .demai-header__controls [data-testid="stButton"] > button:focus-visible {{
-                outline: 2px solid rgba(94, 234, 212, 0.85);
-                outline-offset: 1px;
-              }}
-
-              .demai-header__control-placeholder {{
-                display: inline-flex;
-                min-width: 86px;
-                height: 28px;
-              }}
-
-              @media (max-width: 960px) {{
-                .demai-header {{
-                  gap: 12px;
-                  padding: 6px 14px;
-                }}
-
-                .demai-header__controls [data-testid="stButton"] > button {{
-                  padding: 0 12px;
-                }}
+              .demai-header__button-placeholder {{
+                height: 38px;
               }}
             </style>
             """
@@ -255,7 +204,7 @@ def mount_demai_header(logo_height: int = 56) -> None:
     with st.container():
         st.markdown('<div class="demai-header" data-testid="demai-header">', unsafe_allow_html=True)
 
-        logo_col, nav_col = st.columns([1, 3.2], gap="large")
+        logo_col, nav_col = st.columns([1, 2.2], gap="large")
         with logo_col:
             st.markdown(
                 dedent(
@@ -275,54 +224,52 @@ def mount_demai_header(logo_height: int = 56) -> None:
         with nav_col:
             st.markdown('<div class="demai-header__nav">', unsafe_allow_html=True)
 
-            nav_stage_col, nav_controls_col = st.columns([3.05, 1.15], gap="small")
+            if isinstance(stage, StageMeta):
+                icon = html.escape(stage.icon)
+                title = html.escape(stage.title)
+                st.markdown(
+                    dedent(
+                        f"""
+                        <div class="demai-header__stage">
+                          <span class="demai-header__stage-progress">Stage {index + 1} of {total}</span>
+                          <span class="demai-header__stage-name">{icon} {title}</span>
+                        </div>
+                        """
+                    ),
+                    unsafe_allow_html=True,
+                )
+            else:
+                st.markdown(
+                    "<div class=\"demai-header__stage\">"
+                    "<span class=\"demai-header__stage-progress\">Stage</span>"
+                    "<span class=\"demai-header__stage-name\">Loading…</span>"
+                    "</div>",
+                    unsafe_allow_html=True,
+                )
 
-            with nav_stage_col:
-                if isinstance(stage, StageMeta):
-                    icon = html.escape(stage.icon)
-                    title = html.escape(stage.title)
-                    progress_label = (
-                        f"Stage {index + 1} of {total}" if total else "Stage"
-                    )
-                    st.markdown(
-                        dedent(
-                            f"""
-                            <div class="demai-header__stage">
-                              <span class="demai-header__stage-progress">{progress_label}</span>
-                              <span class="demai-header__stage-name">{icon} {title}</span>
-                            </div>
-                            """
-                        ),
-                        unsafe_allow_html=True,
-                    )
-                else:
-                    st.markdown(
-                        "<div class=\"demai-header__stage\">"
-                        "<span class=\"demai-header__stage-progress\">Stage</span>"
-                        "<span class=\"demai-header__stage-name\">Loading…</span>"
-                        "</div>",
-                        unsafe_allow_html=True,
-                    )
+            controls = st.columns(2, gap="small")
 
-            with nav_controls_col:
-                st.markdown('<div class="demai-header__controls">', unsafe_allow_html=True)
+            show_back = isinstance(prev_stage, StageMeta)
+            show_next = isinstance(next_stage, StageMeta)
 
-                show_back = isinstance(prev_stage, StageMeta)
-                show_next = isinstance(next_stage, StageMeta)
-
+            with controls[0]:
                 if show_back and prev_stage is not None:
-                    if st.button("← Back", key="demai_header_back"):
+                    if st.button("⬅️ Back", key="demai_header_back", use_container_width=True):
                         _set_active_stage(prev_stage.key)
                 else:
-                    st.markdown('<span class="demai-header__control-placeholder"></span>', unsafe_allow_html=True)
+                    st.markdown('<div class="demai-header__button-placeholder"></div>', unsafe_allow_html=True)
 
+            with controls[1]:
                 if show_next and next_stage is not None:
-                    if st.button("Next →", key="demai_header_next"):
+                    if st.button(
+                        "Next ➡️",
+                        key="demai_header_next",
+                        use_container_width=True,
+                        type="primary",
+                    ):
                         _set_active_stage(next_stage.key)
                 else:
-                    st.markdown('<span class="demai-header__control-placeholder"></span>', unsafe_allow_html=True)
-
-                st.markdown('</div>', unsafe_allow_html=True)
+                    st.markdown('<div class="demai-header__button-placeholder"></div>', unsafe_allow_html=True)
 
             st.markdown('</div>', unsafe_allow_html=True)
 
