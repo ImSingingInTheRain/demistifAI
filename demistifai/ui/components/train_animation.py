@@ -40,30 +40,81 @@ BASE_STYLES = textwrap.dedent(
     """
     <style>
       .train-animation__body {
+        position: relative;
         display: grid;
-        gap: 0.75rem;
+        gap: 0.85rem;
+        padding: 1.15rem 1.25rem 1.35rem;
+        border-radius: 1rem;
+        background: linear-gradient(160deg, rgba(148, 163, 184, 0.12), rgba(226, 232, 240, 0.32));
+        box-shadow: 0 20px 40px -32px rgba(15, 23, 42, 0.55);
+      }
+      .train-animation__eyebrow {
+        font-size: 0.74rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        font-weight: 600;
+        color: rgba(15, 23, 42, 0.58);
       }
       .train-animation__title {
         margin: 0;
-        font-size: 1.05rem;
+        font-size: 1.08rem;
         font-weight: 700;
         color: #0f172a;
       }
       .train-animation__caption {
         margin: 0;
-        font-size: 0.92rem;
-        line-height: 1.45;
+        font-size: 0.94rem;
+        line-height: 1.5;
         color: rgba(15, 23, 42, 0.74);
+      }
+      .train-animation__caption strong {
+        color: #1d4ed8;
+      }
+      .train-animation__legend {
+        display: inline-flex;
+        flex-wrap: wrap;
+        gap: 0.65rem;
+        padding: 0.6rem 0.75rem;
+        border-radius: 0.75rem;
+        background: rgba(15, 23, 42, 0.05);
+      }
+      .train-animation__legend-item {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        font-size: 0.82rem;
+        color: rgba(15, 23, 42, 0.75);
+        font-weight: 600;
+      }
+      .train-animation__legend-swatch {
+        width: 0.85rem;
+        height: 0.85rem;
+        border-radius: 999px;
+        box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.85);
+      }
+      .train-animation__legend-swatch--spam {
+        background: #e55b3c;
+      }
+      .train-animation__legend-swatch--work {
+        background: #3c7be5;
       }
       .train-animation__plotly {
         width: 100%;
+        border-radius: 0.85rem;
+        overflow: hidden;
+        background: radial-gradient(circle at top, rgba(148, 163, 184, 0.15), rgba(15, 23, 42, 0.03));
       }
       .train-animation__plotly > div {
         width: 100% !important;
       }
+      .train-animation__footnote {
+        margin: 0;
+        font-size: 0.78rem;
+        color: rgba(15, 23, 42, 0.55);
+      }
       .train-animation__fallback {
-        padding: 0.85rem 1rem;
-        border-radius: 0.75rem;
+        padding: 0.9rem 1rem;
+        border-radius: 0.85rem;
         border: 1px dashed rgba(15, 23, 42, 0.25);
         background: rgba(59, 130, 246, 0.08);
         color: rgba(15, 23, 42, 0.78);
@@ -78,6 +129,33 @@ BASE_STYLES = textwrap.dedent(
         padding: 0.1rem 0.35rem;
         border-radius: 0.35rem;
         font-size: 0.85rem;
+      }
+      @media (max-width: 780px) {
+        .train-animation__body {
+          padding: 1rem;
+          gap: 0.75rem;
+        }
+        .train-animation__legend {
+          width: 100%;
+          justify-content: space-between;
+        }
+      }
+      @media (max-width: 520px) {
+        .train-animation__body {
+          padding: 0.85rem 0.9rem 1.05rem;
+        }
+        .train-animation__title {
+          font-size: 1rem;
+        }
+        .train-animation__caption {
+          font-size: 0.88rem;
+        }
+        .train-animation__legend-item {
+          font-size: 0.78rem;
+        }
+        .train-animation__plotly {
+          border-radius: 0.75rem;
+        }
       }
     </style>
     """
@@ -159,7 +237,12 @@ def build_training_animation_figure(*, seed: Optional[int] = None) -> go.Figure:
                 data=[go.Scatter(
                     x=xi, y=yi,
                     mode="markers",
-                    marker=dict(size=6, opacity=0.9, line=dict(width=0), color=colors),
+                    marker=dict(
+                        size=7,
+                        opacity=0.88,
+                        line=dict(color="rgba(15, 23, 42, 0.18)", width=0.6),
+                        color=colors,
+                    ),
                     hoverinfo="skip",
                     showlegend=False,
                 )]
@@ -174,11 +257,11 @@ def build_training_animation_figure(*, seed: Optional[int] = None) -> go.Figure:
     annotations = []
     for (name, cx, cy, rx, ry, fill, _cls) in CLUSTERS:
         shapes.append(dict(
-            type="rect",
+            type="circle",
             x0=cx - rx, x1=cx + rx, y0=cy - ry, y1=cy + ry,
-            line=dict(color="rgba(60,60,60,0.35)", width=2),
+            line=dict(color="rgba(60,60,60,0.28)", width=2, dash="dot"),
             fillcolor=fill,
-            opacity=0.15,  # subtle
+            opacity=0.2,
             layer="below"
         ))
         annotations.append(dict(
@@ -198,7 +281,9 @@ def build_training_animation_figure(*, seed: Optional[int] = None) -> go.Figure:
         layout=go.Layout(
             xaxis=dict(range=[MAP_X[0], MAP_X[1]], title="Meaning dimension 1", zeroline=False),
             yaxis=dict(range=[MAP_Y[0], MAP_Y[1]], title="Meaning dimension 2", zeroline=False, scaleanchor=None),
-            margin=dict(l=40, r=20, b=40, t=40),
+            margin=dict(l=30, r=16, b=45, t=45),
+            paper_bgcolor="rgba(250,252,255,0.96)",
+            plot_bgcolor="rgba(240,245,255,0.4)",
             shapes=shapes,
             annotations=annotations + [
                 dict(x=0.02, y=0.98, xref="paper", yref="paper",
@@ -226,17 +311,46 @@ def build_training_animation_figure(*, seed: Optional[int] = None) -> go.Figure:
                             args=[[f"Epoch {k}"], {"mode": "immediate",
                                                    "frame": {"duration": 0, "redraw": True},
                                                    "transition": {"duration": 0}}],
-                            label=str(k)) for k in range(EPOCHS + 1)]
+                            label=str(k)) for k in range(EPOCHS + 1)],
+                len=0.95,
+                x=0.025,
+                pad=dict(t=12),
             )],
+            legend=dict(
+                orientation="h",
+                yanchor="bottom",
+                y=1.02,
+                xanchor="center",
+                x=0.5,
+                bgcolor="rgba(255,255,255,0.85)",
+                bordercolor="rgba(15,23,42,0.1)",
+                borderwidth=1,
+                font=dict(size=12, color="rgba(15,23,42,0.75)"),
+            ),
         ),
         frames=frames
+    )
+
+    fig.update_xaxes(
+        showgrid=True,
+        gridcolor="rgba(148, 163, 184, 0.28)",
+        zeroline=False,
+        tickfont=dict(size=11, color="rgba(30, 41, 59, 0.75)"),
+        title=dict(font=dict(size=12, color="rgba(30, 41, 59, 0.85)")),
+    )
+    fig.update_yaxes(
+        showgrid=True,
+        gridcolor="rgba(148, 163, 184, 0.28)",
+        zeroline=False,
+        tickfont=dict(size=11, color="rgba(30, 41, 59, 0.75)"),
+        title=dict(font=dict(size=12, color="rgba(30, 41, 59, 0.85)")),
     )
 
     # Legend proxy (two invisible traces) – keeps the main scatter light
     for cls_name, color in CLASS_TO_COLOR.items():
         fig.add_trace(go.Scatter(
             x=[None], y=[None], mode="markers",
-            marker=dict(size=8, color=color),
+            marker=dict(size=10, color=color, line=dict(color="rgba(15,23,42,0.25)", width=1)),
             name="Spam-like" if cls_name == "spam" else "Work-like"
         ))
 
@@ -249,11 +363,17 @@ def build_training_animation_column(
     body_html = textwrap.dedent(
         """
         <div class="train-animation__body">
+          <span class="train-animation__eyebrow">Conceptual view</span>
           <h4 class="train-animation__title">How miniLM learns a meaning space</h4>
           <p class="train-animation__caption">
-            Watch the embedding points move into spam-like and work-like regions as epochs progress.
+            Watch the embedding points move toward <strong>spam-like</strong> and <strong>work-like</strong> regions as epochs progress.
           </p>
+          <div class="train-animation__legend">
+            <span class="train-animation__legend-item"><span class="train-animation__legend-swatch train-animation__legend-swatch--spam"></span>Spam-like emails</span>
+            <span class="train-animation__legend-item"><span class="train-animation__legend-swatch train-animation__legend-swatch--work"></span>Work-like emails</span>
+          </div>
         {content}
+          <p class="train-animation__footnote">Epochs advance automatically — press play to see the clusters tighten.</p>
         </div>
         """
     ).strip()
