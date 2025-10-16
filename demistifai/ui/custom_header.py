@@ -19,20 +19,32 @@ def mount_demai_header(logo_height: int = 56) -> None:
         logo_height: Pixel height of the logo area inside the header.
     """
 
+    # ``header_height`` matches the fixed header ``height`` declared below. ``content_offset``
+    # nudges the Streamlit block container just below the custom header so the first
+    # component (often the macOS window chrome) sits flush without a noticeable gap.
+    header_height = logo_height + 12
+    content_offset = header_height
+
     # 1) CSS: hide Streamlit header + add top padding so content doesn't sit under our bar
     st.markdown(
         dedent(
             f"""
             <style>
               /* Hide default Streamlit header */
-              header, [data-testid="stHeader"] {{
+              header[data-testid="stHeader"], [data-testid="stHeader"] {{
                 display: none !important;
                 visibility: hidden !important;
               }}
 
               /* Ensure main content has room under our fixed header */
-              [data-testid="stAppViewContainer"] .main .block-container {{
-                padding-top: {logo_height + 18}px !important; /* header height + small gap */
+              [data-testid="stAppViewContainer"] .main .block-container,
+              [data-testid="stAppViewContainer"] .stMain .block-container {{
+                padding-top: {content_offset}px !important;
+              }}
+
+              [data-testid="stAppViewContainer"] .main .block-container > div:first-child,
+              [data-testid="stAppViewContainer"] .stMain .block-container > div:first-child {{
+                margin-top: 0 !important;
               }}
 
               /* Simple fixed header bar */
@@ -47,7 +59,7 @@ def mount_demai_header(logo_height: int = 56) -> None:
                 align-items: center;
                 gap: 12px;
 
-                height: {logo_height + 12}px;
+                height: {header_height}px;
                 padding: 0px 14px;
                 box-sizing: border-box;
 
