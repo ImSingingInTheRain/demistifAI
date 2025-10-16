@@ -5,8 +5,15 @@ from __future__ import annotations
 from typing import Optional
 
 import numpy as np
-import plotly.graph_objects as go
 import streamlit as st
+
+try:  # Optional dependency: Plotly drives the training animation
+    import plotly.graph_objects as go
+except ModuleNotFoundError:  # pragma: no cover - import guard
+    go = None  # type: ignore[assignment]
+    PLOTLY_AVAILABLE = False
+else:
+    PLOTLY_AVAILABLE = True
 
 # --------- Tunables ----------
 MAP_X = (-3.0, 3.0)
@@ -69,6 +76,11 @@ def _interpolate(x0, y0, x1, y1, t):
 
 def build_training_animation_figure(*, seed: Optional[int] = None) -> go.Figure:
     """Return the Plotly figure used in the training animation."""
+
+    if not PLOTLY_AVAILABLE:
+        raise RuntimeError(
+            "Plotly is required for the training animation but is not installed."
+        )
 
     rng = np.random.default_rng(RANDOM_SEED if seed is None else seed)
 
@@ -178,6 +190,12 @@ def build_training_animation_figure(*, seed: Optional[int] = None) -> go.Figure:
 
 def render_training_animation():
     st.subheader("How miniLM learns a meaning space")
+
+    if not PLOTLY_AVAILABLE:
+        st.info(
+            "Install the optional dependency `plotly` to view the training animation."
+        )
+        return
 
     fig = build_training_animation_figure()
 
