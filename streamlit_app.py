@@ -181,6 +181,7 @@ from demistifai.ui.components.terminal.boot_sequence import (
     render_ai_act_terminal as render_boot_sequence_terminal,
 )
 from demistifai.ui.components.terminal.data_prep import render_prepare_terminal
+from demistifai.ui.components.terminal.evaluate import render_evaluate_terminal
 from demistifai.ui.components.terminal.train import render_train_terminal
 logger = logging.getLogger(__name__)
 
@@ -3215,7 +3216,11 @@ def render_evaluate_stage():
 
     stage = STAGE_BY_KEY["evaluate"]
 
-    render_stage_top_grid("evaluate")
+    def _render_evaluate_terminal(slot: DeltaGenerator) -> None:
+        with slot:
+            render_evaluate_terminal()
+
+    render_stage_top_grid("evaluate", left_renderer=_render_evaluate_terminal)
 
     if not (ss.get("model") and ss.get("split_cache")):
         with section_surface():
