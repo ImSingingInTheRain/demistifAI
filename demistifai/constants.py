@@ -1025,24 +1025,52 @@ APP_THEME_CSS = """
 }
 
 .stButton > button {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.55rem;
     border-radius: 14px;
     padding: 0.65rem 1.4rem;
-    font-weight: 600;
-    border: none;
-    background: linear-gradient(135deg, #1d4ed8, #1e3a8a);
-    color: #f8fafc;
-    box-shadow: 0 18px 40px rgba(30, 64, 175, 0.28);
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    font-weight: 700;
+    font-family: 'Fira Code', ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    border: 1px solid rgba(94, 234, 212, 0.45);
+    background: linear-gradient(135deg, rgba(13, 17, 23, 0.96), rgba(8, 47, 73, 0.88));
+    color: rgba(226, 232, 240, 0.95);
+    text-shadow: 0 0 12px rgba(94, 234, 212, 0.32);
+    box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.82), 0 22px 48px rgba(8, 47, 73, 0.55);
+    transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease, filter 0.18s ease;
+    overflow: hidden;
+}
+
+.stButton > button::after {
+    content: '';
+    position: absolute;
+    inset: 1px;
+    border-radius: 12px;
+    background: linear-gradient(140deg, rgba(94, 234, 212, 0.18), transparent 60%);
+    pointer-events: none;
 }
 
 .stButton > button:hover {
     transform: translateY(-1px);
-    box-shadow: 0 24px 50px rgba(30, 64, 175, 0.32);
+    border-color: rgba(94, 234, 212, 0.65);
+    box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.72), 0 28px 58px rgba(8, 47, 73, 0.62);
+    filter: brightness(1.05);
 }
 
 .stButton > button:focus-visible {
-    outline: 3px solid rgba(59, 130, 246, 0.45);
-    outline-offset: 2px;
+    outline: 2px solid rgba(56, 189, 248, 0.7);
+    outline-offset: 3px;
+}
+
+.stButton > button:disabled {
+    opacity: 0.55;
+    border-color: rgba(148, 163, 184, 0.35);
+    box-shadow: inset 0 0 0 1px rgba(30, 41, 59, 0.7), 0 12px 28px rgba(8, 47, 73, 0.35);
+    filter: grayscale(10%);
 }
 
 .stSelectbox div[data-baseweb="select"],
