@@ -190,7 +190,7 @@ def render_train_terminal(
         "lines": data,
         "speed": max(0, int(speed_type_ms)),
         "pause": max(0, int(pause_between_lines_ms)),
-        "sfx": __SUFFIX,
+        "sfx": _SUFFIX,
         "domId": f"term-{key}",
     }
     html_markup = (
