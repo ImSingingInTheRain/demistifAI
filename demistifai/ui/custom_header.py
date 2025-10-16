@@ -100,29 +100,61 @@ def mount_demai_header(logo_height: int = 56) -> None:
 
               /* Ensure main content has room under our fixed header */
               [data-testid="stAppViewContainer"] .main .block-container {{
-                padding-top: {logo_height + 24}px !important; /* header height + gap */
+                padding-top: {logo_height + 28}px !important; /* header height + gap */
               }}
 
-              /* Fixed header bar */
-              .demai-header {{
+              /* Anchor used to target the fixed header container */
+              .demai-header__anchor {{
+                display: none;
+              }}
+
+              /* Fixed header container */
+              [data-testid="stVerticalBlock"]:has(> [data-testid="element-container"] > .demai-header__anchor) {{
                 position: fixed;
                 top: 0;
                 left: 0;
                 right: 0;
                 z-index: 1000;
+              }}
 
+              [data-testid="stVerticalBlock"]:has(> [data-testid="element-container"] > .demai-header__anchor) > [data-testid="element-container"] {{
                 display: flex;
-                align-items: center;
-                gap: 18px;
-
+                align-items: stretch;
+                justify-content: center;
                 min-height: {logo_height + 12}px;
-                padding: 8px 16px;
+                padding: 10px 18px;
                 box-sizing: border-box;
-
                 background: rgba(15, 23, 42, 0.92);
                 backdrop-filter: blur(10px);
                 border-bottom: 1px solid rgba(94, 234, 212, 0.24);
                 box-shadow: 0 12px 24px rgba(8, 15, 33, 0.28);
+              }}
+
+              [data-testid="stVerticalBlock"]:has(> [data-testid="element-container"] > .demai-header__anchor) > [data-testid="element-container"] > [data-testid="stHorizontalBlock"] {{
+                margin: 0;
+                width: 100%;
+                display: grid;
+                grid-template-columns: auto minmax(0, 1fr) auto;
+                align-items: center;
+                column-gap: 18px;
+              }}
+
+              [data-testid="stVerticalBlock"]:has(> [data-testid="element-container"] > .demai-header__anchor) [data-testid="column"] {{
+                padding: 0 !important;
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                gap: 6px;
+              }}
+
+              [data-testid="stVerticalBlock"]:has(> [data-testid="element-container"] > .demai-header__anchor) [data-testid="stHorizontalBlock"] [data-testid="stHorizontalBlock"] {{
+                margin: 0;
+                display: flex;
+                gap: 8px;
+              }}
+
+              [data-testid="stVerticalBlock"]:has(> [data-testid="element-container"] > .demai-header__anchor) [data-testid="column"] > div:first-child {{
+                width: 100%;
               }}
 
               .demai-header__logo-frame {{
@@ -133,20 +165,12 @@ def mount_demai_header(logo_height: int = 56) -> None:
                 pointer-events: none; /* prevent focusing the iframe */
               }}
 
-              .demai-header__nav {{
-                margin-left: auto;
-                display: flex;
-                flex-direction: column;
-                gap: 6px;
-                width: 100%;
-                max-width: 480px;
-              }}
-
               .demai-header__stage {{
                 display: flex;
+                flex-wrap: wrap;
                 justify-content: space-between;
-                align-items: baseline;
-                gap: 12px;
+                align-items: center;
+                gap: 8px;
                 color: rgba(226, 232, 240, 0.92);
                 font-size: 0.9rem;
               }}
@@ -162,29 +186,20 @@ def mount_demai_header(logo_height: int = 56) -> None:
               .demai-header__stage-name {{
                 font-weight: 700;
                 font-size: 1rem;
-                white-space: nowrap;
-              }}
-
-              .demai-header__controls {{
-                display: flex;
-                gap: 8px;
-              }}
-
-              .demai-header__controls [data-testid="stVerticalBlock"] {{
-                width: 100%;
-              }}
-
-              .demai-header__controls [data-testid="stButton"] {{
-                width: 100%;
-              }}
-
-              .demai-header__controls [data-testid="stButton"] > button {{
-                border-radius: 999px;
-                font-weight: 700;
+                white-space: normal;
+                flex: 1 1 auto;
               }}
 
               .demai-header__button-placeholder {{
-                height: 38px;
+                height: 34px;
+                border-radius: 12px;
+                background: rgba(148, 163, 184, 0.16);
+              }}
+
+              [data-testid="stVerticalBlock"]:has(> [data-testid="element-container"] > .demai-header__anchor) [data-testid="stButton"] > button {{
+                border-radius: 12px;
+                font-weight: 600;
+                min-height: 34px;
               }}
             </style>
             """
@@ -201,10 +216,13 @@ def mount_demai_header(logo_height: int = 56) -> None:
     encoded_logo = b64encode(raw_logo_html.encode("utf-8")).decode("ascii")
     data_url = f"data:text/html;base64,{encoded_logo}"
 
-    with st.container():
-        st.markdown('<div class="demai-header" data-testid="demai-header">', unsafe_allow_html=True)
+    header_container = st.container()
 
-        logo_col, nav_col = st.columns([1, 2.2], gap="large")
+    with header_container:
+        st.markdown('<div class="demai-header__anchor"></div>', unsafe_allow_html=True)
+
+        logo_col, stage_col, controls_col = st.columns([1.1, 2.8, 1.4], gap="small")
+
         with logo_col:
             st.markdown(
                 dedent(
@@ -221,17 +239,20 @@ def mount_demai_header(logo_height: int = 56) -> None:
                 unsafe_allow_html=True,
             )
 
-        with nav_col:
-            st.markdown('<div class="demai-header__nav">', unsafe_allow_html=True)
-
+        with stage_col:
             if isinstance(stage, StageMeta):
                 icon = html.escape(stage.icon)
                 title = html.escape(stage.title)
+                progress_label = "Stage"
+                if total > 0:
+                    progress_label = f"Stage {index + 1} of {total}"
+                elif index >= 0:
+                    progress_label = f"Stage {index + 1}"
                 st.markdown(
                     dedent(
                         f"""
                         <div class="demai-header__stage">
-                          <span class="demai-header__stage-progress">Stage {index + 1} of {total}</span>
+                          <span class="demai-header__stage-progress">{progress_label}</span>
                           <span class="demai-header__stage-name">{icon} {title}</span>
                         </div>
                         """
@@ -247,6 +268,7 @@ def mount_demai_header(logo_height: int = 56) -> None:
                     unsafe_allow_html=True,
                 )
 
+        with controls_col:
             controls = st.columns(2, gap="small")
 
             show_back = isinstance(prev_stage, StageMeta)
@@ -254,7 +276,12 @@ def mount_demai_header(logo_height: int = 56) -> None:
 
             with controls[0]:
                 if show_back and prev_stage is not None:
-                    if st.button("⬅️ Back", key="demai_header_back", use_container_width=True):
+                    if st.button(
+                        "⬅️",
+                        key="demai_header_back",
+                        use_container_width=True,
+                        help=f"Back to {prev_stage.title}",
+                    ):
                         _set_active_stage(prev_stage.key)
                 else:
                     st.markdown('<div class="demai-header__button-placeholder"></div>', unsafe_allow_html=True)
@@ -262,15 +289,12 @@ def mount_demai_header(logo_height: int = 56) -> None:
             with controls[1]:
                 if show_next and next_stage is not None:
                     if st.button(
-                        "Next ➡️",
+                        "➡️",
                         key="demai_header_next",
                         use_container_width=True,
                         type="primary",
+                        help=f"Forward to {next_stage.title}",
                     ):
                         _set_active_stage(next_stage.key)
                 else:
                     st.markdown('<div class="demai-header__button-placeholder"></div>', unsafe_allow_html=True)
-
-            st.markdown('</div>', unsafe_allow_html=True)
-
-        st.markdown('</div>', unsafe_allow_html=True)
