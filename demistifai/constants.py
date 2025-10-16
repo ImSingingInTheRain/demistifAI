@@ -519,7 +519,7 @@ APP_THEME_CSS = """
     margin-top: 0.5rem;
 }
 
-.hero-cta-panel [data-testid="stButton"] > button {
+.hero-cta-panel [data-testid="stButton"] button {
     width: 100%;
     min-height: 3rem;
     font-size: 1.05rem;
@@ -698,8 +698,8 @@ APP_THEME_CSS = """
     margin-bottom: 0;
 }
 
-.cta-sticky [data-testid="stButton"] > button,
-.cta-sticky [data-testid="stFormSubmitButton"] > button {
+.cta-sticky [data-testid="stButton"] button,
+.cta-sticky [data-testid="stFormSubmitButton"] button {
     width: 100%;
 }
 
@@ -827,7 +827,7 @@ APP_THEME_CSS = """
     width: 100%;
 }
 
-.section-surface--hero [data-testid="column"]:nth-child(2) [data-testid="stButton"] > button {
+.section-surface--hero [data-testid="column"]:nth-child(2) [data-testid="stButton"] button {
     max-width: 260px;
     margin: 0 auto;
 }
@@ -1024,7 +1024,8 @@ APP_THEME_CSS = """
     border-color: rgba(37, 99, 235, 0.5);
 }
 
-.stButton > button {
+.stButton button,
+[data-testid="stFormSubmitButton"] button {
     position: relative;
     display: inline-flex;
     align-items: center;
@@ -1045,7 +1046,8 @@ APP_THEME_CSS = """
     overflow: hidden;
 }
 
-.stButton > button::after {
+.stButton button::after,
+[data-testid="stFormSubmitButton"] button::after {
     content: '';
     position: absolute;
     inset: 1px;
@@ -1054,19 +1056,22 @@ APP_THEME_CSS = """
     pointer-events: none;
 }
 
-.stButton > button:hover {
+.stButton button:hover,
+[data-testid="stFormSubmitButton"] button:hover {
     transform: translateY(-1px);
     border-color: rgba(94, 234, 212, 0.65);
     box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.72), 0 28px 58px rgba(8, 47, 73, 0.62);
     filter: brightness(1.05);
 }
 
-.stButton > button:focus-visible {
+.stButton button:focus-visible,
+[data-testid="stFormSubmitButton"] button:focus-visible {
     outline: 2px solid rgba(56, 189, 248, 0.7);
     outline-offset: 3px;
 }
 
-.stButton > button:disabled {
+.stButton button:disabled,
+[data-testid="stFormSubmitButton"] button:disabled {
     opacity: 0.55;
     border-color: rgba(148, 163, 184, 0.35);
     box-shadow: inset 0 0 0 1px rgba(30, 41, 59, 0.7), 0 12px 28px rgba(8, 47, 73, 0.35);
@@ -1148,7 +1153,8 @@ APP_THEME_CSS = """
         padding: 1.4rem 1.35rem;
     }
 
-    .stButton > button {
+    .stButton button,
+    [data-testid="stFormSubmitButton"] button {
         width: 100%;
     }
 }
@@ -1581,81 +1587,11 @@ div[data-testid="stHorizontalBlock"]:has(.stage-top-grid__nav-card) > div[data-t
     margin: 0;
 }
 
-:is([data-testid="stElementContainer"], [data-testid="element-container"])[class*="st-key-stage_grid_next_"] div[data-testid="stButton"] > button,
-:is([data-testid="stElementContainer"], [data-testid="element-container"])[class*="st-key-stage_grid_prev_"] div[data-testid="stButton"] > button {
+:is([data-testid="stElementContainer"], [data-testid="element-container"])[class*="st-key-stage_grid_next_"] div[data-testid="stButton"] button,
+:is([data-testid="stElementContainer"], [data-testid="element-container"])[class*="st-key-stage_grid_prev_"] div[data-testid="stButton"] button {
     width: 100%;
-    border-radius: 14px;
-    font-weight: 700;
-    font-size: 0.92rem;
-    padding: 0.8rem 1.25rem;
-    border: 1px solid rgba(94, 234, 212, 0.45);
-    font-family: 'Fira Code', ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
-    position: relative;
-    z-index: 2;
-    display: inline-flex;
-    align-items: center;
     justify-content: space-between;
     gap: 0.75rem;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    line-height: 1.1;
-    color: rgba(226, 232, 240, 0.95);
-    background: linear-gradient(135deg, rgba(13, 17, 23, 0.96), rgba(8, 47, 73, 0.88));
-    text-shadow: 0 0 12px rgba(94, 234, 212, 0.32);
-    box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.82), 0 22px 48px rgba(8, 47, 73, 0.55);
-    transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease, filter 0.18s ease;
-}
-
-:is([data-testid="stElementContainer"], [data-testid="element-container"])[class*="st-key-stage_grid_next_"] div[data-testid="stButton"] > button::after,
-:is([data-testid="stElementContainer"], [data-testid="element-container"])[class*="st-key-stage_grid_prev_"] div[data-testid="stButton"] > button::after {
-    content: '';
-    position: absolute;
-    inset: 1px;
-    border-radius: 12px;
-    pointer-events: none;
-    background: linear-gradient(140deg, rgba(94, 234, 212, 0.18), transparent 60%);
-}
-
-:is([data-testid="stElementContainer"], [data-testid="element-container"])[class*="st-key-stage_grid_next_"] div[data-testid="stButton"] > button {
-    background: linear-gradient(135deg, rgba(13, 17, 23, 0.96), rgba(8, 47, 73, 0.88));
-    color: rgba(226, 232, 240, 0.95);
-    text-shadow: 0 0 12px rgba(94, 234, 212, 0.32);
-    box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.82), 0 22px 48px rgba(8, 47, 73, 0.55);
-}
-
-:is([data-testid="stElementContainer"], [data-testid="element-container"])[class*="st-key-stage_grid_next_"] div[data-testid="stButton"] > button:hover {
-    transform: translateY(-1px);
-    border-color: rgba(94, 234, 212, 0.65);
-    box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.72), 0 28px 58px rgba(8, 47, 73, 0.62);
-    filter: brightness(1.05);
-}
-
-:is([data-testid="stElementContainer"], [data-testid="element-container"])[class*="st-key-stage_grid_prev_"] div[data-testid="stButton"] > button {
-    background: linear-gradient(135deg, rgba(13, 17, 23, 0.96), rgba(8, 47, 73, 0.88));
-    color: rgba(226, 232, 240, 0.95);
-    text-shadow: 0 0 12px rgba(94, 234, 212, 0.32);
-    box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.82), 0 22px 48px rgba(8, 47, 73, 0.55);
-}
-
-:is([data-testid="stElementContainer"], [data-testid="element-container"])[class*="st-key-stage_grid_prev_"] div[data-testid="stButton"] > button:hover {
-    transform: translateY(-1px);
-    border-color: rgba(94, 234, 212, 0.65);
-    box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.72), 0 28px 58px rgba(8, 47, 73, 0.62);
-    filter: brightness(1.05);
-}
-
-:is([data-testid="stElementContainer"], [data-testid="element-container"])[class*="st-key-stage_grid_next_"] div[data-testid="stButton"] > button:focus-visible,
-:is([data-testid="stElementContainer"], [data-testid="element-container"])[class*="st-key-stage_grid_prev_"] div[data-testid="stButton"] > button:focus-visible {
-    outline: 2px solid rgba(56, 189, 248, 0.7);
-    outline-offset: 3px;
-}
-
-:is([data-testid="stElementContainer"], [data-testid="element-container"])[class*="st-key-stage_grid_next_"] div[data-testid="stButton"] > button:disabled,
-:is([data-testid="stElementContainer"], [data-testid="element-container"])[class*="st-key-stage_grid_prev_"] div[data-testid="stButton"] > button:disabled {
-    opacity: 0.55;
-    border-color: rgba(148, 163, 184, 0.35);
-    box-shadow: inset 0 0 0 1px rgba(30, 41, 59, 0.7), 0 12px 28px rgba(8, 47, 73, 0.35);
-    filter: grayscale(10%);
 }
 
 
