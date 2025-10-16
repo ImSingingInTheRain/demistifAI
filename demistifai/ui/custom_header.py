@@ -120,9 +120,9 @@ def mount_demai_header(logo_height: int = 56) -> None:
                 box-sizing: border-box;
 
                 background: rgba(15, 23, 42, 0.92);
-                backdrop-filter: blur(8px);
-                border-bottom: 1px solid rgba(148, 163, 184, 0.28);
-                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+                backdrop-filter: blur(10px);
+                border-bottom: 1px solid rgba(94, 234, 212, 0.24);
+                box-shadow: 0 12px 24px rgba(8, 15, 33, 0.28);
               }}
 
               .demai-header__logo-frame {{
