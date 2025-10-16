@@ -184,6 +184,7 @@ from demistifai.ui.components.terminal.data_prep import render_prepare_terminal
 from demistifai.ui.components.terminal.evaluate import render_evaluate_terminal
 from demistifai.ui.components.terminal.train import render_train_terminal
 from demistifai.ui.components.terminal.use import render_use_terminal
+from demistifai.ui.train_animation import build_training_animation_figure
 logger = logging.getLogger(__name__)
 
 st.session_state.setdefault("viewport_is_mobile", False)
@@ -4223,6 +4224,60 @@ def _render_train_stage_wrapper() -> None:
             )
 
     render_stage_top_grid("train", left_renderer=_render_train_terminal)
+
+    training_animation_fig = build_training_animation_figure()
+    training_animation_html = training_animation_fig.to_html(
+        include_plotlyjs="cdn",
+        full_html=False,
+        config={"displayModeBar": False},
+    )
+    animation_col_html = textwrap.dedent(
+        f"""
+        <style>
+          .mw-train-animation__col .train-animation__body {{
+            display: grid;
+            gap: 0.75rem;
+          }}
+          .mw-train-animation__col .train-animation__title {{
+            margin: 0;
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: #0f172a;
+          }}
+          .mw-train-animation__col .train-animation__caption {{
+            margin: 0;
+            font-size: 0.92rem;
+            line-height: 1.45;
+            color: rgba(15, 23, 42, 0.74);
+          }}
+          .mw-train-animation__col .train-animation__plotly {{
+            width: 100%;
+          }}
+          .mw-train-animation__col .train-animation__plotly > div {{
+            width: 100% !important;
+          }}
+        </style>
+        <div class="train-animation__body">
+          <h4 class="train-animation__title">How miniLM learns a meaning space</h4>
+          <p class="train-animation__caption">
+            Watch the embedding points move into spam-like and work-like regions as epochs progress.
+          </p>
+          <div class="train-animation__plotly">
+            {training_animation_html}
+          </div>
+        </div>
+        """
+    ).strip()
+
+    render_mac_window(
+        st,
+        title="Training dynamics monitor",
+        subtitle="MiniLM organising emails by meaning",
+        columns=2,
+        ratios=(0.3, 0.7),
+        col_html=[None, animation_col_html],
+        id_suffix="train-animation",
+    )
 
     render_train_stage(
         ss,

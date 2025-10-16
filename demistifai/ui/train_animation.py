@@ -1,7 +1,9 @@
 # demistifai/ui/components/train_animation.py
 
 from __future__ import annotations
-import math
+
+from typing import Optional
+
 import numpy as np
 import plotly.graph_objects as go
 import streamlit as st
@@ -65,10 +67,10 @@ def _interpolate(x0, y0, x1, y1, t):
     yi = y0 + (y1 - y0) * eased
     return xi, yi
 
-def render_training_animation():
-    st.subheader("How miniLM learns a meaning space")
+def build_training_animation_figure(*, seed: Optional[int] = None) -> go.Figure:
+    """Return the Plotly figure used in the training animation."""
 
-    rng = np.random.default_rng(RANDOM_SEED)
+    rng = np.random.default_rng(RANDOM_SEED if seed is None else seed)
 
     # Random start positions
     x0 = rng.uniform(MAP_X[0], MAP_X[1], size=N_POINTS)
@@ -170,5 +172,13 @@ def render_training_animation():
             marker=dict(size=8, color=color),
             name="Spam-like" if cls_name == "spam" else "Work-like"
         ))
+
+    return fig
+
+
+def render_training_animation():
+    st.subheader("How miniLM learns a meaning space")
+
+    fig = build_training_animation_figure()
 
     st.plotly_chart(fig, use_container_width=True)
