@@ -4,6 +4,8 @@ import html
 import uuid
 from textwrap import dedent, indent
 
+import streamlit.components.v1 as components
+
 
 def mac_window_html(
     title: str = "demAI",
@@ -220,5 +222,6 @@ def render_mac_window(st, **kwargs):
         render_html(html_str)
         return
 
-    # Fall back to the legacy markdown pathway for older Streamlit versions.
-    st.markdown(html_str, unsafe_allow_html=True)
+    # Fall back to components.html so scripts (e.g., Plotly animations) run on
+    # older Streamlit releases that lack ``st.html``.
+    components.html(html_str, height=0, scrolling=True)
