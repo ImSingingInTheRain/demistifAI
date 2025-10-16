@@ -38,7 +38,11 @@ def mac_window_html(
     sub_color = "rgba(15,23,42,.70)" if theme == "light" else "rgba(229,231,235,.70)"
     ph_text = "rgba(15,23,42,.55)" if theme == "light" else "rgba(229,231,235,.55)"
 
-    pad = ".9rem 1.05rem" if dense else "0rem 0rem"
+    body_padding = ".9rem 1.05rem"
+    col_padding = "1.05rem 1.1rem"
+    if dense:
+        body_padding = ".45rem .6rem"
+        col_padding = ".65rem .75rem"
 
     col_padding_reset_css = ""
     if id_suffix == "overview-mac-placeholder":
@@ -132,7 +136,7 @@ def mac_window_html(
           }}
 
           .mw-{suf}__body {{
-            padding: {pad};
+            padding: {body_padding};
           }}
           .mw-{suf}__grid {{
             display: grid;
@@ -144,7 +148,7 @@ def mac_window_html(
             border-radius: 12px;
             background: linear-gradient(155deg, rgba(248,250,252,.95), rgba(226,232,240,.55));
             box-shadow: inset 0 0 0 1px rgba(148,163,184,.25);
-            padding: 0rem 0rem;
+            padding: {col_padding};
             min-height: 200px;
             display: grid;
             align-content: start;
