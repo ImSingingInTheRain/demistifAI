@@ -166,19 +166,20 @@ from demistifai.core.downloads import download_text
 from stages.train_stage import render_train_stage
 from demistifai.ui.animated_logo import render_demai_logo
 from demistifai.ui.custom_header import mount_demai_header
-from demistifai.ui_components.arch_demai import (
+from demistifai.ui.components.arch_demai import (
     demai_architecture_markup,
     demai_architecture_styles,
 )
-from demistifai.ui_components.components_cmd import (
-    render_ai_act_terminal as render_intro_ai_act_terminal,
+from demistifai.ui.components.control_room import stage_control_room
+from demistifai.ui.components.mac_window import render_mac_window
+from demistifai.ui.components.terminal.article3 import (
+    _WELCOME_LINES,
+    render_ai_act_terminal as render_welcome_ai_act_terminal,
 )
-from demistifai.ui_components import cmd_welcome
-from demistifai.ui_components.cmd_welcome import _WELCOME_LINES
-from demistifai.ui_components import cmd_overview_new
-from demistifai.ui_components.cmd_overview_new import _DEFAULT_DEMAI_LINES
-from demistifai.ui_components.components_mac import render_mac_window
-from demistifai.ui_components.stage_control_room import stage_control_room
+from demistifai.ui.components.terminal.boot_sequence import (
+    _DEFAULT_DEMAI_LINES,
+    render_ai_act_terminal as render_boot_sequence_terminal,
+)
 logger = logging.getLogger(__name__)
 
 st.session_state.setdefault("viewport_is_mobile", False)
@@ -490,7 +491,7 @@ def render_intro_stage():
 
     def _render_intro_terminal(slot: DeltaGenerator) -> None:
         with slot:
-            cmd_welcome.render_ai_act_terminal(
+            render_welcome_ai_act_terminal(
                 demai_lines=_WELCOME_LINES,
                 speed_type_ms=20,
                 pause_between_ops_ms=360,
@@ -821,7 +822,7 @@ def render_overview_stage():
 
     def _render_overview_terminal(slot: DeltaGenerator) -> None:
         with slot:
-            cmd_overview_new.render_ai_act_terminal(
+            render_boot_sequence_terminal(
                 demai_lines=_DEFAULT_DEMAI_LINES,
                 speed_type_ms=20,
                 pause_between_ops_ms=360,
