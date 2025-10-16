@@ -6,13 +6,13 @@ numbers use `nl -ba` numbering (1-indexed) for quick cross-checks.
 ## Stage boundaries in `streamlit_app.py`
 | Stage key | Function | Line range | Notes |
 | --- | --- | --- | --- |
-| `intro` | `render_intro_stage` | 494–799 | Command grid with inline EU AI Act definition, lifecycle primer, and launch controls. |
-| `overview` | `render_overview_stage` | 800–1453 | Stage Control Room with EU AI Act framing, system snapshot/status, and mission walkthrough of the pipeline. |
-| `data` | `render_data_stage` | 1454–3211 | Dataset import/generation, linting feedback, and label review utilities. |
-| `evaluate` | `render_evaluate_stage` | 3212–3641 | Evaluation metrics, ROC / confusion matrix views, and governance summary. |
-| `classify` | `render_classify_stage` | 3642–4096 | Live classification console, governance tools, and routing copy. |
-| `model_card` | `render_model_card_stage` | 4097–4201 | Transparency summary, dataset snapshot details, and download affordances. |
-| `train` | `_render_train_stage_wrapper` | 4202–4215 | Streamlit-side wrapper; full UI lives in `stages/train_stage.py`. |
+| `intro` | `render_intro_stage` | 484–794 | Command grid with inline EU AI Act definition, lifecycle primer, and launch controls. |
+| `overview` | `render_overview_stage` | 795–1448 | Stage Control Room with EU AI Act framing, system snapshot/status, and mission walkthrough of the pipeline. |
+| `data` | `render_data_stage` | 1449–3206 | Dataset import/generation, linting feedback, and label review utilities. |
+| `evaluate` | `render_evaluate_stage` | 3207–3636 | Evaluation metrics, ROC / confusion matrix views, and governance summary. |
+| `classify` | `render_classify_stage` | 3637–4091 | Live classification console, governance tools, and routing copy. |
+| `model_card` | `render_model_card_stage` | 4092–4196 | Transparency summary, dataset snapshot details, and download affordances. |
+| `train` | `_render_train_stage_wrapper` | 4197–4210 | Streamlit-side wrapper; full UI lives in `stages/train_stage.py`. |
 
 > **Tip:** Re-run `nl -ba streamlit_app.py | sed -n 'START,ENDp'` after edits to confirm updated line ranges.
 

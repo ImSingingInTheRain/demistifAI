@@ -30,6 +30,7 @@ Welcome! This repository contains the **demistifAI** Streamlit lab that walks us
 ## Testing & QA expectations
 - Automated tests are not yet configured. At a minimum run `python -m compileall streamlit_app.py demistifai` before committing to catch syntax errors.
 - For functional changes, smoke test with `streamlit run streamlit_app.py` and walk through the stage(s) you touched. Capture screenshots for meaningful visual changes.
+- When using the screenshot workflow, wait at least 30 seconds after opening the app before capturing so the interface can finish loading.
 - Watch for large downloads the first time the sentence-transformer encoder is used; cache reuse is expected during local testing.
 
 ## Documentation & release notes
