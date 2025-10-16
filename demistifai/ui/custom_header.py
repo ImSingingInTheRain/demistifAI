@@ -1,7 +1,5 @@
-"""demAI fixed header: full-width top bar with logo, stage label and nav.
-   - Fixed to viewport (side-to-side)
-   - Spacer keeps page content below the bar
-   - Works on desktop and mobile (iOS safe-area)
+"""demAI fixed header (HTML-based): full-width, side-to-side, with in-bar logo, stage and nav.
+   Uses links for nav and syncs session_state from query params.
 """
 
 from __future__ import annotations
@@ -18,7 +16,7 @@ from demistifai.core.utils import streamlit_rerun
 from .animated_logo import demai_logo_html
 
 
-# --- Query param compatibility (supports old/new Streamlit) -------------------
+# ---------------- Query param compatibility (new/old Streamlit) ----------------
 def _qp_get_all(key: str) -> list[str]:
     qp = getattr(st, "query_params", None)
     if qp is not None:
@@ -32,16 +30,19 @@ def _qp_get_all(key: str) -> list[str]:
     return val if isinstance(val, list) else ([] if val is None else [val])
 
 
-def _qp_set(**kwargs) -> None:
-    qp = getattr(st, "query_params", None)
-    if qp is not None:
-        for k, v in kwargs.items():
-            qp[k] = v
+# ---------------- Stage helpers ----------------
+def _bootstrap_stage_from_query() -> None:
+    """If URL has ?stage=… and it's different from session, adopt it."""
+    vals = _qp_get_all("stage")
+    if not vals:
         return
-    st.experimental_set_query_params(**kwargs)  # type: ignore[attr-defined]
+    key = vals[0]
+    if key in STAGE_INDEX and st.session_state.get("active_stage") != key:
+        st.session_state["active_stage"] = key
+        st.session_state["stage_scroll_to_top"] = True
+        streamlit_rerun()
 
 
-# --- Stage helpers ------------------------------------------------------------
 def _resolve_stage_context() -> dict:
     if not STAGES:
         return {"active_key": None, "index": 0, "total": 0, "stage": None, "prev_stage": None, "next_stage": None}
@@ -68,28 +69,12 @@ def _resolve_stage_context() -> dict:
     }
 
 
-def _set_active_stage(stage_key: str | None) -> None:
-    if not stage_key or stage_key not in STAGE_INDEX:
-        return
-    ss = st.session_state
-    changed = ss.get("active_stage") != stage_key
-    if changed:
-        ss["active_stage"] = stage_key
-        ss["stage_scroll_to_top"] = True
-
-    if _qp_get_all("stage") != [stage_key]:
-        _qp_set(stage=stage_key)
-
-    if changed:
-        streamlit_rerun()
-
-
-# --- Fixed header -------------------------------------------------------------
+# ---------------- Fixed header (pure HTML inside bar) ----------------
 def mount_demai_header(logo_height: int = 56, max_inner_width: int = 1200) -> None:
-    """
-    Render a full-width, fixed header. A spacer div directly after the header
-    preserves layout so content never sits under the bar.
-    """
+    """Render a full-width fixed header with an in-flow spacer below it."""
+
+    # adopt URL stage if present (needed because we use links for nav)
+    _bootstrap_stage_from_query()
 
     ctx = _resolve_stage_context()
     stage: Optional[StageMeta] = ctx["stage"]
@@ -98,25 +83,46 @@ def mount_demai_header(logo_height: int = 56, max_inner_width: int = 1200) -> No
     index = int(ctx["index"])
     total = int(ctx["total"])
 
-    # Compute a consistent header height (logo + vertical paddings)
-    header_h = logo_height + 20  # tweak if you change CSS paddings
+    header_h = logo_height + 20  # logo + vertical paddings
 
-    # Global CSS
+    # Build logo as data URL so the iframe is self-contained
+    raw_logo_html = demai_logo_html(frame_marker="demai-header")
+    logo_data_url = f"data:text/html;base64,{b64encode(raw_logo_html.encode('utf-8')).decode('ascii')}"
+
+    # Compose HTML for buttons (as links that reload with ?stage=…)
+    def _btn(label: str, key: Optional[str], kind: str) -> str:
+        if key:
+            return f'<a class="demai-btn {kind}" href="?stage={html.escape(key)}" role="button" aria-label="{label}">{label}</a>'
+        # disabled placeholder keeps layout
+        return f'<span class="demai-btn {kind} disabled" aria-disabled="true">{label}</span>'
+
+    left_btn = _btn("⬅️", prev_stage.key if isinstance(prev_stage, StageMeta) else None, "secondary")
+    right_btn = _btn("➡️", next_stage.key if isinstance(next_stage, StageMeta) else None, "primary")
+
+    if isinstance(stage, StageMeta):
+        icon = html.escape(stage.icon)
+        title = html.escape(stage.title)
+        progress = f"Stage {index + 1} of {total}" if total else f"Stage {index + 1}"
+        stage_html = (
+            f'<div class="demai-stage"><span class="progress">{progress}</span>'
+            f'<span class="title">{icon} {title}</span></div>'
+        )
+    else:
+        stage_html = '<div class="demai-stage"><span class="progress">Stage</span><span class="title">Loading…</span></div>'
+
+    # CSS (no Streamlit widgets inside the fixed bar)
     st.markdown(
         dedent(
             f"""
             <style>
-              :root {{
-                --demai-header-h: {header_h}px;
-              }}
+              :root {{ --demai-header-h: {header_h}px; }}
 
-              /* Hide Streamlit native header */
+              /* Hide native Streamlit header */
               header[data-testid="stHeader"] {{ display: none !important; }}
 
-              /* Fixed, full-bleed top bar */
+              /* Fixed, full-bleed bar */
               .demai-header-fixed {{
-                position: fixed;
-                top: 0; left: 0; right: 0;
+                position: fixed; top: 0; left: 0; right: 0;
                 z-index: 1000;
                 background: rgba(15,23,42,0.95);
                 backdrop-filter: blur(10px);
@@ -125,7 +131,6 @@ def mount_demai_header(logo_height: int = 56, max_inner_width: int = 1200) -> No
                 box-shadow: 0 8px 18px rgba(8,15,33,0.22);
               }}
 
-              /* Center inner content and keep it tight on large screens */
               .demai-header-inner {{
                 max-width: {max_inner_width}px;
                 margin: 0 auto;
@@ -135,8 +140,6 @@ def mount_demai_header(logo_height: int = 56, max_inner_width: int = 1200) -> No
                 align-items: center;
                 gap: 12px;
               }}
-
-              /* Respect notches / safe areas */
               @supports (padding: max(0px)) {{
                 .demai-header-inner {{
                   padding-left: max(16px, env(safe-area-inset-left));
@@ -144,37 +147,35 @@ def mount_demai_header(logo_height: int = 56, max_inner_width: int = 1200) -> No
                 }}
               }}
 
-              /* Spacer keeps the rest of the app below the fixed bar */
+              /* Spacer keeps content below the bar */
               .demai-header-spacer {{ height: var(--demai-header-h); }}
 
               .demai-logo-frame {{
-                border: none; background: transparent; height: {logo_height}px; width: auto;
-                pointer-events: none;
-                display: block;
+                border: 0; background: transparent; height: {logo_height}px; width: auto; display: block; pointer-events: none;
               }}
 
-              .demai-stage {{
-                display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
-                color: rgba(226,232,240,0.92);
-                min-height: {logo_height - 6}px;
-              }}
-              .demai-stage .progress {{
-                font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;
-                font-size: 0.74rem; color: rgba(226,232,240,0.72);
-              }}
-              .demai-stage .title {{
-                font-weight: 700; font-size: 1rem; line-height: 1.25; white-space: normal;
-              }}
+              .demai-stage {{ display: flex; align-items: center; gap: 8px; flex-wrap: wrap; color: rgba(226,232,240,0.92); }}
+              .demai-stage .progress {{ font-weight: 600; letter-spacing: .06em; text-transform: uppercase;
+                                        font-size: .74rem; color: rgba(226,232,240,.72); }}
+              .demai-stage .title {{ font-weight: 700; font-size: 1rem; line-height: 1.25; }}
 
-              .demai-header-inner [data-testid="stButton"] > button {{
-                border-radius: 12px; font-weight: 600; min-height: 36px; padding-inline: 10px;
-              }}
+              .demai-actions {{ display: inline-flex; gap: 8px; }}
 
-              /* Collapse gently on small phones */
+              .demai-btn {{
+                display: inline-flex; align-items: center; justify-content: center;
+                min-height: 36px; padding: 0 12px; border-radius: 12px; font-weight: 700;
+                text-decoration: none; user-select: none;
+                transition: transform .04s ease;
+              }}
+              .demai-btn.primary {{ background: #ef4444; color: white; }}
+              .demai-btn.secondary {{ background: rgba(148,163,184,.18); color: white; }}
+              .demai-btn.disabled {{ opacity: .35; pointer-events: none; }}
+              .demai-btn:active {{ transform: translateY(1px); }}
+
               @media (max-width: 420px) {{
                 .demai-header-inner {{ gap: 8px; padding-top: 8px; padding-bottom: 8px; }}
                 .demai-logo-frame {{ height: {max(40, logo_height - 12)}px; }}
-                .demai-stage .title {{ font-size: 0.95rem; }}
+                .demai-stage .title {{ font-size: .95rem; }}
               }}
             </style>
             """
@@ -182,63 +183,19 @@ def mount_demai_header(logo_height: int = 56, max_inner_width: int = 1200) -> No
         unsafe_allow_html=True,
     )
 
-    # Render the fixed bar (outside normal flow) + spacer (in flow).
-    # Place these as the very first blocks in the app.
-    raw_logo_html = demai_logo_html(frame_marker="demai-header")
-    data_url = f"data:text/html;base64,{b64encode(raw_logo_html.encode('utf-8')).decode('ascii')}"
-
-    # Fixed bar
-    st.markdown('<div class="demai-header-fixed"><div class="demai-header-inner">', unsafe_allow_html=True)
-
-    # Left: logo
-    left, middle, right = st.columns([1.1, 2.8, 1.2], gap="small")
-    with left:
-        st.markdown(
-            f'<iframe class="demai-logo-frame" title="demAI animated logo" src="{data_url}" scrolling="no"></iframe>',
-            unsafe_allow_html=True,
-        )
-
-    # Middle: stage label
-    with middle:
-        if isinstance(stage, StageMeta):
-            icon = html.escape(stage.icon)
-            title = html.escape(stage.title)
-            progress = f"Stage {index + 1} of {total}" if total else f"Stage {index + 1}"
-            st.markdown(
-                f'<div class="demai-stage"><span class="progress">{progress}</span>'
-                f'<span class="title">{icon} {title}</span></div>',
-                unsafe_allow_html=True,
-            )
-        else:
-            st.markdown(
-                '<div class="demai-stage"><span class="progress">Stage</span>'
-                '<span class="title">Loading…</span></div>',
-                unsafe_allow_html=True,
-            )
-
-    # Right: nav buttons
-    with right:
-        c1, c2 = st.columns(2, gap="small")
-        with c1:
-            if isinstance(prev_stage, StageMeta):
-                if st.button("⬅️", key="demai_header_back", use_container_width=True, help=f"Back to {prev_stage.title}"):
-                    _set_active_stage(prev_stage.key)
-            else:
-                st.write("")  # reserve height
-        with c2:
-            if isinstance(next_stage, StageMeta):
-                if st.button(
-                    "➡️",
-                    key="demai_header_next",
-                    use_container_width=True,
-                    type="primary",
-                    help=f"Forward to {next_stage.title}",
-                ):
-                    _set_active_stage(next_stage.key)
-            else:
-                st.write("")
-
-    st.markdown("</div></div>", unsafe_allow_html=True)
-
-    # Spacer directly after the fixed bar so the app content starts below it
-    st.markdown('<div class="demai-header-spacer"></div>', unsafe_allow_html=True)
+    # Entire fixed bar as HTML (everything stays inside it)
+    st.markdown(
+        dedent(
+            f"""
+            <div class="demai-header-fixed" role="banner" aria-label="demAI top bar">
+              <div class="demai-header-inner">
+                <div><iframe class="demai-logo-frame" title="demAI animated logo" src="{logo_data_url}" scrolling="no"></iframe></div>
+                <div>{stage_html}</div>
+                <div class="demai-actions">{left_btn}{right_btn}</div>
+              </div>
+            </div>
+            <div class="demai-header-spacer"></div>
+            """
+        ),
+        unsafe_allow_html=True,
+    )
