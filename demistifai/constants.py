@@ -1486,14 +1486,8 @@ div[data-testid="stHorizontalBlock"]:has(.stage-top-grid__nav-card) > div[data-t
 :is([data-testid="stElementContainer"], [data-testid="element-container"])[class*="st-key-stage_grid_next_"],
 :is([data-testid="stElementContainer"], [data-testid="element-container"])[class*="st-key-stage_grid_prev_"] {
     position: relative;
-    background: linear-gradient(180deg, rgba(13, 17, 23, 0.96), rgba(13, 17, 23, 0.9));
-    border-radius: 20px;
-    border: 1px solid rgba(56, 189, 248, 0.4);
-    box-shadow: 0 28px 50px rgba(8, 47, 73, 0.45), inset 0 0 0 1px rgba(15, 23, 42, 0.75);
     padding: 1.4rem 1.5rem 1.55rem;
-    color: rgba(226, 232, 240, 0.92);
     font-family: 'Fira Code', ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
-    overflow: hidden;
 }
 
 :is([data-testid="stElementContainer"], [data-testid="element-container"])[class*="st-key-stage_grid_next_"],
