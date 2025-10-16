@@ -181,14 +181,52 @@ def mount_demai_header(logo_height: int = 56, max_inner_width: int = 1200) -> No
               /* Visible header buttons (HTML) */
               .demai-actions {{ display: inline-flex; gap: 8px; }}
               .demai-btn {{
-                display: inline-flex; align-items: center; justify-content: center;
-                min-height: var(--demai-btn-min-h); padding: 0 12px; border-radius: 12px;
-                font-weight: 700; text-decoration: none; user-select: none; cursor: pointer;
-                color: white;
+                position: relative; display: inline-flex; align-items: center; justify-content: center; gap: .55rem;
+                min-height: var(--demai-btn-min-h); padding: 0 .9rem; border-radius: 14px;
+                font-weight: 700; font-family: 'Fira Code', ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace;
+                letter-spacing: .05em; text-transform: uppercase;
+                text-decoration: none; user-select: none; cursor: pointer; overflow: hidden;
+                color: rgba(226,232,240,.95);
+                background: linear-gradient(135deg, rgba(13,17,23,.96), rgba(8,47,73,.88));
+                border: 1px solid rgba(94,234,212,.45);
+                text-shadow: 0 0 12px rgba(94,234,212,.32);
+                box-shadow: inset 0 0 0 1px rgba(15,23,42,.82), 0 22px 48px rgba(8,47,73,.55);
+                transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease, filter .18s ease;
               }}
-              .demai-btn.primary {{ background: #ef4444; }}
-              .demai-btn.secondary {{ background: rgba(148,163,184,.18); }}
-              .demai-btn[aria-disabled="true"] {{ opacity: .35; pointer-events: none; }}
+              .demai-btn::after {{
+                content: '';
+                position: absolute; inset: 1px; border-radius: 12px;
+                background: linear-gradient(140deg, rgba(94,234,212,.18), transparent 60%);
+                pointer-events: none;
+              }}
+              .demai-btn.primary {{
+                background: linear-gradient(125deg, rgba(34,211,238,.95), rgba(59,130,246,.9));
+                color: rgba(15,23,42,.92);
+                text-shadow: 0 0 12px rgba(226,232,240,.4);
+                box-shadow: inset 0 0 0 1px rgba(226,232,240,.32), 0 26px 52px rgba(14,165,233,.48);
+              }}
+              .demai-btn.secondary {{
+                background: linear-gradient(135deg, rgba(10,18,35,.95), rgba(15,23,42,.9));
+              }}
+              .demai-btn:hover {{
+                transform: translateY(-1px);
+                border-color: rgba(94,234,212,.65);
+                box-shadow: inset 0 0 0 1px rgba(15,23,42,.72), 0 28px 58px rgba(8,47,73,.62);
+                filter: brightness(1.05);
+              }}
+              .demai-btn.primary:hover {{
+                box-shadow: inset 0 0 0 1px rgba(226,232,240,.38), 0 32px 60px rgba(14,165,233,.55);
+              }}
+              .demai-btn:focus-visible {{
+                outline: 2px solid rgba(56,189,248,.7);
+                outline-offset: 3px;
+              }}
+              .demai-btn[aria-disabled="true"] {{
+                opacity: .55; pointer-events: none;
+                border-color: rgba(148,163,184,.35);
+                box-shadow: inset 0 0 0 1px rgba(30,41,59,.7), 0 12px 28px rgba(8,47,73,.35);
+                filter: grayscale(12%);
+              }}
 
               /* Small phones: reduce heights paddings to keep perfect centering */
               @media (max-width: 420px) {{
