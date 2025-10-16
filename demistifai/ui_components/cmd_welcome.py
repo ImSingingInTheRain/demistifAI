@@ -30,6 +30,9 @@ LINES: List[str] = [
     "$ start demo\n",
 ]
 
+# Backwards-compatibility alias for callers importing the old constant name.
+_WELCOME_LINES = LINES
+
 # --- Style (kept tiny) ---
 STYLE = """
 <style>
