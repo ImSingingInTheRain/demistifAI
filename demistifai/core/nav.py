@@ -73,19 +73,7 @@ def _render_stage_navigation_panel(stage_key: str, card_slot: DeltaGenerator, ne
 
     next_slot.markdown(
         f"""
-        <div id="{sentinel_next_id}" data-stage-key="{html.escape(stage_key)}"></div>
-        <script>
-          (function tagStageNext() {{
-            const sentinel = document.getElementById('{sentinel_next_id}');
-            if (!sentinel) return;
-            const container = sentinel.closest('[data-testid="stVerticalBlock"]') || sentinel.parentElement;
-            if (!container) return;
-            const btn = container.querySelector('button');
-            if (!btn) return;
-            btn.id = 'demai-stage-nav-next-btn';
-            btn.dataset.stageKey = '{html.escape(stage_key)}';
-          }})();
-        </script>
+        <div id="{sentinel_next_id}" data-stage-key="{html.escape(stage_key)}" data-demai-target="demai-stage-nav-next-btn"></div>
         """,
         unsafe_allow_html=True,
     )
@@ -103,19 +91,7 @@ def _render_stage_navigation_panel(stage_key: str, card_slot: DeltaGenerator, ne
 
     prev_slot.markdown(
         f"""
-        <div id="{sentinel_prev_id}" data-stage-key="{html.escape(stage_key)}"></div>
-        <script>
-          (function tagStagePrev() {{
-            const sentinel = document.getElementById('{sentinel_prev_id}');
-            if (!sentinel) return;
-            const container = sentinel.closest('[data-testid="stVerticalBlock"]') || sentinel.parentElement;
-            if (!container) return;
-            const btn = container.querySelector('button');
-            if (!btn) return;
-            btn.id = 'demai-stage-nav-prev-btn';
-            btn.dataset.stageKey = '{html.escape(stage_key)}';
-          }})();
-        </script>
+        <div id="{sentinel_prev_id}" data-stage-key="{html.escape(stage_key)}" data-demai-target="demai-stage-nav-prev-btn"></div>
         """,
         unsafe_allow_html=True,
     )
