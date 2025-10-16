@@ -515,7 +515,7 @@ def render_intro_stage():
                     padding: 0;
                 }
                 .section-surface.section-surface--hero > div[data-testid="stVerticalBlock"] > div:first-child {
-                    width: min(100%, 960px);
+                    width: min(100%, 1040px);
                 }
                 .mw-intro-lifecycle iframe[srcdoc*="demai-hero"] {
                     display: block;
@@ -524,7 +524,8 @@ def render_intro_stage():
                 .mw-intro-lifecycle {
                     position: relative;
                     margin: 0 auto clamp(1.8rem, 4vw, 2.8rem);
-                    max-width: min(1080px, 100%);
+                    max-width: min(1200px, 100%);
+                    min-height: clamp(420px, 56vh, 520px);
                     border-radius: 22px;
                     overflow: hidden;
                     isolation: isolate;
@@ -552,7 +553,7 @@ def render_intro_stage():
                     gap: clamp(1rem, 2.6vw, 1.9rem);
                     padding-top: 10px;
                     padding-left: 10px;
-                    padding-right: 30px;
+                    padding-right: clamp(1.2rem, 3.6vw, 2.4rem);
                     padding-bottom: 10px;
                     align-items: stretch;
                 }
@@ -567,6 +568,7 @@ def render_intro_stage():
                     border: 1px solid rgba(148, 163, 184, 0.22);
                     box-shadow: 0 20px 44px rgba(15, 23, 42, 0.12);
                     overflow: hidden;
+                    min-height: clamp(320px, 48vh, 420px);
                 }
                 .mw-intro-lifecycle__col::before {
                     content: "";
@@ -587,6 +589,8 @@ def render_intro_stage():
                     background: linear-gradient(180deg, rgba(37, 99, 235, 0.18), rgba(14, 116, 144, 0.1));
                     border: 1px solid rgba(37, 99, 235, 0.32);
                     box-shadow: 0 26px 56px rgba(37, 99, 235, 0.22);
+                    align-items: center;
+                    min-height: clamp(340px, 52vh, 460px);
                 }
                 .mw-intro-lifecycle__col:has(> .intro-lifecycle-map)::before {
                     background: radial-gradient(circle at center, rgba(96, 165, 250, 0.42), transparent 72%);
@@ -682,10 +686,13 @@ def render_intro_stage():
                     flex-direction: column;
                     gap: 0.75rem;
                     min-height: 100%;
+                    align-items: center;
+                    width: 100%;
                 }
                 .mw-intro-lifecycle .intro-lifecycle-map #demai-lifecycle.dlc {
                     flex: 1;
-                    width: 100%;
+                    width: min(100%, 560px);
+                    margin-inline: auto;
                 }
                 @media (max-width: 1024px) {
                     .section-surface.section-surface--hero > div[data-testid="stVerticalBlock"] {
@@ -701,9 +708,6 @@ def render_intro_stage():
                     }
                     .mw-intro-lifecycle__col {
                         padding: clamp(1rem, 4vw, 1.45rem);
-                    }
-                    .mw-intro-lifecycle .intro-lifecycle-map #demai-lifecycle.dlc {
-                        --ring-size: 86vw;
                     }
                 }
                 @media (max-width: 680px) {
@@ -758,7 +762,7 @@ def render_intro_stage():
         render_mac_window(
             st,
             title="Start your demAI journey",
-            ratios=(0.38, 0.62),
+            ratios=(0.33, 0.67),
             col_html=[left_col_html, right_col_html],
             id_suffix="intro-lifecycle",
         )
