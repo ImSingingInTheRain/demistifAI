@@ -144,7 +144,7 @@ def _render_stage_navigation_controls(stage_key: str, next_slot: DeltaGenerator,
     prev_slot.markdown(
         f"""
         <style>
-        button[title="Return to the previous stage"] {{
+        .st-key-stage_grid_prev_{html.escape(stage_key)} button {{
             position: absolute !important;
             width: 1px !important;
             height: 1px !important;
