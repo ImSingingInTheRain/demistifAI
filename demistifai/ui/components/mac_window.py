@@ -212,6 +212,7 @@ def mac_window_html(
 def render_mac_window(st, **kwargs):
     """Render the macOS-style window in Streamlit."""
 
+    fallback_height = kwargs.pop("fallback_height", None)
     html_str = mac_window_html(**kwargs)
 
     # Streamlit 1.50 introduced ``st.html`` which properly renders rich HTML and
@@ -224,4 +225,11 @@ def render_mac_window(st, **kwargs):
 
     # Fall back to components.html so scripts (e.g., Plotly animations) run on
     # older Streamlit releases that lack ``st.html``.
-    components.html(html_str, height=0, scrolling=True)
+    if fallback_height is None:
+        # ``components.html`` requires an explicit height; without it, the iframe
+        # collapses to 0px which hides rich content like the training animation.
+        # Pick a generous default so the mac window has room to render while
+        # still allowing call sites to opt in to a custom height when needed.
+        fallback_height = 720
+
+    components.html(html_str, height=fallback_height, scrolling=True)
