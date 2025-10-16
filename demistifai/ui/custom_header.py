@@ -2,8 +2,7 @@
 
 - Full-width, fixed header bar (side-to-side), mobile safe-area aware
 - In-bar animated logo + perfectly centered stage title
-- Visible header buttons (HTML) trigger hidden REAL Streamlit buttons via JS
-- Hidden controls truly occupy no space
+- Visible header buttons (HTML) trigger the stage grid navigation buttons via JS
 - Works on desktop and mobile without losing session state
 """
 
@@ -74,11 +73,11 @@ def _resolve_stage_context() -> dict:
     }
 
 
-# ---------------- Fixed header with HTML buttons + hidden Streamlit buttons ----------------
+# ---------------- Fixed header with HTML buttons + stage navigation bridge ----------------
 def mount_demai_header(logo_height: int = 56, max_inner_width: int = 1200) -> None:
     """
     Render a full-width fixed header (pure HTML) with visible buttons.
-    Those buttons programmatically click hidden Streamlit buttons so navigation
+    Those buttons programmatically click the stage grid navigation buttons so navigation
     stays in the same session (no reloads, no new tab).
     """
 
@@ -190,14 +189,6 @@ def mount_demai_header(logo_height: int = 56, max_inner_width: int = 1200) -> No
               .demai-btn.secondary {{ background: rgba(148,163,184,.18); }}
               .demai-btn[aria-disabled="true"] {{ opacity: .35; pointer-events: none; }}
 
-              /* Truly hidden area for Streamlit buttons (no layout footprint) */
-              #demai-hidden-controls {{
-                position: absolute !important;
-                left: -10000px !important;
-                width: 1px !important; height: 1px !important;
-                overflow: hidden !important; padding: 0 !important; margin: 0 !important;
-              }}
-
               /* Small phones: reduce heights paddings to keep perfect centering */
               @media (max-width: 420px) {{
                 :root {{
@@ -214,11 +205,11 @@ def mount_demai_header(logo_height: int = 56, max_inner_width: int = 1200) -> No
         unsafe_allow_html=True,
     )
 
-    # IDs used by visible buttons and the hidden ones we'll tag via JS
+    # IDs used by visible buttons and the stage-grid nav targets
     prev_visible_id = "demai-btn-prev"
     next_visible_id = "demai-btn-next"
-    hidden_prev_id = "demai-hidden-prev-btn"
-    hidden_next_id = "demai-hidden-next-btn"
+    hidden_prev_id = "demai-stage-nav-prev-btn"
+    hidden_next_id = "demai-stage-nav-next-btn"
 
     # ---------- Fixed header HTML (logo + stage + visible buttons) ----------
     left_disabled = not isinstance(prev_stage, StageMeta)
@@ -243,86 +234,7 @@ def mount_demai_header(logo_height: int = 56, max_inner_width: int = 1200) -> No
         unsafe_allow_html=True,
     )
 
-    # ---------- Hidden Streamlit controls (inside a known wrapper we can hide) ----------
-    with st.container():
-        st.markdown('<div id="demai-hidden-controls">', unsafe_allow_html=True)
-
-        # PREV: create a small container so we can tag its button reliably
-        prev_container = st.container()
-        with prev_container:
-            st.markdown('<div id="demai-prev-sentinel"></div>', unsafe_allow_html=True)
-            if isinstance(prev_stage, StageMeta):
-                if prev_container.button("internal_prev", key="demai_header_prev_internal"):
-                    st.session_state["active_stage"] = prev_stage.key
-                    st.session_state["stage_scroll_to_top"] = True
-                    try:
-                        st.query_params["stage"] = prev_stage.key
-                    except Exception:
-                        try:
-                            st.experimental_set_query_params(stage=prev_stage.key)
-                        except Exception:
-                            pass
-                    streamlit_rerun()
-            # Script to tag the *actual* Streamlit <button> in this container
-            st.markdown(
-                f"""
-                <script>
-                  (function tagPrev() {{
-                    let tries=0;
-                    const t=setInterval(function(){{
-                      const root = document.getElementById('demai-prev-sentinel');
-                      if (!root) {{ clearInterval(t); return; }}
-                      // The Streamlit button should be rendered somewhere after the sentinel within the same container
-                      // Find the nearest button in the same container and tag it with a stable id
-                      const container = root.closest('[data-testid="stVerticalBlock"]') || root.parentElement;
-                      const btn = container ? container.querySelector('button') : null;
-                      if (btn) {{ btn.id = '{hidden_prev_id}'; clearInterval(t); }}
-                      if (++tries > 20) clearInterval(t);
-                    }}, 120);
-                  }})();
-                </script>
-                """,
-                unsafe_allow_html=True,
-            )
-
-        # NEXT
-        next_container = st.container()
-        with next_container:
-            st.markdown('<div id="demai-next-sentinel"></div>', unsafe_allow_html=True)
-            if isinstance(next_stage, StageMeta):
-                if next_container.button("internal_next", key="demai_header_next_internal"):
-                    st.session_state["active_stage"] = next_stage.key
-                    st.session_state["stage_scroll_to_top"] = True
-                    try:
-                        st.query_params["stage"] = next_stage.key
-                    except Exception:
-                        try:
-                            st.experimental_set_query_params(stage=next_stage.key)
-                        except Exception:
-                            pass
-                    streamlit_rerun()
-            st.markdown(
-                f"""
-                <script>
-                  (function tagNext() {{
-                    let tries=0;
-                    const t=setInterval(function(){{
-                      const root = document.getElementById('demai-next-sentinel');
-                      if (!root) {{ clearInterval(t); return; }}
-                      const container = root.closest('[data-testid="stVerticalBlock"]') || root.parentElement;
-                      const btn = container ? container.querySelector('button') : null;
-                      if (btn) {{ btn.id = '{hidden_next_id}'; clearInterval(t); }}
-                      if (++tries > 20) clearInterval(t);
-                    }}, 120);
-                  }})();
-                </script>
-                """,
-                unsafe_allow_html=True,
-            )
-
-        st.markdown('</div>', unsafe_allow_html=True)
-
-    # ---------- JS bridge: visible header buttons -> hidden Streamlit buttons ----------
+    # ---------- JS bridge: visible header buttons -> stage grid buttons ----------
     st.markdown(
         f"""
         <script>
@@ -330,22 +242,23 @@ def mount_demai_header(logo_height: int = 56, max_inner_width: int = 1200) -> No
             function byId(id) {{ return document.getElementById(id); }}
             function bind(vId, hId) {{
               const v = byId(vId);
-              if (!v) return false;
-              function tryBind() {{
+              if (!v || v.dataset.boundTarget === hId) return false;
+              function attach() {{
                 const h = byId(hId);
-                if (h) {{
-                  v.addEventListener('click', function(e) {{
-                    if (v.getAttribute('aria-disabled') === 'true') return;
-                    e.preventDefault(); e.stopPropagation();
-                    h.click();
-                  }});
-                  return true;
-                }}
-                return false;
+                if (!h) return false;
+                v.addEventListener('click', function(e) {{
+                  if (v.getAttribute('aria-disabled') === 'true') return;
+                  const target = byId(hId);
+                  if (!target) return;
+                  e.preventDefault(); e.stopPropagation();
+                  target.click();
+                }});
+                v.dataset.boundTarget = hId;
+                return true;
               }}
-              // Wait for Streamlit to render the hidden button and tag it
+              // Wait for the stage grid nav button to be tagged with the expected id
               let n=0; const t=setInterval(function(){{
-                if (tryBind() || ++n>25) clearInterval(t);
+                if (attach() || ++n>25) clearInterval(t);
               }}, 120);
               return true;
             }}
