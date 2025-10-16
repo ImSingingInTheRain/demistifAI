@@ -263,7 +263,7 @@ def render_train_stage(
             color: rgba(15, 23, 42, 0.8);
             line-height: 1.55;
         }
-        .train-sidebar-card {
+        .train-launchpad-card {
             border-radius: 1.1rem;
             border: 1px solid rgba(15, 23, 42, 0.08);
             background: rgba(255, 255, 255, 0.92);
@@ -271,20 +271,20 @@ def render_train_stage(
             padding: 0.96rem 1.35rem;
             margin-bottom: 1rem;
         }
-        .train-sidebar-card__title {
+        .train-launchpad-card__title {
             margin: 0 0 0.65rem 0;
             font-size: 1.05rem;
             font-weight: 700;
             color: #0f172a;
         }
-        .train-sidebar-card__list {
+        .train-launchpad-card__list {
             list-style: none;
             margin: 0;
             padding: 0;
             display: grid;
             gap: 0.55rem;
         }
-        .train-sidebar-card__list li {
+        .train-launchpad-card__list li {
             display: grid;
             grid-template-columns: 1.8rem 1fr;
             gap: 0.55rem;
@@ -292,7 +292,7 @@ def render_train_stage(
             color: rgba(15, 23, 42, 0.78);
             line-height: 1.4;
         }
-        .train-sidebar-card__bullet {
+        .train-launchpad-card__bullet {
             width: 1.8rem;
             height: 1.8rem;
             border-radius: 0.75rem;
@@ -302,7 +302,7 @@ def render_train_stage(
             justify-content: center;
             font-size: 1rem;
         }
-        .train-sidebar-card--secondary {
+        .train-launchpad-card--secondary {
             background: rgba(30, 64, 175, 0.06);
             border: 1px dashed rgba(30, 64, 175, 0.35);
         }
@@ -440,11 +440,11 @@ def render_train_stage(
             padding: 0.55rem 0.75rem;
             border: 1px dashed rgba(12, 74, 110, 0.25);
         }
-        .train-sidebar-card__grid {
+        .train-launchpad-card__grid {
             display: grid;
             gap: 0.65rem;
         }
-        .train-sidebar-card__item {
+        .train-launchpad-card__item {
             display: grid;
             grid-template-columns: auto 1fr;
             gap: 0.6rem;
@@ -453,12 +453,12 @@ def render_train_stage(
             background: rgba(15, 23, 42, 0.04);
             align-items: flex-start;
         }
-        .train-sidebar-card__badge {
+        .train-launchpad-card__badge {
             display: flex;
             align-items: center;
             gap: 0.35rem;
         }
-        .train-sidebar-card__badge-num {
+        .train-launchpad-card__badge-num {
             width: 1.8rem;
             height: 1.8rem;
             border-radius: 999px;
@@ -470,16 +470,16 @@ def render_train_stage(
             font-weight: 700;
             font-size: 0.85rem;
         }
-        .train-sidebar-card__badge-icon {
+        .train-launchpad-card__badge-icon {
             font-size: 1.05rem;
         }
-        .train-sidebar-card__item-title {
+        .train-launchpad-card__item-title {
             margin: 0;
             font-size: 0.9rem;
             font-weight: 600;
             color: #0f172a;
         }
-        .train-sidebar-card__item-body {
+        .train-launchpad-card__item-body {
             margin: 0.2rem 0 0 0;
             font-size: 0.83rem;
             color: rgba(15, 23, 42, 0.75);
@@ -801,7 +801,7 @@ def render_train_stage(
         
         render_eu_ai_quote("An AI system “infers, from the input it receives…”.")
         
-        intro_col, sidebar_col = st.columns([0.58, 0.42], gap="large")
+        intro_col, launchpad_col = st.columns([0.58, 0.42], gap="large")
         
         with intro_col:
             st.markdown(
@@ -841,11 +841,11 @@ def render_train_stage(
                 ),
                 unsafe_allow_html=True,
             )
-        with sidebar_col:
+        with launchpad_col:
             st.markdown(
                 """
-                <div class="train-sidebar-card">
-                  <div class="train-sidebar-card__title">🧭 Training Launchpad — readiness & controls</div>
+                <div class="train-launchpad-card">
+                  <div class="train-launchpad-card__title">🧭 Training Launchpad — readiness & controls</div>
                 </div>
                 """,
                 unsafe_allow_html=True,
@@ -860,9 +860,9 @@ def render_train_stage(
             )
             st.markdown(
                 f"""
-                <div class="train-sidebar-card__item">
-                  <p class="train-sidebar-card__item-title">Balanced labels <span style=\"{chip_style}\">{bal_chip}</span></p>
-                  <p class="train-sidebar-card__item-body">Spam: {bal['counts']['spam']} • Safe: {bal['counts']['safe']} (ratio ~{bal['ratio']:.2f})</p>
+                <div class="train-launchpad-card__item">
+                  <p class="train-launchpad-card__item-title">Balanced labels <span style=\"{chip_style}\">{bal_chip}</span></p>
+                  <p class="train-launchpad-card__item-body">Spam: {bal['counts']['spam']} • Safe: {bal['counts']['safe']} (ratio ~{bal['ratio']:.2f})</p>
                 </div>
                 """,
                 unsafe_allow_html=True,
@@ -880,9 +880,9 @@ def render_train_stage(
             counts_str = ", ".join(f"{k} {v}" for k, v in (pii["counts"] or {}).items()) or "—"
             st.markdown(
                 f"""
-                <div class="train-sidebar-card__item">
-                  <p class="train-sidebar-card__item-title">Data hygiene <span style=\"{chip_style}\">{tag}</span></p>
-                  <p class="train-sidebar-card__item-body">PII in preview: {counts_str}</p>
+                <div class="train-launchpad-card__item">
+                  <p class="train-launchpad-card__item-title">Data hygiene <span style=\"{chip_style}\">{tag}</span></p>
+                  <p class="train-launchpad-card__item-body">PII in preview: {counts_str}</p>
                 </div>
                 """,
                 unsafe_allow_html=True,

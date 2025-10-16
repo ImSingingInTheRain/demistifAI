@@ -480,20 +480,6 @@ def _set_adaptive_state(new_value: bool, *, source: str) -> None:
 
 ss["use_adaptiveness"] = bool(ss.get("adaptive", False))
 
-with st.sidebar:
-    st.markdown(
-        textwrap.dedent(
-            """
-        <div class='sidebar-shell'>
-            <div class='sidebar-placeholder'>
-                <p>Sidebar updates are on the way. Stay tuned!</p>
-            </div>
-        </div>
-        """
-        ),
-        unsafe_allow_html=True,
-    )
-
 
 def render_intro_stage():
 

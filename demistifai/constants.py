@@ -1376,33 +1376,6 @@ APP_THEME_CSS = """
     margin-top: 0.35rem;
 }
 
-[data-testid="stSidebar"] {
-    background: linear-gradient(180deg, rgba(30, 41, 59, 0.92), rgba(30, 41, 59, 0.85));
-    border-right: 1px solid rgba(30, 41, 59, 0.35);
-    color: #f8fafc;
-}
-
-[data-testid="stSidebar"] > div:first-child {
-    padding: 2.6rem 1.6rem 2.1rem;
-}
-
-.sidebar-shell {
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
-}
-
-.sidebar-placeholder {
-    background: rgba(15, 23, 42, 0.35);
-    border: 1px dashed rgba(148, 163, 184, 0.35);
-    border-radius: 18px;
-    color: rgba(248, 250, 252, 0.75);
-    font-size: 0.95rem;
-    line-height: 1.6;
-    padding: 1.4rem 1.6rem;
-    text-align: center;
-}
-
 .metric-highlight {
     display: flex;
     align-items: center;
