@@ -1584,23 +1584,26 @@ div[data-testid="stHorizontalBlock"]:has(.stage-top-grid__nav-card) > div[data-t
 :is([data-testid="stElementContainer"], [data-testid="element-container"])[class*="st-key-stage_grid_next_"] div[data-testid="stButton"] > button,
 :is([data-testid="stElementContainer"], [data-testid="element-container"])[class*="st-key-stage_grid_prev_"] div[data-testid="stButton"] > button {
     width: 100%;
-    border-radius: 16px;
+    border-radius: 14px;
     font-weight: 700;
     font-size: 0.92rem;
-    padding: 0.9rem 1.2rem;
-    border: none;
+    padding: 0.8rem 1.25rem;
+    border: 1px solid rgba(94, 234, 212, 0.45);
     font-family: 'Fira Code', ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
     position: relative;
     z-index: 2;
     display: inline-flex;
     align-items: center;
     justify-content: space-between;
-    gap: 0.8rem;
-    letter-spacing: 0.1em;
+    gap: 0.75rem;
+    letter-spacing: 0.06em;
     text-transform: uppercase;
     line-height: 1.1;
-    box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.25), 0 22px 40px rgba(8, 47, 73, 0.55);
-    transition: transform 0.18s ease, box-shadow 0.18s ease, filter 0.18s ease;
+    color: rgba(226, 232, 240, 0.95);
+    background: linear-gradient(135deg, rgba(13, 17, 23, 0.96), rgba(8, 47, 73, 0.88));
+    text-shadow: 0 0 12px rgba(94, 234, 212, 0.32);
+    box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.82), 0 22px 48px rgba(8, 47, 73, 0.55);
+    transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease, filter 0.18s ease;
 }
 
 :is([data-testid="stElementContainer"], [data-testid="element-container"])[class*="st-key-stage_grid_next_"] div[data-testid="stButton"] > button::after,
@@ -1608,46 +1611,51 @@ div[data-testid="stHorizontalBlock"]:has(.stage-top-grid__nav-card) > div[data-t
     content: '';
     position: absolute;
     inset: 1px;
-    border-radius: 15px;
+    border-radius: 12px;
     pointer-events: none;
-    background: linear-gradient(140deg, rgba(148, 163, 184, 0.15), transparent 55%);
+    background: linear-gradient(140deg, rgba(94, 234, 212, 0.18), transparent 60%);
 }
 
 :is([data-testid="stElementContainer"], [data-testid="element-container"])[class*="st-key-stage_grid_next_"] div[data-testid="stButton"] > button {
-    background: linear-gradient(125deg, rgba(34, 211, 238, 0.95), rgba(59, 130, 246, 0.9));
-    color: rgba(15, 23, 42, 0.92);
-    text-shadow: 0 0 12px rgba(226, 232, 240, 0.28);
-    box-shadow: inset 0 0 0 1px rgba(226, 232, 240, 0.32), 0 26px 52px rgba(14, 165, 233, 0.45);
+    background: linear-gradient(135deg, rgba(13, 17, 23, 0.96), rgba(8, 47, 73, 0.88));
+    color: rgba(226, 232, 240, 0.95);
+    text-shadow: 0 0 12px rgba(94, 234, 212, 0.32);
+    box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.82), 0 22px 48px rgba(8, 47, 73, 0.55);
 }
 
 :is([data-testid="stElementContainer"], [data-testid="element-container"])[class*="st-key-stage_grid_next_"] div[data-testid="stButton"] > button:hover {
     transform: translateY(-1px);
-    box-shadow: inset 0 0 0 1px rgba(226, 232, 240, 0.38), 0 32px 60px rgba(14, 165, 233, 0.52);
+    border-color: rgba(94, 234, 212, 0.65);
+    box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.72), 0 28px 58px rgba(8, 47, 73, 0.62);
+    filter: brightness(1.05);
 }
 
 :is([data-testid="stElementContainer"], [data-testid="element-container"])[class*="st-key-stage_grid_prev_"] div[data-testid="stButton"] > button {
-    background: linear-gradient(130deg, rgba(10, 18, 35, 0.95), rgba(15, 23, 42, 0.92));
-    color: rgba(226, 232, 240, 0.9);
-    box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.4), 0 18px 42px rgba(2, 6, 23, 0.72);
+    background: linear-gradient(135deg, rgba(13, 17, 23, 0.96), rgba(8, 47, 73, 0.88));
+    color: rgba(226, 232, 240, 0.95);
+    text-shadow: 0 0 12px rgba(94, 234, 212, 0.32);
+    box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.82), 0 22px 48px rgba(8, 47, 73, 0.55);
 }
 
 :is([data-testid="stElementContainer"], [data-testid="element-container"])[class*="st-key-stage_grid_prev_"] div[data-testid="stButton"] > button:hover {
     transform: translateY(-1px);
-    box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.55), 0 24px 52px rgba(2, 6, 23, 0.75);
+    border-color: rgba(94, 234, 212, 0.65);
+    box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.72), 0 28px 58px rgba(8, 47, 73, 0.62);
     filter: brightness(1.05);
 }
 
 :is([data-testid="stElementContainer"], [data-testid="element-container"])[class*="st-key-stage_grid_next_"] div[data-testid="stButton"] > button:focus-visible,
 :is([data-testid="stElementContainer"], [data-testid="element-container"])[class*="st-key-stage_grid_prev_"] div[data-testid="stButton"] > button:focus-visible {
-    outline: 2px solid rgba(94, 234, 212, 0.7);
+    outline: 2px solid rgba(56, 189, 248, 0.7);
     outline-offset: 3px;
 }
 
 :is([data-testid="stElementContainer"], [data-testid="element-container"])[class*="st-key-stage_grid_next_"] div[data-testid="stButton"] > button:disabled,
 :is([data-testid="stElementContainer"], [data-testid="element-container"])[class*="st-key-stage_grid_prev_"] div[data-testid="stButton"] > button:disabled {
     opacity: 0.55;
-    box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.2);
-    filter: grayscale(12%);
+    border-color: rgba(148, 163, 184, 0.35);
+    box-shadow: inset 0 0 0 1px rgba(30, 41, 59, 0.7), 0 12px 28px rgba(8, 47, 73, 0.35);
+    filter: grayscale(10%);
 }
 
 
