@@ -2076,6 +2076,7 @@ LIFECYCLE_RING_HTML = dedent(
                 --square-inset: clamp(16%, calc(50% - 180px), 22%);
                 --elev: 0 14px 30px rgba(15, 23, 42, 0.12);
                 --stroke: inset 0 0 0 1px rgba(15, 23, 42, 0.06);
+                --tip-max-width: 240px;
                 margin-top: 0.5rem;
                 font-family: system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
             }
@@ -2224,9 +2225,9 @@ LIFECYCLE_RING_HTML = dedent(
             /* Tooltips */
             #demai-lifecycle .tip {
                 position: absolute;
-                inset: auto auto -0.6rem 50%;
-                transform: translate(-50%, 100%);
-                width: 240px;
+                inset: var(--tip-top, auto) auto var(--tip-bottom, -0.6rem) 50%;
+                transform: translate(var(--tip-translate-x, -50%), var(--tip-translate-y, 100%));
+                width: min(var(--tip-max-width, 240px), 88vw);
                 padding: 0.6rem 0.75rem;
                 border-radius: 0.65rem;
                 background: #0f172a;
@@ -2235,6 +2236,7 @@ LIFECYCLE_RING_HTML = dedent(
                 line-height: 1.35;
                 box-shadow: 0 14px 28px rgba(15, 23, 42, 0.25);
                 display: none;
+                pointer-events: none;
                 z-index: 3;
             }
             #demai-lifecycle .node:hover .tip,
@@ -2327,6 +2329,7 @@ LIFECYCLE_RING_HTML = dedent(
                 #demai-lifecycle {
                     --ring-size: clamp(200px, min(70vw, calc(100% - 1.5rem)), 320px);
                     --r-node: 39%;
+                    --tip-max-width: 220px;
                 }
                 #demai-lifecycle .node {
                     min-width: 122px;
@@ -2339,9 +2342,6 @@ LIFECYCLE_RING_HTML = dedent(
                     width: 32px;
                     height: 32px;
                 }
-                #demai-lifecycle .tip {
-                    width: 210px;
-                }
                 #demai-lifecycle .legend {
                     grid-template-columns: repeat(2, minmax(0, 1fr));
                     gap: 0.75rem;
@@ -2353,6 +2353,9 @@ LIFECYCLE_RING_HTML = dedent(
                 }
             }
             @media (max-width: 360px) {
+                #demai-lifecycle {
+                    --tip-max-width: 180px;
+                }
                 #demai-lifecycle .node {
                     min-width: 110px;
                 }
@@ -2429,11 +2432,109 @@ LIFECYCLE_RING_HTML = dedent(
 
                 const nodes = Array.from(root.querySelectorAll('.node[data-stage]'));
                 const cards = Array.from(root.querySelectorAll('.legend .item[data-stage]'));
+                const alreadyBound = root.dataset.lifecycleBound === '1';
+                let activeStage = '';
+
+                function resetTip(node) {
+                    const tip = node.querySelector('.tip');
+                    if (!tip) return;
+                    tip.style.removeProperty('--tip-top');
+                    tip.style.removeProperty('--tip-bottom');
+                    tip.style.removeProperty('--tip-translate-x');
+                    tip.style.removeProperty('--tip-translate-y');
+                }
+
+                function positionTip(node) {
+                    const tip = node.querySelector('.tip');
+                    if (!tip) return;
+
+                    resetTip(node);
+
+                    const nodeRect = node.getBoundingClientRect();
+                    const rootRect = root.getBoundingClientRect();
+                    const nodeCenterY = nodeRect.top + nodeRect.height / 2;
+                    const rootCenterY = rootRect.top + rootRect.height / 2;
+                    const orientAbove = nodeCenterY > rootCenterY;
+
+                    if (orientAbove) {
+                        tip.style.setProperty('--tip-top', '-0.6rem');
+                        tip.style.setProperty('--tip-bottom', 'auto');
+                        tip.style.setProperty('--tip-translate-y', '-100%');
+                    } else {
+                        tip.style.removeProperty('--tip-top');
+                        tip.style.setProperty('--tip-bottom', '-0.6rem');
+                        tip.style.setProperty('--tip-translate-y', '100%');
+                    }
+
+                    window.requestAnimationFrame(() => {
+                        const rect = tip.getBoundingClientRect();
+                        const padding = 16;
+
+                        const rootLeft = rootRect.left + padding;
+                        const rootRight = rootRect.right - padding;
+                        const overflowLeft = Math.max(0, rootLeft - rect.left);
+                        const overflowRight = Math.max(0, rect.right - rootRight);
+                        let translateX = '-50%';
+
+                        if (overflowLeft > 0) {
+                            translateX = `calc(-50% + ${overflowLeft}px)`;
+                        } else if (overflowRight > 0) {
+                            translateX = `calc(-50% - ${overflowRight}px)`;
+                        }
+                        tip.style.setProperty('--tip-translate-x', translateX);
+
+                        const viewportTop = padding;
+                        const viewportBottom = window.innerHeight - padding;
+                        const overflowTop = Math.max(0, viewportTop - rect.top);
+                        const overflowBottom = Math.max(0, rect.bottom - viewportBottom);
+                        let translateY = tip.style.getPropertyValue('--tip-translate-y') || (orientAbove ? '-100%' : '100%');
+
+                        if (overflowTop > 0) {
+                            translateY = orientAbove
+                                ? `calc(-100% + ${overflowTop}px)`
+                                : `calc(100% + ${overflowTop}px)`;
+                        } else if (overflowBottom > 0) {
+                            translateY = orientAbove
+                                ? `calc(-100% - ${overflowBottom}px)`
+                                : `calc(100% - ${overflowBottom}px)`;
+                        }
+                        tip.style.setProperty('--tip-translate-y', translateY);
+                    });
+                }
 
                 function setActive(stage) {
-                    nodes.forEach((node) => node.classList.toggle('active', node.dataset.stage === stage));
+                    activeStage = stage;
+                    nodes.forEach((node) => {
+                        const isActive = node.dataset.stage === stage;
+                        node.classList.toggle('active', isActive);
+                        if (!isActive) {
+                            resetTip(node);
+                        }
+                    });
                     cards.forEach((card) => card.classList.toggle('active', card.dataset.stage === stage));
+
+                    if (stage) {
+                        const activeNode = nodes.find((node) => node.dataset.stage === stage);
+                        if (activeNode) {
+                            positionTip(activeNode);
+                        }
+                    }
                 }
+
+                function positionActiveTip() {
+                    if (!activeStage) return;
+                    const activeNode = nodes.find((node) => node.dataset.stage === activeStage && node.classList.contains('active'));
+                    if (activeNode) {
+                        positionTip(activeNode);
+                    }
+                }
+
+                if (alreadyBound) {
+                    positionActiveTip();
+                    return;
+                }
+
+                root.dataset.lifecycleBound = '1';
 
                 // Hover/focus sync
                 nodes.forEach((node) => {
@@ -2453,6 +2554,8 @@ LIFECYCLE_RING_HTML = dedent(
                     });
                 });
 
+                root.addEventListener('mouseleave', () => setActive(''));
+
                 // Allow legend hover to light the ring
                 cards.forEach((card) => {
                     const stage = card.dataset.stage;
@@ -2460,6 +2563,9 @@ LIFECYCLE_RING_HTML = dedent(
                     card.addEventListener('mouseleave', () => setActive(''));
                     card.addEventListener('click', () => setActive(stage));
                 });
+
+                window.addEventListener('resize', positionActiveTip, { passive: true });
+                window.addEventListener('scroll', positionActiveTip, { passive: true });
 
                 // Start with "Prepare" highlighted on large screens; none on small
                 const isSmall = window.matchMedia('(max-width:768px)').matches;
