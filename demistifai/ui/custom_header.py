@@ -93,7 +93,7 @@ def mount_demai_header(logo_height: int = 56) -> None:
             f"""
             <style>
               /* Hide default Streamlit header */
-              header, [data-testid="stHeader"] {{
+              header[data-testid="stHeader"], [data-testid="stHeader"] {{
                 display: none !important;
                 visibility: hidden !important;
               }}
