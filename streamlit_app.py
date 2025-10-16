@@ -184,7 +184,10 @@ from demistifai.ui.components.terminal.data_prep import render_prepare_terminal
 from demistifai.ui.components.terminal.evaluate import render_evaluate_terminal
 from demistifai.ui.components.terminal.train import render_train_terminal
 from demistifai.ui.components.terminal.use import render_use_terminal
-from demistifai.ui.train_animation import build_training_animation_column
+from demistifai.ui.components.train_animation import (
+    build_training_animation_column,
+    render_training_animation,
+)
 logger = logging.getLogger(__name__)
 
 st.session_state.setdefault("viewport_is_mobile", False)
