@@ -56,8 +56,13 @@ This document provides a guided tour of the repository so contributors can quick
 - `incoming_generator.py` – Synthesises unlabeled incoming email batches and spam archetypes for the Use stage.【F:demistifai/incoming_generator.py†L1-L40】
 - `modeling.py` – End-to-end modeling toolkit providing feature engineering, embedding support, hybrid logistic model definitions, evaluation helpers, and interpretability utilities.【F:demistifai/modeling.py†L1-L40】
 
+### `demistifai/config/`
+- `__init__.py` – Re-exports stage metadata, theme CSS, and token policies sourced from the canonical constants module.【F:demistifai/config/__init__.py†L1-L15】
+- `app.py` – Provides stage listings, lookup tables, and urgency terminology for navigation-aware helpers.【F:demistifai/config/app.py†L1-L8】
+- `styles.py` – Exposes the shared Streamlit theme CSS token for reuse in UI components.【F:demistifai/config/styles.py†L1-L7】
+- `tokens.py` – Centralises PII replacement policies and chip display labels consumed by linting helpers.【F:demistifai/config/tokens.py†L1-L7】
+
 ### `demistifai/core/`
-- `constants.py` – Mirrors key stage and urgency metadata plus token replacement policies and PII display configuration for core helpers.【F:demistifai/core/constants.py†L1-L51】
 - `dataset.py` – Evaluates dataset health metrics and produces badges summarising row counts, spam ratios, and lint status for governance surfaces.【F:demistifai/core/dataset.py†L1-L52】
 - `audit.py` – Appends timestamped audit entries to the session log during the Use stage.【F:demistifai/core/audit.py†L1-L11】
 - `downloads.py` – Provides a Streamlit download link helper for exporting text artefacts.【F:demistifai/core/downloads.py†L1-L7】

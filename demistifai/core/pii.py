@@ -3,7 +3,7 @@ import html
 from collections import Counter
 from typing import Any, Dict, List
 import streamlit as st
-from demistifai.core.constants import TOKEN_POLICY, PII_DISPLAY_LABELS, PII_CHIP_CONFIG
+from demistifai.config.tokens import TOKEN_POLICY, PII_DISPLAY_LABELS, PII_CHIP_CONFIG
 
 def summarize_pii_counts(detailed_hits: Dict[int, Dict[str, List[Dict[str, Any]]]]) -> Dict[str, int]:
     counts: Counter[str] = Counter()
