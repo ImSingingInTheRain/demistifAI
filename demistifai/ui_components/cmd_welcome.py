@@ -185,7 +185,26 @@ def render_ai_act_terminal(
     key: str = "ai_act_terminal",
     show_caret: bool = True,
     show_skip: bool = True,
+    **legacy_kwargs,
 ) -> None:
+    """Render the AI Act terminal animation with legacy keyword support."""
+
+    # Accept callers that still use the older keyword names (`demai_lines`,
+    # `pause_between_ops_ms`) by translating them into the updated parameters.
+    if "demai_lines" in legacy_kwargs and lines is None:
+        lines = legacy_kwargs.pop("demai_lines")
+    else:
+        legacy_kwargs.pop("demai_lines", None)
+
+    if "pause_between_ops_ms" in legacy_kwargs:
+        pause_between_lines_ms = legacy_kwargs.pop("pause_between_ops_ms")
+
+    if legacy_kwargs:
+        unexpected = ", ".join(sorted(legacy_kwargs))
+        raise TypeError(
+            f"render_ai_act_terminal() got unexpected keyword argument(s): {unexpected}"
+        )
+
     data = list(lines) if lines is not None else LINES
     payload = {
         "lines": data,
