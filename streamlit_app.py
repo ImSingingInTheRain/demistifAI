@@ -180,6 +180,7 @@ from demistifai.ui.components.terminal.boot_sequence import (
     _DEFAULT_DEMAI_LINES,
     render_ai_act_terminal as render_boot_sequence_terminal,
 )
+from demistifai.ui.components.terminal.data_prep import render_prepare_terminal
 logger = logging.getLogger(__name__)
 
 st.session_state.setdefault("viewport_is_mobile", False)
@@ -1451,7 +1452,11 @@ def render_data_stage():
 
     stage = STAGE_BY_KEY["data"]
 
-    render_stage_top_grid("data")
+    def _render_prepare_terminal(slot: DeltaGenerator) -> None:
+        with slot:
+            render_prepare_terminal()
+
+    render_stage_top_grid("data", left_renderer=_render_prepare_terminal)
 
     current_summary = compute_dataset_summary(ss["labeled"])
     ss["dataset_summary"] = current_summary
