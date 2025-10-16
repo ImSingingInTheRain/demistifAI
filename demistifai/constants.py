@@ -1777,7 +1777,6 @@ div[data-testid="stHorizontalBlock"]:has(.stage-top-grid__nav-card) > div[data-t
     :is([data-testid="stElementContainer"], [data-testid="element-container"])[class*="st-key-stage_grid_next_"],
     :is([data-testid="stElementContainer"], [data-testid="element-container"])[class*="st-key-stage_grid_prev_"] {
         padding: 1.1rem 1.2rem 1.2rem;
-        display: none;
     }
     [data-testid="stHorizontalBlock"]:has(.nerd-toggle__title) {
         padding: 1.2rem 1.3rem 1.3rem;
