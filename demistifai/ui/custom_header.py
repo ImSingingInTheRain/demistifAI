@@ -135,11 +135,11 @@ def mount_demai_header(logo_height: int = 56, max_inner_width: int = 1200) -> No
               /* Fixed, full-width header */
               .demai-header-fixed {{
                 position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
-                background: rgba(15,23,42,0.95);
-                backdrop-filter: blur(10px);
-                -webkit-backdrop-filter: blur(10px);
-                border-bottom: 1px solid rgba(94,234,212,0.24);
-                box-shadow: 0 8px 18px rgba(8,15,33,0.22);
+                background: linear-gradient(90deg, rgba(30,41,59,0.92), rgba(15,23,42,0.96) 45%, rgba(8,11,22,0.98));
+                backdrop-filter: blur(12px);
+                -webkit-backdrop-filter: blur(12px);
+                border-bottom: 1px solid rgba(94,234,212,0.28);
+                box-shadow: 0 10px 26px rgba(8,15,33,0.28);
               }}
 
               .demai-header-inner {{
@@ -147,9 +147,14 @@ def mount_demai_header(logo_height: int = 56, max_inner_width: int = 1200) -> No
                 padding: var(--demai-header-vpad) 16px;
                 display: grid;
                 grid-template-columns: auto minmax(0,1fr) auto;
+                grid-template-areas: "logo stage actions";
                 align-items: center; gap: var(--demai-gap);
                 min-height: var(--demai-header-h);
               }}
+
+              .demai-logo {{ grid-area: logo; display: flex; align-items: center; }}
+              .demai-stage-wrap {{ grid-area: stage; min-width: 0; }}
+              .demai-actions {{ grid-area: actions; display: inline-flex; gap: 10px; align-items: center; }}
 
               @supports (padding: max(0px)) {{
                 .demai-header-inner {{
@@ -159,7 +164,7 @@ def mount_demai_header(logo_height: int = 56, max_inner_width: int = 1200) -> No
               }}
 
               /* Spacer pushes app below fixed bar */
-              .demai-header-spacer {{ height: 0px; }}
+              .demai-header-spacer {{ height: var(--demai-header-h); }}
 
               .demai-logo-frame {{
                 border: 0; background: transparent; height: var(--demai-logo-h); width: auto;
@@ -167,10 +172,11 @@ def mount_demai_header(logo_height: int = 56, max_inner_width: int = 1200) -> No
               }}
 
               .demai-stage {{
-                display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap;
+                display: inline-flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap;
                 color: rgba(226,232,240,0.92);
                 min-height: max(var(--demai-logo-h), var(--demai-btn-min-h));
                 line-height: 1.2;
+                text-align: center;
               }}
               .demai-stage .progress {{
                 font-weight: 600; letter-spacing: .06em; text-transform: uppercase;
@@ -179,19 +185,18 @@ def mount_demai_header(logo_height: int = 56, max_inner_width: int = 1200) -> No
               .demai-stage .title {{ font-weight: 700; font-size: 1rem; }}
 
               /* Visible header buttons (HTML) */
-              .demai-actions {{ display: inline-flex; gap: 8px; }}
               .demai-btn {{
                 position: relative; display: inline-flex; align-items: center; justify-content: center; gap: .55rem;
-                min-height: var(--demai-btn-min-h); padding: 0 .9rem; border-radius: 14px;
+                min-height: var(--demai-btn-min-h); padding: 0 1.1rem; border-radius: 18px;
                 font-weight: 700; font-family: 'Fira Code', ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace;
                 letter-spacing: .05em; text-transform: uppercase;
                 text-decoration: none; user-select: none; cursor: pointer; overflow: hidden;
                 color: rgba(226,232,240,.95);
-                background: linear-gradient(135deg, rgba(13,17,23,.96), rgba(8,47,73,.88));
+                background: linear-gradient(140deg, rgba(10,18,35,.94), rgba(15,23,42,.88));
                 border: 1px solid rgba(94,234,212,.45);
-                text-shadow: 0 0 12px rgba(94,234,212,.32);
-                box-shadow: inset 0 0 0 1px rgba(15,23,42,.82), 0 22px 48px rgba(8,47,73,.55);
-                transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease, filter .18s ease;
+                text-shadow: 0 0 12px rgba(94,234,212,.24);
+                box-shadow: inset 0 0 0 1px rgba(15,23,42,.76), 0 18px 42px rgba(8,47,73,.5);
+                transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease, filter .18s ease, color .18s ease;
               }}
               .demai-btn::after {{
                 content: '';
@@ -199,20 +204,23 @@ def mount_demai_header(logo_height: int = 56, max_inner_width: int = 1200) -> No
                 background: linear-gradient(140deg, rgba(94,234,212,.18), transparent 60%);
                 pointer-events: none;
               }}
+              .demai-btn .label {{ font-size: .72rem; letter-spacing: .16em; }}
+              .demai-btn .arrow-icon {{ font-size: 1rem; line-height: 1; filter: drop-shadow(0 0 6px rgba(14,165,233,.5)); }}
               .demai-btn.primary {{
-                background: linear-gradient(125deg, rgba(34,211,238,.95), rgba(59,130,246,.9));
-                color: rgba(15,23,42,.92);
-                text-shadow: 0 0 12px rgba(226,232,240,.4);
-                box-shadow: inset 0 0 0 1px rgba(226,232,240,.32), 0 26px 52px rgba(14,165,233,.48);
+                background: linear-gradient(125deg, rgba(45,212,191,.96), rgba(56,189,248,.92));
+                color: rgba(12,25,46,.94);
+                text-shadow: 0 0 12px rgba(226,232,240,.35);
+                border-color: rgba(148,240,223,.8);
+                box-shadow: inset 0 0 0 1px rgba(226,232,240,.32), 0 26px 52px rgba(14,165,233,.45);
               }}
               .demai-btn.secondary {{
-                background: linear-gradient(135deg, rgba(10,18,35,.95), rgba(15,23,42,.9));
+                background: linear-gradient(135deg, rgba(12,20,38,.96), rgba(17,24,39,.9));
               }}
               .demai-btn:hover {{
                 transform: translateY(-1px);
                 border-color: rgba(94,234,212,.65);
-                box-shadow: inset 0 0 0 1px rgba(15,23,42,.72), 0 28px 58px rgba(8,47,73,.62);
-                filter: brightness(1.05);
+                box-shadow: inset 0 0 0 1px rgba(15,23,42,.7), 0 28px 58px rgba(8,47,73,.62);
+                filter: brightness(1.05) saturate(1.05);
               }}
               .demai-btn.primary:hover {{
                 box-shadow: inset 0 0 0 1px rgba(226,232,240,.38), 0 32px 60px rgba(14,165,233,.55);
@@ -229,6 +237,34 @@ def mount_demai_header(logo_height: int = 56, max_inner_width: int = 1200) -> No
               }}
 
               /* Small phones: reduce heights paddings to keep perfect centering */
+              @media (max-width: 860px) {{
+                .demai-header-inner {{
+                  grid-template-columns: minmax(0,1fr) auto;
+                  grid-template-areas: "stage actions" "logo actions";
+                  align-items: center;
+                }}
+                .demai-logo {{ justify-self: start; }}
+                .demai-actions {{ gap: 8px; }}
+                .demai-stage {{ justify-content: flex-start; text-align: left; }}
+              }}
+
+              @media (max-width: 640px) {{
+                .demai-header-inner {{
+                  grid-template-columns: minmax(0,1fr);
+                  grid-template-areas:
+                    "logo"
+                    "stage"
+                    "actions";
+                  row-gap: 10px;
+                }}
+                .demai-logo {{ justify-content: center; }}
+                .demai-stage {{ justify-content: center; text-align: center; }}
+                .demai-stage-wrap {{ text-align: center; }}
+                .demai-actions {{ width: 100%; justify-content: center; }}
+                .demai-actions .demai-btn {{ flex: 1 1 0; max-width: 160px; justify-content: center; }}
+                .demai-btn .label {{ font-size: .7rem; }}
+              }}
+
               @media (max-width: 420px) {{
                 :root {{
                   --demai-logo-h: {sm_logo_h}px;
@@ -237,6 +273,12 @@ def mount_demai_header(logo_height: int = 56, max_inner_width: int = 1200) -> No
                   --demai-gap: 8px;
                 }}
                 .demai-stage .title {{ font-size: .95rem; }}
+                .demai-actions {{ gap: 6px; }}
+                .demai-actions .demai-btn {{
+                  border-radius: 16px;
+                  padding: 0 .9rem;
+                }}
+                .demai-btn .arrow-icon {{ font-size: .92rem; }}
               }}
             </style>
             """
@@ -259,11 +301,19 @@ def mount_demai_header(logo_height: int = 56, max_inner_width: int = 1200) -> No
             f"""
             <div class="demai-header-fixed" role="banner" aria-label="demAI top bar">
               <div class="demai-header-inner">
-                <div><iframe class="demai-logo-frame" title="demAI animated logo" src="{logo_data_url}" scrolling="no"></iframe></div>
-                <div>{stage_html}</div>
-                <div class="demai-actions">
-                  <button id="{prev_visible_id}" class="demai-btn secondary" {'aria-disabled="true"' if left_disabled else ''}>⬅️</button>
-                  <button id="{next_visible_id}" class="demai-btn primary" {'aria-disabled="true"' if right_disabled else ''}>➡️</button>
+                <div class="demai-logo">
+                  <iframe class="demai-logo-frame" title="demAI animated logo" src="{logo_data_url}" scrolling="no"></iframe>
+                </div>
+                <div class="demai-stage-wrap">{stage_html}</div>
+                <div class="demai-actions" role="group" aria-label="Stage navigation">
+                  <button id="{prev_visible_id}" class="demai-btn secondary" {'aria-disabled="true"' if left_disabled else ''}>
+                    <span class="arrow-icon" aria-hidden="true">⬅</span>
+                    <span class="label">Prev</span>
+                  </button>
+                  <button id="{next_visible_id}" class="demai-btn primary" {'aria-disabled="true"' if right_disabled else ''}>
+                    <span class="label">Next</span>
+                    <span class="arrow-icon" aria-hidden="true">➡</span>
+                  </button>
                 </div>
               </div>
             </div>
