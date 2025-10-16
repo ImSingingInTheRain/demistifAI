@@ -1,5 +1,4 @@
 # demistifai/ui/components/train_animation.py
-
 from __future__ import annotations
 
 import textwrap
@@ -7,7 +6,11 @@ from dataclasses import dataclass
 from typing import Optional
 
 import numpy as np
-import plotly.graph_objects as go
+try:  # Optional dependency — guard so the UI degrades gracefully when absent.
+    import plotly.graph_objects as go
+except ModuleNotFoundError:  # pragma: no cover - simple availability branch
+    go = None
+
 import streamlit as st
 
 # --------- Tunables ----------
@@ -31,6 +34,54 @@ CLUSTERS = [
 
 CLASS_TO_COLOR = {"spam": "#E55B3C", "work": "#3C7BE5"}  # red / blue
 CLASS_PROBS = {"spam": 0.55, "work": 0.45}               # tweak if needed
+
+
+BASE_STYLES = textwrap.dedent(
+    """
+    <style>
+      .train-animation__body {
+        display: grid;
+        gap: 0.75rem;
+      }
+      .train-animation__title {
+        margin: 0;
+        font-size: 1.05rem;
+        font-weight: 700;
+        color: #0f172a;
+      }
+      .train-animation__caption {
+        margin: 0;
+        font-size: 0.92rem;
+        line-height: 1.45;
+        color: rgba(15, 23, 42, 0.74);
+      }
+      .train-animation__plotly {
+        width: 100%;
+      }
+      .train-animation__plotly > div {
+        width: 100% !important;
+      }
+      .train-animation__fallback {
+        padding: 0.85rem 1rem;
+        border-radius: 0.75rem;
+        border: 1px dashed rgba(15, 23, 42, 0.25);
+        background: rgba(59, 130, 246, 0.08);
+        color: rgba(15, 23, 42, 0.78);
+        font-size: 0.92rem;
+        line-height: 1.5;
+      }
+      .train-animation__fallback strong {
+        color: #1d4ed8;
+      }
+      .train-animation__fallback code {
+        background: rgba(15, 23, 42, 0.08);
+        padding: 0.1rem 0.35rem;
+        border-radius: 0.35rem;
+        font-size: 0.85rem;
+      }
+    </style>
+    """
+).strip()
 
 
 @dataclass(frozen=True)
@@ -79,6 +130,12 @@ def _interpolate(x0, y0, x1, y1, t):
 
 def build_training_animation_figure(*, seed: Optional[int] = None) -> go.Figure:
     """Return the Plotly figure used in the training animation."""
+
+    if go is None:  # pragma: no cover - runtime guard
+        raise RuntimeError(
+            "Plotly is required to build the training animation. Install 'plotly' to enable "
+            "the interactive visualization."
+        )
 
     rng = np.random.default_rng(RANDOM_SEED if seed is None else seed)
 
@@ -189,34 +246,30 @@ def build_training_animation_figure(*, seed: Optional[int] = None) -> go.Figure:
 def build_training_animation_column(
     *, seed: Optional[int] = None
 ) -> TrainingAnimationColumn:
-    base_styles = textwrap.dedent(
+    body_html = textwrap.dedent(
         """
-        <style>
-          .train-animation__body {
-            display: grid;
-            gap: 0.75rem;
-          }
-          .train-animation__title {
-            margin: 0;
-            font-size: 1.05rem;
-            font-weight: 700;
-            color: #0f172a;
-          }
-          .train-animation__caption {
-            margin: 0;
-            font-size: 0.92rem;
-            line-height: 1.45;
-            color: rgba(15, 23, 42, 0.74);
-          }
-          .train-animation__plotly {
-            width: 100%;
-          }
-          .train-animation__plotly > div {
-            width: 100% !important;
-          }
-        </style>
+        <div class="train-animation__body">
+          <h4 class="train-animation__title">How miniLM learns a meaning space</h4>
+          <p class="train-animation__caption">
+            Watch the embedding points move into spam-like and work-like regions as epochs progress.
+          </p>
+        {content}
+        </div>
         """
     ).strip()
+
+    if go is None:
+        fallback_html = body_html.format(
+            content=textwrap.dedent(
+                """
+                <div class="train-animation__fallback">
+                  <p><strong>Interactive animation unavailable.</strong> This view relies on the optional <code>plotly</code> dependency.</p>
+                  <p>Install <code>plotly</code> in your environment and refresh the page to see emails cluster during training.</p>
+                </div>
+                """
+            ).strip()
+        )
+        return TrainingAnimationColumn(html=f"{BASE_STYLES}\n{fallback_html}")
 
     fig = build_training_animation_figure(seed=seed)
     interactive_html = fig.to_html(
@@ -225,25 +278,25 @@ def build_training_animation_column(
         config={"displayModeBar": False},
     )
 
-    body_html = textwrap.dedent(
-        f"""
-        <div class="train-animation__body">
-          <h4 class="train-animation__title">How miniLM learns a meaning space</h4>
-          <p class="train-animation__caption">
-            Watch the embedding points move into spam-like and work-like regions as epochs progress.
-          </p>
+    animated_html = body_html.format(
+        content=textwrap.dedent(
+            f"""
           <div class="train-animation__plotly">
             {interactive_html}
           </div>
-        </div>
-        """
-    ).strip()
+            """
+        ).strip()
+    )
 
-    return TrainingAnimationColumn(html=f"{base_styles}\n{body_html}")
+    return TrainingAnimationColumn(html=f"{BASE_STYLES}\n{animated_html}")
 
 
 def render_training_animation():
     st.subheader("How miniLM learns a meaning space")
+    if go is None:
+        st.info("Install the optional 'plotly' dependency to view the interactive training animation.")
+        return
+
     fig = build_training_animation_figure()
 
     st.plotly_chart(fig, use_container_width=True)
