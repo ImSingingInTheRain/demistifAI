@@ -1523,7 +1523,7 @@ div[data-testid="stHorizontalBlock"]:has(.stage-top-grid__nav-card) > div[data-t
 
 :is([data-testid="stElementContainer"], [data-testid="element-container"])[class*="st-key-stage_grid_next_"]::before,
 :is([data-testid="stElementContainer"], [data-testid="element-container"])[class*="st-key-stage_grid_prev_"]::before {
-    display: block;
+    display: none;
     font-size: 0.74rem;
     text-transform: uppercase;
     letter-spacing: 0.16em;
