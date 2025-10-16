@@ -39,6 +39,33 @@ APP_THEME_CSS = """
     padding-left: clamp(0.75rem, 3.5vw, 1.5rem);
 }
 
+@media (max-width: 900px) {
+    [data-testid="stMainBlockContainer"] {
+        max-width: 100%;
+    }
+}
+
+@media (max-width: 720px) {
+    [data-testid="stMainBlockContainer"] {
+        padding-left: clamp(0.65rem, 4.5vw, 1.1rem);
+        padding-right: clamp(0.65rem, 4.5vw, 1.1rem);
+    }
+    .section-surface > div[data-testid="stVerticalBlock"],
+    .section-surface-block {
+        margin-bottom: clamp(1rem, 3vw, 1.5rem);
+        border-radius: 18px;
+        padding: clamp(1rem, 4.8vw, 1.7rem);
+    }
+    .section-surface.section-surface--hero > div[data-testid="stVerticalBlock"],
+    .section-surface-block.section-surface--hero {
+        border-radius: 26px;
+        padding: clamp(1.8rem, 6vw, 2.6rem);
+    }
+    .hero-content {
+        max-width: 100%;
+    }
+}
+
 .section-surface {
     display: block;
     width: 100%;
@@ -1436,6 +1463,29 @@ div[data-testid="stHorizontalBlock"]:has(.stage-top-grid__nav-card) {
     align-items: stretch;
 }
 
+@media (max-width: 980px) {
+    div[data-testid="stHorizontalBlock"]:has(.stage-top-grid__nav-card) {
+        padding: clamp(1.4rem, 4vw, 2.2rem);
+        border-radius: 24px;
+        gap: clamp(1.1rem, 3.5vw, 2rem);
+    }
+    div[data-testid="stHorizontalBlock"]:has(.stage-top-grid__nav-card) > div[data-testid="column"] {
+        flex: 1 1 100% !important;
+        min-width: 0 !important;
+    }
+}
+
+@media (max-width: 720px) {
+    div[data-testid="stHorizontalBlock"]:has(.stage-top-grid__nav-card) {
+        padding: clamp(1rem, 5vw, 1.6rem);
+        border-radius: 20px;
+        flex-direction: column;
+    }
+    div[data-testid="stHorizontalBlock"]:has(.stage-top-grid__nav-card) > div[data-testid="column"] {
+        width: 100% !important;
+    }
+}
+
 div[data-testid="stHorizontalBlock"]:has(.stage-top-grid__nav-card)::before {
     content: '';
     position: absolute;
@@ -1506,6 +1556,18 @@ div[data-testid="stHorizontalBlock"]:has(.stage-top-grid__nav-card) > div[data-t
     display: flex;
     flex-direction: column;
     gap: 1rem;
+}
+
+@media (max-width: 720px) {
+    .stage-top-grid__nav-card,
+    :is([data-testid="stElementContainer"], [data-testid="element-container"])[class*="st-key-stage_grid_next_"],
+    :is([data-testid="stElementContainer"], [data-testid="element-container"])[class*="st-key-stage_grid_prev_"] {
+        padding: clamp(1.1rem, 5vw, 1.5rem);
+    }
+    :is([data-testid="stElementContainer"], [data-testid="element-container"])[class*="st-key-stage_grid_next_"],
+    :is([data-testid="stElementContainer"], [data-testid="element-container"])[class*="st-key-stage_grid_prev_"] {
+        gap: 0.75rem;
+    }
 }
 
 .stage-top-grid__nav-card::before {
