@@ -5,6 +5,7 @@ from datetime import date, datetime
 import hashlib
 import json
 from typing import Any, Dict
+from uuid import uuid4
 
 import streamlit as st
 from streamlit.errors import StreamlitAPIException
@@ -105,8 +106,29 @@ def ensure_state(schema_ver: int = 1) -> dict:
 
     _merge_state_defaults(state, defaults)
 
-    current_ver = state.get("schema_ver")
-    state["schema_ver"] = schema_ver if current_ver is None else max(schema_ver, current_ver)
+    for section in ("data", "split", "model", "ui"):
+        if not isinstance(state.get(section), dict):
+            state[section] = deepcopy(defaults[section])
+
+    if not isinstance(state.get("run"), dict):
+        state["run"] = deepcopy(defaults["run"])
+
+    run_state = state.setdefault("run", {})
+    try:
+        current_schema = int(run_state.get("schema_ver", schema_ver))
+    except (TypeError, ValueError):
+        current_schema = schema_ver
+    run_state["schema_ver"] = max(current_schema, schema_ver)
+    run_state.setdefault("id", defaults["run"]["id"])
+    run_state.setdefault("busy", False)
+    run_state.setdefault("active_stage", None)
+
+    ui_state = state.setdefault("ui", {})
+    if not isinstance(ui_state.get("toasts"), list):
+        ui_state["toasts"] = []
+    ui_state.setdefault("toasts", [])
+    flags = ui_state.setdefault("flags", {})
+    flags.setdefault("confirm_nav_if_busy", True)
 
     st.session_state["demai"] = state
     return state
@@ -119,27 +141,47 @@ def validate_invariants(s: dict) -> None:
         raise TypeError("demai state must be a dict")
 
     data_state = s.setdefault("data", {})
+    if not isinstance(data_state, dict):
+        data_state = {}
+        s["data"] = data_state
+
     split_state = s.setdefault("split", {})
+    if not isinstance(split_state, dict):
+        split_state = {}
+        s["split"] = split_state
+
     model_state = s.setdefault("model", {})
+    if not isinstance(model_state, dict):
+        model_state = {}
+        s["model"] = model_state
     ui_state = s.setdefault("ui", {})
     toasts = ui_state.setdefault("toasts", [])
+    if not isinstance(toasts, list):
+        toasts = []
+        ui_state["toasts"] = toasts
 
-    data_hash = data_state.get("hash")
-    model_hash = model_state.get("data_hash")
-    if data_hash and model_hash and data_hash != model_hash:
-        if model_state.get("status") != "stale":
-            model_state["status"] = "stale"
-        _append_toast(toasts, "Model marked stale because the dataset changed.")
+    data_hash = data_state.get("hash", "") or ""
+    model_hash = model_state.get("data_hash", "") or ""
 
-    split_hash = split_state.get("hash")
-    if split_hash and data_hash and split_hash != data_hash:
-        default_split = _build_default_state(s.get("schema_ver", 1))["split"]
-        split_state.clear()
-        split_state.update(deepcopy(default_split))
-        _append_toast(
-            toasts,
-            "Existing train/validate split was cleared because it no longer matches the dataset.",
-        )
+    if model_state.get("status") == "trained" and data_hash != model_hash:
+        model_state["status"] = "stale"
+        model_state["metrics"] = {}
+        _append_toast(toasts, "Data changed—retrain required.")
+
+    split_params = split_state.get("params")
+    if not isinstance(split_params, dict):
+        split_params = {}
+        split_state["params"] = split_params
+
+    expected_split_hash = _compute_split_hash(data_hash, split_params)
+    stored_split_hash = split_state.get("hash", "") or ""
+
+    if stored_split_hash and stored_split_hash != expected_split_hash:
+        for key in ("X_train", "X_test", "y_train", "y_test"):
+            if key in split_state:
+                split_state[key] = None
+        split_state["hash"] = ""
+        _append_toast(toasts, "Split invalidated—please (re)split.")
 
 
 def hash_dict(obj: dict) -> str:
@@ -182,27 +224,38 @@ def _build_default_state(schema_ver: int) -> dict:
     """Create a fresh copy of the default demAI session schema."""
 
     return {
-        "schema_ver": schema_ver,
+        "run": {
+            "id": str(uuid4()),
+            "schema_ver": schema_ver,
+            "busy": False,
+            "active_stage": None,
+        },
         "data": {
-            "frame": None,
-            "hash": None,
-            "source": None,
-            "metadata": {},
+            "raw": None,
+            "prepared": None,
+            "hash": "",
+            "n_rows": 0,
+            "params": {},
         },
         "split": {
-            "hash": None,
-            "payload": None,
-            "meta": {},
+            "X_train": None,
+            "X_test": None,
+            "y_train": None,
+            "y_test": None,
+            "hash": "",
+            "params": {},
         },
         "model": {
-            "status": "idle",
-            "artifact": None,
-            "data_hash": None,
+            "clf": None,
+            "vectorizer": None,
+            "status": "untrained",
             "metrics": {},
+            "data_hash": "",
             "params": {},
         },
         "ui": {
             "toasts": [],
+            "flags": {"confirm_nav_if_busy": True},
         },
     }
 
@@ -217,6 +270,13 @@ def _merge_state_defaults(target: dict, template: dict) -> None:
             current_value = target[key]
             if isinstance(current_value, dict) and isinstance(default_value, dict):
                 _merge_state_defaults(current_value, default_value)
+
+
+def _compute_split_hash(data_hash: str, split_params: dict) -> str:
+    """Return the deterministic signature for the current split configuration."""
+
+    payload = {"data_hash": data_hash, "params": split_params or {}}
+    return hash_dict(payload)
 
 
 def _append_toast(toasts: list, message: str) -> None:
