@@ -6,7 +6,7 @@ numbers use `nl -ba` numbering (1-indexed) for quick cross-checks.
 ## Stage boundaries in `streamlit_app.py`
 | Stage key | Function | Line range | Notes |
 | --- | --- | --- | --- |
-| `intro` | `render_intro_stage` | 743–1056 | Command grid with inline EU AI Act definition, lifecycle primer, and launch controls. |
+| `intro` | `render_intro_stage` | 528–530 | Wrapper that delegates to `welcome.render_intro_stage`; see `welcome.py` for the full UI. |
 | `overview` | `render_overview_stage` | 1058–1708 | Stage Control Room with EU AI Act framing, system snapshot/status, and mission walkthrough of the pipeline. |
 | `data` | `render_data_stage` | 1712–3472 | Dataset import/generation, linting feedback, and label review utilities. |
 | `evaluate` | `render_evaluate_stage` | 3527–3958 | Evaluation metrics, ROC / confusion matrix views, and governance summary. |
@@ -19,6 +19,7 @@ numbers use `nl -ba` numbering (1-indexed) for quick cross-checks.
 ## Stage implementation outside the main app
 | Stage key | File | Line range | Purpose |
 | --- | --- | --- | --- |
+| `intro` | `welcome.py` | 22–336 | Full intro stage UI including lifecycle hero, EU AI Act framing, and launch controls. |
 | `train` | `stages/train_stage.py` | 168–1871 | Full training UI, nerd mode tooling, interpretability widgets, and background tasks. |
 
 Supporting helpers for training live alongside the stage:
