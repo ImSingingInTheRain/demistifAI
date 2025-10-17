@@ -37,8 +37,8 @@ def mac_window_html(
     sub_color = "rgba(15,23,42,.70)" if theme == "light" else "rgba(229,231,235,.70)"
     ph_text = "rgba(15,23,42,.55)" if theme == "light" else "rgba(229,231,235,.55)"
 
-    body_padding = ".9rem 1.05rem"
-    col_padding = "1.05rem 1.1rem"
+    body_padding = "clamp(1rem, 1.2vw + 0.95rem, 1.45rem)"
+    col_padding = "clamp(0.95rem, 1.4vw + 0.7rem, 1.35rem)"
     if dense:
         body_padding = ".45rem .6rem"
         col_padding = ".65rem .75rem"
@@ -104,8 +104,8 @@ def mac_window_html(
             overflow: hidden;
             box-shadow: var(--shadow);
             background: var(--body-bg);
-            width: min(100%, 960px);
-            margin: 0 auto;
+            width: min(100%, 1020px);
+            margin: clamp(0.75rem, 3vw, 1.75rem) auto;
           }}
           .mw-{suf}__chrome {{
             display: grid;
@@ -142,15 +142,15 @@ def mac_window_html(
           .mw-{suf}__grid {{
             display: grid;
             grid-template-columns: {cols_css};
-            gap: 1.0rem;
+            gap: 1.15rem;
             align-items: stretch;
           }}
           .mw-{suf}__col {{
             border-radius: 12px;
-            background: linear-gradient(155deg, rgba(248,250,252,.95), rgba(226,232,240,.55));
+            background: linear-gradient(160deg, rgba(248,250,252,.97), rgba(226,232,240,.7));
             box-shadow: inset 0 0 0 1px rgba(148,163,184,.25);
             padding: {col_padding};
-            min-height: 200px;
+            min-height: 180px;
             display: grid;
             align-content: start;
             gap: .65rem;
