@@ -425,10 +425,6 @@ def build_training_animation_column(*, seed: Optional[int] = None) -> TrainingAn
         """
         <div class="train-animation__body">
           <h4 class="train-animation__title">How miniLM learns a meaning space</h4>
-          <div class="train-animation__legend">
-            <span class="train-animation__legend-item"><span class="train-animation__legend-swatch train-animation__legend-swatch--spam"></span>Spam-like emails</span>
-            <span class="train-animation__legend-item"><span class="train-animation__legend-swatch train-animation__legend-swatch--work"></span>Work-like emails</span>
-          </div>
         {content}
         </div>
         """
