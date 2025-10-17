@@ -1665,7 +1665,6 @@ def render_data_stage():
                 nerd_mode_data_enabled = render_nerd_mode_toggle(
                     title="Nerd Mode — advanced dataset controls",
                     description="Expose feature prevalence, randomness, diagnostics, and CSV import when you need them.",
-                    title="Nerd Mode",
                 )
 
     def _render_dataset_builder(slot: DeltaGenerator) -> None:
