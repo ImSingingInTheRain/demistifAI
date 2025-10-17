@@ -6,13 +6,13 @@ numbers use `nl -ba` numbering (1-indexed) for quick cross-checks.
 ## Stage boundaries in `streamlit_app.py`
 | Stage key | Function | Line range | Notes |
 | --- | --- | --- | --- |
-| `intro` | `render_intro_stage` | 410–412 | Wrapper that delegates to `welcome.render_intro_stage`; see `welcome.py` for the full UI. |
-| `overview` | `render_overview_stage` | 415–420 | Wrapper that forwards to `stages.overview.render_overview_stage` for the full UI. |
-| `data` | `render_data_stage` | 424–428 | Wrapper that delegates to `pages/data.render_data_stage` where the full Prepare UI now lives. |
-| `evaluate` | `render_evaluate_stage` | 413–418 | Wrapper delegating to `stages.evaluate.render_evaluate_stage_page`. |
-| `classify` | `render_classify_stage` | 947–1404 | Live classification console, governance tools, and routing copy. |
-| `model_card` | `render_model_card_stage` | 1406–1510 | Transparency summary, dataset snapshot details, and download affordances. |
-| `train` | `render_train_stage` | 1511–1519 | Delegates to `stages/train_stage.render_train_stage_page` where the full UI lives. |
+| `intro` | `render_intro_stage` | 378–380 | Wrapper that delegates to `welcome.render_intro_stage`; see `welcome.py` for the full UI. |
+| `overview` | `render_overview_stage` | 383–388 | Wrapper that forwards to `stages.overview.render_overview_stage` for the full UI. |
+| `data` | `render_data_stage` | 392–396 | Wrapper that delegates to `pages/data.render_data_stage` where the full Prepare UI now lives. |
+| `evaluate` | `render_evaluate_stage` | 399–404 | Wrapper delegating to `stages.evaluate.render_evaluate_stage_page`. |
+| `classify` | `render_classify_stage` | 406–415 | Wrapper delegating to `pages/use.render_classify_stage` for the full Use console UI. |
+| `model_card` | `render_model_card_stage` | 418–520 | Transparency summary, dataset snapshot details, and download affordances. |
+| `train` | `render_train_stage` | 523–531 | Delegates to `stages/train_stage.render_train_stage_page` where the full UI lives. |
 
 > **Tip:** Re-run `nl -ba streamlit_app.py | sed -n 'START,ENDp'` after edits to confirm updated line ranges.
 
@@ -22,6 +22,7 @@ numbers use `nl -ba` numbering (1-indexed) for quick cross-checks.
 | `intro` | `welcome.py` | 22–336 | Full intro stage UI including lifecycle hero, EU AI Act framing, and launch controls. |
 | `overview` | `stages/overview.py` | 25–753 | Stage Control Room with EU AI Act framing, system snapshot/status, and mission walkthrough of the pipeline. |
 | `data` | `pages/data.py` | 84–1849 | Full Prepare stage UI covering dataset builder, linting feedback, PII cleanup, diagnostics, and CSV workflows. |
+| `classify` | `pages/use.py` | 37–489 | Live classification console, autonomy controls, adaptiveness, and routing copy. |
 | `evaluate` | `stages/evaluate.py` | 44–566 | Evaluation metrics, ROC / confusion matrix views, and governance summary. |
 | `train` | `stages/train_stage.py` | 116–2214 | Full training UI, entrypoint wrapper, nerd mode tooling, interpretability widgets, and background tasks. |
 
@@ -32,6 +33,7 @@ Supporting helpers for training live alongside the stage:
 ## Component placement map
 - **`streamlit_app.py`** – Entry point; orchestrates layout, stage switching, and cross-stage session state.
 - **`pages/data.py`** – Prepare/Data stage UI, including dataset builder, PII cleanup, and diagnostics tooling.
+- **`pages/use.py`** – Use/Classify stage UI handling batch processing, autonomy, and adaptiveness workflows.
 - **`demistifai/constants.py`** – Stage metadata, icons, copy blocks, and shared CSS snippets.
 - **`demistifai/dataset.py`** – Dataset generation, CSV I/O, and linting utilities for Prepare/Data stages.
 - **`demistifai/modeling.py`** – Feature engineering, model training, calibration, and interpretability helpers.
