@@ -5,7 +5,7 @@ from __future__ import annotations
 import streamlit as st
 from streamlit_navigation_bar import st_navbar
 
-from demistifai import app_core
+import demistifai.app_core as app_core
 import pages as pg
 
 st.set_page_config(
