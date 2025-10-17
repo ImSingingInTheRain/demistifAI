@@ -820,6 +820,268 @@ APP_THEME_CSS = """
     margin: 0;
 }
 
+.prepare-intro-card {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.16), rgba(236, 72, 153, 0.12));
+    border-radius: 1.25rem;
+    padding: 1.5rem;
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    box-shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
+    margin: 0 0 1.5rem 0;
+}
+
+.prepare-intro-card__header {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    margin-bottom: 0.9rem;
+}
+
+.prepare-intro-card__icon {
+    font-size: 1.75rem;
+    line-height: 1;
+    background: rgba(15, 23, 42, 0.08);
+    border-radius: 0.9rem;
+    padding: 0.55rem 0.9375rem;
+    box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.06);
+}
+
+.prepare-intro-card__eyebrow {
+    font-size: 0.75rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    font-weight: 700;
+    color: rgba(15, 23, 42, 0.55);
+    display: inline-block;
+}
+
+.prepare-intro-card__title {
+    margin: 0;
+    padding: 0;
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.prepare-intro-card__body {
+    margin: 0;
+    color: rgba(15, 23, 42, 0.8);
+    font-size: 0.95rem;
+    line-height: 1.6;
+}
+
+.dataset-health-card {
+    border-radius: 1.1rem;
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    padding: 1.35rem;
+    background: rgba(255, 255, 255, 0.88);
+    box-shadow: 0 14px 36px rgba(15, 23, 42, 0.1);
+    backdrop-filter: blur(6px);
+}
+
+.dataset-health-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.dataset-health-panel__status {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+.dataset-health-panel__status-copy {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+
+.dataset-health-panel__status-copy h5 {
+    margin: 0;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.dataset-health-panel__status-copy small {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: rgba(15, 23, 42, 0.55);
+    font-weight: 700;
+}
+
+.dataset-health-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+    padding: 0.4rem 1rem;
+    border-radius: 999px;
+    font-weight: 700;
+    font-size: 0.95rem;
+    line-height: 1;
+}
+
+.dataset-health-status__dot {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.85);
+}
+
+.dataset-health-status--good {
+    background: rgba(34, 197, 94, 0.18);
+    color: #15803d;
+}
+
+.dataset-health-status--good .dataset-health-status__dot {
+    background: #22c55e;
+}
+
+.dataset-health-status--warn {
+    background: rgba(234, 179, 8, 0.2);
+    color: #b45309;
+}
+
+.dataset-health-status--warn .dataset-health-status__dot {
+    background: #fbbf24;
+}
+
+.dataset-health-status--risk {
+    background: rgba(248, 113, 113, 0.2);
+    color: #b91c1c;
+}
+
+.dataset-health-status--risk .dataset-health-status__dot {
+    background: #f87171;
+}
+
+.dataset-health-status--neutral {
+    background: rgba(148, 163, 184, 0.22);
+    color: #1f2937;
+}
+
+.dataset-health-status--neutral .dataset-health-status__dot {
+    background: rgba(148, 163, 184, 0.9);
+}
+
+.dataset-health-panel__row {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.dataset-health-panel__row--bar {
+    margin-top: 0.35rem;
+}
+
+.dataset-health-panel__row--meta {
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+.dataset-health-panel__meta-primary {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: rgba(15, 23, 42, 0.75);
+}
+
+.dataset-health-panel__lint-placeholder {
+    font-size: 0.8rem;
+    color: rgba(15, 23, 42, 0.55);
+}
+
+.dataset-health-panel__bar {
+    flex: 1;
+    display: flex;
+    height: 10px;
+    border-radius: 999px;
+    overflow: hidden;
+    background: rgba(15, 23, 42, 0.08);
+}
+
+.dataset-health-panel__bar span {
+    display: block;
+    height: 100%;
+}
+
+.dataset-health-panel__bar-spam {
+    background: linear-gradient(90deg, #fb7185 0%, #f43f5e 100%);
+}
+
+.dataset-health-panel__bar-safe {
+    background: linear-gradient(90deg, #38bdf8 0%, #0ea5e9 100%);
+}
+
+.dataset-delta-panel {
+    position: sticky;
+    top: 5.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: 1.25rem;
+    border-radius: 1rem;
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    background: rgba(255, 255, 255, 0.9);
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+    backdrop-filter: blur(6px);
+    margin-top: 1.5rem;
+}
+
+.dataset-delta-panel h5 {
+    margin: 0;
+    font-size: 1.05rem;
+    font-weight: 700;
+}
+
+.dataset-delta-panel__items {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.dataset-delta-panel__item {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    font-size: 0.95rem;
+}
+
+.dataset-delta-panel__item span:first-child {
+    color: #0f172a;
+    font-weight: 600;
+}
+
+.delta-arrow {
+    font-weight: 700;
+}
+
+.delta-arrow--up {
+    color: #16a34a;
+}
+
+.delta-arrow--down {
+    color: #dc2626;
+}
+
+.dataset-delta-panel__hint {
+    font-size: 0.9rem;
+    color: rgba(15, 23, 42, 0.75);
+    border-top: 1px solid rgba(15, 23, 42, 0.08);
+    padding-top: 0.75rem;
+}
+
+.dataset-delta-panel__story {
+    font-size: 0.85rem;
+    color: rgba(15, 23, 42, 0.7);
+}
+
 .hero-info-list li strong {
     color: #1e3a8a;
     font-weight: 700;

@@ -1466,261 +1466,8 @@ def render_data_stage():
         with slot:
             render_prepare_terminal()
 
-    render_stage_top_grid("data", left_renderer=_render_prepare_terminal)
-
     current_summary = compute_dataset_summary(ss["labeled"])
     ss["dataset_summary"] = current_summary
-
-    flash_queue = ss.pop("data_stage_flash_queue", [])
-    for flash in flash_queue:
-        if not isinstance(flash, dict):
-            continue
-        message = str(flash.get("message", "")).strip()
-        if not message:
-            continue
-        level = flash.get("level", "info")
-        if level == "success":
-            st.success(message)
-        elif level == "warning":
-            st.warning(message)
-        elif level == "error":
-            st.error(message)
-        else:
-            st.info(message)
-
-    with section_surface():
-        render_eu_ai_quote("An AI system “infers, from the input it receives…”.")
-
-    st.markdown(
-        """
-        <style>
-        .prepare-intro-card {
-            background: linear-gradient(135deg, rgba(59, 130, 246, 0.16), rgba(236, 72, 153, 0.12));
-            border-radius: 1.25rem;
-            padding: 1.5rem;
-            border: 1px solid rgba(15, 23, 42, 0.08);
-            box-shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
-            margin-bottom: 50px;
-            margin-top: 20px;
-        }
-        .prepare-intro-card__header {
-            display: flex;
-            align-items: flex-start;
-            gap: 1rem;
-            margin-bottom: 0.9rem;
-        }
-        .prepare-intro-card__icon {
-            font-size: 1.75rem;
-            line-height: 1;
-            background: rgba(15, 23, 42, 0.08);
-            border-radius: 0.9rem;
-            padding: 0.55rem 0.9375rem;
-            box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.06);
-        }
-        .prepare-intro-card__eyebrow {
-            font-size: 0.75rem;
-            letter-spacing: 0.16em;
-            text-transform: uppercase;
-            font-weight: 700;
-            color: rgba(15, 23, 42, 0.55);
-            display: inline-block;
-        }
-        .prepare-intro-card__title {
-            margin: 0;
-            padding: 0;
-            font-size: 1.4rem;
-            font-weight: 700;
-            color: #0f172a;
-        }
-        .prepare-intro-card__body {
-            margin: 0;
-            color: rgba(15, 23, 42, 0.8);
-            font-size: 0.95rem;
-            line-height: 1.6;
-        }
-        .dataset-health-card {
-            border-radius: 1.1rem;
-            border: 1px solid rgba(15, 23, 42, 0.08);
-            padding: 1.35rem;
-            background: rgba(255, 255, 255, 0.88);
-            box-shadow: 0 14px 36px rgba(15, 23, 42, 0.1);
-            backdrop-filter: blur(6px);
-        }
-        .dataset-health-panel {
-            display: flex;
-            flex-direction: column;
-            gap: 0.75rem;
-        }
-        .dataset-health-panel__status {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 0.75rem;
-        }
-        .dataset-health-panel__status-copy {
-            display: flex;
-            flex-direction: column;
-            gap: 0.15rem;
-        }
-        .dataset-health-panel__status-copy h5 {
-            margin: 0;
-            font-size: 1.05rem;
-            font-weight: 700;
-            color: #0f172a;
-        }
-        .dataset-health-panel__status-copy small {
-            font-size: 0.75rem;
-            text-transform: uppercase;
-            letter-spacing: 0.12em;
-            color: rgba(15, 23, 42, 0.55);
-            font-weight: 700;
-        }
-        .dataset-health-status {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.55rem;
-            padding: 0.4rem 1rem;
-            border-radius: 999px;
-            font-weight: 700;
-            font-size: 0.95rem;
-            line-height: 1;
-        }
-        .dataset-health-status__dot {
-            width: 14px;
-            height: 14px;
-            border-radius: 50%;
-            box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.85);
-        }
-        .dataset-health-status--good {
-            background: rgba(34, 197, 94, 0.18);
-            color: #15803d;
-        }
-        .dataset-health-status--good .dataset-health-status__dot {
-            background: #22c55e;
-        }
-        .dataset-health-status--warn {
-            background: rgba(234, 179, 8, 0.2);
-            color: #b45309;
-        }
-        .dataset-health-status--warn .dataset-health-status__dot {
-            background: #fbbf24;
-        }
-        .dataset-health-status--risk {
-            background: rgba(248, 113, 113, 0.2);
-            color: #b91c1c;
-        }
-        .dataset-health-status--risk .dataset-health-status__dot {
-            background: #f87171;
-        }
-        .dataset-health-status--neutral {
-            background: rgba(148, 163, 184, 0.22);
-            color: #1f2937;
-        }
-        .dataset-health-status--neutral .dataset-health-status__dot {
-            background: rgba(148, 163, 184, 0.9);
-        }
-        .dataset-health-panel__row {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-        }
-        .dataset-health-panel__row--bar {
-            margin-top: 0.35rem;
-        }
-        .dataset-health-panel__row--meta {
-            justify-content: space-between;
-            flex-wrap: wrap;
-            gap: 0.75rem;
-        }
-        .dataset-health-panel__meta-primary {
-            display: inline-flex;
-            flex-wrap: wrap;
-            gap: 0.75rem;
-            font-size: 0.85rem;
-            font-weight: 600;
-            color: rgba(15, 23, 42, 0.75);
-        }
-        .dataset-health-panel__lint-placeholder {
-            font-size: 0.8rem;
-            color: rgba(15, 23, 42, 0.55);
-        }
-        .dataset-health-panel__bar {
-            flex: 1;
-            display: flex;
-            height: 10px;
-            border-radius: 999px;
-            overflow: hidden;
-            background: rgba(15, 23, 42, 0.08);
-        }
-        .dataset-health-panel__bar span {
-            display: block;
-            height: 100%;
-        }
-        .dataset-health-panel__bar-spam {
-            background: linear-gradient(90deg, #fb7185 0%, #f43f5e 100%);
-        }
-        .dataset-health-panel__bar-safe {
-            background: linear-gradient(90deg, #38bdf8 0%, #0ea5e9 100%);
-        }
-        .dataset-delta-panel {
-            position: sticky;
-            top: 5.5rem;
-            display: flex;
-            flex-direction: column;
-            gap: 0.75rem;
-            padding: 1.25rem;
-            border-radius: 1rem;
-            border: 1px solid rgba(15, 23, 42, 0.08);
-            background: rgba(255, 255, 255, 0.9);
-            box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
-            backdrop-filter: blur(6px);
-            margin-top: 50px;
-        }
-        .dataset-delta-panel h5 {
-            margin: 0;
-            font-size: 1.05rem;
-            font-weight: 700;
-        }
-        .dataset-delta-panel__items {
-            display: flex;
-            flex-direction: column;
-            gap: 0.5rem;
-        }
-        .dataset-delta-panel__item {
-            display: flex;
-            justify-content: space-between;
-            align-items: baseline;
-            font-size: 0.95rem;
-        }
-        .dataset-delta-panel__item span:first-child {
-            color: #0f172a;
-            font-weight: 600;
-        }
-        .delta-arrow {
-            font-weight: 700;
-        }
-        .delta-arrow--up {
-            color: #16a34a;
-        }
-        .delta-arrow--down {
-            color: #dc2626;
-        }
-        .dataset-delta-panel__hint {
-            font-size: 0.9rem;
-            color: rgba(15, 23, 42, 0.75);
-            border-top: 1px solid rgba(15, 23, 42, 0.08);
-            padding-top: 0.75rem;
-        }
-        .dataset-delta-panel__story {
-            font-size: 0.85rem;
-            color: rgba(15, 23, 42, 0.7);
-        }
-        </style>
-        """,
-        unsafe_allow_html=True,
-    )
-
 
     delta_text = ""
     if ss.get("dataset_compare_delta"):
@@ -1891,90 +1638,96 @@ def render_data_stage():
     base_summary_for_delta: Optional[Dict[str, Any]] = None
     target_summary_for_delta: Optional[Dict[str, Any]] = None
     compare_panel_html = ""
+    preview_clicked = False
+    reset_clicked = False
 
-    with section_surface():
-        info_col, builder_col = st.columns([0.45, 0.55], gap="large")
-        with info_col:
-            st.markdown(
-                """
-                <div class="prepare-intro-card">
-                    <div class="prepare-intro-card__header">
-                        <span class="prepare-intro-card__icon" style="
-    padding-bottom: 15px;">🧪</span>
-                        <div>
-                            <span class="prepare-intro-card__eyebrow">Stage 1</span>
-                            <h4 class="prepare-intro-card__title" style="padding-top: 0px;">Prepare data</h4>
+    def _render_prepare_panel(slot: DeltaGenerator) -> None:
+        nonlocal nerd_mode_data_enabled
+        with slot:
+            with section_surface():
+                st.markdown(
+                    """
+                    <div class="prepare-intro-card">
+                        <div class="prepare-intro-card__header">
+                            <span class="prepare-intro-card__icon">🧪</span>
+                            <div>
+                                <span class="prepare-intro-card__eyebrow">Stage 1</span>
+                                <h4 class="prepare-intro-card__title">Prepare data</h4>
+                            </div>
                         </div>
+                        <p class="prepare-intro-card__body">
+                            Your AI system must learn how to distinguish a safe email from spam. The first step is to prepare a dataset representing what spam and safe emails look like. Use the dataset builder to generate a synthetic dataset, then review its health score and recommendations. Toggle Nerd Mode for advanced configuration and diagnostic controls when you need them.
+                        </p>
                     </div>
-                    <p class="prepare-intro-card__body">
-                        Your AI system must learn how to distinguish a safe email from spam. The first step is to prepare a dataset representing what spam and safe emails look like. Use the dataset builder to generate a synthetic dataset, then review its health score and recommendations. Toggle Nerd Mode for advanced configuration and diagnostic controls when you need them.
-                    </p>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
-            nerd_mode_data_enabled = render_nerd_mode_toggle(
-                key="nerd_mode_data",
-                title="Nerd Mode — advanced dataset controls",
-                description="Expose feature prevalence, randomness, diagnostics, and CSV import when you need them.",
-            )
+                    """,
+                    unsafe_allow_html=True,
+                )
+                nerd_mode_data_enabled = render_nerd_mode_toggle(
+                    key="nerd_mode_data",
+                    title="Nerd Mode — advanced dataset controls",
+                    description="Expose feature prevalence, randomness, diagnostics, and CSV import when you need them.",
+                )
 
-        with builder_col:
-            st.markdown("### Dataset builder")
+    def _render_dataset_builder(slot: DeltaGenerator) -> None:
+        nonlocal base_summary_for_delta, target_summary_for_delta, delta_summary, compare_panel_html, preview_clicked, reset_clicked, delta_text, current_summary
+        with slot:
+            with section_surface():
+                st.markdown("### Dataset builder")
 
-            if ss.get("dataset_preview_summary"):
-                base_summary_for_delta = current_summary
-                target_summary_for_delta = ss["dataset_preview_summary"]
-            elif ss.get("previous_dataset_summary") and delta_summary:
-                base_summary_for_delta = ss.get("previous_dataset_summary")
-                target_summary_for_delta = ss.get("dataset_summary", current_summary)
-            else:
-                base_summary_for_delta = compute_dataset_summary(STARTER_LABELED)
-                target_summary_for_delta = current_summary
-                if delta_summary is None:
-                    delta_summary = dataset_summary_delta(
-                        base_summary_for_delta, target_summary_for_delta
+                if ss.get("dataset_preview_summary"):
+                    base_summary_for_delta = current_summary
+                    target_summary_for_delta = ss["dataset_preview_summary"]
+                elif ss.get("previous_dataset_summary") and delta_summary:
+                    base_summary_for_delta = ss.get("previous_dataset_summary")
+                    target_summary_for_delta = ss.get("dataset_summary", current_summary)
+                else:
+                    base_summary_for_delta = compute_dataset_summary(STARTER_LABELED)
+                    target_summary_for_delta = current_summary
+                    if delta_summary is None:
+                        delta_summary = dataset_summary_delta(
+                            base_summary_for_delta, target_summary_for_delta
+                        )
+
+                preview_clicked = False
+                reset_clicked = False
+
+                cfg = ss.get("dataset_config", DEFAULT_DATASET_CONFIG)
+                _set_advanced_knob_state(cfg)
+
+                spam_ratio_default = float(cfg.get("spam_ratio", 0.5))
+                spam_share_default = int(round(spam_ratio_default * 100))
+                spam_share_default = min(max(spam_share_default, 20), 80)
+                if spam_share_default % 5 != 0:
+                    spam_share_default = int(5 * round(spam_share_default / 5))
+
+                with st.form("dataset_builder_form"):
+                    dataset_size = st.radio(
+                        "Dataset size",
+                        options=[100, 300, 500],
+                        index=[100, 300, 500].index(int(cfg.get("n_total", 500)))
+                        if int(cfg.get("n_total", 500)) in [100, 300, 500]
+                        else 2,
+                        help="Preset sizes illustrate how data volume influences learning (guarded ≤500).",
+                    )
+                    spam_share_pct = st.slider(
+                        "Spam share",
+                        min_value=20,
+                        max_value=80,
+                        value=spam_share_default,
+                        step=5,
+                        help="Adjust prevalence to explore bias/recall trade-offs.",
+                    )
+                    edge_cases = st.slider(
+                        "Edge cases",
+                        min_value=0,
+                        max_value=10,
+                        value=int(cfg.get("edge_cases", 2)),
+                        help="Surface tricky look-alikes to test your preview set.",
                     )
 
-            preview_clicked = False
-            reset_clicked = False
-
-            cfg = ss.get("dataset_config", DEFAULT_DATASET_CONFIG)
-            _set_advanced_knob_state(cfg)
-
-            spam_ratio_default = float(cfg.get("spam_ratio", 0.5))
-            spam_share_default = int(round(spam_ratio_default * 100))
-            spam_share_default = min(max(spam_share_default, 20), 80)
-            if spam_share_default % 5 != 0:
-                spam_share_default = int(5 * round(spam_share_default / 5))
-
-            with st.form("dataset_builder_form"):
-                dataset_size = st.radio(
-                    "Dataset size",
-                    options=[100, 300, 500],
-                    index=[100, 300, 500].index(int(cfg.get("n_total", 500)))
-                    if int(cfg.get("n_total", 500)) in [100, 300, 500]
-                    else 2,
-                    help="Preset sizes illustrate how data volume influences learning (guarded ≤500).",
-                )
-                spam_share_pct = st.slider(
-                    "Spam share",
-                    min_value=20,
-                    max_value=80,
-                    value=spam_share_default,
-                    step=5,
-                    help="Adjust prevalence to explore bias/recall trade-offs.",
-                )
-                edge_cases = st.slider(
-                    "Edge cases",
-                    min_value=0,
-                    max_value=len(EDGE_CASE_TEMPLATES),
-                    value=int(cfg.get("edge_cases", 0)),
-                    help="Inject similar-looking spam/safe pairs to stress the model.",
-                )
-
-                if nerd_mode_data_enabled:
-                    with st.expander("Advanced knobs", expanded=True):
+                    if nerd_mode_data_enabled:
+                        st.divider()
+                        st.markdown("#### Advanced configuration")
                         st.caption(
                             "Fine-tune suspicious links, domains, tone, attachments, randomness, and demos before generating a preview."
                         )
@@ -2069,98 +1822,126 @@ def render_data_stage():
                     reset_clicked = st.form_submit_button("Reset to baseline", type="secondary")
                 st.markdown("</div>", unsafe_allow_html=True)
 
-            spam_ratio = float(spam_share_pct) / 100.0
+                spam_ratio = float(spam_share_pct) / 100.0
 
-            if reset_clicked:
-                ss["labeled"] = starter_dataset_copy()
-                ss["dataset_config"] = DEFAULT_DATASET_CONFIG.copy()
-                baseline_summary = compute_dataset_summary(ss["labeled"])
-                ss["dataset_summary"] = baseline_summary
-                ss["previous_dataset_summary"] = None
-                ss["dataset_compare_delta"] = None
-                ss["last_dataset_delta_story"] = None
-                ss["active_dataset_snapshot"] = None
-                ss["dataset_snapshot_name"] = ""
-                ss["dataset_last_built_at"] = datetime.now().isoformat(timespec="seconds")
-                ss["dataset_preview"] = None
-                ss["dataset_preview_config"] = None
-                ss["dataset_preview_summary"] = None
-                ss["dataset_preview_lint"] = None
-                ss["dataset_manual_queue"] = None
-                ss["dataset_controls_open"] = False
-                _push_data_stage_flash(
-                    "success", f"Dataset reset to starter baseline ({len(STARTER_LABELED)} rows)."
-                )
-                _set_advanced_knob_state(ss["dataset_config"], force=True)
-                if ss.get("_needs_advanced_knob_rerun"):
-                    streamlit_rerun()
-                current_summary = baseline_summary
-                delta_summary = ss.get("dataset_compare_delta")
-                delta_text = explain_config_change(ss.get("dataset_config", DEFAULT_DATASET_CONFIG))
-                base_summary_for_delta = compute_dataset_summary(STARTER_LABELED)
-                target_summary_for_delta = current_summary
+                if reset_clicked:
+                    ss["labeled"] = starter_dataset_copy()
+                    ss["dataset_config"] = DEFAULT_DATASET_CONFIG.copy()
+                    baseline_summary = compute_dataset_summary(ss["labeled"])
+                    ss["dataset_summary"] = baseline_summary
+                    ss["previous_dataset_summary"] = None
+                    ss["dataset_compare_delta"] = None
+                    ss["last_dataset_delta_story"] = None
+                    ss["active_dataset_snapshot"] = None
+                    ss["dataset_snapshot_name"] = ""
+                    ss["dataset_last_built_at"] = datetime.now().isoformat(timespec="seconds")
+                    ss["dataset_preview"] = None
+                    ss["dataset_preview_config"] = None
+                    ss["dataset_preview_summary"] = None
+                    ss["dataset_preview_lint"] = None
+                    ss["dataset_manual_queue"] = None
+                    ss["dataset_controls_open"] = False
+                    _push_data_stage_flash(
+                        "success", f"Dataset reset to starter baseline ({len(STARTER_LABELED)} rows)."
+                    )
+                    _set_advanced_knob_state(ss["dataset_config"], force=True)
+                    if ss.get("_needs_advanced_knob_rerun"):
+                        streamlit_rerun()
+                    current_summary = baseline_summary
+                    delta_summary = ss.get("dataset_compare_delta")
+                    delta_text = explain_config_change(ss.get("dataset_config", DEFAULT_DATASET_CONFIG))
+                    base_summary_for_delta = compute_dataset_summary(STARTER_LABELED)
+                    target_summary_for_delta = current_summary
 
-        preview_summary_local: Optional[Dict[str, Any]] = None
-        if preview_clicked:
-            attachment_choice = st.session_state.get(
-                "adv_attachment_choice",
-                next(
-                    (
-                        name
-                        for name, mix in ATTACHMENT_MIX_PRESETS.items()
-                        if mix == cfg.get("attachments_mix", DEFAULT_ATTACHMENT_MIX)
-                    ),
-                    "Balanced",
-                ),
-            )
-            attachment_mix = ATTACHMENT_MIX_PRESETS.get(attachment_choice, DEFAULT_ATTACHMENT_MIX).copy()
-            links_level_value = int(
-                st.session_state.get(
-                    "adv_links_level",
-                    int(str(cfg.get("susp_link_level", "1"))),
-                )
-            )
-            tld_level_value = str(
-                st.session_state.get("adv_tld_level", cfg.get("susp_tld_level", "med"))
-            )
-            caps_level_value = str(
-                st.session_state.get("adv_caps_level", cfg.get("caps_intensity", "med"))
-            )
-            money_level_value = str(
-                st.session_state.get("adv_money_level", cfg.get("money_urgency", "low"))
-            )
-            noise_pct_value = float(
-                st.session_state.get("adv_label_noise_pct", float(cfg.get("label_noise_pct", 0.0)))
-            )
-            seed_value = int(st.session_state.get("adv_seed", int(cfg.get("seed", 42))))
-            poison_demo_value = bool(
-                st.session_state.get("adv_poison_demo", bool(cfg.get("poison_demo", False)))
-            )
-            config: DatasetConfig = {
-                "seed": int(seed_value),
-                "n_total": int(dataset_size),
-                "spam_ratio": float(spam_ratio),
-                "susp_link_level": str(int(links_level_value)),
-                "susp_tld_level": tld_level_value,
-                "caps_intensity": caps_level_value,
-                "money_urgency": money_level_value,
-                "attachments_mix": attachment_mix,
-                "edge_cases": int(edge_cases),
-                "label_noise_pct": float(noise_pct_value),
-                "poison_demo": bool(poison_demo_value),
-            }
-            preview_summary_local = _generate_preview_from_config(config)
-            delta_summary = ss.get("dataset_compare_delta")
-            if delta_summary:
-                delta_text = dataset_delta_story(delta_summary)
-            base_summary_for_delta = current_summary
-            target_summary_for_delta = preview_summary_local
+                preview_summary_local: Optional[Dict[str, Any]] = None
+                if preview_clicked:
+                    attachment_choice = st.session_state.get(
+                        "adv_attachment_choice",
+                        next(
+                            (
+                                name
+                                for name, mix in ATTACHMENT_MIX_PRESETS.items()
+                                if mix == cfg.get("attachments_mix", DEFAULT_ATTACHMENT_MIX)
+                            ),
+                            "Balanced",
+                        ),
+                    )
+                    attachment_mix = ATTACHMENT_MIX_PRESETS.get(attachment_choice, DEFAULT_ATTACHMENT_MIX).copy()
+                    links_level_value = int(
+                        st.session_state.get(
+                            "adv_links_level",
+                            int(str(cfg.get("susp_link_level", "1"))),
+                        )
+                    )
+                    tld_level_value = str(
+                        st.session_state.get("adv_tld_level", cfg.get("susp_tld_level", "med"))
+                    )
+                    caps_level_value = str(
+                        st.session_state.get("adv_caps_level", cfg.get("caps_intensity", "med"))
+                    )
+                    money_level_value = str(
+                        st.session_state.get("adv_money_level", cfg.get("money_urgency", "low"))
+                    )
+                    noise_pct_value = float(
+                        st.session_state.get("adv_label_noise_pct", float(cfg.get("label_noise_pct", 0.0)))
+                    )
+                    seed_value = int(st.session_state.get("adv_seed", int(cfg.get("seed", 42))))
+                    poison_demo_value = bool(
+                        st.session_state.get("adv_poison_demo", bool(cfg.get("poison_demo", False)))
+                    )
+                    config: DatasetConfig = {
+                        "seed": int(seed_value),
+                        "n_total": int(dataset_size),
+                        "spam_ratio": float(spam_ratio),
+                        "susp_link_level": str(int(links_level_value)),
+                        "susp_tld_level": tld_level_value,
+                        "caps_intensity": caps_level_value,
+                        "money_urgency": money_level_value,
+                        "attachments_mix": attachment_mix,
+                        "edge_cases": int(edge_cases),
+                        "label_noise_pct": float(noise_pct_value),
+                        "poison_demo": bool(poison_demo_value),
+                    }
+                    preview_summary_local = _generate_preview_from_config(config)
+                    delta_summary = ss.get("dataset_compare_delta")
+                    if delta_summary:
+                        delta_text = dataset_delta_story(delta_summary)
+                    base_summary_for_delta = current_summary
+                    target_summary_for_delta = preview_summary_local
+
         compare_panel_html = _build_compare_panel_html(
             base_summary_for_delta,
             target_summary_for_delta,
             delta_summary,
             delta_text,
         )
+
+    render_stage_top_grid(
+        "data",
+        left_renderer=_render_prepare_terminal,
+        right_first_renderer=_render_prepare_panel,
+        right_second_renderer=_render_dataset_builder,
+    )
+
+    flash_queue = ss.pop("data_stage_flash_queue", [])
+    for flash in flash_queue:
+        if not isinstance(flash, dict):
+            continue
+        message = str(flash.get("message", "")).strip()
+        if not message:
+            continue
+        level = flash.get("level", "info")
+        if level == "success":
+            st.success(message)
+        elif level == "warning":
+            st.warning(message)
+        elif level == "error":
+            st.error(message)
+        else:
+            st.info(message)
+
+    with section_surface():
+        render_eu_ai_quote("An AI system “infers, from the input it receives…”.")
 
     preview_summary_for_health = ss.get("dataset_preview_summary")
     lint_counts_preview = (
