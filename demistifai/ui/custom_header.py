@@ -1,9 +1,11 @@
 """demAI fixed header (HTML) + reliable Streamlit-bridge buttons.
 
 - Full-width, fixed header bar (side-to-side), mobile safe-area aware
-- In-bar animated logo + perfectly centered stage title
+- In-bar animated logo + perfectly centered stage title (desktop & tablets)
+- On phones (portrait): buttons inline to the right of the logo; stage text hidden
+- On phones (landscape): single ultra-compact row; progress hidden, title truncated
 - Visible header buttons (HTML) trigger the stage grid navigation buttons via JS
-- Works on desktop and mobile without losing session state
+- Dynamic spacer keeps page content perfectly aligned through resize/rotation
 """
 
 from __future__ import annotations
@@ -50,7 +52,14 @@ def _bootstrap_stage_from_query() -> None:
 
 def _resolve_stage_context() -> dict:
     if not STAGES:
-        return {"active_key": None, "index": 0, "total": 0, "stage": None, "prev_stage": None, "next_stage": None}
+        return {
+            "active_key": None,
+            "index": 0,
+            "total": 0,
+            "stage": None,
+            "prev_stage": None,
+            "next_stage": None,
+        }
 
     ss = st.session_state
     default_key = STAGES[0].key
@@ -81,7 +90,6 @@ def mount_demai_header(logo_height: int = 56, max_inner_width: int = 1200) -> No
     Those buttons programmatically click the stage grid navigation buttons so navigation
     stays in the same session (no reloads, no new tab).
     """
-
     _bootstrap_stage_from_query()
 
     ctx = _resolve_stage_context()
@@ -323,64 +331,58 @@ def mount_demai_header(logo_height: int = 56, max_inner_width: int = 1200) -> No
 
     # ---------- JS bridge + dynamic spacer ----------
     components.html(
-        f"""
+        """
         <script>
-          (function initHeader() {{
-            const doc = window.parent && window.parent.document ? window.parent.document : document;
-            function byId(id) {{ return doc.getElementById(id); }}
+          (function initHeader() {
+            const doc = (window.parent && window.parent.document) ? window.parent.document : document;
+            function byId(id) { return doc.getElementById(id); }
 
             // Wire visible header buttons to hidden stage-grid nav
-            function resolveNavTarget(targetId) {{
+            function resolveNavTarget(targetId) {
               const direct = byId(targetId);
               if (direct) return direct;
-              const sentinel = doc.querySelector(`[data-demai-target="${'{'}targetId{'}'}"]`);
+              const sentinel = doc.querySelector('[data-demai-target="' + targetId + '"]');
               if (!sentinel) return null;
               const container = sentinel.closest('[data-testid="stVerticalBlock"]') || sentinel.parentElement;
               if (!container) return null;
               return container.querySelector('button');
-            }}
-            function bind(vId, hId) {{
-              function attempt() {{
+            }
+            function bind(vId, hId) {
+              function attempt() {
                 const v = byId(vId);
                 if (!v) return false;
                 if (v.dataset.boundTarget === hId) return true;
                 const t = resolveNavTarget(hId);
                 if (!t) return false;
-                v.addEventListener('click', function(e) {{
+                v.addEventListener('click', function(e) {
                   if (v.getAttribute('aria-disabled') === 'true') return;
                   e.preventDefault(); e.stopPropagation();
                   const btn = resolveNavTarget(hId);
                   if (btn) btn.click();
-                }});
+                });
                 v.dataset.boundTarget = hId;
                 return true;
-              }}
+              }
               attempt(); setInterval(attempt, 400);
-            }}
-            bind('{prev_visible_id}', '{hidden_prev_id}');
-            bind('{next_visible_id}', '{hidden_next_id}');
+            }
+            bind('demai-btn-prev', 'demai-stage-nav-prev-btn');
+            bind('demai-btn-next', 'demai-stage-nav-next-btn');
 
             // Keep spacer height in sync with actual header height (resizes / rotations)
             const header = doc.querySelector('.demai-header-fixed');
             const spacer = byId('demai-header-spacer');
-            if (header && spacer) {{
-              let lastHeight = null;
-              function applyHeight(rawHeight) {{
-                const h = Math.round(rawHeight);
-                if (!Number.isFinite(h) || h <= 0 || h === lastHeight) return;
-                lastHeight = h;
+            if (header && spacer) {
+              const ro = new ResizeObserver(() => {
+                const h = Math.ceil(header.getBoundingClientRect().height);
                 spacer.style.height = h + 'px';
-                // Also update CSS var for any code that reads it
                 doc.documentElement.style.setProperty('--demai-header-h', h + 'px');
-              }}
-              const ro = new ResizeObserver(() => {{
-                applyHeight(header.getBoundingClientRect().height);
-              }});
+              });
               ro.observe(header);
-              // Initial
-              applyHeight(header.getBoundingClientRect().height);
-            }}
-          }})();
+              const h0 = Math.ceil(header.getBoundingClientRect().height);
+              spacer.style.height = h0 + 'px';
+              doc.documentElement.style.setProperty('--demai-header-h', h0 + 'px');
+            }
+          })();
         </script>
         """,
         height=0,
