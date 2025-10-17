@@ -4,7 +4,6 @@ import html
 import json
 import logging
 import random
-import textwrap
 from collections import Counter
 from datetime import datetime
 from contextlib import contextmanager
@@ -38,7 +37,6 @@ from demistifai.core.guardrails import (
 from demistifai.core.audit import _append_audit
 from demistifai.core.export import _export_batch_df
 from demistifai.core.language import (
-    HAS_LANGDETECT,
     summarize_language_mix,
     render_language_mix_chip_rows,
 )
@@ -77,17 +75,13 @@ from demistifai.modeling import (
 )
 from demistifai.components.guardrail_panel import render_guardrail_panel
 from demistifai.core.downloads import download_text
-from demistifai.core.cache import cached_features, cached_train
 
 from pages.data import render_data_stage as render_data_stage_content
 from stages.overview import render_overview_stage as render_overview_stage_content
-from stages.train_stage import render_train_stage
+from stages.train_stage import render_train_stage_page
 from demistifai.ui.custom_header import mount_demai_header
-from demistifai.ui.components.mac_window import render_mac_window
 from demistifai.ui.components.terminal.evaluate import render_evaluate_terminal
-from demistifai.ui.components.terminal.train import render_train_terminal
 from demistifai.ui.components.terminal.use import render_use_terminal
-from demistifai.ui.components.train_animation import build_training_animation_column
 from welcome import render_intro_stage as render_intro_stage_content
 logger = logging.getLogger(__name__)
 
@@ -99,23 +93,9 @@ ss = st.session_state
 
 ss.setdefault("viewport_is_mobile", False)
 
-
-def callable_or_attr(target: Any, attr: str | None = None) -> bool:
-    """Return True if ``target`` (or one of its attributes) is callable."""
-
-    try:
-        value = getattr(target, attr) if attr else target
-    except Exception:
-        return False
-    return callable(value)
-
-
 from sklearn import __version__ as sklearn_version
 from sklearn.metrics import accuracy_score, precision_recall_fscore_support
 from sklearn.model_selection import train_test_split
-
-has_embed = callable_or_attr(locals().get("encode_texts"))
-has_calibration = callable_or_attr(locals().get("PlattProbabilityCalibrator"))
 
 
 def _shorten_text(text: str, limit: int = 120) -> str:
@@ -446,42 +426,6 @@ def render_data_stage():
         section_surface=section_surface,
         render_nerd_mode_toggle=render_nerd_mode_toggle,
     )
-
-
-def _label_balance_status(labeled: list[dict] | None) -> dict:
-    """Return counts, total, ratio, and OK flag for balance."""
-
-    labeled = labeled or []
-    counts = _counts(
-        [
-            (r.get("label") or "").strip().lower()
-            for r in labeled
-            if isinstance(r, dict)
-        ]
-    )
-    total = counts["spam"] + counts["safe"]
-    big = max(counts["spam"], counts["safe"])
-    small = min(counts["spam"], counts["safe"])
-    ratio = (small / big) if big else 0.0
-    ok = (total >= 12) and (counts["spam"] >= 6) and (counts["safe"] >= 6) and (ratio >= 0.60)
-    return {"counts": counts, "total": total, "ratio": ratio, "ok": ok}
-
-
-def _pii_status() -> dict:
-    """Read PII scan summary saved during Prepare (if any)."""
-
-    # expected shape: {"status": "clean"|"found"|"unknown", "counts": {"emails":..,"phones":..,"names":..}}
-    pii = ss.get("pii_scan") or {}
-    status = pii.get("status", "unknown")
-    counts = pii.get("counts", {})
-    return {"status": status, "counts": counts}
-
-
-def _go_to_prepare():
-    """Jump to Prepare stage (match your stage switching mechanism)."""
-
-    ss["stage"] = "prepare"
-    st.experimental_rerun()
 
 
 def render_evaluate_stage():
@@ -1564,302 +1508,9 @@ These are standardized and combined with the embedding before a linear classifie
             st.code(dataset_config_json, language="json")
 
 
-def _render_train_stage_wrapper() -> None:
-    s = ensure_state()
-    validate_invariants(s)
-
-    run_state = s.setdefault("run", {})
-    run_state.setdefault("busy", False)
-    data_state = s.setdefault("data", {})
-    split_state = s.setdefault("split", {})
-    model_state = s.setdefault("model", {})
-    stage = STAGE_BY_KEY["train"]
-
-    prepared_df = data_state.get("prepared")
-
-    def _prime_session_state_from_store() -> None:
-        model_obj = model_state.get("clf")
-        if model_obj is not None:
-            current_model = ss.get("model")
-            if current_model is None or current_model is model_obj:
-                ss["model"] = model_obj
-
-        vectorizer = model_state.get("vectorizer")
-        if vectorizer is not None:
-            ss["model_vectorizer"] = vectorizer
-
-        x_train_payload = split_state.get("X_train")
-        x_test_payload = split_state.get("X_test")
-        y_train_payload = split_state.get("y_train")
-        y_test_payload = split_state.get("y_test")
-        if (
-            isinstance(x_train_payload, dict)
-            and isinstance(x_test_payload, dict)
-            and y_train_payload is not None
-            and y_test_payload is not None
-            and ss.get("split_cache") is None
-        ):
-            ss["split_cache"] = (
-                list(x_train_payload.get("titles") or []),
-                list(x_test_payload.get("titles") or []),
-                list(x_train_payload.get("bodies") or []),
-                list(x_test_payload.get("bodies") or []),
-                list(y_train_payload or []),
-                list(y_test_payload or []),
-            )
-
-    def _sync_training_artifacts(prepared: pd.DataFrame) -> None:
-        model_obj = ss.get("model")
-        if model_obj is None:
-            return
-
-        raw_train_params = dict(ss.get("train_params") or {})
-        try:
-            test_size = float(raw_train_params.get("test_size", 0.30))
-        except (TypeError, ValueError):
-            test_size = 0.30
-        try:
-            random_state = int(raw_train_params.get("random_state", 42))
-        except (TypeError, ValueError):
-            random_state = 42
-
-        split_params = {
-            "test_size": test_size,
-            "random_state": random_state,
-            "stratify": True,
-        }
-
-        try:
-            max_iter = int(raw_train_params.get("max_iter", 1000))
-        except (TypeError, ValueError):
-            max_iter = 1000
-        try:
-            c_value = float(raw_train_params.get("C", 1.0))
-        except (TypeError, ValueError):
-            c_value = 1.0
-
-        guard_params = dict(ss.get("guard_params") or {})
-        default_center = float(ss.get("threshold", 0.6))
-        model_params = {
-            "max_iter": max_iter,
-            "C": c_value,
-            "random_state": random_state,
-            "numeric_assist_center": float(guard_params.get("assist_center", default_center)),
-            "uncertainty_band": float(guard_params.get("uncertainty_band", 0.08)),
-            "numeric_scale": float(guard_params.get("numeric_scale", 0.5)),
-            "numeric_logit_cap": float(guard_params.get("numeric_logit_cap", 1.0)),
-            "combine_strategy": str(guard_params.get("combine_strategy", "blend")),
-            "shift_suspicious_tld": float(guard_params.get("shift_suspicious_tld", -0.04)),
-            "shift_many_links": float(guard_params.get("shift_many_links", -0.03)),
-            "shift_calm_text": float(guard_params.get("shift_calm_text", +0.02)),
-        }
-
-        numeric_adjustments = dict(ss.get("numeric_adjustments", {}))
-        model_params_for_cache = dict(model_params)
-        model_params_for_cache["numeric_adjustments"] = numeric_adjustments
-
-        data_hash = data_state.get("hash", "")
-        split_hash = hash_dict({"data": data_hash, "split_params": split_params})
-
-        stored_model = model_state.get("clf")
-        already_synced = (
-            split_state.get("hash") == split_hash
-            and model_state.get("status") == "trained"
-            and model_state.get("data_hash") == data_hash
-            and model_state.get("params") == model_params
-            and stored_model is not None
-            and model_obj is stored_model
-        )
-        if already_synced:
-            _prime_session_state_from_store()
-            return
-
-        has_new_model = stored_model is None or model_obj is not stored_model
-        if not has_new_model:
-            if model_state.get("status") != "trained":
-                return
-            return
-
-        run_state["busy"] = True
-        try:
-            feature_payload, labels = cached_features(
-                prepared,
-                {
-                    "title_column": "title",
-                    "body_column": "body",
-                    "target_column": "label",
-                },
-                lib_versions={"pandas": pd.__version__, "numpy": np.__version__},
-            )
-
-            if not labels:
-                raise ValueError("No labeled examples available for training.")
-
-            (
-                train_titles,
-                test_titles,
-                train_bodies,
-                test_bodies,
-                train_texts,
-                test_texts,
-                train_numeric,
-                test_numeric,
-                y_train,
-                y_test,
-            ) = train_test_split(
-                feature_payload["titles"],
-                feature_payload["bodies"],
-                feature_payload["texts"],
-                feature_payload["numeric"],
-                labels,
-                test_size=test_size,
-                random_state=random_state,
-                stratify=labels,
-            )
-
-            model = cached_train(
-                {"titles": list(train_titles), "bodies": list(train_bodies)},
-                list(y_train),
-                model_params_for_cache,
-                lib_versions={"numpy": np.__version__, "sklearn": sklearn_version},
-            )
-
-            if has_embed:
-                try:
-                    cache_train_embeddings(
-                        [combine_text(t, b) for t, b in zip(train_titles, train_bodies)]
-                    )
-                except Exception:
-                    pass
-
-            def _as_list(payload: Any) -> list[Any]:
-                if payload is None:
-                    return []
-                if hasattr(payload, "tolist"):
-                    try:
-                        return payload.tolist()
-                    except Exception:
-                        pass
-                return list(payload)
-
-            split_state["X_train"] = {
-                "titles": list(train_titles),
-                "bodies": list(train_bodies),
-                "texts": list(train_texts),
-                "numeric": _as_list(train_numeric),
-            }
-            split_state["X_test"] = {
-                "titles": list(test_titles),
-                "bodies": list(test_bodies),
-                "texts": list(test_texts),
-                "numeric": _as_list(test_numeric),
-            }
-            split_state["y_train"] = list(y_train)
-            split_state["y_test"] = list(y_test)
-            split_state["hash"] = split_hash
-            split_state["params"] = dict(split_params)
-
-            model_state["clf"] = model
-            model_state["vectorizer"] = getattr(model, "vectorizer", None) or getattr(
-                model, "vectorizer_", None
-            )
-            model_state["params"] = dict(model_params)
-            model_state["data_hash"] = data_hash
-            model_state["status"] = "trained"
-
-            ss["model"] = model
-            ss["split_cache"] = (
-                list(train_titles),
-                list(test_titles),
-                list(train_bodies),
-                list(test_bodies),
-                list(y_train),
-                list(y_test),
-            )
-        except Exception as exc:
-            logger.exception("Failed to update cached training artifacts")
-            st.error(f"Failed to update training artifacts: {exc}")
-        finally:
-            run_state["busy"] = False
-
-    def _render_train_terminal(slot: DeltaGenerator) -> None:
-        with slot:
-            render_train_terminal(
-                speed_type_ms=22,
-                pause_between_lines_ms=320,
-            )
-
-    render_stage_top_grid("train", left_renderer=_render_train_terminal)
-
-    if prepared_df is None:
-        with section_surface():
-            st.subheader(
-                f"{stage.icon} {stage.title} — How does the spam detector learn from examples?"
-            )
-            st.info("First prepare and validate your dataset in **📊 Data**.")
-            if st.button("Go to Data stage", type="primary"):
-                set_active_stage("data")
-                streamlit_rerun()
-        return
-
-    _prime_session_state_from_store()
-
-    animation_column = build_training_animation_column()
-
-    training_notes_html = textwrap.dedent(
-        """
-        <style>
-          .train-animation__notes {
-            display: grid;
-            gap: 0.75rem;
-          }
-          .train-animation__notes h4 {
-            margin: 0;
-            font-size: 1.0rem;
-            font-weight: 700;
-            color: #0f172a;
-          }
-          .train-animation__notes ul {
-            margin: 0;
-            padding-left: 1.15rem;
-            display: grid;
-            gap: 0.45rem;
-            font-size: 0.95rem;
-            line-height: 1.45;
-            color: rgba(15, 23, 42, 0.78);
-          }
-          .train-animation__notes li strong {
-            color: #1d4ed8;
-          }
-        </style>
-        <div class="train-animation__notes">
-          <h4>Training loop snapshot</h4>
-          <ul>
-            <li><strong>MiniLM embeddings</strong> map emails into a 384D space.</li>
-            <li><strong>Logistic regression</strong> learns a separating boundary.</li>
-            <li><strong>Epoch playback</strong> shows how spam/work clusters settle.</li>
-            <li>Toggle Nerd Mode to inspect features and weights in detail.</li>
-          </ul>
-        </div>
-        """
-    ).strip()
-
-    render_mac_window(
-        st,
-        title="Training dynamics monitor",
-        subtitle="MiniLM organising emails by meaning",
-        columns=2,
-        ratios=(0.3, 0.7),
-        col_html=[training_notes_html, animation_column.html],
-        id_suffix="train-animation",
-        fallback_height=animation_column.fallback_height,
-    )
-
-    render_train_stage(
-        ss,
-        streamlit_rerun=streamlit_rerun,
-        has_embed=has_embed,
-        has_langdetect=HAS_LANGDETECT,
+def render_train_stage() -> None:
+    render_train_stage_page(
+        set_active_stage=set_active_stage,
         render_eu_ai_quote=render_eu_ai_quote,
         render_language_mix_chip_rows=render_language_mix_chip_rows,
         render_nerd_mode_toggle=render_nerd_mode_toggle,
@@ -1867,15 +1518,12 @@ def _render_train_stage_wrapper() -> None:
         summarize_language_mix=summarize_language_mix,
     )
 
-    if isinstance(prepared_df, pd.DataFrame) and not prepared_df.empty:
-        _sync_training_artifacts(prepared_df)
-
 
 STAGE_RENDERERS = {
     'intro': render_intro_stage,
     'overview': render_overview_stage,
     'data': render_data_stage,
-    'train': _render_train_stage_wrapper,
+    'train': render_train_stage,
     'evaluate': render_evaluate_stage,
     'classify': render_classify_stage,
     'model_card': render_model_card_stage,
