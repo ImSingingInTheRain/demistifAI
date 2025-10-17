@@ -507,7 +507,10 @@ def _go_to_prepare(ss):
     """Jump to Prepare stage (match your stage switching mechanism)."""
 
     ss["stage"] = "prepare"
-    st.experimental_rerun()
+    rerun = getattr(st, "rerun", None) or getattr(st, "experimental_rerun", None)
+    if rerun is None:
+        raise RuntimeError("Streamlit rerun API is unavailable")
+    rerun()
 
 def render_train_stage(
     ss,
