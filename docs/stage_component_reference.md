@@ -4,28 +4,28 @@ This document anchors the stage layout inside `streamlit_app.py` and where to fi
 numbers use `nl -ba` numbering (1-indexed) for quick cross-checks.
 
 ## Stage boundaries in `streamlit_app.py`
-| Stage key | Function | Line range | Notes |
+| Stage key | Renderer registration | Line range | Notes |
 | --- | --- | --- | --- |
-| `intro` | `render_intro_stage` | 376–378 | Wrapper that delegates to `pages.welcome.render_intro_stage`; see `pages/welcome.py` for the full UI. |
-| `overview` | `render_overview_stage` | 381–386 | Wrapper that forwards to `pages.overview.render_overview_stage` for the full UI. |
-| `data` | `render_data_stage` | 390–394 | Wrapper that delegates to `pages/data.render_data_stage` where the full Prepare UI now lives. |
-| `evaluate` | `render_evaluate_stage` | 397–402 | Wrapper delegating to `pages.evaluate.render_evaluate_stage_page`. |
-| `classify` | `render_classify_stage` | 404–413 | Wrapper delegating to `pages/use.render_classify_stage` for the full Use console UI. |
-| `model_card` | `render_model_card_stage` | 416–420 | Wrapper that calls `pages.model_card.render_model_card_stage` to render the transparency card experience. |
-| `train` | `render_train_stage` | 423–431 | Delegates to `pages.train_stage.render_train_stage_page` where the full UI lives. |
+| `intro` | `STAGE_RENDERERS["intro"]` | 87 | Partial wrapper that injects the shared `section_surface` before dispatching to `pages.welcome.render_intro_stage`. |
+| `overview` | `STAGE_RENDERERS["overview"]` | 88–93 | Passes session state and shared helpers into `pages.overview.render_overview_stage`. |
+| `data` | `STAGE_RENDERERS["data"]` | 94–98 | Provides the shared `section_surface`/`render_nerd_mode_toggle` helpers to `pages.data.render_data_stage`. |
+| `train` | `STAGE_RENDERERS["train"]` | 99–107 | Supplies navigation callbacks, EU AI quote, and language mix helpers to `pages.train_stage.render_train_stage_page`. |
+| `evaluate` | `STAGE_RENDERERS["evaluate"]` | 108–113 | Registers Evaluate with shared surfaces and copy shortening helpers. |
+| `classify` | `STAGE_RENDERERS["classify"]` | 114–123 | Wires in session state, inbox table, mailbox panel, and adaptiveness synchronisation for `pages.use.render_classify_stage`. |
+| `model_card` | `STAGE_RENDERERS["model_card"]` | 124–128 | Injects surface and guidance popover helpers for `pages.model_card.render_model_card_stage`. |
 
 > **Tip:** Re-run `nl -ba streamlit_app.py | sed -n 'START,ENDp'` after edits to confirm updated line ranges.
 
 ## Stage implementation outside the main app
 | Stage key | File | Line range | Purpose |
 | --- | --- | --- | --- |
-| `intro` | `pages/welcome.py` | 22–336 | Full intro stage UI including lifecycle hero, EU AI Act framing, and launch controls. |
-| `overview` | `pages/overview.py` | 25–753 | Stage Control Room with EU AI Act framing, system snapshot/status, and mission walkthrough of the pipeline. |
+| `intro` | `pages/welcome.py` | 22–337 | Full intro stage UI including lifecycle hero, EU AI Act framing, and launch controls. |
+| `overview` | `pages/overview.py` | 25–755 | Stage Control Room with EU AI Act framing, system snapshot/status, and mission walkthrough of the pipeline. |
 | `data` | `pages/data.py` | 84–1849 | Full Prepare stage UI covering dataset builder, linting feedback, PII cleanup, diagnostics, and CSV workflows. |
-| `classify` | `pages/use.py` | 37–489 | Live classification console, autonomy controls, adaptiveness, and routing copy. |
+| `train` | `pages/train_stage.py` | 117–2215 | Full training UI, entrypoint wrapper, nerd mode tooling, interpretability widgets, and background tasks. |
 | `evaluate` | `pages/evaluate.py` | 44–566 | Evaluation metrics, ROC / confusion matrix views, and governance summary. |
+| `classify` | `pages/use.py` | 37–489 | Live classification console, autonomy controls, adaptiveness, and routing copy. |
 | `model_card` | `pages/model_card.py` | 21–141 | Transparency summary, dataset snapshot details, and download affordances. |
-| `train` | `pages/train_stage.py` | 116–2214 | Full training UI, entrypoint wrapper, nerd mode tooling, interpretability widgets, and background tasks. |
 
 Supporting helpers for training live alongside the stage:
 - `pages/train_helpers.py` – shared callbacks and utilities for the training workflow.
@@ -33,6 +33,7 @@ Supporting helpers for training live alongside the stage:
 
 ## Component placement map
 - **`streamlit_app.py`** – Entry point; orchestrates layout, stage switching, and cross-stage session state.
+- **`demistifai/core/navigation.py`** – Synchronizes stage selection across state containers and exposes `activate_stage` for programmatic jumps.
 - **`pages/data.py`** – Prepare/Data stage UI, including dataset builder, PII cleanup, and diagnostics tooling.
 - **`pages/use.py`** – Use/Classify stage UI handling batch processing, autonomy, and adaptiveness workflows.
 - **`demistifai/constants.py`** – Stage metadata, icons, copy blocks, and shared CSS snippets.
