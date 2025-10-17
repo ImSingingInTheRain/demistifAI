@@ -1,4 +1,4 @@
-streamlit>=1.36
+streamlit>=1.38
 scikit-learn>=1.4
 pillow>=10.0
 numpy>=1.26
