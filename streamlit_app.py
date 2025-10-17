@@ -47,11 +47,11 @@ from demistifai.core.downloads import download_text
 
 from pages.data import render_data_stage as render_data_stage_content
 from pages.use import render_classify_stage as render_classify_stage_content
-from stages.evaluate import render_evaluate_stage_page
-from stages.overview import render_overview_stage as render_overview_stage_content
-from stages.train_stage import render_train_stage_page
+from pages.evaluate import render_evaluate_stage_page
+from pages.overview import render_overview_stage as render_overview_stage_content
+from pages.train_stage import render_train_stage_page
 from demistifai.ui.custom_header import mount_demai_header
-from welcome import render_intro_stage as render_intro_stage_content
+from pages.welcome import render_intro_stage as render_intro_stage_content
 logger = logging.getLogger(__name__)
 
 st.set_page_config(page_title="demistifAI", page_icon="📧", layout="wide")

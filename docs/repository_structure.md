@@ -15,7 +15,7 @@ This document provides a guided tour of the repository so contributors can quick
 - `demistifai/` – Primary Python package with constants, dataset/model logic, high-level UI components, and nested subpackages for core utilities and styles (detailed below).
 - `demistifai/ui/` – Unified UI toolkit housing reusable components, layout helpers, primitive widgets, and static assets (detailed below).
 - `docs/` – Project documentation, including stage/component references and this structure map.【F:docs/stage_component_reference.md†L1-L39】
-- `stages/` – Stage-specific Streamlit flows that plug into the main app (detailed below).
+- `pages/` – Streamlit pages that house the stage-specific flows plugged into the main app (detailed below).
 
 ## Hidden configuration
 ### `.github/`
@@ -91,10 +91,10 @@ This document provides a guided tour of the repository so contributors can quick
 - `stage_component_reference.md` – Maintains stage line ranges in `streamlit_app.py`, maps supporting modules, and sets expectations for keeping the reference current.【F:docs/stage_component_reference.md†L1-L39】
 - `repository_structure.md` – (This file) describes the repository layout for new contributors.
 
-## Stages (`stages/`)
-- `train_stage.py` – Full training stage implementation covering dataset prep callbacks, modeling workflows, interpretability panels, and narrative storytelling.【F:stages/train_stage.py†L168-L1871】
-- `train_helpers.py` – Shared utilities for the training stage, including feature explanations, meaning maps, and Altair selection helpers.【F:stages/train_helpers.py†L1-L80】
-- `__init__.py` – Package marker for stage modules.【F:stages/__init__.py†L1-L1】
+## Stage pages (`pages/`)
+- `train_stage.py` – Full training stage implementation covering dataset prep callbacks, modeling workflows, interpretability panels, and narrative storytelling.【F:pages/train_stage.py†L168-L1871】
+- `train_helpers.py` – Shared utilities for the training stage, including feature explanations, meaning maps, and Altair selection helpers.【F:pages/train_helpers.py†L1-L80】
+- `__init__.py` – Package marker for stage modules.【F:pages/__init__.py†L1-L1】
 
 ### Shared helpers
 - `animated_logo.py` – Renders the animated "demAI" hero logo with scripted typing/erasing of the mission pillars.【F:demistifai/ui/animated_logo.py†L1-L80】
