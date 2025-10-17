@@ -1665,6 +1665,7 @@ def render_data_stage():
                 nerd_mode_data_enabled = render_nerd_mode_toggle(
                     key="nerd_mode_data",
                     title="Nerd Mode",
+                    description="Placeholder",
                 )
 
     def _render_dataset_builder(slot: DeltaGenerator) -> None:
