@@ -91,23 +91,17 @@ def mount_demai_header(logo_height: int = 56, max_inner_width: int = 1200) -> No
     index = int(ctx["index"])
     total = int(ctx["total"])
 
-    # Desktop base sizes
+    # Base sizes
     base_logo_h = int(logo_height)
     base_vpad = 10
     base_header_h = base_logo_h + (base_vpad * 2)
 
-    # Mobile sizes (perfect alignment)
-    sm_logo_h = max(40, base_logo_h - 12)
-    sm_vpad = 8
-    sm_header_h = sm_logo_h + (sm_vpad * 2)
-
-    # Compact (phone) sizes used when navigation collapses beside the logo
-    compact_logo_h = max(38, base_logo_h - 14)
-    compact_vpad = max(6, sm_vpad - 1)
+    # Compact scales used on smaller devices
+    compact_logo_h = max(36, base_logo_h - 16)
+    compact_vpad = 6
     compact_header_h = compact_logo_h + (compact_vpad * 2)
 
-    # Extra-small refinement for very narrow viewports
-    xs_logo_h = max(34, compact_logo_h - 4)
+    xs_logo_h = max(32, compact_logo_h - 4)
     xs_vpad = max(4, compact_vpad - 2)
     xs_header_h = xs_logo_h + (xs_vpad * 2)
 
@@ -144,14 +138,13 @@ def mount_demai_header(logo_height: int = 56, max_inner_width: int = 1200) -> No
               :root {{
                 --demai-logo-h: {base_logo_h}px;
                 --demai-header-vpad: {base_vpad}px;
-                --demai-header-h: {base_header_h}px;   /* spacer height */
+                --demai-header-h: {base_header_h}px;   /* initial spacer height (JS will keep this synced) */
                 --demai-btn-min-h: 36px;
                 --demai-gap: 12px;
               }}
 
               header[data-testid="stHeader"] {{ display: none !important; }}
 
-              /* Fixed, full-width header */
               .demai-header-fixed {{
                 position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
                 background: linear-gradient(90deg, rgba(30,41,59,0.92), rgba(15,23,42,0.96) 45%, rgba(8,11,22,0.98));
@@ -171,49 +164,44 @@ def mount_demai_header(logo_height: int = 56, max_inner_width: int = 1200) -> No
                 min-height: var(--demai-header-h);
               }}
 
-              .demai-logo {{ grid-area: logo; display: flex; align-items: center; }}
-              .demai-stage-wrap {{ grid-area: stage; min-width: 0; }}
-              .demai-actions {{ grid-area: actions; display: inline-flex; gap: 10px; align-items: center; }}
-
               @supports (padding: max(0px)) {{
                 .demai-header-inner {{
                   padding-left: max(16px, env(safe-area-inset-left));
                   padding-right: max(16px, env(safe-area-inset-right));
+                  padding-top: calc(var(--demai-header-vpad) + env(safe-area-inset-top));
                 }}
               }}
 
-              /* Spacer pushes app below fixed bar */
-              .demai-header-spacer {{ height: 0px; }}
+              .demai-header-spacer {{ height: var(--demai-header-h); }}
 
+              .demai-logo {{ grid-area: logo; display: flex; align-items: center; min-width: 0; }}
               .demai-logo-frame {{
                 border: 0; background: transparent; height: var(--demai-logo-h); width: auto;
                 display: block; pointer-events: none;
               }}
 
+              .demai-stage-wrap {{ grid-area: stage; min-width: 0; }}
               .demai-stage {{
                 display: inline-flex; align-items: center; justify-content: center; gap: 10px;
-                flex-wrap: wrap; color: rgba(226,232,240,0.92);
+                flex-wrap: nowrap; color: rgba(226,232,240,0.92);
                 min-height: max(var(--demai-logo-h), var(--demai-btn-min-h));
                 line-height: 1.2; text-align: center;
               }}
               .demai-stage .progress {{
                 font-weight: 600; letter-spacing: .06em; text-transform: uppercase;
-                font-size: .74rem; color: rgba(226,232,240,.72);
+                font-size: .72rem; color: rgba(226,232,240,.66);
               }}
               .demai-stage .title {{
                 display: inline-flex; align-items: center; gap: 8px;
-                font-weight: 700; font-size: 1rem;
+                font-weight: 700; font-size: .98rem; white-space: nowrap;
+                max-width: 32ch; overflow: hidden; text-overflow: ellipsis;
               }}
-              .demai-stage .title .icon {{
-                display: inline-flex; align-items: center; justify-content: center;
-                font-size: 1.05rem;
-              }}
-              .demai-stage .title .name {{ display: inline-block; max-width: 20ch; }}
+              .demai-stage .title .icon {{ font-size: 1.05rem; }}
 
-              /* Visible header buttons (HTML) */
+              .demai-actions {{ grid-area: actions; display: inline-flex; gap: 10px; align-items: center; }}
               .demai-btn {{
                 position: relative; display: inline-flex; align-items: center; justify-content: center; gap: .55rem;
-                min-height: var(--demai-btn-min-h); padding: 0 1.1rem; border-radius: 18px;
+                min-height: var(--demai-btn-min-h); padding: 0 1.0rem; border-radius: 18px;
                 font-weight: 700; font-family: 'Fira Code', ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace;
                 letter-spacing: .05em; text-transform: uppercase;
                 text-decoration: none; user-select: none; cursor: pointer; overflow: hidden;
@@ -223,117 +211,72 @@ def mount_demai_header(logo_height: int = 56, max_inner_width: int = 1200) -> No
                 text-shadow: 0 0 12px rgba(94,234,212,.24);
                 box-shadow: inset 0 0 0 1px rgba(15,23,42,.76), 0 18px 42px rgba(8,47,73,.5);
                 transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease, filter .18s ease, color .18s ease;
+                line-height: 1;
               }}
-              .demai-btn::after {{
-                content: '';
-                position: absolute; inset: 1px; border-radius: 12px;
-                background: linear-gradient(140deg, rgba(94,234,212,.18), transparent 60%);
-                pointer-events: none;
-              }}
-              .demai-btn .label {{ font-size: .72rem; letter-spacing: .16em; }}
-              .demai-btn .arrow-icon {{ font-size: 1rem; line-height: 1; filter: drop-shadow(0 0 6px rgba(14,165,233,.5)); }}
+              .demai-btn .label {{ font-size: .7rem; letter-spacing: .14em; }}
+              .demai-btn .arrow-icon {{ font-size: .96rem; line-height: 1; }}
               .demai-btn.primary {{
                 background: linear-gradient(125deg, rgba(45,212,191,.96), rgba(56,189,248,.92));
                 color: rgba(12,25,46,.94);
-                text-shadow: 0 0 12px rgba(226,232,240,.35);
                 border-color: rgba(148,240,223,.8);
                 box-shadow: inset 0 0 0 1px rgba(226,232,240,.32), 0 26px 52px rgba(14,165,233,.45);
               }}
-              .demai-btn.secondary {{
-                background: linear-gradient(135deg, rgba(12,20,38,.96), rgba(17,24,39,.9));
-              }}
-              .demai-btn:hover {{
-                transform: translateY(-1px);
-                border-color: rgba(94,234,212,.65);
-                box-shadow: inset 0 0 0 1px rgba(15,23,42,.7), 0 28px 58px rgba(8,47,73,.62);
-                filter: brightness(1.05) saturate(1.05);
-              }}
-              .demai-btn.primary:hover {{
-                box-shadow: inset 0 0 0 1px rgba(226,232,240,.38), 0 32px 60px rgba(14,165,233,.55);
-              }}
-              .demai-btn:focus-visible {{
-                outline: 2px solid rgba(56,189,248,.7);
-                outline-offset: 3px;
-              }}
-              .demai-btn[aria-disabled="true"] {{
-                opacity: .55; pointer-events: none;
-                border-color: rgba(148,163,184,.35);
-                box-shadow: inset 0 0 0 1px rgba(30,41,59,.7), 0 12px 28px rgba(8,47,73,.35);
-                filter: grayscale(12%);
-              }}
+              .demai-btn.secondary {{ background: linear-gradient(135deg, rgba(12,20,38,.96), rgba(17,24,39,.9)); }}
+              .demai-btn[aria-disabled="true"] {{ opacity: .55; pointer-events: none; }}
 
-              /* Small phones: reduce heights paddings to keep perfect centering */
-              @media (max-width: 860px) {{
-                .demai-header-inner {{
-                  grid-template-columns: minmax(0,1fr) auto;
-                  grid-template-areas: "stage actions" "logo actions";
-                  align-items: center;
-                }}
-                .demai-logo {{ justify-self: start; }}
-                .demai-actions {{ gap: 8px; }}
-                .demai-stage {{ justify-content: flex-start; text-align: left; }}
-              }}
-
-              @media (max-width: 640px) {{
+              /* ---------- Phones: PORTRAIT ----------
+                 - Buttons inline to the RIGHT of the logo
+                 - Stage hidden to minimize height
+              */
+              @media (orientation: portrait) and (max-width: 860px) {{
                 :root {{
                   --demai-logo-h: {compact_logo_h}px;
                   --demai-header-vpad: {compact_vpad}px;
                   --demai-header-h: {compact_header_h}px;
-                  --demai-gap: 10px;
                 }}
                 .demai-header-inner {{
-                  display: flex;
-                  align-items: center;
-                  justify-content: flex-start;
-                  gap: 8px;
-                  min-height: var(--demai-header-h);
-                  flex-wrap: wrap;
+                  display: flex; align-items: center; gap: 10px;
                 }}
-                .demai-stage-wrap {{
-                  display: none;
-                }}
-                .demai-logo {{
-                  justify-content: flex-start;
-                  flex: 0 0 auto;
-                }}
+                .demai-stage-wrap {{ display: none; }}
                 .demai-actions {{
-                  margin-left: 0;
-                  gap: 6px;
-                  align-items: center;
-                  justify-content: flex-start;
-                  flex-wrap: wrap;
-                  flex: 0 0 auto;
+                  margin-left: auto; display: inline-flex; gap: 8px; align-items: center;
                 }}
-                .demai-actions .demai-btn {{
-                  min-height: calc(var(--demai-btn-min-h) - 6px);
-                  padding: 0 .7rem;
-                  border-radius: 14px;
-                }}
-                .demai-btn .label {{
-                  font-size: .64rem;
-                  letter-spacing: .14em;
-                }}
-                .demai-btn .arrow-icon {{ font-size: .88rem; }}
+                .demai-actions .demai-btn {{ min-height: 32px; padding: 0 .72rem; border-radius: 14px; }}
+                .demai-btn .label {{ font-size: .64rem; letter-spacing: .12em; }}
+                .demai-btn .arrow-icon {{ font-size: .9rem; }}
               }}
 
-              @media (max-width: 420px) {{
+              /* ---------- Phones: LANDSCAPE ----------
+                 - Single ultra-compact row, stage centered (truncated)
+                 - Progress text hides to save width
+              */
+              @media (orientation: landscape) and (max-height: 480px) {{
                 :root {{
                   --demai-logo-h: {xs_logo_h}px;
                   --demai-header-vpad: {xs_vpad}px;
                   --demai-header-h: {xs_header_h}px;
-                  --demai-gap: 6px;
+                  --demai-gap: 8px;
                 }}
-                .demai-actions {{ gap: 4px; }}
-                .demai-actions .demai-btn {{
-                  min-height: calc(var(--demai-btn-min-h) - 8px);
-                  padding: 0 .62rem;
-                  border-radius: 12px;
+                .demai-header-inner {{
+                  grid-template-columns: auto minmax(0,1fr) auto;
+                  align-items: center; gap: var(--demai-gap);
                 }}
-                .demai-btn .label {{
-                  font-size: .6rem;
-                  letter-spacing: .12em;
+                .demai-stage {{ justify-content: center; }}
+                .demai-stage .progress {{ display: none; }}
+                .demai-stage .title {{ font-size: .9rem; max-width: 24ch; }}
+                .demai-actions .demai-btn {{ min-height: 30px; padding: 0 .6rem; border-radius: 12px; }}
+                .demai-btn .label {{ font-size: .6rem; letter-spacing: .12em; }}
+                .demai-btn .arrow-icon {{ font-size: .86rem; }}
+              }}
+
+              /* Very narrow */
+              @media (max-width: 380px) {{
+                :root {{
+                  --demai-logo-h: {xs_logo_h}px;
+                  --demai-header-vpad: {xs_vpad}px;
+                  --demai-header-h: {xs_header_h}px;
                 }}
-                .demai-btn .arrow-icon {{ font-size: .84rem; }}
+                .demai-actions {{ gap: 6px; }}
               }}
             </style>
             """
@@ -347,10 +290,10 @@ def mount_demai_header(logo_height: int = 56, max_inner_width: int = 1200) -> No
     hidden_prev_id = "demai-stage-nav-prev-btn"
     hidden_next_id = "demai-stage-nav-next-btn"
 
-    # ---------- Fixed header HTML (logo + stage + visible buttons) ----------
     left_disabled = not isinstance(prev_stage, StageMeta)
     right_disabled = not isinstance(next_stage, StageMeta)
 
+    # ---------- Fixed header HTML ----------
     st.markdown(
         dedent(
             f"""
@@ -372,19 +315,21 @@ def mount_demai_header(logo_height: int = 56, max_inner_width: int = 1200) -> No
                 </div>
               </div>
             </div>
-            <div class="demai-header-spacer"></div>
+            <div class="demai-header-spacer" id="demai-header-spacer"></div>
             """
         ),
         unsafe_allow_html=True,
     )
 
-    # ---------- JS bridge: visible header buttons -> stage grid buttons ----------
+    # ---------- JS bridge + dynamic spacer ----------
     components.html(
         f"""
         <script>
-          (function wireHeaderNav() {{
+          (function initHeader() {{
             const doc = window.parent && window.parent.document ? window.parent.document : document;
             function byId(id) {{ return doc.getElementById(id); }}
+
+            // Wire visible header buttons to hidden stage-grid nav
             function resolveNavTarget(targetId) {{
               const direct = byId(targetId);
               if (direct) return direct;
@@ -392,31 +337,45 @@ def mount_demai_header(logo_height: int = 56, max_inner_width: int = 1200) -> No
               if (!sentinel) return null;
               const container = sentinel.closest('[data-testid="stVerticalBlock"]') || sentinel.parentElement;
               if (!container) return null;
-              const button = container.querySelector('button');
-              return button || null;
+              return container.querySelector('button');
             }}
             function bind(vId, hId) {{
               function attempt() {{
                 const v = byId(vId);
                 if (!v) return false;
                 if (v.dataset.boundTarget === hId) return true;
-                const target = resolveNavTarget(hId);
-                if (!target) return false;
+                const t = resolveNavTarget(hId);
+                if (!t) return false;
                 v.addEventListener('click', function(e) {{
                   if (v.getAttribute('aria-disabled') === 'true') return;
-                  const btn = resolveNavTarget(hId);
-                  if (!btn) return;
                   e.preventDefault(); e.stopPropagation();
-                  btn.click();
+                  const btn = resolveNavTarget(hId);
+                  if (btn) btn.click();
                 }});
                 v.dataset.boundTarget = hId;
                 return true;
               }}
-              attempt();
-              setInterval(attempt, 400);
+              attempt(); setInterval(attempt, 400);
             }}
             bind('{prev_visible_id}', '{hidden_prev_id}');
             bind('{next_visible_id}', '{hidden_next_id}');
+
+            // Keep spacer height in sync with actual header height (resizes / rotations)
+            const header = doc.querySelector('.demai-header-fixed');
+            const spacer = byId('demai-header-spacer');
+            if (header && spacer) {{
+              const ro = new ResizeObserver(() => {{
+                const h = Math.ceil(header.getBoundingClientRect().height);
+                spacer.style.height = h + 'px';
+                // Also update CSS var for any code that reads it
+                doc.documentElement.style.setProperty('--demai-header-h', h + 'px');
+              }});
+              ro.observe(header);
+              // Initial
+              const h0 = Math.ceil(header.getBoundingClientRect().height);
+              spacer.style.height = h0 + 'px';
+              doc.documentElement.style.setProperty('--demai-header-h', h0 + 'px');
+            }}
           }})();
         </script>
         """,
