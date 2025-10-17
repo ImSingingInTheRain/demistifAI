@@ -412,7 +412,7 @@ def build_training_animation_figure(*, seed: Optional[int] = None) -> "go.Figure
             x=[None], y=[None], mode="markers",
             marker=dict(size=10, color=color,
                         line=dict(color="rgba(15,23,42,0.25)", width=1)),
-            name="Spam-like" if cls_name == "spam" else "Work-like"
+            name="Labled Spam" if cls_name == "spam" else "Labled Safe"
         ))
 
     return fig
