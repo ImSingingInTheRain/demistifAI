@@ -6,13 +6,13 @@ numbers use `nl -ba` numbering (1-indexed) for quick cross-checks.
 ## Stage boundaries in `streamlit_app.py`
 | Stage key | Function | Line range | Notes |
 | --- | --- | --- | --- |
-| `intro` | `render_intro_stage` | 528–530 | Wrapper that delegates to `welcome.render_intro_stage`; see `welcome.py` for the full UI. |
-| `overview` | `render_overview_stage` | 1058–1708 | Stage Control Room with EU AI Act framing, system snapshot/status, and mission walkthrough of the pipeline. |
-| `data` | `render_data_stage` | 1712–3472 | Dataset import/generation, linting feedback, and label review utilities. |
-| `evaluate` | `render_evaluate_stage` | 3527–3958 | Evaluation metrics, ROC / confusion matrix views, and governance summary. |
-| `classify` | `render_classify_stage` | 3961–4418 | Live classification console, governance tools, and routing copy. |
-| `model_card` | `render_model_card_stage` | 4420–4522 | Transparency summary, dataset snapshot details, and download affordances. |
-| `train` | `_render_train_stage_wrapper` | 4525–4829 | Streamlit-side wrapper; full UI lives in `stages/train_stage.py`. |
+| `intro` | `render_intro_stage` | 521–523 | Wrapper that delegates to `welcome.render_intro_stage`; see `welcome.py` for the full UI. |
+| `overview` | `render_overview_stage` | 526–531 | Wrapper that forwards to `stages.overview.render_overview_stage` for the full UI. |
+| `data` | `render_data_stage` | 534–2348 | Dataset import/generation, linting feedback, and label review utilities. |
+| `evaluate` | `render_evaluate_stage` | 2349–2863 | Evaluation metrics, ROC / confusion matrix views, and governance summary. |
+| `classify` | `render_classify_stage` | 2865–3323 | Live classification console, governance tools, and routing copy. |
+| `model_card` | `render_model_card_stage` | 3324–3428 | Transparency summary, dataset snapshot details, and download affordances. |
+| `train` | `_render_train_stage_wrapper` | 3429–3733 | Streamlit-side wrapper; full UI lives in `stages/train_stage.py`. |
 
 > **Tip:** Re-run `nl -ba streamlit_app.py | sed -n 'START,ENDp'` after edits to confirm updated line ranges.
 
@@ -20,6 +20,7 @@ numbers use `nl -ba` numbering (1-indexed) for quick cross-checks.
 | Stage key | File | Line range | Purpose |
 | --- | --- | --- | --- |
 | `intro` | `welcome.py` | 22–336 | Full intro stage UI including lifecycle hero, EU AI Act framing, and launch controls. |
+| `overview` | `stages/overview.py` | 25–753 | Stage Control Room with EU AI Act framing, system snapshot/status, and mission walkthrough of the pipeline. |
 | `train` | `stages/train_stage.py` | 168–1871 | Full training UI, nerd mode tooling, interpretability widgets, and background tasks. |
 
 Supporting helpers for training live alongside the stage:
@@ -32,6 +33,7 @@ Supporting helpers for training live alongside the stage:
 - **`demistifai/dataset.py`** – Dataset generation, CSV I/O, and linting utilities for Prepare/Data stages.
 - **`demistifai/modeling.py`** – Feature engineering, model training, calibration, and interpretability helpers.
 - **`demistifai/incoming_generator.py`** – Synthetic incoming email batches used in the Classify stage.
+- **`stages/overview.py`** – Overview stage UI, system snapshot, and mission briefing components.
 - **`stages/train_stage.py` & `stages/train_helpers.py`** – Dedicated training UI and supporting logic.
 
 ## Maintenance expectations
