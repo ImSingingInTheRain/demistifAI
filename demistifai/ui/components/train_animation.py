@@ -18,7 +18,7 @@ MAP_X = (-3.0, 3.0)
 MAP_Y = (-3.0, 3.0)
 N_POINTS = 500                 # 300–800 feels good on Streamlit Cloud
 EPOCHS = 10                    # frames 0..10
-EASING = 0.25                  # 0..1, higher = faster convergence
+EASING = 0.1                  # 0..1, higher = faster convergence
 RANDOM_SEED = 7
 
 # Cluster definitions (center x,y and radius-ish spread)
