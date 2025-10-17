@@ -1927,9 +1927,6 @@ def render_data_stage():
         else:
             st.info(message)
 
-    with section_surface():
-        render_eu_ai_quote("An AI system “infers, from the input it receives…”.")
-
     preview_summary_for_health = ss.get("dataset_preview_summary")
     lint_counts_preview = (
         ss.get("dataset_preview_lint") if preview_summary_for_health is not None else None
