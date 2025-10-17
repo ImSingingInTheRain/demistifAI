@@ -292,6 +292,7 @@ def initialize_app() -> tuple[Dict[str, Any], Any]:
     ss.setdefault("use_high_autonomy", ss.get("autonomy", AUTONOMY_LEVELS[0]).startswith("High"))
     ss.setdefault("use_adaptiveness", bool(ss.get("adaptive", True)))
     ss.setdefault("use_audit_log", [])
+    _sync_use_adaptiveness_from_adaptive()
     ss.setdefault("dataset_config", DEFAULT_DATASET_CONFIG.copy())
     _set_advanced_knob_state(ss["dataset_config"], force=False)
     if "dataset_summary" not in ss:
@@ -539,6 +540,16 @@ def set_active_stage(stage_key: str) -> None:
         st.query_params["stage"] = stage_key
 
 
+def _sync_use_adaptiveness_from_adaptive() -> None:
+    """Ensure the use-stage flag mirrors the base adaptive setting."""
+
+    if ss is None:
+        return
+
+    if "adaptive" in ss:
+        ss["use_adaptiveness"] = bool(ss.get("adaptive", False))
+
+
 def _set_adaptive_state(new_value: bool, *, source: str) -> None:
     """Synchronize adaptiveness settings across UI controls."""
 
@@ -554,7 +565,7 @@ def _set_adaptive_state(new_value: bool, *, source: str) -> None:
         ss.pop("adaptive_stage", None)
 
 
-ss["use_adaptiveness"] = bool(ss.get("adaptive", False))
+_sync_use_adaptiveness_from_adaptive()
 
 
 def render_intro_stage():
