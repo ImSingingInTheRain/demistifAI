@@ -176,7 +176,7 @@ def mount_demai_header(logo_height: int = 56, max_inner_width: int = 1200) -> No
 
               .demai-header-spacer {{
                 /* JS sets inline height to the measured header height; default fallback below */
-                height: calc(var(--demai-logo-h)* 1);
+                height: 0px;
               }}
 
               .demai-logo {{ grid-area: logo; display: flex; align-items: center; min-width: 0; }}
