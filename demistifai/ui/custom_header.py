@@ -355,21 +355,6 @@ def mount_demai_header(logo_height: int = 56, max_inner_width: int = 1200) -> No
             bind('demai-btn-prev', 'demai-stage-nav-prev-btn');
             bind('demai-btn-next', 'demai-stage-nav-next-btn');
 
-            // Keep spacer height equal to the actual header height (no feedback to header)
-            const header = doc.querySelector('.demai-header-fixed');
-            const spacer = byId('demai-header-spacer');
-            function syncSpacer() {
-              if (!header || !spacer) return;
-              const h = Math.ceil(header.getBoundingClientRect().height);
-              spacer.style.height = h + 'px';
-            }
-            if (header && spacer) {
-              const ro = new ResizeObserver(syncSpacer);
-              ro.observe(header);
-              window.addEventListener('orientationchange', () => setTimeout(syncSpacer, 200));
-              window.addEventListener('resize', () => setTimeout(syncSpacer, 50));
-              syncSpacer();
-            }
           })();
         </script>
         """,
