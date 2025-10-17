@@ -389,11 +389,31 @@ if requested_stage in STAGE_BY_KEY and requested_stage != run_state.get("active_
 if not run_state.get("active_stage"):
     run_state["active_stage"] = STAGES[0].key
 
-nav_items = [
-    {"label": stage.title, "key": stage.key, "icon": getattr(stage, "icon", None)}
+_NAVBAR_STAGE_LABELS = [
+    (
+        stage.key,
+        f"{getattr(stage, 'icon', '').strip()} {stage.title}".strip()
+        if getattr(stage, "icon", None)
+        else stage.title,
+    )
     for stage in STAGES
 ]
-default_stage = run_state.get("active_stage", STAGES[0].key)
+nav_labels_by_key = {key: label for key, label in _NAVBAR_STAGE_LABELS}
+label_to_stage_key = {label: key for key, label in _NAVBAR_STAGE_LABELS}
+nav_pages = [label for _, label in _NAVBAR_STAGE_LABELS]
+
+default_stage_key = run_state.get("active_stage", STAGES[0].key)
+default_label = nav_labels_by_key.get(default_stage_key, nav_pages[0])
+
+current_nav_state = st.session_state.get("demai_top_nav")
+if current_nav_state in nav_labels_by_key:
+    current_nav_label = nav_labels_by_key[current_nav_state]
+elif current_nav_state in label_to_stage_key:
+    current_nav_label = current_nav_state
+else:
+    current_nav_label = default_label
+st.session_state["demai_top_nav"] = current_nav_label
+
 logo_html = demai_logo_html(frame_marker="demai-nav-rail")
 logo_data_url = "data:text/html;base64," + base64.b64encode(logo_html.encode("utf-8")).decode(
     "utf-8"
@@ -409,11 +429,70 @@ st.markdown(
     unsafe_allow_html=True,
 )
 st.markdown('<div id="demai-nav-wrap">', unsafe_allow_html=True)
-selected_stage_key = st_navbar(
-    items=nav_items,
-    default=default_stage,
+
+navbar_styles = {
+    "nav": {
+        "background-color": "transparent",
+        "box-shadow": "none",
+        "padding-left": "0",
+        "padding-right": "0",
+        "width": "100%",
+    },
+    "div": {"width": "100%"},
+    "ul": {
+        "display": "flex",
+        "flex-wrap": "wrap",
+        "gap": "0.35rem",
+        "justify-content": "center",
+        "margin": "0",
+        "padding": "0",
+        "width": "100%",
+    },
+    "li": {"list-style": "none"},
+    "a": {
+        "align-items": "center",
+        "background": "transparent",
+        "border": "1px solid transparent",
+        "border-radius": "999px",
+        "color": "#e2e8f0",
+        "display": "inline-flex",
+        "font-weight": "600",
+        "gap": "0.35rem",
+        "padding": "0.35rem 1rem",
+        "text-decoration": "none",
+        "transition": "background 0.2s ease, color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease",
+    },
+    "span": {"color": "inherit", "display": "inline"},
+    "active": {
+        "color": "#5eead4",
+        "background": "rgba(94, 234, 212, 0.18)",
+        "border-color": "rgba(94, 234, 212, 0.35)",
+        "box-shadow": "0 0 0 1px rgba(94, 234, 212, 0.25)",
+    },
+    "hover": {
+        "color": "#5eead4",
+        "background": "rgba(94, 234, 212, 0.12)",
+    },
+}
+
+navbar_options = {
+    "show_menu": False,
+    "show_sidebar": False,
+    "hide_nav": True,
+    "use_padding": False,
+}
+
+selected_label = st_navbar(
+    nav_pages,
+    selected=current_nav_label,
     key="demai_top_nav",
+    styles=navbar_styles,
+    options=navbar_options,
 )
+if not selected_label:
+    selected_label = current_nav_label
+
+selected_stage_key = label_to_stage_key.get(selected_label, default_stage_key)
 st.markdown(
     """
     <style>
@@ -468,51 +547,33 @@ st.markdown(
         box-shadow: 0 8px 18px rgba(8, 15, 33, 0.22);
     }
 
-    #demai-nav-wrap [data-testid="stHorizontalBlock"] {
+    #demai-nav-wrap nav {
         width: 100%;
         display: flex;
-        gap: 0.35rem;
-        flex-wrap: wrap;
-        align-items: center;
         justify-content: center;
     }
 
-    #demai-nav-wrap .stButton button,
-    #demai-nav-wrap button,
-    #demai-nav-wrap a {
-        border-radius: 999px !important;
-        padding: 0.35rem 1rem !important;
-        border: 1px solid transparent !important;
-        background: transparent !important;
-        color: #e2e8f0 !important;
-        font-weight: 600;
-        transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+    #demai-nav-wrap nav ul {
+        width: 100%;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: center;
+        gap: 0.35rem;
+        margin: 0;
+        padding: 0;
     }
 
-    #demai-nav-wrap .stButton button:hover,
-    #demai-nav-wrap button:hover,
-    #demai-nav-wrap a:hover {
-        color: #5eead4 !important;
-        background: rgba(94, 234, 212, 0.12) !important;
+    #demai-nav-wrap nav li {
+        list-style: none;
     }
 
-    #demai-nav-wrap .stButton button:focus-visible,
-    #demai-nav-wrap button:focus-visible,
-    #demai-nav-wrap a:focus-visible {
-        outline: none !important;
-        box-shadow: 0 0 0 2px rgba(94, 234, 212, 0.35) !important;
+    #demai-nav-wrap nav a {
+        text-decoration: none;
     }
 
-    #demai-nav-wrap .stButton button[data-selected="true"],
-    #demai-nav-wrap .stButton button[aria-pressed="true"],
-    #demai-nav-wrap button[data-selected="true"],
-    #demai-nav-wrap button[aria-pressed="true"],
-    #demai-nav-wrap a.active,
-    #demai-nav-wrap a[aria-current="page"] {
-        color: #5eead4 !important;
-        background: rgba(94, 234, 212, 0.18) !important;
-        border-color: rgba(94, 234, 212, 0.35) !important;
-        box-shadow: 0 0 0 1px rgba(94, 234, 212, 0.25);
+    #demai-nav-wrap nav span {
+        display: inline;
     }
 
     #demai-nav-wrap svg {
@@ -548,15 +609,20 @@ st.markdown('</div>', unsafe_allow_html=True)
 st.markdown('</div>', unsafe_allow_html=True)
 st.markdown('<div id="demai-nav-spacer"></div>', unsafe_allow_html=True)
 
-if run_state.get("busy") and selected_stage_key != default_stage:
-    selected_stage_key = default_stage
-    st.session_state["demai_top_nav"] = default_stage
+if run_state.get("busy") and selected_stage_key != default_stage_key:
+    selected_stage_key = default_stage_key
+    selected_label = default_label
+    st.session_state["demai_top_nav"] = default_label
     toast_message = "Training in progress — navigation disabled."
     ui_state = s.setdefault("ui", {})
     toasts = ui_state.setdefault("toasts", [])
     if toast_message not in toasts:
         toasts.append(toast_message)
         st.toast(toast_message, icon="⏳")
+
+st.session_state["demai_top_nav"] = nav_labels_by_key.get(
+    selected_stage_key, default_label
+)
 
 if selected_stage_key != run_state.get("active_stage"):
     ss["stage_scroll_to_top"] = True
@@ -648,7 +714,7 @@ def set_active_stage(stage_key: str) -> None:
     run_state["active_stage"] = stage_key
     ss["active_stage"] = stage_key
     ss["stage_scroll_to_top"] = True
-    st.session_state["demai_top_nav"] = stage_key
+    st.session_state["demai_top_nav"] = nav_labels_by_key.get(stage_key, stage_key)
 
     # Mirror the active stage in the URL query parameter for deep-linking and
     # to support refresh persistence.
