@@ -1797,13 +1797,17 @@ def render_data_stage():
                                 help="Adds a tiny malicious distribution shift labeled as safe to show metric degradation.",
                             )
 
-                st.markdown("<div class='cta-sticky'>", unsafe_allow_html=True)
-                btn_primary, btn_secondary = st.columns([1, 1])
-                with btn_primary:
-                    preview_clicked = st.form_submit_button("Generate preview", type="primary")
-                with btn_secondary:
-                    reset_clicked = st.form_submit_button("Reset to baseline", type="secondary")
-                st.markdown("</div>", unsafe_allow_html=True)
+                    st.markdown("<div class='cta-sticky'>", unsafe_allow_html=True)
+                    btn_primary, btn_secondary = st.columns([1, 1])
+                    with btn_primary:
+                        preview_clicked = st.form_submit_button(
+                            "Generate preview", type="primary"
+                        )
+                    with btn_secondary:
+                        reset_clicked = st.form_submit_button(
+                            "Reset to baseline", type="secondary"
+                        )
+                    st.markdown("</div>", unsafe_allow_html=True)
 
                 spam_ratio = float(spam_share_pct) / 100.0
 
