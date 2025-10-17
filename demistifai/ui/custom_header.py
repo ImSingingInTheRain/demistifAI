@@ -1,11 +1,11 @@
 """demAI fixed header (HTML) + reliable Streamlit-bridge buttons.
 
 - Full-width, fixed header bar (side-to-side), mobile safe-area aware
-- In-bar animated logo + perfectly centered stage title (desktop & tablets)
-- On phones (portrait): buttons inline to the right of the logo; stage text hidden
-- On phones (landscape): single ultra-compact row; progress hidden, title truncated
-- Visible header buttons (HTML) trigger the stage grid navigation buttons via JS
-- Dynamic spacer keeps page content perfectly aligned through resize/rotation
+- Desktop/tablet: centered stage title
+- Phones portrait: buttons inline at the right of the logo; stage hidden
+- Phones landscape: ultra-compact single row; progress hidden, title truncated
+- Visible header buttons (HTML) trigger stage grid navigation via JS
+- Spacer height synced to real header height without feedback loops
 """
 
 from __future__ import annotations
@@ -53,12 +53,8 @@ def _bootstrap_stage_from_query() -> None:
 def _resolve_stage_context() -> dict:
     if not STAGES:
         return {
-            "active_key": None,
-            "index": 0,
-            "total": 0,
-            "stage": None,
-            "prev_stage": None,
-            "next_stage": None,
+            "active_key": None, "index": 0, "total": 0, "stage": None,
+            "prev_stage": None, "next_stage": None,
         }
 
     ss = st.session_state
@@ -102,16 +98,13 @@ def mount_demai_header(logo_height: int = 56, max_inner_width: int = 1200) -> No
     # Base sizes
     base_logo_h = int(logo_height)
     base_vpad = 10
-    base_header_h = base_logo_h + (base_vpad * 2)
 
     # Compact scales used on smaller devices
     compact_logo_h = max(36, base_logo_h - 16)
     compact_vpad = 6
-    compact_header_h = compact_logo_h + (compact_vpad * 2)
 
     xs_logo_h = max(32, compact_logo_h - 4)
     xs_vpad = max(4, compact_vpad - 2)
-    xs_header_h = xs_logo_h + (xs_vpad * 2)
 
     # Logo iframe content
     raw_logo_html = demai_logo_html(frame_marker="demai-header")
@@ -139,6 +132,7 @@ def mount_demai_header(logo_height: int = 56, max_inner_width: int = 1200) -> No
         )
 
     # ---------- CSS ----------
+    # Important: no header height CSS var tied to JS; spacer height is set inline by JS only.
     st.markdown(
         dedent(
             f"""
@@ -146,7 +140,6 @@ def mount_demai_header(logo_height: int = 56, max_inner_width: int = 1200) -> No
               :root {{
                 --demai-logo-h: {base_logo_h}px;
                 --demai-header-vpad: {base_vpad}px;
-                --demai-header-h: {base_header_h}px;   /* initial spacer height (JS will keep this synced) */
                 --demai-btn-min-h: 36px;
                 --demai-gap: 12px;
               }}
@@ -169,7 +162,8 @@ def mount_demai_header(logo_height: int = 56, max_inner_width: int = 1200) -> No
                 grid-template-columns: auto minmax(0,1fr) auto;
                 grid-template-areas: "logo stage actions";
                 align-items: center; gap: var(--demai-gap);
-                min-height: var(--demai-header-h);
+                /* Fixed min-height derived from logo + padding only (prevents growth loop) */
+                min-height: calc(var(--demai-logo-h) + var(--demai-header-vpad) * 2);
               }}
 
               @supports (padding: max(0px)) {{
@@ -180,7 +174,10 @@ def mount_demai_header(logo_height: int = 56, max_inner_width: int = 1200) -> No
                 }}
               }}
 
-              .demai-header-spacer {{ height: var(--demai-header-h); }}
+              .demai-header-spacer {{
+                /* JS sets inline height to the measured header height; default fallback below */
+                height: calc(var(--demai-logo-h) + var(--demai-header-vpad) * 2);
+              }}
 
               .demai-logo {{ grid-area: logo; display: flex; align-items: center; min-width: 0; }}
               .demai-logo-frame {{
@@ -190,7 +187,7 @@ def mount_demai_header(logo_height: int = 56, max_inner_width: int = 1200) -> No
 
               .demai-stage-wrap {{ grid-area: stage; min-width: 0; }}
               .demai-stage {{
-                display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+                display: inline-flex; align-items: center; justify-content:center; gap: 10px;
                 flex-wrap: nowrap; color: rgba(226,232,240,0.92);
                 min-height: max(var(--demai-logo-h), var(--demai-btn-min-h));
                 line-height: 1.2; text-align: center;
@@ -232,15 +229,11 @@ def mount_demai_header(logo_height: int = 56, max_inner_width: int = 1200) -> No
               .demai-btn.secondary {{ background: linear-gradient(135deg, rgba(12,20,38,.96), rgba(17,24,39,.9)); }}
               .demai-btn[aria-disabled="true"] {{ opacity: .55; pointer-events: none; }}
 
-              /* ---------- Phones: PORTRAIT ----------
-                 - Buttons inline to the RIGHT of the logo
-                 - Stage hidden to minimize height
-              */
+              /* ---------- Phones: PORTRAIT ---------- */
               @media (orientation: portrait) and (max-width: 860px) {{
                 :root {{
                   --demai-logo-h: {compact_logo_h}px;
                   --demai-header-vpad: {compact_vpad}px;
-                  --demai-header-h: {compact_header_h}px;
                 }}
                 .demai-header-inner {{
                   display: flex; align-items: center; gap: 10px;
@@ -254,15 +247,11 @@ def mount_demai_header(logo_height: int = 56, max_inner_width: int = 1200) -> No
                 .demai-btn .arrow-icon {{ font-size: .9rem; }}
               }}
 
-              /* ---------- Phones: LANDSCAPE ----------
-                 - Single ultra-compact row, stage centered (truncated)
-                 - Progress text hides to save width
-              */
+              /* ---------- Phones: LANDSCAPE ---------- */
               @media (orientation: landscape) and (max-height: 480px) {{
                 :root {{
                   --demai-logo-h: {xs_logo_h}px;
                   --demai-header-vpad: {xs_vpad}px;
-                  --demai-header-h: {xs_header_h}px;
                   --demai-gap: 8px;
                 }}
                 .demai-header-inner {{
@@ -282,7 +271,6 @@ def mount_demai_header(logo_height: int = 56, max_inner_width: int = 1200) -> No
                 :root {{
                   --demai-logo-h: {xs_logo_h}px;
                   --demai-header-vpad: {xs_vpad}px;
-                  --demai-header-h: {xs_header_h}px;
                 }}
                 .demai-actions {{ gap: 6px; }}
               }}
@@ -329,7 +317,7 @@ def mount_demai_header(logo_height: int = 56, max_inner_width: int = 1200) -> No
         unsafe_allow_html=True,
     )
 
-    # ---------- JS bridge + dynamic spacer ----------
+    # ---------- JS bridge + dynamic spacer (one-way; no CSS var writes) ----------
     components.html(
         """
         <script>
@@ -368,19 +356,20 @@ def mount_demai_header(logo_height: int = 56, max_inner_width: int = 1200) -> No
             bind('demai-btn-prev', 'demai-stage-nav-prev-btn');
             bind('demai-btn-next', 'demai-stage-nav-next-btn');
 
-            // Keep spacer height in sync with actual header height (resizes / rotations)
+            // Keep spacer height equal to the actual header height (no feedback to header)
             const header = doc.querySelector('.demai-header-fixed');
             const spacer = byId('demai-header-spacer');
+            function syncSpacer() {
+              if (!header || !spacer) return;
+              const h = Math.ceil(header.getBoundingClientRect().height);
+              spacer.style.height = h + 'px';
+            }
             if (header && spacer) {
-              const ro = new ResizeObserver(() => {
-                const h = Math.ceil(header.getBoundingClientRect().height);
-                spacer.style.height = h + 'px';
-                doc.documentElement.style.setProperty('--demai-header-h', h + 'px');
-              });
+              const ro = new ResizeObserver(syncSpacer);
               ro.observe(header);
-              const h0 = Math.ceil(header.getBoundingClientRect().height);
-              spacer.style.height = h0 + 'px';
-              doc.documentElement.style.setProperty('--demai-header-h', h0 + 'px');
+              window.addEventListener('orientationchange', () => setTimeout(syncSpacer, 200));
+              window.addEventListener('resize', () => setTimeout(syncSpacer, 50));
+              syncSpacer();
             }
           })();
         </script>
