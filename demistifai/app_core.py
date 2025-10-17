@@ -540,14 +540,32 @@ def set_active_stage(stage_key: str) -> None:
         st.query_params["stage"] = stage_key
 
 
+def _get_session_state_proxy() -> Optional[Any]:
+    """Return the best-available session-state proxy if Streamlit has one."""
+
+    if ss is not None:
+        return ss
+
+    try:
+        return st.session_state
+    except (AttributeError, RuntimeError, StreamlitAPIException):
+        # Streamlit may not have initialised session state yet (e.g. during
+        # module import) which previously caused `None.get(...)` errors when
+        # we tried to mirror adaptiveness flags eagerly.
+        return None
+
+
 def _sync_use_adaptiveness_from_adaptive() -> None:
     """Ensure the use-stage flag mirrors the base adaptive setting."""
 
-    if ss is None:
+    session_state = _get_session_state_proxy()
+    if session_state is None:
         return
 
-    if "adaptive" in ss:
-        ss["use_adaptiveness"] = bool(ss.get("adaptive", False))
+    if "adaptive" in session_state:
+        session_state["use_adaptiveness"] = bool(
+            session_state.get("adaptive", False)
+        )
 
 
 def _set_adaptive_state(new_value: bool, *, source: str) -> None:
