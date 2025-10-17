@@ -1567,6 +1567,14 @@ div[data-testid="stHorizontalBlock"]:has(.stage-top-grid__nav-card) > div[data-t
     font-family: 'Fira Code', ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
 }
 
+.stage-top-grid__nav-card {
+    border-radius: 20px;
+    border: 1px solid rgba(148, 163, 184, 0.28);
+    background: linear-gradient(155deg, rgba(15, 23, 42, 0.94), rgba(30, 64, 175, 0.68));
+    box-shadow: 0 22px 44px rgba(15, 23, 42, 0.34);
+    backdrop-filter: blur(6px);
+}
+
 :is([data-testid="stElementContainer"], [data-testid="element-container"])[class*="st-key-stage_grid_next_"],
 :is([data-testid="stElementContainer"], [data-testid="element-container"])[class*="st-key-stage_grid_prev_"] {
     display: flex;
@@ -1592,7 +1600,8 @@ div[data-testid="stHorizontalBlock"]:has(.stage-top-grid__nav-card) > div[data-t
     inset: 0;
     background: radial-gradient(circle at top right, rgba(59, 130, 246, 0.32), transparent 55%),
         radial-gradient(circle at bottom left, rgba(20, 184, 166, 0.28), transparent 62%);
-    opacity: 0.65;
+    opacity: 0.58;
+    mix-blend-mode: screen;
     pointer-events: none;
     border-radius: inherit;
 }
