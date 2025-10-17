@@ -167,7 +167,7 @@ from demistifai.core.routing import route_decision
 from demistifai.core.downloads import download_text
 
 from stages.train_stage import render_train_stage
-from demistifai.ui.animated_logo import render_demai_logo
+from demistifai.ui.animated_logo import demai_logo_html
 from demistifai.ui.custom_header import mount_demai_header
 from demistifai.ui.components.arch_demai import (
     demai_architecture_markup,
@@ -392,11 +392,159 @@ nav_items = [
     for stage in STAGES
 ]
 default_stage = run_state.get("active_stage", STAGES[0].key)
+logo_html = demai_logo_html(frame_marker="demai-nav-rail")
+logo_data_url = "data:text/html;base64," + base64.b64encode(logo_html.encode("utf-8")).decode(
+    "utf-8"
+)
+
+st.markdown(
+    f"""
+    <div id="demai-nav-layer">
+        <div id="demai-nav-rail">
+            <iframe src="{logo_data_url}" title="demistifAI animated logo" scrolling="no"></iframe>
+        </div>
+    """,
+    unsafe_allow_html=True,
+)
+st.markdown('<div id="demai-nav-wrap">', unsafe_allow_html=True)
 selected_stage_key = st_navbar(
     items=nav_items,
     default=default_stage,
     key="demai_top_nav",
 )
+st.markdown(
+    """
+    <style>
+    header[data-testid="stHeader"] { display: none !important; }
+
+    #demai-nav-layer {
+        position: sticky;
+        top: 0;
+        z-index: 1000;
+        display: flex;
+        gap: 0.25rem;
+        align-items: stretch;
+    }
+
+    #demai-nav-rail {
+        position: sticky;
+        top: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 64px;
+        padding: calc(env(safe-area-inset-top) + 0.35rem) 0.6rem 0.6rem 0.2rem;
+        background: rgba(15, 23, 42, 0.92);
+        border-bottom: 1px solid rgba(94, 234, 212, 0.24);
+        border-right: 1px solid rgba(94, 234, 212, 0.18);
+        border-radius: 0 0.75rem 0.75rem 0;
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        box-shadow: 0 8px 18px rgba(8, 15, 33, 0.22);
+    }
+
+    #demai-nav-rail iframe {
+        width: 48px;
+        height: 48px;
+        border: none;
+        background: transparent;
+        pointer-events: none;
+    }
+
+    #demai-nav-wrap {
+        position: sticky;
+        top: 0;
+        z-index: 1000;
+        flex: 1;
+        display: flex;
+        align-items: center;
+        padding: calc(env(safe-area-inset-top) + 0.5rem) calc(env(safe-area-inset-right) + 1.5rem) 0.6rem calc(env(safe-area-inset-left) + 1.5rem);
+        background: rgba(15, 23, 42, 0.92);
+        border-bottom: 1px solid rgba(94, 234, 212, 0.24);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        box-shadow: 0 8px 18px rgba(8, 15, 33, 0.22);
+    }
+
+    #demai-nav-wrap [data-testid="stHorizontalBlock"] {
+        width: 100%;
+        display: flex;
+        gap: 0.35rem;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: center;
+    }
+
+    #demai-nav-wrap .stButton button,
+    #demai-nav-wrap button,
+    #demai-nav-wrap a {
+        border-radius: 999px !important;
+        padding: 0.35rem 1rem !important;
+        border: 1px solid transparent !important;
+        background: transparent !important;
+        color: #e2e8f0 !important;
+        font-weight: 600;
+        transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    #demai-nav-wrap .stButton button:hover,
+    #demai-nav-wrap button:hover,
+    #demai-nav-wrap a:hover {
+        color: #5eead4 !important;
+        background: rgba(94, 234, 212, 0.12) !important;
+    }
+
+    #demai-nav-wrap .stButton button:focus-visible,
+    #demai-nav-wrap button:focus-visible,
+    #demai-nav-wrap a:focus-visible {
+        outline: none !important;
+        box-shadow: 0 0 0 2px rgba(94, 234, 212, 0.35) !important;
+    }
+
+    #demai-nav-wrap .stButton button[data-selected="true"],
+    #demai-nav-wrap .stButton button[aria-pressed="true"],
+    #demai-nav-wrap button[data-selected="true"],
+    #demai-nav-wrap button[aria-pressed="true"],
+    #demai-nav-wrap a.active,
+    #demai-nav-wrap a[aria-current="page"] {
+        color: #5eead4 !important;
+        background: rgba(94, 234, 212, 0.18) !important;
+        border-color: rgba(94, 234, 212, 0.35) !important;
+        box-shadow: 0 0 0 1px rgba(94, 234, 212, 0.25);
+    }
+
+    #demai-nav-wrap svg {
+        fill: currentColor !important;
+        stroke: currentColor !important;
+    }
+
+    #demai-nav-spacer {
+        height: calc(72px + env(safe-area-inset-top));
+    }
+
+    @media (max-width: 768px) {
+        #demai-nav-layer {
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        #demai-nav-rail {
+            align-self: flex-start;
+            border-radius: 0 0.75rem 0.75rem 0;
+            padding-right: calc(env(safe-area-inset-right) + 0.6rem);
+        }
+
+        #demai-nav-wrap {
+            border-radius: 0.75rem;
+        }
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+st.markdown('</div>', unsafe_allow_html=True)
+st.markdown('</div>', unsafe_allow_html=True)
+st.markdown('<div id="demai-nav-spacer"></div>', unsafe_allow_html=True)
 
 if run_state.get("busy") and selected_stage_key != default_stage:
     selected_stage_key = default_stage
