@@ -9,7 +9,7 @@ numbers use `nl -ba` numbering (1-indexed) for quick cross-checks.
 | `intro` | `render_intro_stage` | 410–412 | Wrapper that delegates to `welcome.render_intro_stage`; see `welcome.py` for the full UI. |
 | `overview` | `render_overview_stage` | 415–420 | Wrapper that forwards to `stages.overview.render_overview_stage` for the full UI. |
 | `data` | `render_data_stage` | 424–428 | Wrapper that delegates to `pages/data.render_data_stage` where the full Prepare UI now lives. |
-| `evaluate` | `render_evaluate_stage` | 431–944 | Evaluation metrics, ROC / confusion matrix views, and governance summary. |
+| `evaluate` | `render_evaluate_stage` | 413–418 | Wrapper delegating to `stages.evaluate.render_evaluate_stage_page`. |
 | `classify` | `render_classify_stage` | 947–1404 | Live classification console, governance tools, and routing copy. |
 | `model_card` | `render_model_card_stage` | 1406–1510 | Transparency summary, dataset snapshot details, and download affordances. |
 | `train` | `render_train_stage` | 1511–1519 | Delegates to `stages/train_stage.render_train_stage_page` where the full UI lives. |
@@ -22,6 +22,7 @@ numbers use `nl -ba` numbering (1-indexed) for quick cross-checks.
 | `intro` | `welcome.py` | 22–336 | Full intro stage UI including lifecycle hero, EU AI Act framing, and launch controls. |
 | `overview` | `stages/overview.py` | 25–753 | Stage Control Room with EU AI Act framing, system snapshot/status, and mission walkthrough of the pipeline. |
 | `data` | `pages/data.py` | 84–1849 | Full Prepare stage UI covering dataset builder, linting feedback, PII cleanup, diagnostics, and CSV workflows. |
+| `evaluate` | `stages/evaluate.py` | 44–566 | Evaluation metrics, ROC / confusion matrix views, and governance summary. |
 | `train` | `stages/train_stage.py` | 116–2214 | Full training UI, entrypoint wrapper, nerd mode tooling, interpretability widgets, and background tasks. |
 
 Supporting helpers for training live alongside the stage:
