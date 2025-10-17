@@ -1,8 +1,45 @@
 from __future__ import annotations
 
 import html
+import re
 import uuid
+from collections.abc import Iterable
 from textwrap import dedent, indent
+
+def _strip_style_wrappers(css_chunk: str) -> str:
+    """Return CSS stripped of optional <style> wrappers."""
+
+    cleaned = (css_chunk or "").strip()
+    if not cleaned:
+        return ""
+
+    if "<style" in cleaned.lower():
+        cleaned = re.sub(r"^<style[^>]*>", "", cleaned, flags=re.IGNORECASE | re.DOTALL).strip()
+        cleaned = re.sub(r"</style>$", "", cleaned, flags=re.IGNORECASE).strip()
+
+    return cleaned
+
+
+def _normalise_scoped_css(scoped_css: str | Iterable[str] | None) -> str:
+    """Normalise scoped CSS blocks into an indented string for the template."""
+
+    if scoped_css is None:
+        return ""
+
+    if isinstance(scoped_css, str):
+        css_chunks = [scoped_css]
+    else:
+        css_chunks = [chunk for chunk in scoped_css if chunk]
+
+    cleaned_chunks = [_strip_style_wrappers(chunk) for chunk in css_chunks]
+    cleaned_chunks = [chunk for chunk in cleaned_chunks if chunk]
+
+    if not cleaned_chunks:
+        return ""
+
+    combined = "\n\n".join(cleaned_chunks)
+    return "\n" + indent(combined, "          ")
+
 
 def mac_window_html(
     title: str = "demAI",
@@ -13,6 +50,7 @@ def mac_window_html(
     dense: bool = False,
     theme: str = "light",
     id_suffix: str | None = None,
+    scoped_css: str | Iterable[str] | None = None,
 ) -> str:
     """Return a scoped HTML/CSS macOS-style window."""
     if columns not in (1, 2, 3):
@@ -86,6 +124,8 @@ def mac_window_html(
         if subtitle
         else ""
     )
+
+    extra_scoped_css = _normalise_scoped_css(scoped_css)
 
     return dedent(
         f"""
@@ -207,7 +247,7 @@ def mac_window_html(
               min-height: 0;
               padding: clamp(.85rem, 5vw, 1.2rem);
             }}
-          }}
+          }}{extra_scoped_css}
         </style>
 
         <section class="mw-{suf}" role="group" aria-label="{html.escape(title)} window">
@@ -234,11 +274,16 @@ def mac_window_html(
 
 
 
-def render_mac_window(st, **kwargs):
+def render_mac_window(
+    st,
+    *,
+    fallback_height: int | None = None,
+    scoped_css: str | Iterable[str] | None = None,
+    **kwargs,
+):
     """Render the macOS-style window in Streamlit."""
 
-    fallback_height = kwargs.pop("fallback_height", None)
-    html_str = mac_window_html(**kwargs)
+    html_str = mac_window_html(scoped_css=scoped_css, **kwargs)
 
     # ``components.html`` ensures rich HTML (including scripts like the training
     # animation) render without sanitisation. Always prefer it so interactive
@@ -250,4 +295,8 @@ def render_mac_window(st, **kwargs):
         # still allowing call sites to opt in to a custom height when needed.
         fallback_height = 720
 
-    st.components.v1.html(html_str, height=fallback_height, scrolling=True)
+    st.components.v1.html(
+        html_str,
+        height=fallback_height,
+        scrolling=True,
+    )
