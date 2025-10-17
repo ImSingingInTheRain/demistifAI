@@ -364,17 +364,21 @@ def mount_demai_header(logo_height: int = 56, max_inner_width: int = 1200) -> No
             const header = doc.querySelector('.demai-header-fixed');
             const spacer = byId('demai-header-spacer');
             if (header && spacer) {{
-              const ro = new ResizeObserver(() => {{
-                const h = Math.ceil(header.getBoundingClientRect().height);
+              let lastHeight = null;
+              function applyHeight(rawHeight) {{
+                const h = Math.round(rawHeight);
+                if (!Number.isFinite(h) || h <= 0 || h === lastHeight) return;
+                lastHeight = h;
                 spacer.style.height = h + 'px';
                 // Also update CSS var for any code that reads it
                 doc.documentElement.style.setProperty('--demai-header-h', h + 'px');
+              }}
+              const ro = new ResizeObserver(() => {{
+                applyHeight(header.getBoundingClientRect().height);
               }});
               ro.observe(header);
               // Initial
-              const h0 = Math.ceil(header.getBoundingClientRect().height);
-              spacer.style.height = h0 + 'px';
-              doc.documentElement.style.setProperty('--demai-header-h', h0 + 'px');
+              applyHeight(header.getBoundingClientRect().height);
             }}
           }})();
         </script>
