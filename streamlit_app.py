@@ -26,6 +26,11 @@ import streamlit as st
 import streamlit.components.v1 as components
 from streamlit.errors import StreamlitAPIException
 from streamlit.delta_generator import DeltaGenerator
+from streamlit_navigation_bar import st_navbar
+
+from demistifai.constants import STAGES
+from demistifai.core.state import ensure_state, validate_invariants
+from demistifai.core.utils import streamlit_rerun
 
 from demistifai.constants import (
     APP_THEME_CSS,
@@ -40,7 +45,6 @@ from demistifai.constants import (
     STAGE_BY_KEY,
     STAGE_INDEX,
     STAGE_TEMPLATE_CSS,
-    STAGES,
     URGENCY,
 )
 from demistifai.config.tokens import (
@@ -87,7 +91,6 @@ from demistifai.core.state import (
     _push_data_stage_flash,
 )
 from demistifai.core.utils import (
-    streamlit_rerun,
     _count_suspicious_links,
     _has_suspicious_tld,
     _caps_ratio,
