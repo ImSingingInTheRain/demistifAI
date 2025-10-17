@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import textwrap
 from dataclasses import dataclass
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, Tuple
 
 import numpy as np
 try:  # Optional dependency — guard so the UI degrades gracefully when absent.
@@ -24,12 +24,12 @@ RANDOM_SEED = 7
 # Cluster definitions (center x,y and radius-ish spread)
 # Coordinates loosely aligned to your static diagram
 CLUSTERS = [
-    # name,                cx,   cy,   rx,  ry,  color, dot_class
-    ("Promotions",        -2.0, -1.0, 0.8, 0.6, "#FAD4D4", "spam"),
-    ("Security alerts",   -0.8, -0.5, 1.0, 0.6, "#F9D7DF", "spam"),
-    ("Courier tracking",   0.4,  0.4, 0.9, 0.6, "#F9EEBD", "spam"),
-    ("Project updates",    1.8,  1.0, 0.9, 0.6, "#D7E8F7", "work"),
-    ("Meeting emails",     2.4,  2.2, 0.8, 0.6, "#C9E3F1", "work"),
+    # name,                cx,   cy,   rx,  ry,  dot_class
+    ("Promotions",        -2.0, -1.0, 0.8, 0.6, "spam"),
+    ("Security alerts",   -0.8, -0.5, 1.0, 0.6, "spam"),
+    ("Courier tracking",   0.4,  0.4, 0.9, 0.6, "spam"),
+    ("Project updates",    1.8,  1.0, 0.9, 0.6, "work"),
+    ("Meeting emails",     2.4,  2.2, 0.8, 0.6, "work"),
 ]
 
 # --------------------- Brand Token Bridge (light mode only) ---------------------
@@ -111,70 +111,56 @@ BASE_STYLES = textwrap.dedent(
       .train-animation__body {
         position: relative;
         display: grid;
-        gap: 0.85rem;
-        padding: 1.15rem 1.25rem 1.35rem;
-        border-radius: 1rem;
-        background: linear-gradient(160deg, rgba(148,163,184,0.08), rgba(226,232,240,0.22));
-        box-shadow: 0 10px 24px -18px rgba(15,23,42,.38);
-      }
-      .train-animation__eyebrow {
-        font-size: 0.74rem;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-        font-weight: 600;
-        color: rgba(15,23,42,0.58);
+        gap: 1rem;
+        padding: 1.25rem 1.35rem 1.45rem;
+        border-radius: 1.1rem;
+        border: 1px solid rgba(15,23,42,0.08);
+        background: linear-gradient(165deg, rgba(226,232,240,0.65), rgba(248,250,252,0.9));
+        box-shadow: 0 22px 48px -32px rgba(15,23,42,0.55);
       }
       .train-animation__title {
         margin: 0;
-        font-size: 1.08rem;
+        font-size: 1.14rem;
         font-weight: 700;
-        color: #0f172a;
-      }
-      .train-animation__caption {
-        margin: 0;
-        font-size: 0.94rem;
-        line-height: 1.5;
-        color: rgba(15,23,42,0.74);
+        letter-spacing: -0.01em;
+        color: #0b1220;
       }
       .train-animation__legend {
         display: inline-flex;
         flex-wrap: wrap;
-        gap: 0.65rem;
-        padding: 0.6rem 0.75rem;
-        border-radius: 0.75rem;
+        gap: 0.75rem;
+        padding: 0.7rem 0.85rem;
+        border-radius: 999px;
+        border: 1px solid rgba(15,23,42,0.08);
         background: rgba(15,23,42,0.05);
       }
       .train-animation__legend-item {
         display: inline-flex;
         align-items: center;
-        gap: 0.4rem;
-        font-size: 0.82rem;
-        color: rgba(15,23,42,0.75);
+        gap: 0.45rem;
+        font-size: 0.86rem;
         font-weight: 600;
+        color: rgba(15,23,42,0.78);
       }
       .train-animation__legend-swatch {
-        width: 0.85rem;
-        height: 0.85rem;
+        width: 0.9rem;
+        height: 0.9rem;
         border-radius: 999px;
-        box-shadow: inset 0 0 0 2px rgba(255,255,255,0.85);
+        box-shadow: inset 0 0 0 2px rgba(255,255,255,0.9), 0 0 0 1px rgba(15,23,42,0.08);
       }
-      .train-animation__legend-swatch--spam { background: #e55b3c; }
-      .train-animation__legend-swatch--work { background: #3c7be5; }
+      .train-animation__legend-swatch--spam { background: __SPAM_COLOR__; }
+      .train-animation__legend-swatch--work { background: __WORK_COLOR__; }
       .train-animation__plotly {
         width: 100%;
-        border-radius: 0.85rem;
+        border-radius: 0.95rem;
         overflow: hidden;
-        background: radial-gradient(circle at 35% -10%, rgba(148,163,184,.14), rgba(15,23,42,.03));
+        background: radial-gradient(circle at 25% -15%, rgba(148,163,184,0.18), rgba(15,23,42,0.04));
+        box-shadow: inset 0 0 0 1px rgba(15,23,42,0.06);
       }
       .train-animation__plotly > div { width: 100% !important; }
-      .train-animation__footnote {
-        margin: 0;
-        font-size: 0.78rem;
-        color: rgba(15,23,42,0.55);
-      }
       .train-animation__fallback {
         padding: 0.9rem 1rem;
-        border-radius: 0.85rem;
+        border-radius: 0.9rem;
         border: 1px dashed rgba(15,23,42,0.25);
         background: rgba(59,130,246,0.08);
         color: rgba(15,23,42,0.78);
@@ -189,40 +175,83 @@ BASE_STYLES = textwrap.dedent(
         font-size: 0.85rem;
       }
       @media (max-width: 780px) {
-        .train-animation__body { padding: 1rem; gap: 0.75rem; }
-        .train-animation__legend { width: 100%; justify-content: space-between; }
+        .train-animation__body { padding: 1.05rem 1.1rem 1.25rem; gap: 0.85rem; }
+        .train-animation__legend { width: 100%; justify-content: space-between; border-radius: 0.85rem; }
       }
       @media (max-width: 520px) {
-        .train-animation__body { padding: 0.85rem 0.9rem 1.05rem; }
-        .train-animation__title { font-size: 1rem; }
-        .train-animation__caption { font-size: 0.88rem; }
-        .train-animation__legend-item { font-size: 0.78rem; }
-        .train-animation__plotly { border-radius: 0.75rem; }
+        .train-animation__body { padding: 0.95rem; }
+        .train-animation__title { font-size: 1.02rem; }
+        .train-animation__legend-item { font-size: 0.8rem; }
+        .train-animation__plotly { border-radius: 0.8rem; }
       }
     </style>
     """
 ).strip()
+
+
+def _css_with_brand(tokens: Dict[str, Any]) -> str:
+    """Inject brand colors into the animation wrapper styles."""
+
+    spam = str(tokens.get("spam", "#E55B3C"))
+    work = str(tokens.get("work", "#3C7BE5"))
+    return (
+        BASE_STYLES
+        .replace("__SPAM_COLOR__", spam)
+        .replace("__WORK_COLOR__", work)
+    )
 
 # ------------------------------ Small utilities -------------------------------
 @dataclass(frozen=True)
 class TrainingAnimationColumn:
     """Encapsulate the column markup for the training animation."""
     html: str
-    fallback_height: int = 720
+    fallback_height: int = 800
+
+
+def _hex_to_rgb(value: str) -> Tuple[int, int, int]:
+    """Convert a hex color value to an RGB tuple with graceful fallback."""
+
+    raw = (value or "").strip()
+    if raw.startswith("rgb"):
+        try:
+            inner = raw[raw.index("(") + 1 : raw.index(")")]
+            parts = [int(float(p.strip())) for p in inner.split(",")[:3]]
+            return tuple(max(0, min(255, p)) for p in parts)
+        except Exception:
+            return (60, 123, 229)
+
+    value = raw.lstrip("#")
+    if len(value) == 3:
+        value = "".join(ch * 2 for ch in value)
+    if len(value) != 6:
+        return (60, 123, 229)
+    try:
+        return tuple(int(value[i : i + 2], 16) for i in (0, 2, 4))
+    except ValueError:
+        return (60, 123, 229)
+
+
+def _class_area_fill(cls_name: str, tokens: Dict[str, Any]) -> str:
+    """Return a translucent fill for class highlight areas."""
+
+    base = tokens["spam"] if cls_name == "spam" else tokens["work"]
+    r, g, b = _hex_to_rgb(str(base))
+    alpha = 0.18 if cls_name == "spam" else 0.16
+    return f"rgba({r},{g},{b},{alpha})"
 
 def _sample_targets(rng: np.random.Generator, n: int):
     """Assign each point a class and a target cluster center."""
     n_spam = int(n * 0.55)
     n_work = n - n_spam
-    spam_clusters = [c for c in CLUSTERS if c[6] == "spam"]
-    work_clusters = [c for c in CLUSTERS if c[6] == "work"]
+    spam_clusters = [c for c in CLUSTERS if c[5] == "spam"]
+    work_clusters = [c for c in CLUSTERS if c[5] == "work"]
 
     def pick_targets(k, pool):
         idx = rng.integers(0, len(pool), size=k)
         targets = [pool[i] for i in idx]
         tx = np.array([t[1] for t in targets]) + rng.normal(0, 0.25, size=k)
         ty = np.array([t[2] for t in targets]) + rng.normal(0, 0.25, size=k)
-        cls = [t[6] for t in targets]
+        cls = [t[5] for t in targets]
         return tx, ty, cls
 
     sx, sy, scls = pick_targets(n_spam, spam_clusters)
@@ -258,11 +287,46 @@ def build_training_animation_figure(*, seed: Optional[int] = None) -> "go.Figure
     tx, ty, classes = _sample_targets(rng, N_POINTS)
     colors = np.vectorize(CLASS_TO_COLOR.get)(classes)
 
+    # Cluster "blobs" + pill labels
+    area_shapes, area_annotations = [], []
+    for (name, cx, cy, rx, ry, cls_name) in CLUSTERS:
+        area_shapes.append(dict(
+            type="circle",
+            x0=cx - rx, x1=cx + rx, y0=cy - ry, y1=cy + ry,
+            line=dict(color=T["area_stroke"], width=2, dash="dot"),
+            fillcolor=_class_area_fill(cls_name, T), opacity=1.0, layer="below",
+        ))
+        area_annotations.append(dict(
+            x=cx, y=cy + ry - 0.01, text=name,
+            xanchor="center", yanchor="bottom", showarrow=False,
+            font=dict(size=12.5, color=T["area_label_fg"]),
+            bgcolor=T["area_label_bg"], borderpad=5, bordercolor="rgba(0,0,0,0)",
+        ))
+
+    decision_line = dict(
+        type="line", x0=0, x1=0, y0=MAP_Y[0], y1=MAP_Y[1],
+        line=dict(color=T["grid"], width=2, dash="dash")
+    )
+
+    final_annotations = area_annotations + [
+        dict(
+            x=0.02, y=0.98, xref="paper", yref="paper",
+            text="Epoch 10 → clusters labelled for review",
+            xanchor="left", yanchor="top", showarrow=False,
+            font=dict(size=12, color=T["note_txt"]),
+        )
+    ]
+
+    highlight_shapes = area_shapes + [decision_line]
+
     # Precompute frames (epoch 0..EPOCHS)
     frames = []
     for epoch in range(EPOCHS + 1):
         t = (epoch / EPOCHS) ** (1.0 - EASING)
         xi, yi = _interpolate(x0, y0, tx, ty, t)
+        frame_layout = go.Layout(shapes=[], annotations=[])
+        if epoch == EPOCHS:
+            frame_layout = go.Layout(shapes=highlight_shapes, annotations=final_annotations)
         frames.append(go.Frame(
             name=f"Epoch {epoch}",
             data=[go.Scatter(
@@ -272,56 +336,34 @@ def build_training_animation_figure(*, seed: Optional[int] = None) -> "go.Figure
                     size=7.5,
                     opacity=0.9,
                     color=colors,
-                    line=dict(color="rgba(0,0,0,0.12)", width=0.7),
+                    line=dict(color="rgba(15,23,42,0.18)", width=0.75),
                 ),
                 hoverinfo="skip",
                 showlegend=False,
-            )]
+            )],
+            layout=frame_layout,
         ))
 
     base_scatter = frames[0].data[0]
 
-    # Cluster "blobs" + pill labels
-    shapes, annotations = [], []
-    for (name, cx, cy, rx, ry, fill, _cls) in CLUSTERS:
-        shapes.append(dict(
-            type="circle",
-            x0=cx - rx, x1=cx + rx, y0=cy - ry, y1=cy + ry,
-            line=dict(color=T["area_stroke"], width=2, dash="dot"),
-            fillcolor=fill, opacity=0.22, layer="below",
-        ))
-        annotations.append(dict(
-            x=cx, y=cy + ry - 0.01, text=name,
-            xanchor="center", yanchor="bottom", showarrow=False,
-            font=dict(size=12.5, color=T["area_label_fg"]),
-            bgcolor=T["area_label_bg"], borderpad=4, bordercolor="rgba(0,0,0,0)",
-        ))
-
-    # Decision boundary
-    shapes.append(dict(
-        type="line", x0=0, x1=0, y0=MAP_Y[0], y1=MAP_Y[1],
-        line=dict(color=T["grid"], width=2, dash="dash")
-    ))
-
     fig = go.Figure(
         data=[base_scatter],
         layout=go.Layout(
-            margin=dict(l=26, r=16, b=46, t=42),
+            margin=dict(l=28, r=20, b=54, t=56),
             paper_bgcolor=T["paper"],
             plot_bgcolor=T["plot_bg"],
+            font=dict(color=T["text"]),
             xaxis=dict(range=[MAP_X[0], MAP_X[1]], title="Meaning dimension 1", zeroline=False),
             yaxis=dict(range=[MAP_Y[0], MAP_Y[1]], title="Meaning dimension 2", zeroline=False),
-            shapes=shapes,
-            annotations=annotations + [
-                dict(x=0.02, y=0.98, xref="paper", yref="paper",
-                     text="miniLM training: points move toward meaning areas",
-                     xanchor="left", yanchor="top", showarrow=False,
-                     font=dict(size=12, color=T["note_txt"]))
-            ],
+            shapes=[],
+            annotations=[],
             updatemenus=[dict(
                 type="buttons", direction="left",
-                x=0.0, y=1.12, xanchor="left", yanchor="top",
+                x=0.0, y=1.14, xanchor="left", yanchor="top",
                 pad=dict(t=0, r=10),
+                bgcolor="rgba(250,252,255,0.9)",
+                bordercolor=T["border"],
+                borderwidth=1,
                 buttons=[
                     dict(label="▶ Play", method="animate",
                          args=[None, {"fromcurrent": True,
@@ -333,6 +375,8 @@ def build_training_animation_figure(*, seed: Optional[int] = None) -> "go.Figure
             )],
             sliders=[dict(
                 active=0, len=0.94, x=0.03, pad=dict(t=10),
+                bgcolor="rgba(250,252,255,0.92)",
+                bordercolor=T["border"], borderwidth=1,
                 currentvalue={"prefix": "Epoch: ", "font": {"size": 12, "color": T["text_muted"]}},
                 steps=[dict(method="animate",
                             args=[[f"Epoch {k}"], {"mode": "immediate",
@@ -342,7 +386,7 @@ def build_training_animation_figure(*, seed: Optional[int] = None) -> "go.Figure
             )],
             legend=dict(
                 orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5,
-                bgcolor="rgba(255,255,255,0.85)",
+                bgcolor="rgba(250,252,255,0.92)",
                 bordercolor=T["border"], borderwidth=1,
                 font=dict(size=12, color=T["text_muted"]),
             ),
@@ -375,20 +419,17 @@ def build_training_animation_figure(*, seed: Optional[int] = None) -> "go.Figure
 
 # ---------------------------- HTML wrapper (optional) --------------------------
 def build_training_animation_column(*, seed: Optional[int] = None) -> TrainingAnimationColumn:
+    tokens = _brand_tokens()
+    styles = _css_with_brand(tokens)
     body_html = textwrap.dedent(
         """
         <div class="train-animation__body">
-          <span class="train-animation__eyebrow">Conceptual view</span>
           <h4 class="train-animation__title">How miniLM learns a meaning space</h4>
-          <p class="train-animation__caption">
-            Watch the embedding points move toward <strong>spam-like</strong> and <strong>work-like</strong> regions as epochs progress.
-          </p>
           <div class="train-animation__legend">
             <span class="train-animation__legend-item"><span class="train-animation__legend-swatch train-animation__legend-swatch--spam"></span>Spam-like emails</span>
             <span class="train-animation__legend-item"><span class="train-animation__legend-swatch train-animation__legend-swatch--work"></span>Work-like emails</span>
           </div>
         {content}
-          <p class="train-animation__footnote">Epochs advance automatically — press play to see the clusters tighten.</p>
         </div>
         """
     ).strip()
@@ -404,7 +445,7 @@ def build_training_animation_column(*, seed: Optional[int] = None) -> TrainingAn
                 """
             ).strip()
         )
-        return TrainingAnimationColumn(html=f"{BASE_STYLES}\n{fallback_html}")
+        return TrainingAnimationColumn(html=f"{styles}\n{fallback_html}")
 
     fig = build_training_animation_figure(seed=seed)
     interactive_html = fig.to_html(
@@ -423,7 +464,7 @@ def build_training_animation_column(*, seed: Optional[int] = None) -> TrainingAn
         ).strip()
     )
 
-    return TrainingAnimationColumn(html=f"{BASE_STYLES}\n{animated_html}")
+    return TrainingAnimationColumn(html=f"{styles}\n{animated_html}")
 
 # -------------------------------- Public render --------------------------------
 def render_training_animation():
