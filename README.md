@@ -87,6 +87,15 @@ streamlit run streamlit_app.py
 
 > **Tip:** The first training run downloads MiniLM sentence-transformer weights; keep the virtual environment around to avoid re-downloading.
 
+### Streamlit navigation bar requirements
+
+The `streamlit-navigation-bar` component used by the app expects the following runtime environment:
+
+- **Python 3.8 or newer.** The project is developed against Python 3.12, so any supported interpreter above 3.8 works.
+- **Streamlit 1.33 or newer.** The `requirements.txt` file pins Streamlit at 1.38+, satisfying the component’s minimum version.
+- **`streamlit-theme` 1.2.3 or newer.** This dependency ships the theme utilities that the navigation bar relies on.
+- **Browser support for the CSS `:has()` pseudo-class.** The navigation bar styling tweaks depend on `:has()`, so use a modern browser (recent Chromium, Firefox, or Safari releases) that implements it.
+
 ## Data & privacy notes
 - Seed data, generated previews, committed datasets, and audit logs live only in Streamlit session state — there is no server-side persistence.
 - CSV imports must include `title`, `body`, and `label` (`spam`/`safe`), stay under 2,000 rows, and pass lint checks; invalid labels, long/empty rows, and duplicates are dropped automatically.
