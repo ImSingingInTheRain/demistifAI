@@ -768,6 +768,7 @@ def render_intro_stage():
             ratios=(0.33, 0.67),
             col_html=[left_col_html, right_col_html],
             id_suffix="intro-lifecycle",
+            scoped_css=hero_css,
         )
 
     ai_act_quote_wrapper_open = """
@@ -1248,7 +1249,6 @@ def render_overview_stage():
         else "Adaptiveness off — corrections stay manual"
     )
 
-    st.markdown(demai_architecture_styles(), unsafe_allow_html=True)
     render_mac_window(
         st,
         title="System snapshot",
@@ -1261,6 +1261,7 @@ def render_overview_stage():
             )
         ],
         id_suffix="overview-mac-placeholder",
+        scoped_css=demai_architecture_styles(),
     )
 
     preview_records: List[Dict[str, Any]] = []
