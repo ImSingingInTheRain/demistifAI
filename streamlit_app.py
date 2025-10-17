@@ -165,7 +165,7 @@ from demistifai.core.validation import (
 )
 from demistifai.core.routing import route_decision
 from demistifai.core.downloads import download_text
-from demistifai.core.cache import cached_prepare
+from demistifai.core.cache import cached_prepare, cached_features, cached_train
 
 from stages.train_stage import render_train_stage
 from demistifai.ui.animated_logo import demai_logo_html
@@ -213,6 +213,7 @@ def callable_or_attr(target: Any, attr: str | None = None) -> bool:
     return callable(value)
 
 
+from sklearn import __version__ as sklearn_version
 from sklearn.decomposition import PCA
 from sklearn.metrics import accuracy_score, confusion_matrix, f1_score, precision_recall_fscore_support
 from sklearn.model_selection import train_test_split
@@ -4456,6 +4457,223 @@ These are standardized and combined with the embedding before a linear classifie
 
 
 def _render_train_stage_wrapper() -> None:
+    s = ensure_state()
+    validate_invariants(s)
+
+    run_state = s.setdefault("run", {})
+    run_state.setdefault("busy", False)
+    data_state = s.setdefault("data", {})
+    split_state = s.setdefault("split", {})
+    model_state = s.setdefault("model", {})
+    stage = STAGE_BY_KEY["train"]
+
+    prepared_df = data_state.get("prepared")
+
+    def _prime_session_state_from_store() -> None:
+        model_obj = model_state.get("clf")
+        if model_obj is not None:
+            current_model = ss.get("model")
+            if current_model is None or current_model is model_obj:
+                ss["model"] = model_obj
+
+        vectorizer = model_state.get("vectorizer")
+        if vectorizer is not None:
+            ss["model_vectorizer"] = vectorizer
+
+        x_train_payload = split_state.get("X_train")
+        x_test_payload = split_state.get("X_test")
+        y_train_payload = split_state.get("y_train")
+        y_test_payload = split_state.get("y_test")
+        if (
+            isinstance(x_train_payload, dict)
+            and isinstance(x_test_payload, dict)
+            and y_train_payload is not None
+            and y_test_payload is not None
+            and ss.get("split_cache") is None
+        ):
+            ss["split_cache"] = (
+                list(x_train_payload.get("titles") or []),
+                list(x_test_payload.get("titles") or []),
+                list(x_train_payload.get("bodies") or []),
+                list(x_test_payload.get("bodies") or []),
+                list(y_train_payload or []),
+                list(y_test_payload or []),
+            )
+
+    def _sync_training_artifacts(prepared: pd.DataFrame) -> None:
+        model_obj = ss.get("model")
+        if model_obj is None:
+            return
+
+        raw_train_params = dict(ss.get("train_params") or {})
+        try:
+            test_size = float(raw_train_params.get("test_size", 0.30))
+        except (TypeError, ValueError):
+            test_size = 0.30
+        try:
+            random_state = int(raw_train_params.get("random_state", 42))
+        except (TypeError, ValueError):
+            random_state = 42
+
+        split_params = {
+            "test_size": test_size,
+            "random_state": random_state,
+            "stratify": True,
+        }
+
+        try:
+            max_iter = int(raw_train_params.get("max_iter", 1000))
+        except (TypeError, ValueError):
+            max_iter = 1000
+        try:
+            c_value = float(raw_train_params.get("C", 1.0))
+        except (TypeError, ValueError):
+            c_value = 1.0
+
+        guard_params = dict(ss.get("guard_params") or {})
+        default_center = float(ss.get("threshold", 0.6))
+        model_params = {
+            "max_iter": max_iter,
+            "C": c_value,
+            "random_state": random_state,
+            "numeric_assist_center": float(guard_params.get("assist_center", default_center)),
+            "uncertainty_band": float(guard_params.get("uncertainty_band", 0.08)),
+            "numeric_scale": float(guard_params.get("numeric_scale", 0.5)),
+            "numeric_logit_cap": float(guard_params.get("numeric_logit_cap", 1.0)),
+            "combine_strategy": str(guard_params.get("combine_strategy", "blend")),
+            "shift_suspicious_tld": float(guard_params.get("shift_suspicious_tld", -0.04)),
+            "shift_many_links": float(guard_params.get("shift_many_links", -0.03)),
+            "shift_calm_text": float(guard_params.get("shift_calm_text", +0.02)),
+        }
+
+        numeric_adjustments = dict(ss.get("numeric_adjustments", {}))
+        model_params_for_cache = dict(model_params)
+        model_params_for_cache["numeric_adjustments"] = numeric_adjustments
+
+        data_hash = data_state.get("hash", "")
+        split_hash = hash_dict({"data": data_hash, "split_params": split_params})
+
+        stored_model = model_state.get("clf")
+        already_synced = (
+            split_state.get("hash") == split_hash
+            and model_state.get("status") == "trained"
+            and model_state.get("data_hash") == data_hash
+            and model_state.get("params") == model_params
+            and stored_model is not None
+            and model_obj is stored_model
+        )
+        if already_synced:
+            _prime_session_state_from_store()
+            return
+
+        has_new_model = stored_model is None or model_obj is not stored_model
+        if not has_new_model:
+            if model_state.get("status") != "trained":
+                return
+            return
+
+        run_state["busy"] = True
+        try:
+            feature_payload, labels = cached_features(
+                prepared,
+                {
+                    "title_column": "title",
+                    "body_column": "body",
+                    "target_column": "label",
+                },
+                lib_versions={"pandas": pd.__version__, "numpy": np.__version__},
+            )
+
+            if not labels:
+                raise ValueError("No labeled examples available for training.")
+
+            (
+                train_titles,
+                test_titles,
+                train_bodies,
+                test_bodies,
+                train_texts,
+                test_texts,
+                train_numeric,
+                test_numeric,
+                y_train,
+                y_test,
+            ) = train_test_split(
+                feature_payload["titles"],
+                feature_payload["bodies"],
+                feature_payload["texts"],
+                feature_payload["numeric"],
+                labels,
+                test_size=test_size,
+                random_state=random_state,
+                stratify=labels,
+            )
+
+            model = cached_train(
+                {"titles": list(train_titles), "bodies": list(train_bodies)},
+                list(y_train),
+                model_params_for_cache,
+                lib_versions={"numpy": np.__version__, "sklearn": sklearn_version},
+            )
+
+            if has_embed:
+                try:
+                    cache_train_embeddings(
+                        [combine_text(t, b) for t, b in zip(train_titles, train_bodies)]
+                    )
+                except Exception:
+                    pass
+
+            def _as_list(payload: Any) -> list[Any]:
+                if payload is None:
+                    return []
+                if hasattr(payload, "tolist"):
+                    try:
+                        return payload.tolist()
+                    except Exception:
+                        pass
+                return list(payload)
+
+            split_state["X_train"] = {
+                "titles": list(train_titles),
+                "bodies": list(train_bodies),
+                "texts": list(train_texts),
+                "numeric": _as_list(train_numeric),
+            }
+            split_state["X_test"] = {
+                "titles": list(test_titles),
+                "bodies": list(test_bodies),
+                "texts": list(test_texts),
+                "numeric": _as_list(test_numeric),
+            }
+            split_state["y_train"] = list(y_train)
+            split_state["y_test"] = list(y_test)
+            split_state["hash"] = split_hash
+            split_state["params"] = dict(split_params)
+
+            model_state["clf"] = model
+            model_state["vectorizer"] = getattr(model, "vectorizer", None) or getattr(
+                model, "vectorizer_", None
+            )
+            model_state["params"] = dict(model_params)
+            model_state["data_hash"] = data_hash
+            model_state["status"] = "trained"
+
+            ss["model"] = model
+            ss["split_cache"] = (
+                list(train_titles),
+                list(test_titles),
+                list(train_bodies),
+                list(test_bodies),
+                list(y_train),
+                list(y_test),
+            )
+        except Exception as exc:
+            logger.exception("Failed to update cached training artifacts")
+            st.error(f"Failed to update training artifacts: {exc}")
+        finally:
+            run_state["busy"] = False
+
     def _render_train_terminal(slot: DeltaGenerator) -> None:
         with slot:
             render_train_terminal(
@@ -4464,6 +4682,19 @@ def _render_train_stage_wrapper() -> None:
             )
 
     render_stage_top_grid("train", left_renderer=_render_train_terminal)
+
+    if prepared_df is None:
+        with section_surface():
+            st.subheader(
+                f"{stage.icon} {stage.title} — How does the spam detector learn from examples?"
+            )
+            st.info("First prepare and validate your dataset in **📊 Data**.")
+            if st.button("Go to Data stage", type="primary"):
+                set_active_stage("data")
+                streamlit_rerun()
+        return
+
+    _prime_session_state_from_store()
 
     animation_column = build_training_animation_column()
 
@@ -4527,6 +4758,9 @@ def _render_train_stage_wrapper() -> None:
         section_surface=section_surface,
         summarize_language_mix=summarize_language_mix,
     )
+
+    if isinstance(prepared_df, pd.DataFrame) and not prepared_df.empty:
+        _sync_training_artifacts(prepared_df)
 
 
 STAGE_RENDERERS = {
