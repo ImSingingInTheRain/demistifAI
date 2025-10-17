@@ -1,5 +1,4 @@
 streamlit>=1.38
-streamlit-theme>=1.2.3
 scikit-learn>=1.4
 pillow>=10.0
 numpy>=1.26
