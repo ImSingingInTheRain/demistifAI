@@ -3525,6 +3525,8 @@ def _go_to_prepare():
 
 
 def render_evaluate_stage():
+    s = ensure_state()
+    validate_invariants(s)
 
     stage = STAGE_BY_KEY["evaluate"]
 
@@ -3534,6 +3536,42 @@ def render_evaluate_stage():
 
     render_stage_top_grid("evaluate", left_renderer=_render_evaluate_terminal)
 
+    model_state = s.setdefault("model", {})
+    data_state = s.setdefault("data", {})
+    split_state = s.setdefault("split", {})
+
+    if model_state.get("status") != "trained":
+        with section_surface():
+            st.subheader(f"{stage.icon} {stage.title} — How well does your spam detector perform?")
+            st.info("Model not trained or stale — please (re)train.")
+        return
+
+    model_obj = model_state.get("clf")
+    if model_obj is not None and ss.get("model") is None:
+        ss["model"] = model_obj
+
+    if not ss.get("split_cache"):
+        x_train_payload = split_state.get("X_train") or {}
+        x_test_payload = split_state.get("X_test") or {}
+        y_train_payload = split_state.get("y_train") or []
+        y_test_payload = split_state.get("y_test") or []
+        if any(
+            [
+                x_train_payload,
+                x_test_payload,
+                y_train_payload,
+                y_test_payload,
+            ]
+        ):
+            ss["split_cache"] = (
+                list(x_train_payload.get("titles") or []),
+                list(x_test_payload.get("titles") or []),
+                list(x_train_payload.get("bodies") or []),
+                list(x_test_payload.get("bodies") or []),
+                list(y_train_payload or []),
+                list(y_test_payload or []),
+            )
+
     if not (ss.get("model") and ss.get("split_cache")):
         with section_surface():
             st.subheader(f"{stage.icon} {stage.title} — How well does your spam detector perform?")
@@ -3542,30 +3580,74 @@ def render_evaluate_stage():
 
     nerd_flag = bool(ss.get("nerd_mode_eval") or ss.get("nerd_mode"))
 
-       
     cache = ss["split_cache"]
     if len(cache) == 4:
-        X_tr, X_te, y_tr, y_te = cache
+        X_tr, X_te, y_tr, y_te_raw = cache
         texts_test = X_te
         X_te_t = X_te_b = None
     else:
-        X_tr_t, X_te_t, X_tr_b, X_te_b, y_tr, y_te = cache
+        X_tr_t, X_te_t, X_tr_b, X_te_b, y_tr, y_te_raw = cache
         texts_test = [(t or "") + "\n" + (b or "") for t, b in zip(X_te_t, X_te_b)]
 
-    try:
-        if len(cache) == 6:
-            probs = ss["model"].predict_proba(X_te_t, X_te_b)
-        else:
-            probs = ss["model"].predict_proba(texts_test)
-    except TypeError:
-        probs = ss["model"].predict_proba(texts_test)
+    y_test_labels = list(y_te_raw)
 
-    classes = list(getattr(ss["model"], "classes_", []))
-    if classes and "spam" in classes:
-        idx_spam = classes.index("spam")
+    metrics_state = model_state.get("metrics")
+    if not isinstance(metrics_state, dict):
+        metrics_state = {}
+        model_state["metrics"] = metrics_state
+
+    model_params = dict(model_state.get("params") or {})
+    data_hash = data_state.get("hash", "") or ""
+    lib_versions = {"numpy": np.__version__, "sklearn": sklearn_version}
+    metrics_key = hash_dict(
+        {
+            "data_hash": data_hash,
+            "model_params": model_params,
+            "lib_versions": lib_versions,
+        }
+    )
+
+    cached_p_spam = metrics_state.get("p_spam")
+    cached_y_true = metrics_state.get("y_true")
+    metrics_valid = (
+        metrics_state.get("cache_key") == metrics_key
+        and cached_p_spam is not None
+        and cached_y_true is not None
+    )
+
+    if not metrics_valid:
+        model_for_eval = ss["model"]
+        try:
+            if len(cache) == 6:
+                probs = model_for_eval.predict_proba(X_te_t, X_te_b)
+            else:
+                probs = model_for_eval.predict_proba(texts_test)
+        except TypeError:
+            probs = model_for_eval.predict_proba(texts_test)
+
+        classes = list(getattr(model_for_eval, "classes_", []))
+        if classes and "spam" in classes:
+            idx_spam = classes.index("spam")
+        else:
+            idx_spam = 1 if probs.shape[1] > 1 else 0
+        p_spam_arr = probs[:, idx_spam]
+
+        metrics_state = {
+            "cache_key": metrics_key,
+            "computed_at": datetime.now().isoformat(timespec="seconds"),
+            "p_spam": p_spam_arr.tolist(),
+            "y_true": list(y_test_labels),
+            "classes": classes,
+            "data_hash": data_hash,
+            "model_params": model_params,
+            "lib_versions": lib_versions,
+        }
+        model_state["metrics"] = metrics_state
     else:
-        idx_spam = 1 if probs.shape[1] > 1 else 0
-    p_spam = probs[:, idx_spam]
+        classes = list(metrics_state.get("classes", []))
+
+    p_spam = np.asarray(metrics_state.get("p_spam", []), dtype=float)
+    y_te = list(metrics_state.get("y_true", y_test_labels))
     y_true01 = _y01(list(y_te))
 
     current_thr = float(ss.get("threshold", 0.5))
