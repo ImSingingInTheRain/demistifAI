@@ -49,6 +49,7 @@ from .core.utils import (
     _count_suspicious_links,
     _has_suspicious_tld,
 )
+from .core.cache import cached_features, cached_prepare, cached_train
 from .modeling import (
     FEATURE_DISPLAY_NAMES,
     FEATURE_ORDER,
@@ -127,6 +128,9 @@ __all__ = [
     "_count_money_mentions",
     "_count_suspicious_links",
     "_has_suspicious_tld",
+    "cached_prepare",
+    "cached_features",
+    "cached_train",
     "FEATURE_DISPLAY_NAMES",
     "FEATURE_ORDER",
     "FEATURE_PLAIN_LANGUAGE",
