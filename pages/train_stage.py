@@ -98,6 +98,7 @@ from pages.train_helpers import (
 from demistifai.ui.components.mac_window import render_mac_window
 from demistifai.ui.components.terminal.train import render_train_terminal
 from demistifai.ui.components.train_animation import build_training_animation_column
+from demistifai.ui.primitives import shorten_text
 
 
 logger = logging.getLogger(__name__)
@@ -2111,7 +2112,7 @@ def render_train_stage(
                         subject = X_tr_t[i] if X_tr_t and 0 <= i < len(X_tr_t) else ""
                         if not isinstance(subject, str) or not subject.strip():
                             subject = train_texts_combined[i][:80]
-                        subject_short = _shorten_text(str(subject).strip(), limit=80)
+                        subject_short = shorten_text(str(subject).strip(), limit=80)
                         return f"{i + 1}. [{label.upper()}] {subject_short}" if label else subject_short
 
                     selected_idx = st.selectbox(

@@ -1,19 +1,11 @@
 from __future__ import annotations
 
-import html
 import logging
 import random
-from collections import Counter
 from datetime import datetime
-from contextlib import contextmanager
-from typing import Any, Dict, List, Optional
-from uuid import uuid4
 
-import altair as alt
-import pandas as pd
 import streamlit as st
 import streamlit.components.v1 as components
-from streamlit.delta_generator import DeltaGenerator
 
 from demistifai.constants import STAGES
 from demistifai.core.state import ensure_state, validate_invariants
@@ -48,6 +40,14 @@ from pages.evaluate import render_evaluate_stage_page
 from pages.overview import render_overview_stage as render_overview_stage_content
 from pages.train_stage import render_train_stage_page
 from demistifai.ui.custom_header import mount_demai_header
+from demistifai.ui.primitives import (
+    render_email_inbox_table,
+    render_eu_ai_quote,
+    render_mailbox_panel,
+    render_nerd_mode_toggle,
+    section_surface,
+    shorten_text,
+)
 from pages.welcome import render_intro_stage as render_intro_stage_content
 from stages.model_card import (
     render_model_card_stage as render_model_card_stage_content,
@@ -62,164 +62,14 @@ ss = st.session_state
 
 ss.setdefault("viewport_is_mobile", False)
 
-
-
-def _shorten_text(text: str, limit: int = 120) -> str:
-    """Return a shortened version of *text* capped at *limit* characters."""
-
-    if len(text) <= limit:
-        return text
-    return f"{text[: limit - 1]}…"
-
-
-def _safe_subject(row: dict) -> str:
-    return str(row.get("title", "") or "").strip()
-
 st.markdown(APP_THEME_CSS, unsafe_allow_html=True)
 st.markdown(STAGE_TEMPLATE_CSS, unsafe_allow_html=True)
 st.markdown(EMAIL_INBOX_TABLE_CSS, unsafe_allow_html=True)
 mount_demai_header()
 
-
-@contextmanager
-def section_surface(extra_class: Optional[str] = None):
-    """Render a consistently styled section surface container."""
-
-    base_class = "section-surface"
-    classes = f"{base_class} {extra_class}" if extra_class else base_class
-
-    st.markdown(f'<div class="{classes}">', unsafe_allow_html=True)
-    try:
-        yield
-    finally:
-        st.markdown("</div>", unsafe_allow_html=True)
-
-
 def guidance_popover(title: str, text: str):
     with st.popover(f"❓ {title}"):
         st.write(text)
-
-
-def eu_ai_quote_box(text: str, label: str = "EU AI Act") -> str:
-    escaped_text = html.escape(text)
-    escaped_label = html.escape(label)
-    return (
-        """
-        <div class="ai-quote-box">
-            <div class="ai-quote-box__icon">⚖️</div>
-            <div class="ai-quote-box__content">
-                <span class="ai-quote-box__source">{label}</span>
-                <p>{text}</p>
-            </div>
-        </div>
-        """
-        .format(label=escaped_label, text=escaped_text)
-    )
-
-
-def render_eu_ai_quote(text: str, label: str = "From the EU AI Act, Article 3") -> None:
-    st.markdown(eu_ai_quote_box(text, label), unsafe_allow_html=True)
-
-
-def render_nerd_mode_toggle(
-    *,
-    key: str,
-    title: str,
-    description: Optional[str] = None,
-    icon: Optional[str] = "🧠",
-    target: DeltaGenerator | None = None,
-) -> bool:
-    """Render a consistently styled Nerd Mode toggle block."""
-
-    toggle_label = f"{icon} {title}" if icon else title
-    wrapper = target.container() if target is not None else st.container()
-    default_state = bool(ss.get(key, False))
-    icon_html = f"<span class='nerd-toggle__icon'>{html.escape(icon)}</span>" if icon else ""
-    safe_title = html.escape(title)
-    safe_description = html.escape(description) if description else ""
-
-    with wrapper:
-        content_col, toggle_col = st.columns([1, 0.32], gap="large")
-        with content_col:
-            st.markdown(
-                f"<div class='nerd-toggle__title'>{icon_html}<span class='nerd-toggle__title-text'>{safe_title}</span></div>",
-                unsafe_allow_html=True,
-            )
-            if description:
-                st.markdown(
-                    f"<div class='nerd-toggle__description'>{safe_description}</div>",
-                    unsafe_allow_html=True,
-                )
-        with toggle_col:
-            value = st.toggle(
-                toggle_label,
-                key=key,
-                value=default_state,
-                label_visibility="collapsed",
-            )
-
-    return value
-
-
-def render_email_inbox_table(
-    df: pd.DataFrame,
-    *,
-    title: str,
-    subtitle: Optional[str] = None,
-    columns: Optional[List[str]] = None,
-) -> None:
-    """Display a small email-centric table with shared styling."""
-
-    with st.container(border=True):
-        st.markdown(f"**{title}**")
-        if subtitle:
-            st.caption(subtitle)
-
-        if df is None or df.empty:
-            st.caption("No emails to display.")
-            return
-
-        display_df = df.copy()
-        if columns:
-            existing = [col for col in columns if col in display_df.columns]
-            if existing:
-                display_df = display_df[existing]
-
-        st.dataframe(display_df, hide_index=True, width="stretch")
-
-
-def render_mailbox_panel(
-    messages: Optional[List[Dict[str, Any]]],
-    *,
-    mailbox_title: str,
-    filled_subtitle: str,
-    empty_subtitle: str,
-) -> None:
-    """Render a mailbox tab with consistent styling and fallbacks."""
-
-    with st.container(border=True):
-        st.markdown(f"**{mailbox_title}**")
-        records = messages or []
-        if not records:
-            st.caption(empty_subtitle)
-            return
-
-        st.caption(filled_subtitle)
-        df_box = pd.DataFrame(records)
-        column_order = ["title", "pred", "p_spam", "body"]
-        rename_map = {
-            "title": "Title",
-            "pred": "Predicted",
-            "p_spam": "P(spam)",
-            "body": "Body",
-        }
-        existing = [col for col in column_order if col in df_box.columns]
-        if existing:
-            df_display = df_box[existing].rename(columns=rename_map)
-        else:
-            df_display = df_box
-        st.dataframe(df_display, hide_index=True, width="stretch")
-
 
 _apply_pending_advanced_knob_state()
 requested_stage_values = st.query_params.get_all("stage")
@@ -398,7 +248,7 @@ def render_evaluate_stage():
     render_evaluate_stage_page(
         section_surface=section_surface,
         render_nerd_mode_toggle=render_nerd_mode_toggle,
-        shorten_text=_shorten_text,
+        shorten_text=shorten_text,
     )
 
 def render_classify_stage():
