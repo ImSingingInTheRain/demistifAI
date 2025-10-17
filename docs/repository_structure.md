@@ -29,6 +29,7 @@ This document provides a guided tour of the repository so contributors can quick
 - `arch_demai.py` – Dataclass-driven architecture cards and styling that render the demAI system diagram within Streamlit.【F:demistifai/ui/components/arch_demai.py†L1-L210】
 - `control_room.py` – Stage Control Room surface that standardises headers, Nerd Mode toggles, and navigation CTAs across stages.【F:demistifai/ui/components/control_room.py†L1-L230】
 - `mac_window.py` – Utility for generating scoped macOS-style window shells with configurable columns and theming.【F:demistifai/ui/components/mac_window.py†L1-L224】
+- `train_animation.py` – Plotly-powered training map animation with brand token bridging, HTML wrappers, and graceful fallbacks when the optional Plotly dependency is missing.【F:demistifai/ui/components/train_animation.py†L1-L120】【F:demistifai/ui/components/train_animation.py†L205-L471】
 - `terminal/` – Animated terminal namespace with shared helpers and scenario-specific scripts:
   - `terminal_base.py` – Shared helpers for rendering terminal sequences, including CSS injection, typing operations, and highlight logic.【F:demistifai/ui/components/terminal/terminal_base.py†L1-L200】
   - `classic.py` – Command-line style welcome terminal typing the EU AI Act definition and demAI guidance for the classic intro experience.【F:demistifai/ui/components/terminal/classic.py†L1-L200】
