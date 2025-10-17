@@ -193,7 +193,13 @@ from demistifai.ui.components.train_animation import (
 )
 logger = logging.getLogger(__name__)
 
-st.session_state.setdefault("viewport_is_mobile", False)
+st.set_page_config(page_title="demistifAI", page_icon="📧", layout="wide")
+
+state = ensure_state()
+s = state
+ss = st.session_state
+
+ss.setdefault("viewport_is_mobile", False)
 
 
 def callable_or_attr(target: Any, attr: str | None = None) -> bool:
@@ -224,8 +230,6 @@ def _shorten_text(text: str, limit: int = 120) -> str:
 
 def _safe_subject(row: dict) -> str:
     return str(row.get("title", "") or "").strip()
-
-st.set_page_config(page_title="demistifAI", page_icon="📧", layout="wide")
 
 st.markdown(APP_THEME_CSS, unsafe_allow_html=True)
 st.markdown(STAGE_TEMPLATE_CSS, unsafe_allow_html=True)
@@ -373,19 +377,44 @@ def render_mailbox_panel(
         st.dataframe(df_display, hide_index=True, width="stretch")
 
 
-ss = st.session_state
 _apply_pending_advanced_knob_state()
 requested_stage_values = st.query_params.get_all("stage")
 requested_stage = requested_stage_values[0] if requested_stage_values else None
-default_stage = STAGES[0].key
-ss.setdefault("active_stage", default_stage)
-if requested_stage in STAGE_BY_KEY:
-    if requested_stage != ss["active_stage"]:
-        ss["active_stage"] = requested_stage
-        ss["stage_scroll_to_top"] = True
-else:
-    if st.query_params.get_all("stage") != [ss["active_stage"]]:
-        st.query_params["stage"] = ss["active_stage"]
+run_state = s.setdefault("run", {})
+if requested_stage in STAGE_BY_KEY and requested_stage != run_state.get("active_stage"):
+    run_state["active_stage"] = requested_stage
+
+if not run_state.get("active_stage"):
+    run_state["active_stage"] = STAGES[0].key
+
+nav_items = [
+    {"label": stage.title, "key": stage.key, "icon": getattr(stage, "icon", None)}
+    for stage in STAGES
+]
+default_stage = run_state.get("active_stage", STAGES[0].key)
+selected_stage_key = st_navbar(
+    items=nav_items,
+    default=default_stage,
+    key="demai_top_nav",
+)
+
+if run_state.get("busy") and selected_stage_key != default_stage:
+    selected_stage_key = default_stage
+    st.session_state["demai_top_nav"] = default_stage
+    toast_message = "Training in progress — navigation disabled."
+    ui_state = s.setdefault("ui", {})
+    toasts = ui_state.setdefault("toasts", [])
+    if toast_message not in toasts:
+        toasts.append(toast_message)
+        st.toast(toast_message, icon="⏳")
+
+if selected_stage_key != run_state.get("active_stage"):
+    ss["stage_scroll_to_top"] = True
+
+run_state["active_stage"] = selected_stage_key
+ss["active_stage"] = selected_stage_key
+if st.query_params.get_all("stage") != [selected_stage_key]:
+    st.query_params["stage"] = selected_stage_key
 ss.setdefault("nerd_mode", False)
 ss.setdefault("autonomy", AUTONOMY_LEVELS[0])
 ss.setdefault("threshold", 0.6)
@@ -461,18 +490,20 @@ def set_active_stage(stage_key: str) -> None:
     if stage_key not in STAGE_BY_KEY:
         return
 
-    stage_changed = ss.get("active_stage") != stage_key
-    if stage_changed:
-        ss["active_stage"] = stage_key
-        ss["stage_scroll_to_top"] = True
+    run_state = s.setdefault("run", {})
+    current_stage = run_state.get("active_stage")
+    if current_stage == stage_key:
+        return
+
+    run_state["active_stage"] = stage_key
+    ss["active_stage"] = stage_key
+    ss["stage_scroll_to_top"] = True
+    st.session_state["demai_top_nav"] = stage_key
 
     # Mirror the active stage in the URL query parameter for deep-linking and
     # to support refresh persistence.
     if st.query_params.get_all("stage") != [stage_key]:
         st.query_params["stage"] = stage_key
-
-    if stage_changed:
-        streamlit_rerun()
 
 
 def _set_adaptive_state(new_value: bool, *, source: str) -> None:
@@ -4268,7 +4299,9 @@ STAGE_RENDERERS = {
 }
 
 
-active_stage = ss['active_stage']
+validate_invariants(s)
+active_stage = s.get("run", {}).get("active_stage") or STAGES[0].key
+ss["active_stage"] = active_stage
 renderer = STAGE_RENDERERS.get(active_stage, render_intro_stage)
 
 if ss.pop("stage_scroll_to_top", False):
