@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import base64
 import html
 import math
 import json
@@ -26,7 +25,6 @@ import streamlit as st
 import streamlit.components.v1 as components
 from streamlit.errors import StreamlitAPIException
 from streamlit.delta_generator import DeltaGenerator
-from streamlit_navigation_bar import st_navbar
 
 from demistifai.constants import STAGES
 from demistifai.core.state import ensure_state, validate_invariants, hash_dict, hash_dataframe
@@ -168,7 +166,6 @@ from demistifai.core.downloads import download_text
 from demistifai.core.cache import cached_prepare, cached_features, cached_train
 
 from stages.train_stage import render_train_stage
-from demistifai.ui.animated_logo import demai_logo_html
 from demistifai.ui.custom_header import mount_demai_header
 from demistifai.ui.components.arch_demai import (
     demai_architecture_markup,
@@ -386,233 +383,28 @@ run_state = s.setdefault("run", {})
 if requested_stage in STAGE_BY_KEY and requested_stage != run_state.get("active_stage"):
     run_state["active_stage"] = requested_stage
 
-if not run_state.get("active_stage"):
+if not run_state.get("active_stage") and STAGES:
     run_state["active_stage"] = STAGES[0].key
 
-_NAVBAR_STAGE_LABELS = [
-    (
-        stage.key,
-        f"{getattr(stage, 'icon', '').strip()} {stage.title}".strip()
-        if getattr(stage, "icon", None)
-        else stage.title,
-    )
-    for stage in STAGES
-]
-nav_labels_by_key = {key: label for key, label in _NAVBAR_STAGE_LABELS}
-label_to_stage_key = {label: key for key, label in _NAVBAR_STAGE_LABELS}
-nav_pages = [label for _, label in _NAVBAR_STAGE_LABELS]
+default_stage_key = run_state.get("active_stage")
+selected_stage_key = ss.get("active_stage", default_stage_key)
 
-default_stage_key = run_state.get("active_stage", STAGES[0].key)
-default_label = nav_labels_by_key.get(default_stage_key, nav_pages[0])
+if selected_stage_key not in STAGE_BY_KEY:
+    if STAGES:
+        selected_stage_key = STAGES[0].key
+    else:
+        selected_stage_key = None
 
-current_nav_state = st.session_state.get("demai_top_nav")
-if current_nav_state in nav_labels_by_key:
-    current_nav_label = nav_labels_by_key[current_nav_state]
-elif current_nav_state in label_to_stage_key:
-    current_nav_label = current_nav_state
-else:
-    current_nav_label = default_label
-st.session_state["demai_top_nav"] = current_nav_label
+if default_stage_key not in STAGE_BY_KEY:
+    default_stage_key = selected_stage_key
 
-logo_html = demai_logo_html(frame_marker="demai-nav-rail")
-logo_data_url = "data:text/html;base64," + base64.b64encode(logo_html.encode("utf-8")).decode(
-    "utf-8"
-)
-
-st.markdown(
-    f"""
-    <div id="demai-nav-layer">
-        <div id="demai-nav-rail">
-            <iframe src="{logo_data_url}" title="demistifAI animated logo" scrolling="no"></iframe>
-        </div>
-    """,
-    unsafe_allow_html=True,
-)
-st.markdown('<div id="demai-nav-wrap">', unsafe_allow_html=True)
-
-navbar_styles = {
-    "nav": {
-        "background-color": "transparent",
-        "box-shadow": "none",
-        "padding-left": "0",
-        "padding-right": "0",
-        "width": "100%",
-    },
-    "div": {"width": "100%"},
-    "ul": {
-        "display": "flex",
-        "flex-wrap": "wrap",
-        "gap": "0.35rem",
-        "justify-content": "center",
-        "margin": "0",
-        "padding": "0",
-        "width": "100%",
-    },
-    "li": {"list-style": "none"},
-    "a": {
-        "align-items": "center",
-        "background": "transparent",
-        "border": "1px solid transparent",
-        "border-radius": "999px",
-        "color": "#e2e8f0",
-        "display": "inline-flex",
-        "font-weight": "600",
-        "gap": "0.35rem",
-        "padding": "0.35rem 1rem",
-        "text-decoration": "none",
-        "transition": "background 0.2s ease, color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease",
-    },
-    "span": {"color": "inherit", "display": "inline"},
-    "active": {
-        "color": "#5eead4",
-        "background": "rgba(94, 234, 212, 0.18)",
-        "border-color": "rgba(94, 234, 212, 0.35)",
-        "box-shadow": "0 0 0 1px rgba(94, 234, 212, 0.25)",
-    },
-    "hover": {
-        "color": "#5eead4",
-        "background": "rgba(94, 234, 212, 0.12)",
-    },
-}
-
-navbar_options = {
-    "show_menu": False,
-    "show_sidebar": False,
-    "hide_nav": True,
-    "use_padding": False,
-}
-
-selected_label = st_navbar(
-    nav_pages,
-    selected=current_nav_label,
-    key="demai_top_nav",
-    styles=navbar_styles,
-    options=navbar_options,
-)
-if not selected_label:
-    selected_label = current_nav_label
-
-selected_stage_key = label_to_stage_key.get(selected_label, default_stage_key)
-st.markdown(
-    """
-    <style>
-    header[data-testid="stHeader"] { display: none !important; }
-
-    #demai-nav-layer {
-        position: sticky;
-        top: 0;
-        z-index: 1000;
-        display: flex;
-        gap: 0.25rem;
-        align-items: stretch;
-    }
-
-    #demai-nav-rail {
-        position: sticky;
-        top: 0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        min-width: 64px;
-        padding: calc(env(safe-area-inset-top) + 0.35rem) 0.6rem 0.6rem 0.2rem;
-        background: rgba(15, 23, 42, 0.92);
-        border-bottom: 1px solid rgba(94, 234, 212, 0.24);
-        border-right: 1px solid rgba(94, 234, 212, 0.18);
-        border-radius: 0 0.75rem 0.75rem 0;
-        backdrop-filter: blur(10px);
-        -webkit-backdrop-filter: blur(10px);
-        box-shadow: 0 8px 18px rgba(8, 15, 33, 0.22);
-    }
-
-    #demai-nav-rail iframe {
-        width: 48px;
-        height: 48px;
-        border: none;
-        background: transparent;
-        pointer-events: none;
-    }
-
-    #demai-nav-wrap {
-        position: sticky;
-        top: 0;
-        z-index: 1000;
-        flex: 1;
-        display: flex;
-        align-items: center;
-        padding: calc(env(safe-area-inset-top) + 0.5rem) calc(env(safe-area-inset-right) + 1.5rem) 0.6rem calc(env(safe-area-inset-left) + 1.5rem);
-        background: rgba(15, 23, 42, 0.92);
-        border-bottom: 1px solid rgba(94, 234, 212, 0.24);
-        backdrop-filter: blur(10px);
-        -webkit-backdrop-filter: blur(10px);
-        box-shadow: 0 8px 18px rgba(8, 15, 33, 0.22);
-    }
-
-    #demai-nav-wrap nav {
-        width: 100%;
-        display: flex;
-        justify-content: center;
-    }
-
-    #demai-nav-wrap nav ul {
-        width: 100%;
-        display: flex;
-        flex-wrap: wrap;
-        align-items: center;
-        justify-content: center;
-        gap: 0.35rem;
-        margin: 0;
-        padding: 0;
-    }
-
-    #demai-nav-wrap nav li {
-        list-style: none;
-    }
-
-    #demai-nav-wrap nav a {
-        text-decoration: none;
-    }
-
-    #demai-nav-wrap nav span {
-        display: inline;
-    }
-
-    #demai-nav-wrap svg {
-        fill: currentColor !important;
-        stroke: currentColor !important;
-    }
-
-    #demai-nav-spacer {
-        height: calc(72px + env(safe-area-inset-top));
-    }
-
-    @media (max-width: 768px) {
-        #demai-nav-layer {
-            flex-direction: column;
-            gap: 0.5rem;
-        }
-
-        #demai-nav-rail {
-            align-self: flex-start;
-            border-radius: 0 0.75rem 0.75rem 0;
-            padding-right: calc(env(safe-area-inset-right) + 0.6rem);
-        }
-
-        #demai-nav-wrap {
-            border-radius: 0.75rem;
-        }
-    }
-    </style>
-    """,
-    unsafe_allow_html=True,
-)
-st.markdown('</div>', unsafe_allow_html=True)
-st.markdown('</div>', unsafe_allow_html=True)
-st.markdown('<div id="demai-nav-spacer"></div>', unsafe_allow_html=True)
-
-if run_state.get("busy") and selected_stage_key != default_stage_key:
+if (
+    run_state.get("busy")
+    and default_stage_key in STAGE_BY_KEY
+    and selected_stage_key not in (None, default_stage_key)
+):
     selected_stage_key = default_stage_key
-    selected_label = default_label
-    st.session_state["demai_top_nav"] = default_label
+    ss["active_stage"] = default_stage_key
     toast_message = "Training in progress — navigation disabled."
     ui_state = s.setdefault("ui", {})
     toasts = ui_state.setdefault("toasts", [])
@@ -620,17 +412,14 @@ if run_state.get("busy") and selected_stage_key != default_stage_key:
         toasts.append(toast_message)
         st.toast(toast_message, icon="⏳")
 
-st.session_state["demai_top_nav"] = nav_labels_by_key.get(
-    selected_stage_key, default_label
-)
+if selected_stage_key is not None:
+    if selected_stage_key != run_state.get("active_stage"):
+        ss["stage_scroll_to_top"] = True
+    run_state["active_stage"] = selected_stage_key
+    ss["active_stage"] = selected_stage_key
+    if st.query_params.get_all("stage") != [selected_stage_key]:
+        st.query_params["stage"] = selected_stage_key
 
-if selected_stage_key != run_state.get("active_stage"):
-    ss["stage_scroll_to_top"] = True
-
-run_state["active_stage"] = selected_stage_key
-ss["active_stage"] = selected_stage_key
-if st.query_params.get_all("stage") != [selected_stage_key]:
-    st.query_params["stage"] = selected_stage_key
 ss.setdefault("nerd_mode", False)
 ss.setdefault("autonomy", AUTONOMY_LEVELS[0])
 ss.setdefault("threshold", 0.6)
@@ -714,7 +503,6 @@ def set_active_stage(stage_key: str) -> None:
     run_state["active_stage"] = stage_key
     ss["active_stage"] = stage_key
     ss["stage_scroll_to_top"] = True
-    st.session_state["demai_top_nav"] = nav_labels_by_key.get(stage_key, stage_key)
 
     # Mirror the active stage in the URL query parameter for deep-linking and
     # to support refresh persistence.
