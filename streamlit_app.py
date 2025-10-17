@@ -1647,7 +1647,7 @@ def render_data_stage():
             with section_surface():
                 nerd_mode_data_enabled = render_nerd_mode_toggle(
                     key="nerd_mode_data",
-                    title="Nerd Mode — advanced dataset controls",
+                    title="Nerd Mode",
                     description="Expose feature prevalence, randomness, diagnostics, and CSV import when you need them.",
                 )
 
