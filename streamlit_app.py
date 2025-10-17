@@ -1645,23 +1645,6 @@ def render_data_stage():
         nonlocal nerd_mode_data_enabled
         with slot:
             with section_surface():
-                st.markdown(
-                    """
-                    <div class="prepare-intro-card">
-                        <div class="prepare-intro-card__header">
-                            <span class="prepare-intro-card__icon">🧪</span>
-                            <div>
-                                <span class="prepare-intro-card__eyebrow">Stage 1</span>
-                                <h4 class="prepare-intro-card__title">Prepare data</h4>
-                            </div>
-                        </div>
-                        <p class="prepare-intro-card__body">
-                            Your AI system must learn how to distinguish a safe email from spam. The first step is to prepare a dataset representing what spam and safe emails look like. Use the dataset builder to generate a synthetic dataset, then review its health score and recommendations. Toggle Nerd Mode for advanced configuration and diagnostic controls when you need them.
-                        </p>
-                    </div>
-                    """,
-                    unsafe_allow_html=True,
-                )
                 nerd_mode_data_enabled = render_nerd_mode_toggle(
                     title="Nerd Mode — advanced dataset controls",
                     description="Expose feature prevalence, randomness, diagnostics, and CSV import when you need them.",
