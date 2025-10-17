@@ -6,6 +6,22 @@ from dataclasses import dataclass
 from textwrap import dedent
 from typing import List
 
+
+# Central colour palette used across components. Keeping these values in a
+# single mapping lets future UI surfaces reference brand colours without
+# hard-coding hex codes in multiple places.
+BRAND_COLORS = {
+    "primary": "#3C7BE5",
+    "danger": "#E55B3C",
+    "paper": "#FAFCFF",
+    "plot_bg": "rgba(240,245,255,0.4)",
+    "grid": "rgba(148,163,184,0.28)",
+    "text": "#1F2937",
+    "text_muted": "rgba(31,41,55,0.75)",
+    "area_label_bg": "rgba(60,123,229,0.16)",
+    "area_label_fg": "#1D4ED8",
+}
+
 # CSS assets used throughout the application.
 APP_THEME_CSS = """
 <style>
