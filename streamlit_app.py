@@ -29,7 +29,7 @@ from streamlit.delta_generator import DeltaGenerator
 from streamlit_navigation_bar import st_navbar
 
 from demistifai.constants import STAGES
-from demistifai.core.state import ensure_state, validate_invariants
+from demistifai.core.state import ensure_state, validate_invariants, hash_dict, hash_dataframe
 from demistifai.core.utils import streamlit_rerun
 
 from demistifai.constants import (
@@ -165,6 +165,7 @@ from demistifai.core.validation import (
 )
 from demistifai.core.routing import route_decision
 from demistifai.core.downloads import download_text
+from demistifai.core.cache import cached_prepare
 
 from stages.train_stage import render_train_stage
 from demistifai.ui.animated_logo import demai_logo_html
@@ -1645,6 +1646,94 @@ def render_data_stage():
 
     stage = STAGE_BY_KEY["data"]
 
+    s = ensure_state()
+    validate_invariants(s)
+
+    data_state = s.setdefault("data", {})
+    split_state = s.setdefault("split", {})
+    model_state = s.setdefault("model", {})
+    ui_state = s.setdefault("ui", {})
+    data_state.setdefault("params", {})
+
+    def _drain_toasts() -> None:
+        toast_messages = list(ui_state.get("toasts") or [])
+        if not toast_messages:
+            return
+        for toast in toast_messages:
+            if not isinstance(toast, str):
+                continue
+            lowered = toast.lower()
+            if any(keyword in lowered for keyword in ("warn", "caution", "risk", "error")):
+                st.warning(toast)
+            else:
+                st.info(toast)
+        ui_state["toasts"] = []
+
+    _drain_toasts()
+
+    def _invalidate_downstream() -> None:
+        model_state["status"] = "stale"
+        model_state["metrics"] = {}
+        split_state.update(
+            {
+                "X_train": None,
+                "X_test": None,
+                "y_train": None,
+                "y_test": None,
+                "hash": "",
+            }
+        )
+
+    def _prepare_records(records: Any, *, invalidate: bool = True) -> None:
+        params = dict(data_state.get("params") or {})
+        data_state["params"] = params
+
+        if invalidate:
+            _invalidate_downstream()
+
+        if records is None:
+            data_state["raw"] = None
+            data_state["prepared"] = pd.DataFrame()
+            data_state["n_rows"] = 0
+            data_state["hash"] = ""
+            validate_invariants(s)
+            _drain_toasts()
+            return
+
+        if isinstance(records, pd.DataFrame):
+            raw_df = records.copy(deep=True)
+        else:
+            try:
+                raw_df = pd.DataFrame(records)
+            except Exception as exc:  # pragma: no cover - defensive conversion
+                st.error(f"Failed to coerce dataset into a dataframe: {exc}")
+                return
+
+        try:
+            prepared_df = cached_prepare(
+                raw_df,
+                params,
+                lib_versions={"pandas": pd.__version__},
+            )
+        except Exception as exc:  # pragma: no cover - defensive for preprocessing issues
+            st.error(f"Failed to prepare dataset: {exc}")
+            return
+
+        data_state["raw"] = raw_df.copy(deep=True)
+        data_state["prepared"] = prepared_df.copy(deep=True)
+        data_state["n_rows"] = int(prepared_df.shape[0])
+        data_state["hash"] = hash_dict(
+            {
+                "prep": hash_dataframe(prepared_df),
+                "params": params,
+            }
+        )
+        validate_invariants(s)
+        _drain_toasts()
+
+    if data_state.get("prepared") is None:
+        _prepare_records(ss.get("labeled"), invalidate=False)
+
     def _render_prepare_terminal(slot: DeltaGenerator) -> None:
         with slot:
             render_prepare_terminal()
@@ -2216,6 +2305,7 @@ def render_data_stage():
                     delta_text = explain_config_change(ss.get("dataset_config", DEFAULT_DATASET_CONFIG))
                     base_summary_for_delta = compute_dataset_summary(STARTER_LABELED)
                     target_summary_for_delta = current_summary
+                    _prepare_records(ss.get("labeled"))
 
                 preview_summary_local: Optional[Dict[str, Any]] = None
                 if preview_clicked:
@@ -2839,6 +2929,7 @@ def render_data_stage():
                             )
 
                         _set_advanced_knob_state(config, force=True)
+                        _prepare_records(final_rows)
                         if ss.get("_needs_advanced_knob_rerun"):
                             streamlit_rerun()
 
@@ -3042,6 +3133,7 @@ def render_data_stage():
                                     ),
                                 )
                             _set_advanced_knob_state(config, force=True)
+                            _prepare_records(dataset_rows)
                             if ss.get("_needs_advanced_knob_rerun"):
                                 streamlit_rerun()
             else:
@@ -3305,6 +3397,7 @@ def render_data_stage():
                             ):
                                 ss["labeled"].extend(df_up.to_dict(orient="records"))
                                 ss["dataset_summary"] = compute_dataset_summary(ss["labeled"])
+                                _prepare_records(ss.get("labeled"))
                                 st.success(
                                     f"Imported {len(df_up)} rows into labeled dataset. Revisit builder to rebalance if needed."
                                 )
