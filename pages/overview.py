@@ -544,7 +544,7 @@ def render_overview_stage(
     next_stage_cta_html = ""
     if next_stage_key and next_stage_key in STAGE_BY_KEY:
         next_stage_cta_html = (
-            f"<a class=\"overview-cta overview-cta__next\" href=\"#\">Next: {html.escape(STAGE_BY_KEY[next_stage_key].name)}</a>"
+            f"<a class=\"overview-cta overview-cta__next\" href=\"#\">Next: {html.escape(STAGE_BY_KEY[next_stage_key].title)}</a>"
         )
 
     overview_intro_html = textwrap.dedent(
