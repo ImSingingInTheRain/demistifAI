@@ -1655,8 +1655,40 @@ def render_data_stage():
     def _render_dataset_builder(slot: DeltaGenerator) -> None:
         nonlocal base_summary_for_delta, target_summary_for_delta, delta_summary, compare_panel_html, preview_clicked, reset_clicked, delta_text, current_summary
         with slot:
-            with section_surface():
-                st.markdown("### Dataset builder")
+            with section_surface("dataset-builder-surface"):
+                def _cli_command_line(command: str, *, meta: Optional[str] = None, unsafe: bool = False) -> str:
+                    command_html = command if unsafe else html.escape(command)
+                    meta_html = (
+                        f"<span class='dataset-builder__meta'>{html.escape(meta)}</span>"
+                        if meta
+                        else ""
+                    )
+                    return (
+                        "<div class='dataset-builder__command-line'>"
+                        "<span class='dataset-builder__prompt'>$</span>"
+                        f"<span class='dataset-builder__command'>{command_html}</span>"
+                        f"{meta_html}"
+                        "</div>"
+                    )
+
+                def _cli_comment(text: str) -> str:
+                    return (
+                        "<div class='dataset-builder__comment'># {}</div>".format(
+                            html.escape(text)
+                        )
+                    )
+
+                st.markdown("<div class='dataset-builder'>", unsafe_allow_html=True)
+                st.markdown(
+                    _cli_command_line("dataset.builder --interactive"),
+                    unsafe_allow_html=True,
+                )
+                st.markdown(
+                    _cli_comment(
+                        "Tune dataset volume, class balance, and adversarial knobs before generating a preview."
+                    ),
+                    unsafe_allow_html=True,
+                )
 
                 if ss.get("dataset_preview_summary"):
                     base_summary_for_delta = current_summary
@@ -1685,48 +1717,134 @@ def render_data_stage():
                     spam_share_default = int(5 * round(spam_share_default / 5))
 
                 with st.form("dataset_builder_form"):
-                    dataset_size = st.radio(
-                        "Dataset size",
-                        options=[100, 300, 500],
-                        index=[100, 300, 500].index(int(cfg.get("n_total", 500)))
-                        if int(cfg.get("n_total", 500)) in [100, 300, 500]
-                        else 2,
-                        help="Preset sizes illustrate how data volume influences learning (guarded ≤500).",
-                    )
-                    spam_share_pct = st.slider(
-                        "Spam share",
-                        min_value=20,
-                        max_value=80,
-                        value=spam_share_default,
-                        step=5,
-                        help="Adjust prevalence to explore bias/recall trade-offs.",
-                    )
-                    edge_cases = st.slider(
-                        "Edge cases",
-                        min_value=0,
-                        max_value=10,
-                        value=int(cfg.get("edge_cases", 2)),
-                        help="Surface tricky look-alikes to test your preview set.",
+                    st.markdown(
+                        "<div class='dataset-builder__form-shell'>",
+                        unsafe_allow_html=True,
                     )
 
+                    base_command_col, base_control_col = st.columns(
+                        [0.6, 0.4], gap="large"
+                    )
+                    with base_control_col:
+                        dataset_size = st.radio(
+                            "Dataset size",
+                            options=[100, 300, 500],
+                            index=[100, 300, 500].index(int(cfg.get("n_total", 500)))
+                            if int(cfg.get("n_total", 500)) in [100, 300, 500]
+                            else 2,
+                            help="Preset sizes illustrate how data volume influences learning (guarded ≤500).",
+                            label_visibility="collapsed",
+                        )
+                    with base_command_col:
+                        base_command_col.markdown(
+                            _cli_command_line(
+                                "dataset.config --size <span class='dataset-builder__value'>{}</span>".format(
+                                    html.escape(str(dataset_size))
+                                ),
+                                unsafe=True,
+                            ),
+                            unsafe_allow_html=True,
+                        )
+                        base_command_col.markdown(
+                            _cli_comment(
+                                "Preset sizes illustrate how data volume influences learning (guarded ≤500)."
+                            ),
+                            unsafe_allow_html=True,
+                        )
+
+                    spam_command_col, spam_control_col = st.columns(
+                        [0.6, 0.4], gap="large"
+                    )
+                    with spam_control_col:
+                        spam_share_pct = st.slider(
+                            "Spam share",
+                            min_value=20,
+                            max_value=80,
+                            value=spam_share_default,
+                            step=5,
+                            help="Adjust prevalence to explore bias/recall trade-offs.",
+                            label_visibility="collapsed",
+                        )
+                    with spam_command_col:
+                        spam_command_col.markdown(
+                            _cli_command_line(
+                                "dataset.config --spam-share <span class='dataset-builder__value'>{}%</span>".format(
+                                    html.escape(str(spam_share_pct))
+                                ),
+                                unsafe=True,
+                            ),
+                            unsafe_allow_html=True,
+                        )
+                        spam_command_col.markdown(
+                            _cli_comment(
+                                "Adjust prevalence to explore bias/recall trade-offs."
+                            ),
+                            unsafe_allow_html=True,
+                        )
+
+                    edge_command_col, edge_control_col = st.columns(
+                        [0.6, 0.4], gap="large"
+                    )
+                    with edge_control_col:
+                        edge_cases = st.slider(
+                            "Edge cases",
+                            min_value=0,
+                            max_value=10,
+                            value=int(cfg.get("edge_cases", 2)),
+                            help="Surface tricky look-alikes to test your preview set.",
+                            label_visibility="collapsed",
+                        )
+                    with edge_command_col:
+                        edge_command_col.markdown(
+                            _cli_command_line(
+                                "dataset.config --edge-cases <span class='dataset-builder__value'>{}</span>".format(
+                                    html.escape(str(edge_cases))
+                                ),
+                                unsafe=True,
+                            ),
+                            unsafe_allow_html=True,
+                        )
+                        edge_command_col.markdown(
+                            _cli_comment(
+                                "Surface tricky look-alikes to test your preview set."
+                            ),
+                            unsafe_allow_html=True,
+                        )
+
                     if nerd_mode_data_enabled:
-                        st.divider()
-                        st.markdown("#### Advanced configuration")
-                        st.caption(
-                            "Fine-tune suspicious links, domains, tone, attachments, randomness, and demos before generating a preview."
+                        st.markdown(
+                            "<div class='dataset-builder__divider'><span>nerd mode</span></div>",
+                            unsafe_allow_html=True,
+                        )
+                        st.markdown(
+                            _cli_comment(
+                                "Fine-tune suspicious links, domains, tone, attachments, randomness, and demos before generating a preview."
+                            ),
+                            unsafe_allow_html=True,
                         )
                         attachment_keys = list(ATTACHMENT_MIX_PRESETS.keys())
                         adv_col_a, adv_col_b = st.columns(2, gap="large")
                         with adv_col_a:
-                            st.slider(
+                            adv_links = st.slider(
                                 "Suspicious links per spam email",
                                 min_value=0,
                                 max_value=2,
                                 value=int(st.session_state.get("adv_links_level", 1)),
                                 help="Controls how many sketchy URLs appear in spam examples (0–2).",
                                 key="adv_links_level",
+                                label_visibility="collapsed",
                             )
-                            st.select_slider(
+                            st.markdown(
+                                _cli_command_line(
+                                    "dataset.advanced --links <span class='dataset-builder__value'>{}</span>".format(
+                                        html.escape(str(adv_links))
+                                    ),
+                                    unsafe=True,
+                                ),
+                                unsafe_allow_html=True,
+                            )
+
+                            adv_tld = st.select_slider(
                                 "Suspicious TLD frequency",
                                 options=["low", "med", "high"],
                                 value=str(
@@ -1735,8 +1853,19 @@ def render_data_stage():
                                     )
                                 ),
                                 key="adv_tld_level",
+                                label_visibility="collapsed",
                             )
-                            st.select_slider(
+                            st.markdown(
+                                _cli_command_line(
+                                    "dataset.advanced --tld <span class='dataset-builder__value'>{}</span>".format(
+                                        html.escape(str(adv_tld))
+                                    ),
+                                    unsafe=True,
+                                ),
+                                unsafe_allow_html=True,
+                            )
+
+                            adv_caps = st.select_slider(
                                 "ALL-CAPS / urgency intensity",
                                 options=["low", "med", "high"],
                                 value=str(
@@ -1745,9 +1874,19 @@ def render_data_stage():
                                     )
                                 ),
                                 key="adv_caps_level",
+                                label_visibility="collapsed",
+                            )
+                            st.markdown(
+                                _cli_command_line(
+                                    "dataset.advanced --caps <span class='dataset-builder__value'>{}</span>".format(
+                                        html.escape(str(adv_caps))
+                                    ),
+                                    unsafe=True,
+                                ),
+                                unsafe_allow_html=True,
                             )
                         with adv_col_b:
-                            st.select_slider(
+                            adv_money = st.select_slider(
                                 "Money symbols & urgency",
                                 options=["off", "low", "high"],
                                 value=str(
@@ -1756,8 +1895,19 @@ def render_data_stage():
                                     )
                                 ),
                                 key="adv_money_level",
+                                label_visibility="collapsed",
                             )
-                            st.selectbox(
+                            st.markdown(
+                                _cli_command_line(
+                                    "dataset.advanced --money <span class='dataset-builder__value'>{}</span>".format(
+                                        html.escape(str(adv_money))
+                                    ),
+                                    unsafe=True,
+                                ),
+                                unsafe_allow_html=True,
+                            )
+
+                            attachment_choice_cli = st.selectbox(
                                 "Attachment lure mix",
                                 options=attachment_keys,
                                 index=attachment_keys.index(
@@ -1767,8 +1917,19 @@ def render_data_stage():
                                 else 1,
                                 help="Choose how often risky attachments (HTML/ZIP/XLSM/EXE) appear vs. safer PDFs.",
                                 key="adv_attachment_choice",
+                                label_visibility="collapsed",
                             )
-                            st.slider(
+                            st.markdown(
+                                _cli_command_line(
+                                    "dataset.advanced --attachments <span class='dataset-builder__value'>{}</span>".format(
+                                        html.escape(str(attachment_choice_cli))
+                                    ),
+                                    unsafe=True,
+                                ),
+                                unsafe_allow_html=True,
+                            )
+
+                            adv_noise = st.slider(
                                 "Label noise (%)",
                                 min_value=0.0,
                                 max_value=5.0,
@@ -1779,15 +1940,37 @@ def render_data_stage():
                                     )
                                 ),
                                 key="adv_label_noise_pct",
+                                label_visibility="collapsed",
                             )
-                            st.number_input(
+                            st.markdown(
+                                _cli_command_line(
+                                    "dataset.advanced --label-noise <span class='dataset-builder__value'>{}%</span>".format(
+                                        html.escape(str(int(adv_noise)))
+                                    ),
+                                    unsafe=True,
+                                ),
+                                unsafe_allow_html=True,
+                            )
+
+                            adv_seed = st.number_input(
                                 "Random seed",
                                 min_value=0,
                                 value=int(st.session_state.get("adv_seed", cfg.get("seed", 42))),
                                 key="adv_seed",
                                 help="Keep this fixed for reproducibility.",
+                                label_visibility="collapsed",
                             )
-                            st.toggle(
+                            st.markdown(
+                                _cli_command_line(
+                                    "dataset.advanced --seed <span class='dataset-builder__value'>{}</span>".format(
+                                        html.escape(str(adv_seed))
+                                    ),
+                                    unsafe=True,
+                                ),
+                                unsafe_allow_html=True,
+                            )
+
+                            adv_poison = st.toggle(
                                 "Data poisoning demo (synthetic)",
                                 value=bool(
                                     st.session_state.get(
@@ -1796,6 +1979,16 @@ def render_data_stage():
                                 ),
                                 key="adv_poison_demo",
                                 help="Adds a tiny malicious distribution shift labeled as safe to show metric degradation.",
+                                label_visibility="collapsed",
+                            )
+                            st.markdown(
+                                _cli_command_line(
+                                    "dataset.advanced --poison-demo <span class='dataset-builder__value'>{}</span>".format(
+                                        html.escape("on" if adv_poison else "off")
+                                    ),
+                                    unsafe=True,
+                                ),
+                                unsafe_allow_html=True,
                             )
 
                     st.markdown("<div class='cta-sticky'>", unsafe_allow_html=True)
@@ -1808,6 +2001,7 @@ def render_data_stage():
                         reset_clicked = st.form_submit_button(
                             "Reset to baseline", type="secondary"
                         )
+                    st.markdown("</div>", unsafe_allow_html=True)
                     st.markdown("</div>", unsafe_allow_html=True)
 
                 spam_ratio = float(spam_share_pct) / 100.0
@@ -1896,6 +2090,8 @@ def render_data_stage():
                         delta_text = dataset_delta_story(delta_summary)
                     base_summary_for_delta = current_summary
                     target_summary_for_delta = preview_summary_local
+
+                st.markdown("</div>", unsafe_allow_html=True)
 
         compare_panel_html = _build_compare_panel_html(
             base_summary_for_delta,

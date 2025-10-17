@@ -757,6 +757,254 @@ APP_THEME_CSS = """
     width: 100%;
 }
 
+.section-surface.dataset-builder-surface > div[data-testid="stVerticalBlock"],
+.section-surface-block.dataset-builder-surface {
+    background: radial-gradient(circle at top left, rgba(15, 118, 110, 0.32), transparent 52%),
+        linear-gradient(160deg, rgba(13, 17, 23, 0.94), rgba(2, 6, 23, 0.92));
+    border: 1px solid rgba(94, 234, 212, 0.24);
+    box-shadow: 0 28px 62px rgba(8, 47, 73, 0.45);
+    color: #e2e8f0;
+}
+
+.section-surface.dataset-builder-surface > div[data-testid="stVerticalBlock"]::before,
+.section-surface-block.dataset-builder-surface::before {
+    display: none;
+}
+
+.section-surface.dataset-builder-surface > div[data-testid="stVerticalBlock"] > *,
+.section-surface-block.dataset-builder-surface > * {
+    color: inherit;
+}
+
+.dataset-builder {
+    display: grid;
+    gap: 0.75rem;
+    font-family: "Fira Code", "JetBrains Mono", "SFMono-Regular", ui-monospace, monospace;
+    position: relative;
+}
+
+.dataset-builder__command-line {
+    display: flex;
+    align-items: baseline;
+    gap: 0.65rem;
+    font-size: 0.98rem;
+    line-height: 1.6;
+    color: #e2e8f0;
+    background: rgba(15, 23, 42, 0.55);
+    border: 1px solid rgba(94, 234, 212, 0.2);
+    border-radius: 12px;
+    padding: 0.6rem 0.85rem;
+    box-shadow: inset 0 0 0 1px rgba(2, 6, 23, 0.58);
+}
+
+.dataset-builder__prompt {
+    color: #22d3ee;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+}
+
+.dataset-builder__command {
+    color: #facc15;
+    letter-spacing: 0.02em;
+}
+
+.dataset-builder__value {
+    color: #38bdf8;
+    font-weight: 600;
+}
+
+.dataset-builder__meta {
+    margin-left: auto;
+    font-size: 0.78rem;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: rgba(125, 211, 252, 0.82);
+}
+
+.dataset-builder__comment {
+    color: #94a3b8;
+    font-size: 0.88rem;
+    line-height: 1.5;
+    padding-left: 1.85rem;
+}
+
+.dataset-builder__divider {
+    position: relative;
+    text-align: center;
+    margin: 0.6rem 0 0.2rem;
+    font-size: 0.78rem;
+    letter-spacing: 0.32em;
+    text-transform: uppercase;
+    color: rgba(125, 211, 252, 0.82);
+}
+
+.dataset-builder__divider::before {
+    content: "";
+    display: block;
+    height: 1px;
+    background: rgba(148, 163, 184, 0.24);
+    opacity: 0.7;
+    margin-bottom: 1.1rem;
+}
+
+.dataset-builder__divider span {
+    background: rgba(13, 17, 23, 0.95);
+    padding: 0 0.65rem;
+    position: relative;
+    top: -1.65rem;
+}
+
+.dataset-builder__form-shell {
+    position: relative;
+    background: rgba(2, 6, 23, 0.78);
+    border: 1px solid rgba(94, 234, 212, 0.2);
+    border-radius: 18px;
+    padding: 1.1rem 1.25rem 5rem;
+    display: grid;
+    gap: 1.05rem;
+    box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.52);
+}
+
+.dataset-builder__form-shell > div[data-testid="stVerticalBlock"],
+.dataset-builder__form-shell div[data-testid="stVerticalBlock"] > div[data-testid="stVerticalBlock"] {
+    margin-bottom: 0.4rem;
+}
+
+.dataset-builder__form-shell [data-testid="column"] > div[data-testid="stVerticalBlock"] {
+    margin-bottom: 0;
+}
+
+.dataset-builder-surface [data-testid="stRadio"] label,
+.dataset-builder-surface [data-testid="stSlider"] label,
+.dataset-builder-surface [data-testid="stSelectbox"] label,
+.dataset-builder-surface [data-testid="stNumberInput"] label,
+.dataset-builder-surface [data-testid="stSelectSlider"] label,
+.dataset-builder-surface [data-testid="stToggle"] label {
+    color: #cbd5f5;
+    font-size: 0.82rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.dataset-builder-surface [data-testid="stRadio"] div[role="radiogroup"] {
+    gap: 0.45rem;
+}
+
+.dataset-builder-surface [data-testid="stRadio"] label[data-baseweb="radio"] {
+    background: rgba(15, 23, 42, 0.68);
+    border-radius: 12px;
+    border: 1px solid rgba(148, 163, 184, 0.35);
+    padding: 0.35rem 0.75rem;
+    color: #e2e8f0;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.dataset-builder-surface [data-testid="stRadio"] label[data-baseweb="radio"]:hover {
+    border-color: rgba(56, 189, 248, 0.6);
+    box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.18);
+}
+
+.dataset-builder-surface [data-testid="stRadio"] input:checked + div {
+    background: linear-gradient(90deg, rgba(14, 165, 233, 0.15), rgba(8, 145, 178, 0.08));
+}
+
+.dataset-builder-surface [data-testid="stSlider"] label p,
+.dataset-builder-surface [data-testid="stSelectbox"] label p,
+.dataset-builder-surface [data-testid="stNumberInput"] label p,
+.dataset-builder-surface [data-testid="stSelectSlider"] label p,
+.dataset-builder-surface [data-testid="stToggle"] label p {
+    color: inherit;
+}
+
+.dataset-builder-surface [data-testid="stSlider"] [data-baseweb="slider"] {
+    margin-top: 0.4rem;
+}
+
+.dataset-builder-surface [data-testid="stSlider"] [data-baseweb="slider"] > div:nth-child(1) {
+    background: rgba(15, 23, 42, 0.65);
+    height: 6px;
+    border-radius: 999px;
+}
+
+.dataset-builder-surface [data-testid="stSlider"] [data-baseweb="slider"] > div:nth-child(2) {
+    background: linear-gradient(90deg, #0ea5e9, #22d3ee);
+}
+
+.dataset-builder-surface [data-testid="stSlider"] [role="slider"] {
+    width: 18px;
+    height: 18px;
+    background: #22d3ee;
+    border: 2px solid #0f172a;
+    box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.24);
+}
+
+.dataset-builder-surface [data-testid="stSlider"] [role="slider"]:hover {
+    box-shadow: 0 0 0 4px rgba(34, 211, 238, 0.28);
+}
+
+.dataset-builder-surface [data-baseweb="select"],
+.dataset-builder-surface [data-baseweb="input"] {
+    background: rgba(15, 23, 42, 0.72);
+    border-radius: 12px;
+    border: 1px solid rgba(148, 163, 184, 0.35);
+    color: #e2e8f0;
+}
+
+.dataset-builder-surface [data-baseweb="select"]:hover,
+.dataset-builder-surface [data-baseweb="input"]:hover {
+    border-color: rgba(56, 189, 248, 0.55);
+}
+
+.dataset-builder-surface [data-baseweb="select"] input,
+.dataset-builder-surface [data-baseweb="input"] input {
+    color: #e2e8f0;
+}
+
+.dataset-builder-surface [data-baseweb="select"] svg,
+.dataset-builder-surface [data-baseweb="input"] svg {
+    color: rgba(125, 211, 252, 0.86);
+}
+
+.dataset-builder-surface [data-testid="stToggle"] [role="switch"] {
+    background: rgba(30, 64, 175, 0.35);
+    border: 1px solid rgba(148, 163, 184, 0.42);
+}
+
+.dataset-builder-surface [data-testid="stToggle"] [role="switch"][aria-checked="true"] {
+    background: linear-gradient(90deg, #06b6d4, #38bdf8);
+    border-color: rgba(56, 189, 248, 0.82);
+}
+
+.dataset-builder-surface [data-testid="stToggle"] [role="switch"]::before {
+    background: #0b1120;
+}
+
+.dataset-builder-surface .cta-sticky {
+    background: linear-gradient(180deg, rgba(13, 17, 23, 0.98), rgba(2, 6, 23, 0.96));
+    border-top: 1px solid rgba(56, 189, 248, 0.32);
+    box-shadow: 0 -18px 36px rgba(8, 47, 73, 0.45);
+    padding-bottom: 0.85rem;
+}
+
+.dataset-builder-surface .cta-sticky [data-testid="stFormSubmitButton"] button {
+    background: linear-gradient(90deg, #0ea5e9, #22d3ee);
+    border: 1px solid rgba(14, 165, 233, 0.45);
+    color: #0f172a;
+    font-family: "Fira Code", "JetBrains Mono", ui-monospace, monospace;
+    font-weight: 700;
+}
+
+.dataset-builder-surface .cta-sticky > div[data-testid="column"]:nth-child(2) [data-testid="stFormSubmitButton"] button {
+    background: transparent;
+    color: #e2e8f0;
+    border: 1px solid rgba(148, 163, 184, 0.45);
+}
+
+.dataset-builder-surface .cta-sticky > div[data-testid="column"]:nth-child(2) [data-testid="stFormSubmitButton"] button:hover {
+    border-color: rgba(56, 189, 248, 0.6);
+    color: #bae6fd;
+}
+
 .hero-info-card {
     position: relative;
     display: flex;
