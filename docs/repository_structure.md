@@ -10,11 +10,11 @@ This document provides a guided tour of the repository so contributors can quick
 - `.git/` – Git metadata (objects, refs, hooks) that tracks version history; normally left untouched.
 - `.github/` – GitHub service configuration (see below).
 - `.devcontainer/` – Development container configuration for GitHub Codespaces or VS Code remote environments (see below).
-- `requirements.txt` – Application dependencies spanning Streamlit, scikit-learn, transformers, visualization, and language-detection libraries.【F:requirements.txt†L1-L12】
-- `streamlit_app.py` – Streamlit entry point that imports constants, core helpers, datasets, and modeling utilities to render each lifecycle stage of the lab.【F:streamlit_app.py†L1-L80】
+- `requirements.txt` – Application dependencies spanning Streamlit, scikit-learn, transformers, visualization, and language-detection libraries.【F:requirements.txt†L1-L14】
+- `streamlit_app.py` – Streamlit entry point that imports constants, core helpers, datasets, and modeling utilities to render each lifecycle stage of the lab.【F:streamlit_app.py†L1-L160】
 - `demistifai/` – Primary Python package with constants, dataset/model logic, high-level UI components, and nested subpackages for core utilities and styles (detailed below).
 - `demistifai/ui/` – Unified UI toolkit housing reusable components, layout helpers, primitive widgets, and static assets (detailed below).
-- `docs/` – Project documentation, including stage/component references and this structure map.【F:docs/stage_component_reference.md†L1-L39】
+- `docs/` – Project documentation, including stage/component references and this structure map.【F:docs/stage_component_reference.md†L1-L40】
 - `pages/` – Streamlit pages that house the stage-specific flows plugged into the main app (detailed below).
 
 ## Hidden configuration
@@ -44,7 +44,13 @@ This document provides a guided tour of the repository so contributors can quick
 - `command_grid.py` – Welcome-stage layout combining the animated terminal with a typing quote panel and responsive styling.【F:demistifai/ui/layout/command_grid.py†L1-L93】
 
 ### Primitives (`demistifai/ui/primitives/`)
-- `typing_quote.py` – Inline typing effect that animates and highlights a key EU AI Act sentence for the welcome panels.【F:demistifai/ui/primitives/typing_quote.py†L1-L120】
+- `__init__.py` – Re-exports frequently used primitives including EU AI quotes, mailbox tables, Nerd Mode toggles, and text helpers for easy import in the app shell.【F:demistifai/ui/primitives/__init__.py†L1-L24】
+- `mailbox.py` – Mailbox table and panel renderers that keep inbox/spam displays consistent across stages.【F:demistifai/ui/primitives/mailbox.py†L1-L68】
+- `popovers.py` – Lightweight guidance popover component used for inline tooltips and walkthrough callouts.【F:demistifai/ui/primitives/popovers.py†L1-L12】
+- `quotes.py` – EU AI Act quote helpers powering the welcome stage hero copy.【F:demistifai/ui/primitives/quotes.py†L1-L32】
+- `sections.py` – Section surface and Nerd Mode toggle primitives reused to style stage panels.【F:demistifai/ui/primitives/sections.py†L1-L64】
+- `text.py` – Shared text utilities such as `shorten_text` for trimming long strings in tables.【F:demistifai/ui/primitives/text.py†L1-L11】
+- `typing_quote.py` – Inline typing effect that animates and highlights Article 3 language for the welcome panels.【F:demistifai/ui/primitives/typing_quote.py†L1-L677】
 
 ### Assets (`demistifai/ui/assets/`)
 - `__init__.py` – Placeholder package for icons, SVGs, or CSS fragments as they are added.【F:demistifai/ui/assets/__init__.py†L1-L3】
@@ -68,14 +74,17 @@ This document provides a guided tour of the repository so contributors can quick
 - `audit.py` – Appends timestamped audit entries to the session log during the Use stage.【F:demistifai/core/audit.py†L1-L11】
 - `downloads.py` – Provides a Streamlit download link helper for exporting text artefacts.【F:demistifai/core/downloads.py†L1-L7】
 - `language.py` – Wraps optional language-detection, summarises language mix statistics, and renders chip-based summaries for train/test splits.【F:demistifai/core/language.py†L1-L80】
-- `nav.py` – Renders the stage top grid, manages previous/next navigation buttons, and keeps query parameters in sync with stage selection.【F:demistifai/core/nav.py†L1-L80】
+- `nav.py` – Renders the stage top grid, manages previous/next navigation buttons, and keeps query parameters in sync with stage selection.【F:demistifai/core/nav.py†L1-L160】
+- `navigation.py` – Synchronises active stage selection between query params, session state, and the renderer map and exposes the `activate_stage` helper used in `streamlit_app.py`.【F:demistifai/core/navigation.py†L1-L108】
 - `routing.py` – Computes recommended or automatic routing decisions based on autonomy level, predictions, and thresholds.【F:demistifai/core/routing.py†L1-L15】
 - `export.py` – Normalises batch processing logs into a pandas DataFrame ready for CSV/JSON export.【F:demistifai/core/export.py†L1-L13】
 - `validation.py` – Normalises dataset labels and verifies CSV schema requirements before imports.【F:demistifai/core/validation.py†L1-L20】
 - `pii.py` – Aggregates detected PII spans, formats chips/badges, applies policy-based replacements, and renders clean-up banners.【F:demistifai/core/pii.py†L1-L60】
 - `guardrails.py` – Detects guardrail signals (links, caps, money, urgency), renders badge markup, and exposes helper regexes for suspicious content.【F:demistifai/core/guardrails.py†L1-L80】
 - `embeddings.py` – Caches MiniLM embeddings for dataset texts via Streamlit caching to accelerate retraining flows.【F:demistifai/core/embeddings.py†L1-L11】
+- `cache.py` – Streamlit cache wrappers for dataset preparation, feature extraction, and model training payloads.【F:demistifai/core/cache.py†L1-L143】
 - `state.py` – Synchronises Nerd Mode "advanced knob" widget state, queues flash messages, and records pending updates in Streamlit session state.【F:demistifai/core/state.py†L1-L80】
+- `session_defaults.py` – Populates Streamlit session state with baseline datasets, guardrail knobs, and adaptiveness settings on first load.【F:demistifai/core/session_defaults.py†L1-L118】
 - `utils.py` – Houses rerun helper, suspicious link detection, money cue counters, caps ratio computation, and TLD checks shared across the app.【F:demistifai/core/utils.py†L1-L58】
 
 ### `demistifai/components/`
@@ -92,8 +101,14 @@ This document provides a guided tour of the repository so contributors can quick
 - `repository_structure.md` – (This file) describes the repository layout for new contributors.
 
 ## Stage pages (`pages/`)
-- `train_stage.py` – Full training stage implementation covering dataset prep callbacks, modeling workflows, interpretability panels, and narrative storytelling.【F:pages/train_stage.py†L168-L1871】
-- `train_helpers.py` – Shared utilities for the training stage, including feature explanations, meaning maps, and Altair selection helpers.【F:pages/train_helpers.py†L1-L80】
+- `welcome.py` – Intro stage UI with lifecycle hero surfaces, EU AI Act framing, and launch controls.【F:pages/welcome.py†L22-L337】
+- `overview.py` – Stage control room summarising system components, mission steps, and Nerd Mode insights.【F:pages/overview.py†L25-L755】
+- `data.py` – Prepare stage workflow covering dataset generation, linting, cleanup, and provenance snapshots.【F:pages/data.py†L84-L1849】
+- `train_stage.py` – Full training stage implementation covering dataset prep callbacks, modeling workflows, interpretability panels, and narrative storytelling.【F:pages/train_stage.py†L117-L2215】
+- `train_helpers.py` – Shared utilities for the training stage, including feature explanations, meaning maps, and Altair selection helpers.【F:pages/train_helpers.py†L1-L1857】
+- `evaluate.py` – Evaluation dashboards for metrics, threshold management, and governance summaries.【F:pages/evaluate.py†L44-L566】
+- `use.py` – Live classification console with autonomy toggles, adaptiveness, and routing diagnostics.【F:pages/use.py†L37-L489】
+- `model_card.py` – Transparency surface that renders the downloadable model card and supporting dataset context.【F:pages/model_card.py†L21-L141】
 - `__init__.py` – Package marker for stage modules.【F:pages/__init__.py†L1-L1】
 
 ### Shared helpers
