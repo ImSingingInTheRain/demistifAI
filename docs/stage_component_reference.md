@@ -22,12 +22,13 @@ numbers use `nl -ba` numbering (1-indexed) for quick cross-checks.
 | `intro` | `pages/welcome.py` | 22–337 | Full intro stage UI including lifecycle hero, EU AI Act framing, and launch controls. |
 | `overview` | `pages/overview.py` | 25–755 | Stage Control Room with EU AI Act framing, system snapshot/status, and mission walkthrough of the pipeline. |
 | `data` | `pages/data.py` | 84–1849 | Full Prepare stage UI covering dataset builder, linting feedback, PII cleanup, diagnostics, and CSV workflows. |
-| `train` | `pages/train_stage.py` | 117–2215 | Full training UI, entrypoint wrapper, nerd mode tooling, interpretability widgets, and background tasks. |
+| `train` | `pages/train_stage/page.py` | 1–1241 | Full training UI, entrypoint wrapper, nerd mode tooling, interpretability widgets, and background tasks. |
 | `evaluate` | `pages/evaluate.py` | 44–566 | Evaluation metrics, ROC / confusion matrix views, and governance summary. |
 | `classify` | `pages/use.py` | 37–489 | Live classification console, autonomy controls, adaptiveness, and routing copy. |
 | `model_card` | `pages/model_card.py` | 21–141 | Transparency summary, dataset snapshot details, and download affordances. |
 
 Supporting helpers for training live alongside the stage:
+- `pages/train_stage/` – package hosting callbacks, navigation, and visualization helpers for the Train stage.
 - `pages/train_helpers.py` – shared callbacks and utilities for the training workflow.
 - `pages/__init__.py` – central exports for stage renderers consumed by `streamlit_app.py`.
 
