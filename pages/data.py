@@ -62,6 +62,9 @@ from demistifai.dataset import (
 from demistifai.ui.components.data_review import (
     data_review_styles,
     dataset_balance_bar_html,
+    dataset_snapshot_active_badge,
+    dataset_snapshot_card_html,
+    dataset_snapshot_styles,
     edge_case_pairs_html,
     stratified_sample_cards_html,
 )
@@ -1353,7 +1356,9 @@ def render_data_stage(
             config_json = json.dumps(current_config, indent=2, sort_keys=True)
             current_summary = ss.get("dataset_summary") or compute_dataset_summary(ss.get("labeled", []))
             st.caption("Save immutable snapshots to reference in the model card and audits.")
-    
+
+            st.markdown(dataset_snapshot_styles(), unsafe_allow_html=True)
+
             total_rows = current_summary.get("total") if isinstance(current_summary, dict) else None
             if total_rows is None:
                 total_rows = len(ss.get("labeled", []))
@@ -1390,55 +1395,20 @@ def render_data_stage(
             timestamp_display = ss.get("dataset_last_built_at") or "—"
             seed_value = current_config.get("seed") if isinstance(current_config, dict) else None
             seed_display = seed_value if seed_value is not None else "—"
-    
-            summary_rows_html = [
-                "<div style='display:flex;justify-content:space-between;'><span>Rows</span><strong>{}</strong></div>".format(
-                    html.escape(str(rows_display))
-                ),
-                "<div style='display:flex;justify-content:space-between;'><span>Spam share</span><strong>{}</strong></div>".format(
-                    html.escape(str(spam_share_display))
-                ),
+
+            summary_rows = [
+                ("Rows", rows_display),
+                ("Spam share", spam_share_display),
             ]
             if edge_display is not None:
-                summary_rows_html.append(
-                    "<div style='display:flex;justify-content:space-between;'><span>Edge cases</span><strong>{}</strong></div>".format(
-                        html.escape(str(edge_display))
-                    )
-                )
-    
-            fingerprint_rows_html = [
-                "<div style='display:flex;justify-content:space-between;'><span>Short hash</span><strong>{}</strong></div>".format(
-                    html.escape(str(snapshot_hash))
-                ),
-                "<div style='display:flex;justify-content:space-between;'><span>Timestamp</span><strong>{}</strong></div>".format(
-                    html.escape(str(timestamp_display))
-                ),
-                "<div style='display:flex;justify-content:space-between;'><span>Seed</span><strong>{}</strong></div>".format(
-                    html.escape(str(seed_display))
-                ),
+                summary_rows.append(("Edge cases", edge_display))
+            fingerprint_rows = [
+                ("Short hash", snapshot_hash),
+                ("Timestamp", timestamp_display),
+                ("Seed", seed_display),
             ]
-    
-            card_html = """
-                <div style="border:1px solid #E5E7EB;border-radius:12px;padding:1rem 1.25rem;margin-bottom:0.75rem;">
-                    <div style="display:flex;gap:1.5rem;flex-wrap:wrap;">
-                        <div style="flex:1 1 240px;min-width:220px;">
-                            <div style="font-weight:600;font-size:0.95rem;margin-bottom:0.6rem;">Summary</div>
-                            <div style="display:flex;flex-direction:column;gap:0.4rem;font-size:0.9rem;">
-                                {summary_rows}
-                            </div>
-                        </div>
-                        <div style="flex:1 1 240px;min-width:220px;">
-                            <div style="font-weight:600;font-size:0.95rem;margin-bottom:0.6rem;">Fingerprint</div>
-                            <div style="display:flex;flex-direction:column;gap:0.4rem;font-size:0.9rem;">
-                                {fingerprint_rows}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            """.format(
-                summary_rows="".join(summary_rows_html),
-                fingerprint_rows="".join(fingerprint_rows_html),
-            )
+
+            card_html = dataset_snapshot_card_html(summary_rows, fingerprint_rows)
             st.markdown(card_html, unsafe_allow_html=True)
     
             with st.expander("View JSON", expanded=False):
@@ -1481,14 +1451,9 @@ def render_data_stage(
                     name_col, fp_col, ts_col, rows_col, action_col = st.columns([3, 2.2, 2.2, 1.4, 1.2])
                     is_active = snap.get("id") == ss.get("active_dataset_snapshot")
                     name_value = snap.get("name") or "(unnamed snapshot)"
-                    badge_html = ""
-                    if is_active:
-                        badge_html = (
-                            "<span style='margin-left:0.35rem;background:#DCFCE7;color:#166534;font-size:0.7rem;font-weight:600;"
-                            "padding:2px 8px;border-radius:999px;vertical-align:middle;'>Active</span>"
-                        )
+                    badge_html = dataset_snapshot_active_badge(is_active)
                     name_col.markdown(
-                        "<div style='display:flex;align-items:center;gap:0.25rem;'><span style='font-weight:600;'>{}</span>{}</div>".format(
+                        "<div class='dataset-snapshot-name'><span class='dataset-snapshot-name__text'>{}</span>{}</div>".format(
                             html.escape(name_value),
                             badge_html,
                         ),
