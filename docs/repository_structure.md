@@ -13,7 +13,7 @@ This document provides a guided tour of the repository so contributors can quick
 - `requirements.txt` – Application dependencies spanning Streamlit, scikit-learn, transformers, visualization, and language-detection libraries.【F:requirements.txt†L1-L14】
 - `streamlit_app.py` – Streamlit entry point that imports constants, core helpers, datasets, and modeling utilities to render each lifecycle stage of the lab.【F:streamlit_app.py†L1-L160】
 - `demistifai/` – Primary Python package with constants, dataset/model logic, high-level UI components, and nested subpackages for core utilities and styles (detailed below).
-- `demistifai/ui/` – Unified UI toolkit housing reusable components, layout helpers, primitive widgets, and static assets (detailed below).
+- `demistifai/ui/` – Unified UI toolkit housing reusable components, primitive widgets, and static assets (detailed below).
 - `docs/` – Project documentation, including stage/component references and this structure map.【F:docs/stage_component_reference.md†L1-L40】
 - `pages/` – Streamlit pages that house the stage-specific flows plugged into the main app (detailed below).
 
@@ -39,9 +39,6 @@ This document provides a guided tour of the repository so contributors can quick
   - `train.py` – Stage-specific animation narrating model training, feature importance, and calibration steps.【F:demistifai/ui/components/terminal/train.py†L1-L214】
   - `evaluate.py` – Evaluation-focused script covering metrics, curves, and Nerd Mode guidance.【F:demistifai/ui/components/terminal/evaluate.py†L1-L210】
   - `use.py` – Inference stage terminal outlining routing decisions, oversight hooks, and operational prompts.【F:demistifai/ui/components/terminal/use.py†L1-L213】
-
-### Layout (`demistifai/ui/layout/`)
-- `command_grid.py` – Welcome-stage layout combining the animated terminal with a typing quote panel and responsive styling.【F:demistifai/ui/layout/command_grid.py†L1-L93】
 
 ### Primitives (`demistifai/ui/primitives/`)
 - `__init__.py` – Re-exports frequently used primitives including EU AI quotes, mailbox tables, Nerd Mode toggles, and text helpers for easy import in the app shell.【F:demistifai/ui/primitives/__init__.py†L1-L24】
