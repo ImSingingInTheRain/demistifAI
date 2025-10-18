@@ -61,9 +61,8 @@ This document provides a guided tour of the repository so contributors can quick
 - `modeling.py` – End-to-end modeling toolkit providing feature engineering, embedding support, hybrid logistic model definitions, evaluation helpers, and interpretability utilities.【F:demistifai/modeling.py†L1-L40】
 
 ### `demistifai/config/`
-- `__init__.py` – Re-exports stage metadata, theme CSS, and token policies sourced from the canonical constants module.【F:demistifai/config/__init__.py†L1-L15】
+- `__init__.py` – Re-exports stage metadata, theme CSS (via `demistifai.styles.APP_THEME_CSS`), and token policies so callers can continue importing from `demistifai.config`.【F:demistifai/config/__init__.py†L1-L16】
 - `app.py` – Provides stage listings, lookup tables, and urgency terminology for navigation-aware helpers.【F:demistifai/config/app.py†L1-L8】
-- `styles.py` – Exposes the shared Streamlit theme CSS token for reuse in UI components.【F:demistifai/config/styles.py†L1-L7】
 - `tokens.py` – Centralises PII replacement policies and chip display labels consumed by linting helpers.【F:demistifai/config/tokens.py†L1-L7】
 
 ### `demistifai/core/`
