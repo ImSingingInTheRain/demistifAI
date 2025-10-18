@@ -5,8 +5,8 @@ import streamlit as st
 import streamlit.components.v1 as components
 from functools import partial
 
+from demistifai.styles import APP_THEME_CSS
 from demistifai.constants import (
-    APP_THEME_CSS,
     STAGE_TEMPLATE_CSS,
     STAGES,
 )
