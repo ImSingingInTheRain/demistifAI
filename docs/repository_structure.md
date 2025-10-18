@@ -103,13 +103,15 @@ This document provides a guided tour of the repository so contributors can quick
 
 ## Documentation (`docs/`)
 - `stage_component_reference.md` – Maintains stage line ranges in `streamlit_app.py`, maps supporting modules, and sets expectations for keeping the reference current.【F:docs/stage_component_reference.md†L1-L39】
+- `streamlit_nav_bar.md` – Explains how to embed the `streamlit-navigation-bar` component, covering API usage, styling hooks, optional behaviors, and recommended project structure for multi-page apps.【F:docs/streamlit_nav_bar.md†L1-L128】【F:docs/streamlit_nav_bar.md†L130-L201】
 - `repository_structure.md` – (This file) describes the repository layout for new contributors.
 
 ## Stage pages (`pages/`)
 - `welcome.py` – Intro stage UI with lifecycle hero surfaces, EU AI Act framing, and launch controls.【F:pages/welcome.py†L22-L337】
 - `overview.py` – Stage control room summarising system components, mission steps, and Nerd Mode insights.【F:pages/overview.py†L25-L755】
-- `data.py` – Prepare stage workflow covering dataset generation, linting, cleanup, and provenance snapshots.【F:pages/data.py†L84-L1849】
-- `train_stage.py` – Full training stage implementation covering dataset prep callbacks, modeling workflows, interpretability panels, and narrative storytelling.【F:pages/train_stage.py†L117-L2215】
+- `data.py` – Prepare stage workflow covering dataset generation, linting, cleanup, and provenance snapshots.【F:pages/data.py†L81-L1503】
+- `train_stage/page.py` – Full training stage implementation covering dataset prep callbacks, modeling workflows, interpretability panels, and narrative storytelling.【F:pages/train_stage/page.py†L1-L1241】
+- `train_stage/` – Package consolidating Train stage callbacks, navigation helpers, and visualization utilities now shared across the page implementation.【F:pages/train_stage/__init__.py†L1-L5】【F:pages/train_stage/callbacks.py†L1-L69】【F:pages/train_stage/navigation.py†L1-L32】
 - `train_helpers.py` – Shared utilities for the training stage, including feature explanations, meaning maps, and Altair selection helpers.【F:pages/train_helpers.py†L1-L1857】
 - `evaluate.py` – Evaluation dashboards for metrics, threshold management, and governance summaries.【F:pages/evaluate.py†L44-L566】
 - `use.py` – Live classification console with autonomy toggles, adaptiveness, and routing diagnostics.【F:pages/use.py†L37-L489】
