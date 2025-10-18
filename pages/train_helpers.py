@@ -12,12 +12,17 @@ import streamlit as st
 
 from sklearn.decomposition import PCA
 
+from demistifai.constants import CLASSES
 from demistifai.modeling import (
     cache_train_embeddings,
     combine_text,
     embedding_backend_info,
     numeric_feature_contributions,
 )
+
+
+CLASS_DOMAIN = tuple(CLASSES)
+CLASS_SET = set(CLASSES)
 
 
 FEATURE_REASON_SPAM = {
@@ -890,7 +895,7 @@ def _build_borderline_guardrail_chart(
     if borderline_df.empty:
         return None
 
-    color_scale = alt.Scale(domain=["spam", "safe"], range=["#ef4444", "#3b82f6"])
+    color_scale = alt.Scale(domain=CLASS_DOMAIN, range=["#ef4444", "#3b82f6"])
     tooltip_fields: List[Any] = []
     if "subject_tooltip" in df.columns:
         tooltip_fields.append(alt.Tooltip("subject_tooltip:N", title="Subject"))
@@ -1000,7 +1005,7 @@ def _prepare_meaning_map(
 ) -> tuple[Optional[pd.DataFrame], Dict[str, Any]]:
     rows: List[Tuple[int, str, str, str]] = []
     for idx, (title, body, label) in enumerate(zip(titles, bodies, labels)):
-        if label not in {"spam", "safe"}:
+        if label not in CLASS_SET:
             continue
         rows.append((idx, title or "", body or "", label))
 
@@ -1339,7 +1344,7 @@ def _build_meaning_map_chart(
         if column not in df.columns:
             df[column] = default
 
-    color_scale = alt.Scale(domain=["spam", "safe"], range=["#ef4444", "#3b82f6"])
+    color_scale = alt.Scale(domain=CLASS_DOMAIN, range=["#ef4444", "#3b82f6"])
     hover = _make_selection_point(["plot_index"], on="mouseover", empty="none")
     select = _make_selection_point(["plot_index"], on="click", empty="none")
     combined_selection = _combine_selections(select, hover)
@@ -1424,7 +1429,7 @@ def _build_meaning_map_chart(
         y="y:Q",
         color=alt.Color(
             "label:N",
-            scale=alt.Scale(domain=["spam", "safe"], range=["#fecaca", "#bfdbfe"]),
+            scale=alt.Scale(domain=CLASS_DOMAIN, range=["#fecaca", "#bfdbfe"]),
             legend=None,
         ),
     )
