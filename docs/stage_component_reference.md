@@ -21,7 +21,7 @@ numbers use `nl -ba` numbering (1-indexed) for quick cross-checks.
 | --- | --- | --- | --- |
 | `intro` | `pages/welcome.py` | 22–337 | Full intro stage UI including lifecycle hero, EU AI Act framing, and launch controls. |
 | `overview` | `pages/overview.py` | 25–755 | Stage Control Room with EU AI Act framing, system snapshot/status, and mission walkthrough of the pipeline. |
-| `data` | `pages/data.py` | 84–1849 | Full Prepare stage UI covering dataset builder, linting feedback, PII cleanup, diagnostics, and CSV workflows. |
+| `data` | `pages/data/page.py` | 1–194 | Orchestrates the Prepare stage and delegates to builder (`pages/data/builder.py`), review (`pages/data/review.py`), and PII (`pages/data/pii.py`) helpers. |
 | `train` | `pages/train_stage/page.py` | 1–1241 | Full training UI, entrypoint wrapper, nerd mode tooling, interpretability widgets, and background tasks. |
 | `evaluate` | `pages/evaluate.py` | 44–566 | Evaluation metrics, ROC / confusion matrix views, and governance summary. |
 | `classify` | `pages/use.py` | 37–489 | Live classification console, autonomy controls, adaptiveness, and routing copy. |
@@ -36,7 +36,7 @@ Supporting helpers for training live alongside the stage:
 - **`streamlit_app.py`** – Entry point; orchestrates layout, stage switching, and cross-stage session state.
 - **`demistifai/core/navigation.py`** – Synchronizes stage selection across state containers and exposes `activate_stage` for programmatic jumps.
 - **`demistifai/core/nav.py`** – Hosts the stage top grid renderer plus next/previous controls that were migrated out of the control room component.
-- **`pages/data.py`** – Prepare/Data stage UI, including dataset builder, PII cleanup, and diagnostics tooling.
+- **`pages/data/page.py`** – Prepare/Data stage orchestrator delegating to builder, review, and PII modules under `pages/data/`.
 - **`pages/use.py`** – Use/Classify stage UI handling batch processing, autonomy, and adaptiveness workflows.
 - **`demistifai/constants.py`** – Stage metadata, icons, copy blocks, and shared CSS snippets.
 - **`demistifai/dataset.py`** – Dataset generation, CSV I/O, and linting utilities for Prepare/Data stages.

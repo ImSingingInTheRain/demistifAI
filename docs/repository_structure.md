@@ -109,7 +109,7 @@ This document provides a guided tour of the repository so contributors can quick
 ## Stage pages (`pages/`)
 - `welcome.py` – Intro stage UI with lifecycle hero surfaces, EU AI Act framing, and launch controls.【F:pages/welcome.py†L22-L337】
 - `overview.py` – Stage control room summarising system components, mission steps, and Nerd Mode insights.【F:pages/overview.py†L25-L755】
-- `data.py` – Prepare stage workflow covering dataset generation, linting, cleanup, and provenance snapshots.【F:pages/data.py†L81-L1503】
+- `data/` – Prepare stage package with the orchestrator (`page.py`) and supporting builder, review, and PII modules.【F:pages/data/page.py†L1-L194】【F:pages/data/builder.py†L1-L508】【F:pages/data/review.py†L1-L865】【F:pages/data/pii.py†L1-L201】
 - `train_stage/page.py` – Full training stage implementation covering dataset prep callbacks, modeling workflows, interpretability panels, and narrative storytelling.【F:pages/train_stage/page.py†L1-L1241】
 - `train_stage/` – Package consolidating Train stage callbacks, navigation helpers, and visualization utilities now shared across the page implementation.【F:pages/train_stage/__init__.py†L1-L5】【F:pages/train_stage/callbacks.py†L1-L69】【F:pages/train_stage/navigation.py†L1-L32】
 - `train_helpers.py` – Shared utilities for the training stage, including feature explanations, meaning maps, and Altair selection helpers.【F:pages/train_helpers.py†L1-L1857】
