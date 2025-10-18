@@ -22,13 +22,13 @@ numbers use `nl -ba` numbering (1-indexed) for quick cross-checks.
 | `intro` | `pages/welcome.py` | 22–337 | Full intro stage UI including lifecycle hero, EU AI Act framing, and launch controls. |
 | `overview` | `pages/overview.py` | 25–755 | Stage Control Room with EU AI Act framing, system snapshot/status, and mission walkthrough of the pipeline. |
 | `data` | `pages/data/page.py` | 1–194 | Orchestrates the Prepare stage and delegates to builder (`pages/data/builder.py`), review (`pages/data/review.py`), and PII (`pages/data/pii.py`) helpers. |
-| `train` | `pages/train_stage/page.py` | 1–1241 | Full training UI, entrypoint wrapper, nerd mode tooling, interpretability widgets, and background tasks. |
+| `train` | `pages/train_stage/page.py` | 1–307 | Orchestrates the Train stage and delegates to `panels.py`, `guardrails.py`, `results.py`, and `state.py` for UI panels, guardrail controls, results, and state management. |
 | `evaluate` | `pages/evaluate.py` | 44–566 | Evaluation metrics, ROC / confusion matrix views, and governance summary. |
 | `classify` | `pages/use.py` | 37–489 | Live classification console, autonomy controls, adaptiveness, and routing copy. |
 | `model_card` | `pages/model_card.py` | 21–141 | Transparency summary, dataset snapshot details, and download affordances. |
 
 Supporting helpers for training live alongside the stage:
-- `pages/train_stage/` – package hosting callbacks (`callbacks.py`), navigation helpers (`navigation.py`), and visualization utilities (`visualizations.py`) that support `render_train_stage_page`.
+- `pages/train_stage/` – package hosting callbacks (`callbacks.py`), navigation helpers (`navigation.py`), state helpers (`state.py`), launchpad panels (`panels.py`), guardrail controls (`guardrails.py`), results rendering (`results.py`), and visualization utilities (`visualizations.py`) that support `render_train_stage_page`.
 - `pages/train_stage/helpers/` – grouped training helpers split by concern (`meaning_map.py`, `numeric_clues.py`, `guardrails.py`, etc.) for the Train stage workflow.
 - `pages/__init__.py` – central exports for stage renderers consumed by `streamlit_app.py`.
 
