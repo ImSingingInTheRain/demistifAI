@@ -5,6 +5,7 @@ import json
 import re
 from collections import Counter
 from datetime import datetime
+from pathlib import Path
 from typing import Any, Callable, ContextManager, Dict, List, Optional
 
 import altair as alt
@@ -13,9 +14,10 @@ import pandas as pd
 import streamlit as st
 from streamlit.delta_generator import DeltaGenerator
 
+__path__ = [str(Path(__file__).with_name("data"))]
+
 from demistifai.components.pii_indicators import render_pii_indicators
 from demistifai.constants import CLASSES, STAGE_BY_KEY
-from demistifai.core.cache import cached_prepare
 from demistifai.core.dataset import _evaluate_dataset_health
 from demistifai.core.embeddings import _compute_cached_embeddings
 from demistifai.core.nav import render_stage_top_grid
@@ -29,9 +31,6 @@ from demistifai.core.pii import (
 )
 from demistifai.core.state import (
     ensure_state,
-    hash_dataframe,
-    hash_dict,
-    validate_invariants,
     _push_data_stage_flash,
     _set_advanced_knob_state,
 )
@@ -41,14 +40,13 @@ from demistifai.core.utils import (
     _count_suspicious_links,
     streamlit_rerun,
 )
-from demistifai.core.validation import VALID_LABELS, _normalize_label, _validate_csv_schema
+from demistifai.core.validation import VALID_LABELS
 from demistifai.dataset import (
     ATTACHMENT_MIX_PRESETS,
     DEFAULT_ATTACHMENT_MIX,
     DEFAULT_DATASET_CONFIG,
     DatasetConfig,
     STARTER_LABELED,
-    build_dataset_from_config,
     compute_dataset_hash,
     compute_dataset_summary,
     dataset_delta_story,
@@ -56,8 +54,7 @@ from demistifai.dataset import (
     explain_config_change,
     lint_dataset,
     lint_dataset_detailed,
-    lint_text_spans,
-    starter_dataset_copy,
+    lint_text_spans
 )
 from demistifai.ui.components.data_review import (
     data_review_styles,
@@ -70,24 +67,15 @@ from demistifai.ui.components.data_review import (
 )
 from demistifai.ui.components.terminal.data_prep import render_prepare_terminal
 
-
-def _clear_dataset_preview_state() -> None:
-    ss = st.session_state
-    ss["dataset_preview"] = None
-    ss["dataset_preview_config"] = None
-    ss["dataset_preview_summary"] = None
-    ss["dataset_preview_lint"] = None
-    ss["dataset_manual_queue"] = None
-    ss["dataset_controls_open"] = False
-
-
-def _discard_preview() -> None:
-    ss = st.session_state
-    _clear_dataset_preview_state()
-    ss["dataset_compare_delta"] = None
-    ss["last_dataset_delta_story"] = explain_config_change(
-        ss.get("dataset_config", DEFAULT_DATASET_CONFIG)
-    )
+from pages.data.dataset_io import (
+    clear_dataset_preview_state,
+    discard_preview,
+    generate_preview_from_config,
+    prepare_records,
+    prepare_uploaded_csv,
+    reset_dataset_to_baseline,
+)
+from pages.data.ui import build_compare_panel_html, cli_command_line, cli_comment
 
 
 def render_data_stage(
@@ -138,51 +126,14 @@ def render_data_stage(
         )
 
     def _prepare_records(records: Any, *, invalidate: bool = True) -> None:
-        params = dict(data_state.get("params") or {})
-        data_state["params"] = params
-
-        if invalidate:
-            _invalidate_downstream()
-
-        if records is None:
-            data_state["raw"] = None
-            data_state["prepared"] = pd.DataFrame()
-            data_state["n_rows"] = 0
-            data_state["hash"] = ""
-            validate_invariants(s)
-            _drain_toasts()
-            return
-
-        if isinstance(records, pd.DataFrame):
-            raw_df = records.copy(deep=True)
-        else:
-            try:
-                raw_df = pd.DataFrame(records)
-            except Exception as exc:  # pragma: no cover - defensive conversion
-                st.error(f"Failed to coerce dataset into a dataframe: {exc}")
-                return
-
-        try:
-            prepared_df = cached_prepare(
-                raw_df,
-                params,
-                lib_versions={"pandas": pd.__version__},
-            )
-        except Exception as exc:  # pragma: no cover - defensive for preprocessing issues
-            st.error(f"Failed to prepare dataset: {exc}")
-            return
-
-        data_state["raw"] = raw_df.copy(deep=True)
-        data_state["prepared"] = prepared_df.copy(deep=True)
-        data_state["n_rows"] = int(prepared_df.shape[0])
-        data_state["hash"] = hash_dict(
-            {
-                "prep": hash_dataframe(prepared_df),
-                "params": params,
-            }
+        prepare_records(
+            records,
+            data_state=data_state,
+            state_root=s,
+            drain_toasts=_drain_toasts,
+            invalidate_callback=_invalidate_downstream,
+            invalidate=invalidate,
         )
-        validate_invariants(s)
-        _drain_toasts()
 
     if data_state.get("prepared") is None:
         _prepare_records(ss.get("labeled"), invalidate=False)
@@ -202,161 +153,8 @@ def render_data_stage(
     if not delta_text:
         delta_text = explain_config_change(ss.get("dataset_config", DEFAULT_DATASET_CONFIG))
 
-    def _generate_preview_from_config(config: DatasetConfig) -> Dict[str, Any]:
-        dataset_rows = build_dataset_from_config(config)
-        preview_summary = compute_dataset_summary(dataset_rows)
-        lint_counts = lint_dataset(dataset_rows)
-
-        manual_df = pd.DataFrame(dataset_rows[: min(len(dataset_rows), 200)])
-        if not manual_df.empty:
-            manual_df.insert(0, "include", True)
-
-        ss["dataset_preview"] = dataset_rows
-        ss["dataset_preview_config"] = config
-        ss["dataset_preview_summary"] = preview_summary
-        ss["dataset_preview_lint"] = lint_counts
-        ss["dataset_manual_queue"] = manual_df
-        ss["dataset_compare_delta"] = dataset_summary_delta(current_summary, preview_summary)
-        ss["last_dataset_delta_story"] = dataset_delta_story(ss["dataset_compare_delta"])
-        ss["dataset_has_generated_once"] = True
-
-        st.success("Dataset generated — scroll to **Review** and curate data before committing.")
-        explanation = explain_config_change(config, ss.get("dataset_config", DEFAULT_DATASET_CONFIG))
-
-
-        return preview_summary
-
-    def _build_compare_panel_html(
-        base_summary: Optional[Dict[str, Any]],
-        target_summary: Optional[Dict[str, Any]],
-        delta_summary: Optional[Dict[str, Any]],
-        delta_story_text: str,
-    ) -> str:
-        panel_items: list[tuple[str, str, str, str]] = []
-        spam_share_delta_pp: Optional[float] = None
-
-        def _add_panel_item(
-            label: str,
-            value: Any,
-            *,
-            unit: str = "",
-            decimals: Optional[int] = None,
-        ) -> None:
-            if value is None:
-                return
-            try:
-                numeric_value = float(value)
-            except (TypeError, ValueError):
-                return
-            if abs(numeric_value) < 1e-6:
-                return
-            arrow = "▲" if numeric_value > 0 else "▼"
-            arrow_class = "delta-arrow--up" if numeric_value > 0 else "delta-arrow--down"
-            abs_value = abs(numeric_value)
-            if decimals is not None:
-                value_str = f"{abs_value:.{decimals}f}".rstrip("0").rstrip(".")
-            else:
-                if abs(abs_value - round(abs_value)) < 1e-6:
-                    value_str = f"{int(round(abs_value))}"
-                else:
-                    value_str = f"{abs_value:.2f}".rstrip("0").rstrip(".")
-            if unit:
-                value_str = f"{value_str}{unit}"
-            panel_items.append((label, arrow, arrow_class, value_str))
-
-        if base_summary and target_summary:
-            try:
-                base_ratio = float(base_summary.get("spam_ratio") or 0.0)
-                target_ratio = float(target_summary.get("spam_ratio") or 0.0)
-                spam_share_delta_pp = (target_ratio - base_ratio) * 100.0
-            except (TypeError, ValueError):
-                spam_share_delta_pp = None
-            if spam_share_delta_pp is not None and abs(spam_share_delta_pp) >= 0.1:
-                _add_panel_item("Spam share", spam_share_delta_pp, unit="pp", decimals=1)
-
-        if delta_summary:
-            _add_panel_item("Examples", delta_summary.get("total"))
-            _add_panel_item(
-                "Avg suspicious links",
-                delta_summary.get("avg_susp_links"),
-                decimals=2,
-            )
-            _add_panel_item("Suspicious TLD hits", delta_summary.get("suspicious_tlds"))
-            _add_panel_item("Money cues", delta_summary.get("money_mentions"))
-            _add_panel_item("Attachment lures", delta_summary.get("attachment_lures"))
-
-        effect_hint = ""
-        if spam_share_delta_pp is not None and abs(spam_share_delta_pp) >= 0.1:
-            if spam_share_delta_pp > 0:
-                effect_hint = (
-                    "Higher spam share → recall ↑, precision may ↓; adjust threshold later in Evaluate."
-                )
-            else:
-                effect_hint = (
-                    "Lower spam share → precision ↑, recall may ↓; consider rebalancing spam examples before training."
-                )
-        elif delta_summary:
-            link_delta = float(delta_summary.get("avg_susp_links") or 0.0)
-            tld_delta = float(delta_summary.get("suspicious_tlds") or 0.0)
-            money_delta = float(delta_summary.get("money_mentions") or 0.0)
-            attachment_delta = float(delta_summary.get("attachment_lures") or 0.0)
-            if link_delta > 0:
-                effect_hint = "More suspicious links → phishing recall should improve via URL cues."
-            elif link_delta < 0:
-                effect_hint = "Fewer suspicious links → URL-heavy spam might slip by; monitor precision/recall."
-            elif tld_delta > 0:
-                effect_hint = "Suspicious TLD hits increased — domain heuristics strengthen spam recall."
-            elif tld_delta < 0:
-                effect_hint = "Suspicious TLD hits dropped — rely more on text patterns and validate in Evaluate."
-            elif money_delta > 0:
-                effect_hint = "Money cues rose — expect better coverage on payment scams."
-            elif money_delta < 0:
-                effect_hint = "Money cues fell — finance-themed recall could dip."
-            elif attachment_delta > 0:
-                effect_hint = "Attachment lures increased — the model leans on risky file signals."
-            elif attachment_delta < 0:
-                effect_hint = "Attachment lures decreased — detection may hinge on text clues."
-
-        if not effect_hint:
-            if panel_items:
-                effect_hint = "Changes logged — move to Evaluate to measure the impact."
-            else:
-                effect_hint = "No changes yet—adjust and preview."
-
-        panel_html = ["<div class='dataset-delta-panel'>", "<h5>Compare datasets</h5>"]
-        if panel_items:
-            panel_html.append("<div class='dataset-delta-panel__items'>")
-            for label, arrow, arrow_class, value_str in panel_items:
-                panel_html.append(
-                    "<div class='dataset-delta-panel__item'><span>{label}</span>"
-                    "<span class='delta-arrow {cls}'>{arrow}{value}</span></div>".format(
-                        label=html.escape(label),
-                        cls=arrow_class,
-                        arrow=html.escape(arrow),
-                        value=html.escape(value_str),
-                    )
-                )
-            panel_html.append("</div>")
-        else:
-            panel_html.append(
-                "<p class='dataset-delta-panel__story'>After you generate a dataset, you can tweak the configuration and preview here how these impact your data.</p>"
-            )
-            effect_hint = ""
-
-        if effect_hint:
-            panel_html.append(
-                "<div class='dataset-delta-panel__hint'>{}</div>".format(
-                    html.escape(effect_hint)
-                )
-            )
-        if delta_story_text:
-            panel_html.append(
-                "<div class='dataset-delta-panel__story'>{}</div>".format(
-                    html.escape(delta_story_text)
-                )
-            )
-        panel_html.append("</div>")
-        return "".join(panel_html)
+    if data_state.get("prepared") is None:
+        _prepare_records(ss.get("labeled"), invalidate=False)
 
     nerd_mode_data_enabled = bool(ss.get("nerd_mode_data"))
     delta_summary: Optional[Dict[str, Any]] = ss.get("dataset_compare_delta")
@@ -380,35 +178,13 @@ def render_data_stage(
         nonlocal base_summary_for_delta, target_summary_for_delta, delta_summary, compare_panel_html, preview_clicked, reset_clicked, delta_text, current_summary
         with slot:
             with section_surface("dataset-builder-surface"):
-                def _cli_command_line(command: str, *, meta: Optional[str] = None, unsafe: bool = False) -> str:
-                    command_html = command if unsafe else html.escape(command)
-                    meta_html = (
-                        f"<span class='dataset-builder__meta'>{html.escape(meta)}</span>"
-                        if meta
-                        else ""
-                    )
-                    return (
-                        "<div class='dataset-builder__command-line'>"
-                        "<span class='dataset-builder__prompt'>$</span>"
-                        f"<span class='dataset-builder__command'>{command_html}</span>"
-                        f"{meta_html}"
-                        "</div>"
-                    )
-
-                def _cli_comment(text: str) -> str:
-                    return (
-                        "<div class='dataset-builder__comment'># {}</div>".format(
-                            html.escape(text)
-                        )
-                    )
-
                 st.markdown("<div class='dataset-builder'>", unsafe_allow_html=True)
                 st.markdown(
-                    _cli_command_line("dataset.builder --interactive"),
+                    cli_command_line("dataset.builder --interactive"),
                     unsafe_allow_html=True,
                 )
                 st.markdown(
-                    _cli_comment(
+                    cli_comment(
                         "Tune dataset volume, class balance, and adversarial knobs before generating a preview."
                     ),
                     unsafe_allow_html=True,
@@ -461,7 +237,7 @@ def render_data_stage(
                         )
                     with base_command_col:
                         base_command_col.markdown(
-                            _cli_command_line(
+                            cli_command_line(
                                 "dataset.config --size <span class='dataset-builder__value'>{}</span>".format(
                                     html.escape(str(dataset_size))
                                 ),
@@ -470,7 +246,7 @@ def render_data_stage(
                             unsafe_allow_html=True,
                         )
                         base_command_col.markdown(
-                            _cli_comment(
+                            cli_comment(
                                 "Preset sizes illustrate how data volume influences learning (guarded ≤500)."
                             ),
                             unsafe_allow_html=True,
@@ -491,7 +267,7 @@ def render_data_stage(
                         )
                     with spam_command_col:
                         spam_command_col.markdown(
-                            _cli_command_line(
+                            cli_command_line(
                                 "dataset.config --spam-share <span class='dataset-builder__value'>{}%</span>".format(
                                     html.escape(str(spam_share_pct))
                                 ),
@@ -500,7 +276,7 @@ def render_data_stage(
                             unsafe_allow_html=True,
                         )
                         spam_command_col.markdown(
-                            _cli_comment(
+                            cli_comment(
                                 "Adjust prevalence to explore bias/recall trade-offs."
                             ),
                             unsafe_allow_html=True,
@@ -520,7 +296,7 @@ def render_data_stage(
                         )
                     with edge_command_col:
                         edge_command_col.markdown(
-                            _cli_command_line(
+                            cli_command_line(
                                 "dataset.config --edge-cases <span class='dataset-builder__value'>{}</span>".format(
                                     html.escape(str(edge_cases))
                                 ),
@@ -529,7 +305,7 @@ def render_data_stage(
                             unsafe_allow_html=True,
                         )
                         edge_command_col.markdown(
-                            _cli_comment(
+                            cli_comment(
                                 "Surface tricky look-alikes to test your preview set."
                             ),
                             unsafe_allow_html=True,
@@ -541,7 +317,7 @@ def render_data_stage(
                             unsafe_allow_html=True,
                         )
                         st.markdown(
-                            _cli_comment(
+                            cli_comment(
                                 "Fine-tune suspicious links, domains, tone, attachments, randomness, and demos before generating a preview."
                             ),
                             unsafe_allow_html=True,
@@ -559,7 +335,7 @@ def render_data_stage(
                                 label_visibility="collapsed",
                             )
                             st.markdown(
-                                _cli_command_line(
+                                cli_command_line(
                                     "dataset.advanced --links <span class='dataset-builder__value'>{}</span>".format(
                                         html.escape(str(adv_links))
                                     ),
@@ -580,7 +356,7 @@ def render_data_stage(
                                 label_visibility="collapsed",
                             )
                             st.markdown(
-                                _cli_command_line(
+                                cli_command_line(
                                     "dataset.advanced --tld <span class='dataset-builder__value'>{}</span>".format(
                                         html.escape(str(adv_tld))
                                     ),
@@ -601,7 +377,7 @@ def render_data_stage(
                                 label_visibility="collapsed",
                             )
                             st.markdown(
-                                _cli_command_line(
+                                cli_command_line(
                                     "dataset.advanced --caps <span class='dataset-builder__value'>{}</span>".format(
                                         html.escape(str(adv_caps))
                                     ),
@@ -622,7 +398,7 @@ def render_data_stage(
                                 label_visibility="collapsed",
                             )
                             st.markdown(
-                                _cli_command_line(
+                                cli_command_line(
                                     "dataset.advanced --money <span class='dataset-builder__value'>{}</span>".format(
                                         html.escape(str(adv_money))
                                     ),
@@ -644,7 +420,7 @@ def render_data_stage(
                                 label_visibility="collapsed",
                             )
                             st.markdown(
-                                _cli_command_line(
+                                cli_command_line(
                                     "dataset.advanced --attachments <span class='dataset-builder__value'>{}</span>".format(
                                         html.escape(str(attachment_choice_cli))
                                     ),
@@ -667,7 +443,7 @@ def render_data_stage(
                                 label_visibility="collapsed",
                             )
                             st.markdown(
-                                _cli_command_line(
+                                cli_command_line(
                                     "dataset.advanced --label-noise <span class='dataset-builder__value'>{}%</span>".format(
                                         html.escape(str(int(adv_noise)))
                                     ),
@@ -685,7 +461,7 @@ def render_data_stage(
                                 label_visibility="collapsed",
                             )
                             st.markdown(
-                                _cli_command_line(
+                                cli_command_line(
                                     "dataset.advanced --seed <span class='dataset-builder__value'>{}</span>".format(
                                         html.escape(str(adv_seed))
                                     ),
@@ -706,7 +482,7 @@ def render_data_stage(
                                 label_visibility="collapsed",
                             )
                             st.markdown(
-                                _cli_command_line(
+                                cli_command_line(
                                     "dataset.advanced --poison-demo <span class='dataset-builder__value'>{}</span>".format(
                                         html.escape("on" if adv_poison else "off")
                                     ),
@@ -731,22 +507,7 @@ def render_data_stage(
                 spam_ratio = float(spam_share_pct) / 100.0
 
                 if reset_clicked:
-                    ss["labeled"] = starter_dataset_copy()
-                    ss["dataset_config"] = DEFAULT_DATASET_CONFIG.copy()
-                    baseline_summary = compute_dataset_summary(ss["labeled"])
-                    ss["dataset_summary"] = baseline_summary
-                    ss["previous_dataset_summary"] = None
-                    ss["dataset_compare_delta"] = None
-                    ss["last_dataset_delta_story"] = None
-                    ss["active_dataset_snapshot"] = None
-                    ss["dataset_snapshot_name"] = ""
-                    ss["dataset_last_built_at"] = datetime.now().isoformat(timespec="seconds")
-                    ss["dataset_preview"] = None
-                    ss["dataset_preview_config"] = None
-                    ss["dataset_preview_summary"] = None
-                    ss["dataset_preview_lint"] = None
-                    ss["dataset_manual_queue"] = None
-                    ss["dataset_controls_open"] = False
+                    baseline_summary = reset_dataset_to_baseline(ss)
                     _push_data_stage_flash(
                         "success", f"Dataset reset to starter baseline ({len(STARTER_LABELED)} rows)."
                     )
@@ -809,16 +570,20 @@ def render_data_stage(
                         "label_noise_pct": float(noise_pct_value),
                         "poison_demo": bool(poison_demo_value),
                     }
-                    preview_summary_local = _generate_preview_from_config(config)
-                    delta_summary = ss.get("dataset_compare_delta")
+                    preview_summary_local, delta_summary_generated, delta_story = generate_preview_from_config(
+                        config,
+                        current_summary=current_summary,
+                        ss=ss,
+                    )
+                    delta_summary = delta_summary_generated
                     if delta_summary:
-                        delta_text = dataset_delta_story(delta_summary)
+                        delta_text = delta_story
                     base_summary_for_delta = current_summary
                     target_summary_for_delta = preview_summary_local
 
                 st.markdown("</div>", unsafe_allow_html=True)
 
-        compare_panel_html = _build_compare_panel_html(
+        compare_panel_html = build_compare_panel_html(
             base_summary_for_delta,
             target_summary_for_delta,
             delta_summary,
@@ -1299,7 +1064,7 @@ def render_data_stage(
                         ss["active_dataset_snapshot"] = None
                         ss["dataset_snapshot_name"] = ""
                         ss["dataset_last_built_at"] = datetime.now().isoformat(timespec="seconds")
-                        _clear_dataset_preview_state()
+                        clear_dataset_preview_state()
                         health_evaluation = _evaluate_dataset_health(new_summary, lint_counts_commit)
                         spam_ratio_commit = new_summary.get("spam_ratio") or 0.0
                         spam_share_pct_commit = max(0.0, min(100.0, float(spam_ratio_commit) * 100.0))
@@ -1345,7 +1110,7 @@ def render_data_stage(
                             streamlit_rerun()
 
             if discard_col.button("Discard preview", type="secondary", use_container_width=True):
-                _discard_preview()
+                discard_preview()
                 st.info("Preview cleared. The active labeled dataset remains unchanged.")
             st.markdown("</div>", unsafe_allow_html=True)
 
@@ -1493,7 +1258,7 @@ def render_data_stage(
                             ss["dataset_snapshot_name"] = snap.get("name", "")
                             ss["active_dataset_snapshot"] = snap.get("id")
                             ss["dataset_last_built_at"] = datetime.now().isoformat(timespec="seconds")
-                            _clear_dataset_preview_state()
+                            clear_dataset_preview_state()
                             _push_data_stage_flash(
                                 "success",
                                 f"Snapshot '{snap.get('name', 'snapshot')}' activated. Dataset rebuilt with {len(dataset_rows)} rows.",
@@ -1708,71 +1473,31 @@ def render_data_stage(
             st.caption("Uploaded data stays in this session only. No emails are sent or fetched.")
             up = st.file_uploader("Choose a CSV file", type=["csv"], key="csv_uploader_labeled")
             if up is not None:
-                try:
-                    df_up = pd.read_csv(up)
-                    df_up.columns = [c.strip().lower() for c in df_up.columns]
-                    ok, msg = _validate_csv_schema(df_up)
-                    if not ok:
-                        st.error(msg)
-                    else:
-                        if len(df_up) > 2000:
-                            st.error("Too many rows (max 2,000). Trim the file and retry.")
-                        else:
-                            initial_rows = len(df_up)
-                            df_up["label"] = df_up["label"].apply(_normalize_label)
-                            invalid_mask = ~df_up["label"].isin(VALID_LABELS)
-                            dropped_invalid = int(invalid_mask.sum())
-                            df_up = df_up[~invalid_mask]
-                            for col in ["title", "body"]:
-                                df_up[col] = df_up[col].fillna("").astype(str).str.strip()
-                            length_mask = (df_up["title"].str.len() <= 200) & (df_up["body"].str.len() <= 2000)
-                            dropped_length = int(len(df_up) - length_mask.sum())
-                            df_up = df_up[length_mask]
-                            nonempty_mask = (df_up["title"] != "") | (df_up["body"] != "")
-                            dropped_empty = int(len(df_up) - nonempty_mask.sum())
-                            df_up = df_up[nonempty_mask]
-                            df_existing = pd.DataFrame(ss["labeled"])
-                            dropped_dupes = 0
-                            if not df_existing.empty:
-                                len_before_duplicates = len(df_up)
-                                merged = df_up.merge(df_existing, on=["title", "body", "label"], how="left", indicator=True)
-                                df_up = merged[merged["_merge"] == "left_only"].loc[:, ["title", "body", "label"]]
-                                dropped_dupes = int(max(0, len_before_duplicates - len(df_up)))
-                            total_dropped = max(0, initial_rows - len(df_up))
-                            drop_reasons: list[str] = []
-                            if dropped_invalid:
-                                drop_reasons.append(
-                                    f"{dropped_invalid} invalid label{'s' if dropped_invalid != 1 else ''}"
-                                )
-                            if dropped_length:
-                                drop_reasons.append(
-                                    f"{dropped_length} over length limit"
-                                )
-                            if dropped_empty:
-                                drop_reasons.append(
-                                    f"{dropped_empty} blank title/body"
-                                )
-                            if dropped_dupes:
-                                drop_reasons.append(
-                                    f"{dropped_dupes} duplicates vs session"
-                                )
-                            reason_text = "; ".join(drop_reasons) if drop_reasons else "—"
-                            lint_counts = lint_dataset(df_up.to_dict(orient="records"))
-                            st.caption(f"Rows dropped: {total_dropped} (reason: {reason_text})")
-                            st.dataframe(df_up.head(20), hide_index=True, width="stretch")
-                            st.caption(
-                                "Rows passing validation: {} | Lint -> {}".format(
-                                    len(df_up), format_pii_summary(lint_counts)
-                                )
-                            )
-                            if len(df_up) > 0 and st.button(
-                                "Import into labeled dataset", key="btn_import_csv"
-                            ):
-                                ss["labeled"].extend(df_up.to_dict(orient="records"))
-                                ss["dataset_summary"] = compute_dataset_summary(ss["labeled"])
-                                _prepare_records(ss.get("labeled"))
-                                st.success(
-                                    f"Imported {len(df_up)} rows into labeled dataset. Revisit builder to rebalance if needed."
-                                )
-                except Exception as e:
-                    st.error(f"Failed to read CSV: {e}")
+                result = prepare_uploaded_csv(up, existing_rows=ss["labeled"], max_rows=2000)
+                if result.error:
+                    st.error(result.error)
+                elif result.dataframe is None:
+                    st.warning("Uploaded file contains no rows after validation.")
+                else:
+                    df_up = result.dataframe
+                    lint_counts = result.lint_counts
+                    st.caption(
+                        "Rows dropped: {} (reason: {})".format(
+                            result.dropped_total, result.reason_text
+                        )
+                    )
+                    st.dataframe(df_up.head(20), hide_index=True, width="stretch")
+                    st.caption(
+                        "Rows passing validation: {} | Lint -> {}".format(
+                            len(df_up), format_pii_summary(lint_counts)
+                        )
+                    )
+                    if len(df_up) > 0 and st.button(
+                        "Import into labeled dataset", key="btn_import_csv"
+                    ):
+                        ss["labeled"].extend(df_up.to_dict(orient="records"))
+                        ss["dataset_summary"] = compute_dataset_summary(ss["labeled"])
+                        _prepare_records(ss.get("labeled"))
+                        st.success(
+                            f"Imported {len(df_up)} rows into labeled dataset. Revisit builder to rebalance if needed."
+                        )
