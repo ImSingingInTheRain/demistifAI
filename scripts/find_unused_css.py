@@ -47,7 +47,7 @@ ALWAYS_USED_CLASSES = {
     "stTextInput",
     "stNumberInput",
     "block-container",
-    # Dataset health badges are assembled dynamically in pages/data.py.
+    # Dataset health badges are assembled dynamically in pages/data/review.py.
     "dataset-health-status--good",
     "dataset-health-status--warn",
     "dataset-health-status--risk",
