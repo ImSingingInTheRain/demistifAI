@@ -48,3 +48,4 @@ Supporting helpers for training live alongside the stage:
 - When stage content moves or grows, update the line ranges above so future contributors land in the right place.
 - If you relocate components (e.g., move dataset helpers to another module), revise the placement map accordingly.
 - Mention updates to this reference in your PR summaries when the stage flow or component layout shifts.
+- Keep `demistifai/constants.py:APP_THEME_CSS` lean by running `python scripts/find_unused_css.py --fail-on-unused` (the same check runs in pre-commit). The latest sweep removed the dormant intro hero landing styles now handled by `render_intro_hero`'s scoped CSS.

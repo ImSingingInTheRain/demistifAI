@@ -1,0 +1,8 @@
+repos:
+  - repo: local
+    hooks:
+      - id: find-unused-css
+        name: Check for unused CSS selectors
+        entry: python scripts/find_unused_css.py --fail-on-unused
+        language: system
+        pass_filenames: false
