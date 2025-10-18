@@ -1,8 +1,11 @@
 from __future__ import annotations
 from typing import Dict, Tuple
+
 import pandas as pd
 
-VALID_LABELS = {"spam", "safe"}
+from demistifai.constants import CLASSES
+
+VALID_LABELS = set(CLASSES)
 
 def _normalize_label(x: str) -> str:
     if not isinstance(x, str):

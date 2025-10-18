@@ -14,7 +14,7 @@ import streamlit as st
 from streamlit.delta_generator import DeltaGenerator
 
 from demistifai.components.pii_indicators import render_pii_indicators
-from demistifai.constants import STAGE_BY_KEY
+from demistifai.constants import CLASSES, STAGE_BY_KEY
 from demistifai.core.cache import cached_prepare
 from demistifai.core.dataset import _evaluate_dataset_health
 from demistifai.core.embeddings import _compute_cached_embeddings
@@ -1559,7 +1559,7 @@ def render_data_stage(
                                 alt.Y("count()", title="Count"),
                                 alt.Color(
                                     "label:N",
-                                    scale=alt.Scale(domain=["spam", "safe"], range=["#ef4444", "#1d4ed8"]),
+                                    scale=alt.Scale(domain=tuple(CLASSES), range=["#ef4444", "#1d4ed8"]),
                                     legend=None,
                                 ),
                                 tooltip=[
@@ -1644,7 +1644,7 @@ def render_data_stage(
                     st.caption("Need labeled examples to compute prototypes.")
                 else:
                     proto_cols = st.columns(2)
-                    for col, label in zip(proto_cols, ["spam", "safe"]):
+                    for col, label in zip(proto_cols, CLASSES):
                         with col:
                             mask = embed_sample["label"] == label
                             idxs = np.where(mask.to_numpy())[0]
