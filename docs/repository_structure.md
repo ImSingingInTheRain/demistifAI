@@ -7,6 +7,7 @@ This document provides a guided tour of the repository so contributors can quick
 - `LICENSE` – Apache 2.0 license text covering the terms for use, distribution, and contribution.【F:LICENSE†L1-L201】
 - `README.md` – Narrative overview of the demistifAI Streamlit lab, including the learning goals, stage-by-stage walkthrough, and setup instructions.【F:README.md†L1-L18】
 - `.gitignore` – Standard Python ignore patterns for build artefacts, environments, IDE caches, and tooling directories.【F:.gitignore†L1-L164】
+- `.pre-commit-config.yaml` – Registers the CSS usage audit so pre-commit hooks can flag unused theme selectors before shipping.【F:.pre-commit-config.yaml†L1-L8】
 - `.git/` – Git metadata (objects, refs, hooks) that tracks version history; normally left untouched.
 - `.github/` – GitHub service configuration (see below).
 - `.devcontainer/` – Development container configuration for GitHub Codespaces or VS Code remote environments (see below).
@@ -15,7 +16,9 @@ This document provides a guided tour of the repository so contributors can quick
 - `demistifai/` – Primary Python package with constants, dataset/model logic, high-level UI components, and nested subpackages for core utilities and styles (detailed below).
 - `demistifai/ui/` – Unified UI toolkit housing reusable components, primitive widgets, and static assets (detailed below).
 - `docs/` – Project documentation, including stage/component references and this structure map.【F:docs/stage_component_reference.md†L1-L40】
+- `scripts/` – Developer tooling such as the unused CSS selector scanner used by the pre-commit hook.【F:scripts/find_unused_css.py†L1-L160】
 - `pages/` – Streamlit pages that house the stage-specific flows plugged into the main app (detailed below).
+- `tests/` – Lightweight regression suite that guards against import regressions in configuration and style modules.【F:tests/test_import_smoke.py†L1-L38】
 
 ## Hidden configuration
 ### `.github/`
@@ -26,10 +29,15 @@ This document provides a guided tour of the repository so contributors can quick
 
 ## UI toolkit (`demistifai/ui/`)
 ### Components (`demistifai/ui/components/`)
-- `arch_demai.py` – Dataclass-driven architecture cards and styling that render the demAI system diagram within Streamlit.【F:demistifai/ui/components/arch_demai.py†L1-L210】
-- `control_room.py` – Stage Control Room surface that standardises headers, Nerd Mode toggles, and navigation CTAs across stages.【F:demistifai/ui/components/control_room.py†L1-L230】
-- `mac_window.py` – Utility for generating scoped macOS-style window shells with configurable columns and theming.【F:demistifai/ui/components/mac_window.py†L1-L224】
-- `train_animation.py` – Plotly-powered training map animation with brand token bridging, HTML wrappers, and graceful fallbacks when the optional Plotly dependency is missing.【F:demistifai/ui/components/train_animation.py†L1-L120】【F:demistifai/ui/components/train_animation.py†L205-L471】
+- `__init__.py` – Aggregates hero, training, terminal, and mission components so pages can import them from a single namespace.【F:demistifai/ui/components/__init__.py†L1-L83】
+- `arch_demai.py` – Dataclass-driven architecture cards and styling that render the demAI system diagram within Streamlit.【F:demistifai/ui/components/arch_demai.py†L1-L146】
+- `control_room.py` – Stage Control Room surface that standardises headers, Nerd Mode toggles, and navigation CTAs across stages.【F:demistifai/ui/components/control_room.py†L1-L152】
+- `data_review.py` – Dataset balance bars, sample cards, and scoped CSS helpers for the Prepare stage review panels.【F:demistifai/ui/components/data_review.py†L1-L74】
+- `intro_hero.py` – Welcome-stage hero layout, lifecycle diagram markup, and scoped quote wrappers for the EU AI Act narrative.【F:demistifai/ui/components/intro_hero.py†L1-L112】
+- `mac_window.py` – Utility for generating scoped macOS-style window shells with configurable columns and theming.【F:demistifai/ui/components/mac_window.py†L1-L158】
+- `overview_mission.py` – Mission briefing markup and mailbox preview helpers that style the overview stage briefing cards.【F:demistifai/ui/components/overview_mission.py†L1-L129】
+- `train_animation.py` – Plotly-powered training map animation with brand token bridging, HTML wrappers, and graceful fallbacks when the optional Plotly dependency is missing.【F:demistifai/ui/components/train_animation.py†L9-L277】
+- `train_intro.py` – Training stage launchpad cards, inline notes, and CSS builders that accompany the animation panel.【F:demistifai/ui/components/train_intro.py†L1-L143】
 - `terminal/` – Animated terminal namespace with shared helpers and scenario-specific scripts:
   - `terminal_base.py` – Shared helpers for rendering terminal sequences, including CSS injection, typing operations, and highlight logic.【F:demistifai/ui/components/terminal/terminal_base.py†L1-L200】
   - `classic.py` – Command-line style welcome terminal typing the EU AI Act definition and demAI guidance for the classic intro experience.【F:demistifai/ui/components/terminal/classic.py†L1-L200】
@@ -89,8 +97,9 @@ This document provides a guided tour of the repository so contributors can quick
 
 ### `demistifai/styles/`
 - `css_blocks.py` – Reusable CSS snippets for PII indicators and guardrail panels.【F:demistifai/styles/css_blocks.py†L1-L61】
-- `inject.py` – Deduplicated CSS injector that hashes style blocks to avoid repeated insertion.【F:demistifai/styles/inject.py†L1-L36】
-- `__init__.py` – Empty module placeholder to mark the package namespace.【F:demistifai/styles/__init__.py†L1-L1】
+- `inject.py` – Deduplicated CSS injector that hashes style blocks to avoid repeated insertion.【F:demistifai/styles/inject.py†L1-L35】
+- `theme.py` – Primary app theme stylesheet defining global tokens, layout spacing, and responsive section styling.【F:demistifai/styles/theme.py†L1-L80】
+- `__init__.py` – Re-exports the shared `APP_THEME_CSS` string so callers can `from demistifai.styles import APP_THEME_CSS`.【F:demistifai/styles/__init__.py†L1-L6】
 
 ## Documentation (`docs/`)
 - `stage_component_reference.md` – Maintains stage line ranges in `streamlit_app.py`, maps supporting modules, and sets expectations for keeping the reference current.【F:docs/stage_component_reference.md†L1-L39】
