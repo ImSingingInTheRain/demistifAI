@@ -7,7 +7,6 @@ from functools import partial
 
 from demistifai.constants import (
     APP_THEME_CSS,
-    EMAIL_INBOX_TABLE_CSS,
     STAGE_TEMPLATE_CSS,
     STAGES,
 )
@@ -45,7 +44,6 @@ ss = st.session_state
 
 st.markdown(APP_THEME_CSS, unsafe_allow_html=True)
 st.markdown(STAGE_TEMPLATE_CSS, unsafe_allow_html=True)
-st.markdown(EMAIL_INBOX_TABLE_CSS, unsafe_allow_html=True)
 mount_demai_header()
 
 _apply_pending_advanced_knob_state()
