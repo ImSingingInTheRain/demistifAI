@@ -2604,66 +2604,6 @@ STAGE_TEMPLATE_CSS += """
 </style>
 """
 
-EMAIL_INBOX_TABLE_CSS = """
-<style>
-.email-inbox-wrapper {
-    border: 1px solid rgba(15, 23, 42, 0.12);
-    border-radius: 14px;
-    overflow: hidden;
-    box-shadow: 0 18px 40px rgba(15, 23, 42, 0.12);
-    background: linear-gradient(145deg, rgba(255, 255, 255, 0.96), rgba(241, 245, 255, 0.92));
-    margin: 0.75rem 0 1.1rem;
-}
-
-.email-inbox-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0.65rem 1.1rem;
-    background: linear-gradient(120deg, rgba(30, 64, 175, 0.9), rgba(59, 130, 246, 0.85));
-    color: #f8fafc;
-    font-weight: 600;
-    font-size: 0.94rem;
-}
-
-.email-inbox-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 0.9rem;
-    color: #0f172a;
-}
-
-.email-inbox-table thead {
-    background: rgba(226, 232, 240, 0.75);
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    font-size: 0.76rem;
-    color: #1e293b;
-}
-
-.email-inbox-table th,
-.email-inbox-table td {
-    padding: 0.75rem 1rem;
-    border-bottom: 1px solid rgba(148, 163, 184, 0.35);
-    vertical-align: top;
-}
-
-.email-inbox-table tbody tr:hover {
-    background: rgba(191, 219, 254, 0.45);
-}
-
-.email-inbox-table tbody tr:nth-child(even) {
-    background: rgba(248, 250, 252, 0.85);
-}
-
-.email-inbox-empty {
-    padding: 1rem 1.25rem;
-    color: #475569;
-    font-style: italic;
-}
-</style>
-"""
-
 
 LIFECYCLE_RING_HTML = dedent(
     """\
