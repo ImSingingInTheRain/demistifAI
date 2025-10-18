@@ -59,6 +59,12 @@ from demistifai.dataset import (
     lint_text_spans,
     starter_dataset_copy,
 )
+from demistifai.ui.components.data_review import (
+    data_review_styles,
+    dataset_balance_bar_html,
+    edge_case_pairs_html,
+    stratified_sample_cards_html,
+)
 from demistifai.ui.components.terminal.data_prep import render_prepare_terminal
 
 
@@ -1129,6 +1135,8 @@ def render_data_stage(
                 "url": 0,
             }
 
+            st.markdown(data_review_styles(), unsafe_allow_html=True)
+
             kpi_col, sample_col, edge_col = st.columns([1.1, 1.2, 1.1], gap="large")
 
             with kpi_col:
@@ -1138,22 +1146,7 @@ def render_data_stage(
                 st.metric("Spam share", f"{spam_ratio * 100:.1f}%")
                 st.metric("Avg suspicious links (spam)", f"{preview_summary.get('avg_susp_links', 0.0):.2f}")
 
-                safe_ratio = 1 - spam_ratio
-                spam_pct = spam_ratio * 100
-                safe_pct = safe_ratio * 100
-                bar_html = f"""
-                    <div style="border-radius: 6px; overflow: hidden; border: 1px solid #DDD; font-size: 0.75rem; margin: 0.5rem 0 0.75rem 0;">
-                        <div style="display: flex; height: 28px;">
-                            <div style="background-color: #ff4b4b; color: white; padding: 4px 8px; flex: {spam_ratio:.4f}; display: flex; align-items: center; justify-content: center;">
-                                Spam {spam_pct:.0f}%
-                            </div>
-                            <div style="background-color: #1c83e1; color: white; padding: 4px 8px; flex: {safe_ratio:.4f}; display: flex; align-items: center; justify-content: center;">
-                                Safe {safe_pct:.0f}%
-                            </div>
-                        </div>
-                    </div>
-                """
-                st.markdown(bar_html, unsafe_allow_html=True)
+                st.markdown(dataset_balance_bar_html(spam_ratio), unsafe_allow_html=True)
 
                 chip_html = pii_chip_row_html(lint_counts, extra_class="pii-chip-row--compact")
                 if chip_html:
@@ -1188,22 +1181,10 @@ def render_data_stage(
                 if not cards:
                     st.info("Preview examples will appear here once generated.")
                 else:
-                    for card in cards:
-                        label_value = (card.get("label", "") or "").strip().lower()
-                        label_text = label_value.title() if label_value else "Unlabeled"
-                        label_icon = {"spam": "🚩", "safe": "📥"}.get(label_value, "✉️")
-                        body = card.get("body", "") or ""
-                        excerpt = (body[:160] + ("…" if len(body) > 160 else "")).replace("\n", " ")
-                        st.markdown(
-                            f"""
-                            <div style="border:1px solid #E5E7EB;border-radius:10px;padding:0.75rem;margin-bottom:0.5rem;">
-                                <div class="sample-card__label"><span class="sample-card__label-icon">{label_icon}</span><span>{html.escape(label_text)}</span></div>
-                                <div style="font-weight:600;margin:0.25rem 0 0.35rem 0;">{html.escape(card.get('title', ''))}</div>
-                                <div style="font-size:0.85rem;color:#374151;line-height:1.35;">{html.escape(excerpt)}</div>
-                            </div>
-                            """,
-                            unsafe_allow_html=True,
-                        )
+                    st.markdown(
+                        stratified_sample_cards_html(cards),
+                        unsafe_allow_html=True,
+                    )
 
             with edge_col:
                 st.write("**Edge-case pairs**")
@@ -1226,27 +1207,10 @@ def render_data_stage(
                     if not pairs:
                         st.info("No contrasting pairs surfaced yet — regenerate to refresh examples.")
                     else:
-                        for spam_row, safe_row in pairs[:3]:
-                            spam_excerpt = ((spam_row.get("body", "") or "")[:120] + ("…" if len(spam_row.get("body", "")) > 120 else "")).replace("\n", " ")
-                            safe_excerpt = ((safe_row.get("body", "") or "")[:120] + ("…" if len(safe_row.get("body", "")) > 120 else "")).replace("\n", " ")
-                            st.markdown(
-                                f"""
-                                <div style="border:1px solid #E5E7EB;border-radius:10px;padding:0.75rem;margin-bottom:0.5rem;">
-                                    <div style="font-weight:600;margin-bottom:0.4rem;">{html.escape(spam_row.get('title', 'Untitled'))}</div>
-                                    <div style="display:flex;gap:0.5rem;">
-                                        <div style="flex:1;background:#FEE2E2;border-radius:8px;padding:0.5rem;font-size:0.8rem;">
-                                            <div class="edge-case-card__label" style="color:#B91C1C;margin-bottom:0.25rem;"><span class="sample-card__label-icon">🚩</span><span>Spam</span></div>
-                                            <div style="color:#7F1D1D;line-height:1.35;">{html.escape(spam_excerpt)}</div>
-                                        </div>
-                                        <div style="flex:1;background:#DBEAFE;border-radius:8px;padding:0.5rem;font-size:0.8rem;">
-                                            <div class="edge-case-card__label" style="color:#1D4ED8;margin-bottom:0.25rem;"><span class="sample-card__label-icon">📥</span><span>Safe</span></div>
-                                            <div style="color:#1E3A8A;line-height:1.35;">{html.escape(safe_excerpt)}</div>
-                                        </div>
-                                    </div>
-                                </div>
-                                """,
-                                unsafe_allow_html=True,
-                            )
+                        st.markdown(
+                            edge_case_pairs_html(pairs[:3]),
+                            unsafe_allow_html=True,
+                        )
 
             preview_rows_full: List[Dict[str, Any]] = ss.get("dataset_preview") or []
             manual_df = ss.get("dataset_manual_queue")
