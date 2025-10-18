@@ -109,7 +109,7 @@ This document provides a guided tour of the repository so contributors can quick
 ## Stage pages (`pages/`)
 - `welcome.py` – Renders the intro stage terminal, lifecycle hero window, and EU AI Act quote wrapper while wiring the next-stage handoff.【F:pages/welcome.py†L1-L66】
 - `overview.py` – Sets up the overview stage grid, mission briefing panels, Nerd Mode toggle, and system snapshot window with mailbox previews.【F:pages/overview.py†L1-L203】
-- `data/` – Prepare stage package with the orchestrator (`page.py`) and supporting builder, review, and PII modules.【F:pages/data/page.py†L1-L194】【F:pages/data/builder.py†L1-L508】【F:pages/data/review.py†L1-L865】【F:pages/data/pii.py†L1-L201】
+- `data/` – Prepare stage package with the orchestrator (`page.py`), dataset builder flows, review dashboards, PII scrubbing, session-state helpers, and HTML/markup utilities.【F:pages/data/page.py†L1-L194】【F:pages/data/builder.py†L1-L508】【F:pages/data/review.py†L1-L865】【F:pages/data/pii.py†L1-L201】【F:pages/data/dataset_io.py†L1-L118】【F:pages/data/ui.py†L1-L104】
 - `train_stage/page.py` – Orchestrates the Train stage, preparing session state, launching runs, and delegating guardrail controls, storyboard rendering, and results panels to the supporting modules below.【F:pages/train_stage/page.py†L1-L307】
 - `train_stage/guardrails.py` – Provides the launchpad guardrail controls and context preview meter for the numeric assist window.【F:pages/train_stage/guardrails.py†L1-L75】
 - `train_stage/panels.py` – Builds the launchpad cards, dataset readiness checks, Nerd Mode controls, and advanced guardrail configuration surfaces.【F:pages/train_stage/panels.py†L1-L299】
