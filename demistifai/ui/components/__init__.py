@@ -24,6 +24,17 @@ from .train_animation import (
     build_training_animation_column,
     render_training_animation,
 )
+from .train_intro import (
+    TrainingNotesColumn,
+    build_inline_note,
+    build_launchpad_card,
+    build_launchpad_status_item,
+    build_token_chip,
+    build_train_intro_card,
+    build_training_notes_column,
+    build_nerd_intro_card,
+    training_stage_stylesheet,
+)
 from . import terminal
 
 __all__ = [
@@ -42,6 +53,15 @@ __all__ = [
     "render_intro_hero",
     "build_training_animation_column",
     "render_training_animation",
+    "TrainingNotesColumn",
+    "build_inline_note",
+    "build_launchpad_card",
+    "build_launchpad_status_item",
+    "build_token_chip",
+    "build_train_intro_card",
+    "build_training_notes_column",
+    "build_nerd_intro_card",
+    "training_stage_stylesheet",
     "stage_control_room",
     "terminal",
 ]
