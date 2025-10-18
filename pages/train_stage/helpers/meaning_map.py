@@ -1,14 +1,11 @@
 from __future__ import annotations
 
-import html
 import math
-import time
-from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple
+from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 import altair as alt
 import numpy as np
 import pandas as pd
-import streamlit as st
 
 from sklearn.decomposition import PCA
 
@@ -20,49 +17,12 @@ from demistifai.modeling import (
     numeric_feature_contributions,
 )
 
+from .numeric_clues import _extract_numeric_clues, _reason_from_contributions
+from .sampling import _sample_indices_by_label
+
 
 CLASS_DOMAIN = tuple(CLASSES)
 CLASS_SET = set(CLASSES)
-
-
-FEATURE_REASON_SPAM = {
-    "num_links_external": "Contains multiple external links",
-    "has_suspicious_tld": "Links point to risky domains",
-    "punct_burst_ratio": "Uses lots of !!! or $$$",
-    "money_symbol_count": "Mentions money terms",
-    "urgency_terms_count": "Pushes urgent wording",
-}
-
-FEATURE_REASON_SAFE = {
-    "num_links_external": "Few links to distract",
-    "has_suspicious_tld": "No risky domains detected",
-    "punct_burst_ratio": "Calm punctuation",
-    "money_symbol_count": "No money-talk cues",
-    "urgency_terms_count": "Neutral tone without urgency",
-}
-
-FEATURE_CLUE_CHIPS = {
-    "num_links_external": {
-        "spam": "🔗 Many external links",
-        "safe": "🔗 Few external links",
-    },
-    "has_suspicious_tld": {
-        "spam": "🌐 Risky domain in links",
-        "safe": "🌐 Links look safe",
-    },
-    "punct_burst_ratio": {
-        "spam": "❗ Intense punctuation",
-        "safe": "❗ Calm punctuation",
-    },
-    "money_symbol_count": {
-        "spam": "💰 Money cues",
-        "safe": "💰 No money cues",
-    },
-    "urgency_terms_count": {
-        "spam": "⏱️ Urgent wording",
-        "safe": "⏱️ Neutral urgency",
-    },
-}
 
 
 def _make_selection_point(fields: list[str], *, on: str, empty: str) -> Any | None:
@@ -122,101 +82,6 @@ def _combine_selections(*selections: Any) -> Any | None:
 def _excerpt(text: str, n: int = 120) -> str:
     return (text or "")[:n] + ("…" if text and len(text) > n else "")
 
-
-def _join_phrases(parts: List[str]) -> str:
-    if not parts:
-        return ""
-    if len(parts) == 1:
-        return parts[0]
-    if len(parts) == 2:
-        return " and ".join(parts)
-    return ", ".join(parts[:-1]) + f", and {parts[-1]}"
-
-
-def _reason_from_contributions(label: str, contributions: List[Tuple[str, float, float]]) -> str:
-    if not contributions:
-        return "Mostly positioned by wording similarity."
-
-    threshold = 0.08
-    phrases: List[str] = []
-    if label == "spam":
-        for feat, _z, contrib in contributions:
-            if contrib > threshold:
-                phrases.append(FEATURE_REASON_SPAM.get(feat, feat))
-    else:
-        for feat, _z, contrib in contributions:
-            if contrib < -threshold:
-                phrases.append(FEATURE_REASON_SAFE.get(feat, feat))
-
-    phrases = [p for p in phrases if p]
-    if not phrases:
-        return "Mostly positioned by wording similarity."
-    summary = _join_phrases(phrases[:3])
-    if not summary:
-        return "Mostly positioned by wording similarity."
-    return f"Signals: {summary}"
-
-
-def _extract_numeric_clues(
-    contributions: List[Tuple[str, float, float]],
-    *,
-    threshold: float = 0.08,
-) -> list[dict[str, Any]]:
-    """Return structured clue details for sizable numeric contributions."""
-
-    clues: list[dict[str, Any]] = []
-    if not contributions:
-        return clues
-
-    for feature, _z_score, contrib in contributions:
-        direction: str | None = None
-        if contrib >= threshold:
-            direction = "spam"
-        elif contrib <= -threshold:
-            direction = "safe"
-        if direction is None:
-            continue
-        mapping = FEATURE_CLUE_CHIPS.get(feature, {}) if isinstance(feature, str) else {}
-        label = mapping.get(direction)
-        if not label:
-            label = str(feature)
-        clues.append(
-            {
-                "feature": feature,
-                "direction": direction,
-                "label": label,
-                "contribution": float(contrib),
-            }
-        )
-
-    clues.sort(key=lambda item: abs(item.get("contribution", 0.0)), reverse=True)
-    return clues
-
-
-def _sample_indices_by_label(labels: List[str], limit: int) -> List[int]:
-    n = len(labels)
-    if n <= limit:
-        return list(range(n))
-
-    rng = np.random.default_rng(42)
-    per_label: Dict[str, List[int]] = {}
-    for idx, label in enumerate(labels):
-        per_label.setdefault(label, []).append(idx)
-
-    sampled: List[int] = []
-    total = float(n)
-    for label, idxs in per_label.items():
-        if not idxs:
-            continue
-        target = max(1, round(limit * (len(idxs) / total)))
-        target = min(target, len(idxs))
-        picked = rng.choice(idxs, size=target, replace=False)
-        sampled.extend(int(i) for i in picked)
-
-    if len(sampled) > limit:
-        sampled = rng.choice(sampled, size=limit, replace=False).tolist()
-
-    return sorted(sampled)
 
 def _line_box_intersections(
     bounds: Tuple[float, float, float, float],
@@ -474,6 +339,7 @@ def _compute_decision_boundary_overlay(
         "margin_distance": margin_distance,
     }
 
+
 def _conceptual_meaning_sketch():
     domain = (-3, 3)
     cards = pd.DataFrame(
@@ -520,125 +386,66 @@ def _conceptual_meaning_sketch():
                 "tone": "Safe-like",
                 "x1": 1.8,
                 "x2": 3.0,
-                "y1": 1.6,
-                "y2": 2.8,
+                "y1": 1.2,
+                "y2": 2.4,
             },
         ]
     )
-    cards["xc"] = (cards["x1"] + cards["x2"]) / 2
-    cards["yc"] = (cards["y1"] + cards["y2"]) / 2
 
-    base = (
-        alt.Chart(pd.DataFrame({"x": domain, "y": domain}))
-        .mark_point(opacity=0)
+    base = alt.Chart(pd.DataFrame({"x": [domain[0], domain[1]], "y": [domain[0], domain[1]]})).mark_point(
+        opacity=0
+    )
+
+    background = (
+        alt.Chart(cards)
+        .mark_rect(cornerRadius=18, strokeOpacity=0.0)
         .encode(
-            x=alt.X(
-                "x:Q",
-                scale=alt.Scale(domain=domain, nice=False),
-                title="Meaning dimension 1",
-                axis=alt.Axis(labelFontSize=12, titleFontSize=13, labelColor="#1f2937"),
-            ),
-            y=alt.Y(
-                "y:Q",
-                scale=alt.Scale(domain=domain, nice=False),
-                title="Meaning dimension 2",
-                axis=alt.Axis(labelFontSize=12, titleFontSize=13, labelColor="#1f2937"),
-            ),
+            x=alt.X("x1:Q", title="meaning dimension 1", scale=alt.Scale(domain=domain)),
+            x2="x2:Q",
+            y=alt.Y("y1:Q", title="meaning dimension 2", scale=alt.Scale(domain=domain)),
+            y2="y2:Q",
+            color=alt.Color("tone:N", scale=alt.Scale(range=["#f97316", "#facc15", "#38bdf8"])),
         )
-        .properties(height=360)
-    )
-
-    background = alt.Chart(
-        pd.DataFrame(
-            [
-                {"x1": domain[0], "x2": 0, "y1": domain[0], "y2": 0, "shade": "spam"},
-                {"x1": 0, "x2": domain[1], "y1": 0, "y2": domain[1], "shade": "safe"},
-                {"x1": domain[0], "x2": 0, "y1": 0, "y2": domain[1], "shade": "mixed"},
-                {"x1": 0, "x2": domain[1], "y1": domain[0], "y2": 0, "shade": "mixed"},
-            ]
-        )
-    ).mark_rect(opacity=0.22).encode(
-        x=alt.X("x1:Q", scale=alt.Scale(domain=domain)),
-        x2="x2:Q",
-        y=alt.Y("y1:Q", scale=alt.Scale(domain=domain)),
-        y2="y2:Q",
-        color=alt.Color(
-            "shade:N",
-            scale=alt.Scale(
-                domain=["safe", "mixed", "spam"],
-                range=["#e0f2fe", "#fef3c7", "#fee2e2"],
-            ),
-            legend=None,
-        ),
-    )
-
-    guard_band = alt.Chart(
-        pd.DataFrame(
-            [
-                {
-                    "x1": -0.5,
-                    "x2": 0.5,
-                    "y1": domain[0],
-                    "y2": domain[1],
-                }
-            ]
-        )
-    ).mark_rect(
-        color="#fde68a",
-        opacity=0.18,
-    ).encode(
-        x=alt.X("x1:Q", scale=alt.Scale(domain=domain)),
-        x2="x2:Q",
-        y=alt.Y("y1:Q", scale=alt.Scale(domain=domain)),
-        y2="y2:Q",
-    )
-
-    tone_scale = alt.Scale(
-        domain=["Safe-like", "Borderline", "Spam-like"],
-        range=["#bfdbfe", "#fde68a", "#fecaca"],
     )
 
     card_rects = (
         alt.Chart(cards)
-        .mark_rect(
-            stroke="#1e293b",
-            strokeWidth=1.5,
-            cornerRadius=26,
-            opacity=0.92,
-        )
-        .encode(
-            x=alt.X("x1:Q", scale=alt.Scale(domain=domain)),
-            x2="x2:Q",
-            y=alt.Y("y1:Q", scale=alt.Scale(domain=domain)),
-            y2="y2:Q",
-            color=alt.Color("tone:N", title="", scale=tone_scale),
-            tooltip=[
-                alt.Tooltip("label:N", title="Cluster"),
-                alt.Tooltip("details:N", title="Typical content"),
-                alt.Tooltip("tone:N", title="Tone"),
-            ],
-        )
+        .mark_rect(cornerRadius=18, fillOpacity=0.08, stroke="#0f172a", strokeOpacity=0.12, strokeWidth=2)
+        .encode(x="x1:Q", x2="x2:Q", y="y1:Q", y2="y2:Q")
     )
 
     card_titles = (
         alt.Chart(cards)
-        .mark_text(fontSize=12, fontWeight=700, color="#0f172a", dy=-6)
-        .encode(x="xc:Q", y="yc:Q", text="label:N")
+        .mark_text(fontSize=14, fontWeight=700, color="#0f172a", dy=-8)
+        .encode(x="x1:Q", y="y2:Q", text="label:N")
     )
 
     card_details = (
         alt.Chart(cards)
-        .mark_text(fontSize=11, color="#1f2937", dy=12)
-        .encode(x="xc:Q", y="yc:Q", text="details:N")
+        .mark_text(fontSize=12, color="#1f2937", dy=10)
+        .encode(x="x1:Q", y="y2:Q", text="details:N")
     )
 
+    guard_band = (
+        alt.Chart(pd.DataFrame({"x": [0.0], "y": [0.0], "width": [1.2], "height": [6.0]}))
+        .mark_rect(fill="#facc15", opacity=0.18, strokeOpacity=0.0)
+        .encode(
+            x=alt.X("x:Q", title="meaning dimension 1"),
+            y=alt.Y("y:Q", title="meaning dimension 2"),
+            x2=alt.X("width:Q"),
+            y2=alt.Y("height:Q"),
+        )
+    )
+
+    base_crosshair = pd.DataFrame({"x": [0.0, 0.0], "y": [domain[0], domain[1]]})
     crosshair = (
-        alt.Chart(pd.DataFrame({"x": [0], "y": [0]}))
-        .mark_rule(color="#64748b", strokeDash=[6, 4], strokeWidth=1.5)
-        .encode(x="x:Q")
-        + alt.Chart(pd.DataFrame({"x": [0], "y": [0]}))
-        .mark_rule(color="#64748b", strokeDash=[6, 4], strokeWidth=1.5)
-        .encode(y="y:Q")
+        alt.Chart(base_crosshair)
+        .mark_rule(color="#0f172a", strokeDash=[4, 4], strokeWidth=2)
+        .encode(x="x:Q", y="y:Q")
+    ) + (
+        alt.Chart(pd.DataFrame({"x": [domain[0], domain[1]], "y": [0.0, 0.0]}))
+        .mark_rule(color="#0f172a", strokeDash=[4, 4], strokeWidth=2)
+        .encode(x="x:Q", y="y:Q")
     )
 
     frame = alt.Chart(
@@ -654,215 +461,6 @@ def _conceptual_meaning_sketch():
         .configure_view(strokeOpacity=0)
     )
     return chart
-
-
-def _ghost_meaning_map(height: int = 220):
-    base = (
-        alt.Chart(pd.DataFrame({"x": [-1, 1], "y": [-1, 1]}))
-        .mark_point(opacity=0)
-        .encode(
-            x=alt.X("x:Q", scale=alt.Scale(domain=[-1, 1]), axis=None),
-            y=alt.Y("y:Q", scale=alt.Scale(domain=[-1, 1]), axis=None),
-        )
-        .properties(height=height)
-    )
-    return base
-
-
-def _guardrail_window_values(ss) -> Tuple[float, float, float, float]:
-    guard_params = ss.get("guard_params", {}) or {}
-    threshold_default = float(ss.get("threshold", 0.6))
-    try:
-        center = float(guard_params.get("assist_center", threshold_default))
-    except (TypeError, ValueError):
-        center = threshold_default
-    try:
-        band = float(guard_params.get("uncertainty_band", 0.08))
-    except (TypeError, ValueError):
-        band = 0.08
-    center = max(0.0, min(1.0, center))
-    band = max(0.0, band)
-    low = max(0.0, min(1.0, center - band))
-    high = max(0.0, min(1.0, center + band))
-    return center, band, low, high
-
-
-def _ghost_meaning_map_enhanced(
-    ss,
-    *,
-    height: int = 220,
-    title: str = "",
-    show_divider: bool = True,
-    show_band: bool = True,
-) -> "alt.Chart":
-    base = alt.Chart(pd.DataFrame({"x": [-1, 1], "y": [-1, 1]})).mark_point(opacity=0).encode(
-        x=alt.X("x:Q", scale=alt.Scale(domain=[-1, 1]), title="meaning dimension 1"),
-        y=alt.Y("y:Q", scale=alt.Scale(domain=[-1, 1]), title="meaning dimension 2"),
-    ).properties(height=height, title=title or None)
-
-    c, b, low, high = _guardrail_window_values(ss)
-    tau = float(ss.get("threshold", c))
-    x_center = 2.0 * (c - 0.5)
-    x_tau = 2.0 * (tau - 0.5)
-    band_left = 2.0 * (max(0.0, c - b) - 0.5)
-    band_right = 2.0 * (min(1.0, c + b) - 0.5)
-
-    layers = [base]
-
-    if show_band and band_right > band_left:
-        band_df = pd.DataFrame(
-            {
-                "x1": [band_left],
-                "x2": [band_right],
-                "y1": [-1.0],
-                "y2": [1.0],
-            }
-        )
-        rect = alt.Chart(band_df).mark_rect(opacity=0.18).encode(
-            x=alt.X("x1:Q"),
-            x2="x2:Q",
-            y=alt.Y("y1:Q"),
-            y2="y2:Q",
-            tooltip=[alt.Tooltip("x1:Q", title="band left"), alt.Tooltip("x2:Q", title="band right")],
-        )
-        layers.append(rect)
-
-    if show_divider:
-        line_df = pd.DataFrame({"x": [x_tau, x_tau], "y": [-1.0, 1.0]})
-        divider = alt.Chart(line_df).mark_rule(strokeDash=[5, 5], strokeOpacity=0.9).encode(
-            x="x:Q",
-            y="y:Q",
-        )
-        layers.append(divider)
-
-    center_df = pd.DataFrame({"x": [x_center], "y": [0.0], "τ": [c]})
-    dot = alt.Chart(center_df).mark_point(size=60, filled=True, opacity=0.9).encode(
-        x="x:Q",
-        y="y:Q",
-        tooltip=[alt.Tooltip("τ:Q", title="guard center τ", format=".2f")],
-    )
-    layers.append(dot)
-
-    return alt.layer(*layers)
-
-
-def _numeric_guardrails_caption_text(ss) -> str:
-    center, _, low, high = _guardrail_window_values(ss)
-    return (
-        f"Numeric guardrails watch emails when the text score is near τ≈{center:.2f} "
-        f"(window {low:.2f}–{high:.2f})."
-    )
-
-
-def _render_numeric_clue_preview(assist_center: float, uncertainty_band: float) -> None:
-    chip_html_parts = [
-        "<span class='numeric-clue-preview__chip'>🔗 Suspicious link</span>",
-        "<span class='numeric-clue-preview__chip'>🔊 ALL CAPS</span>",
-        "<span class='numeric-clue-preview__chip'>💰 Money cue</span>",
-        "<span class='numeric-clue-preview__chip'>⚡ Urgent phrasing</span>",
-    ]
-
-    center_text = "τ"
-    if isinstance(assist_center, (int, float)) and math.isfinite(assist_center):
-        center_text = f"τ ≈ {assist_center:.2f}"
-
-    band_amount: str | None = None
-    if isinstance(uncertainty_band, (int, float)) and math.isfinite(uncertainty_band):
-        band_amount = f"{uncertainty_band:.2f}"
-
-    band_label = "Assist window"
-    low_label = "τ − band"
-    high_label = "τ + band"
-    if band_amount is not None:
-        band_label = f"Assist window ±{band_amount}"
-        low_label = f"τ − {band_amount}"
-        high_label = f"τ + {band_amount}"
-
-    preview_html = """
-<div class='numeric-clue-preview'>
-  <div class='numeric-clue-preview__header'>
-    <span class='numeric-clue-preview__center'>{center}</span>
-    <span class='numeric-clue-preview__band-label'>{band}</span>
-  </div>
-  <div class='numeric-clue-preview__band'>
-    <div class='numeric-clue-preview__ticks'>
-      <span>{low}</span>
-      <span>Inside band</span>
-      <span>{high}</span>
-    </div>
-    <div class='numeric-clue-preview__chips'>
-      {chips}
-    </div>
-  </div>
-  <p class='numeric-clue-preview__note'>Numeric guardrails watch for these structured cues before overriding the text score.</p>
-</div>
-""".format(
-        center=html.escape(center_text),
-        band=html.escape(band_label),
-        low=html.escape(low_label),
-        high=html.escape(high_label),
-        chips="".join(chip_html_parts),
-    )
-
-    st.markdown(preview_html, unsafe_allow_html=True)
-
-
-def _render_numeric_clue_cards(df: Optional[pd.DataFrame]) -> None:
-    if df is None or df.empty:
-        st.info("No emails to review yet — train the model to surface numeric clues.")
-        return
-
-    if "numeric_clues" not in df.columns:
-        st.info("Numeric clue details were unavailable for this run.")
-        return
-
-    working = df.copy()
-    try:
-        mask = working["numeric_clues"].apply(lambda val: bool(val))
-    except Exception:
-        mask = pd.Series([False] * len(working), index=working.index)
-
-    subset = working.loc[mask]
-    if "borderline" in subset.columns:
-        try:
-            borderline_mask = subset["borderline"].astype(bool)
-        except Exception:
-            borderline_mask = pd.Series([False] * len(subset), index=subset.index)
-        subset = subset.loc[borderline_mask]
-    if subset.empty:
-        st.info(
-            "No emails inside the assist window needed the extra numeric guardrails — the text score was decisive."
-        )
-        return
-
-    cards: List[str] = []
-    for _, row in subset.iterrows():
-        subject = html.escape(row.get("subject_tooltip", row.get("subject_full", "(untitled)")) or "")
-        reason = html.escape(row.get("reason", "Mostly positioned by wording similarity."))
-        clues = row.get("numeric_clues") or []
-        clue_html = "".join(
-            f"<span class='numeric-clue-chip numeric-clue-chip--{html.escape(clue.get('direction', 'unknown'))}'><span>{html.escape(str(clue.get('label', '')))}</span></span>"
-            for clue in clues
-        )
-        cards.append(
-            """
-<div class='numeric-clue-card'>
-  <div class='numeric-clue-card__header'>
-    <div class='numeric-clue-card__subject'>{subject}</div>
-  </div>
-  <div class='numeric-clue-card__reason'>{reason}</div>
-  <div class='numeric-clue-card__chips'>{chips}</div>
-</div>
-""".format(subject=subject, reason=reason, chips=clue_html)
-        )
-
-    run_marker_raw = subset.get("run_marker") if isinstance(subset, pd.DataFrame) else None
-    run_marker = html.escape(str(run_marker_raw or "initial"))
-    wrapper = "<div class='numeric-clue-card-grid' data-run='{}'>{}</div>".format(
-        run_marker,
-        "".join(cards),
-    )
-    st.markdown(wrapper, unsafe_allow_html=True)
 
 
 def _build_borderline_guardrail_chart(
@@ -929,35 +527,9 @@ def _build_borderline_guardrail_chart(
         )
         layers.append(background)
 
-    boundary = meta.get("boundary") if isinstance(meta, dict) else None
-    if isinstance(boundary, dict):
-        band_df = boundary.get("band_df")
-        if isinstance(band_df, pd.DataFrame) and not band_df.empty:
-            band_layer = (
-                alt.Chart(band_df)
-                .mark_line(
-                    filled=True,
-                    color="#facc15",
-                    opacity=0.18,
-                    strokeOpacity=0,
-                    fillOpacity=0.18,
-                )
-                .encode(x="x:Q", y="y:Q", order="order:O", fill=alt.value("#facc15"))
-            )
-            layers.append(band_layer)
-
-        line_df = boundary.get("line_df")
-        if isinstance(line_df, pd.DataFrame) and not line_df.empty:
-            line_layer = (
-                alt.Chart(line_df)
-                .mark_line(color="#1f2937", strokeWidth=2)
-                .encode(x="x:Q", y="y:Q")
-            )
-            layers.append(line_layer)
-
     borderline_points = (
         alt.Chart(borderline_df)
-        .mark_circle(size=170, stroke="#f8fafc", strokeWidth=1.6)
+        .mark_circle(size=200, opacity=0.82, stroke="#f8fafc", strokeWidth=1.4)
         .encode(
             x=alt.X(
                 "x:Q",
@@ -991,9 +563,6 @@ def _build_borderline_guardrail_chart(
 
     return alt.layer(*layers).properties(height=360)
 
-
-def _render_training_examples_preview() -> None:
-    """Placeholder hook for future training examples preview."""
 
 def _prepare_meaning_map(
     titles: List[str],
@@ -1313,6 +882,7 @@ def _meaning_map_zoom_subset(
     subset = working.loc[sorted(subset_indices)].copy()
     return subset.reset_index(drop=True)
 
+
 def _build_meaning_map_chart(
     df: pd.DataFrame,
     meta: Dict[str, Any],
@@ -1391,6 +961,8 @@ def _build_meaning_map_chart(
         tooltip_fields.append(alt.Tooltip("spam_probability:Q", title="Spam probability", format=".2f"))
     if "distance_display" in df.columns:
         tooltip_fields.append(alt.Tooltip("distance_display:N", title="Distance to line"))
+    if "reason" in df.columns:
+        tooltip_fields.append(alt.Tooltip("reason:N", title="Signals"))
 
     scatter = base.mark_circle(size=80).encode(
         x=alt.X(
@@ -1622,241 +1194,3 @@ def _build_meaning_map_chart(
         return chart_main
 
     return alt.vconcat(chart_main, detail_chart).resolve_scale(color="independent")
-
-def _render_unified_training_storyboard(
-    ss,
-    *,
-    has_model: bool,
-    has_split: bool,
-    has_embed: bool,
-    section_surface: Callable[[], Any],
-    request_meaning_map_refresh: Callable[[Optional[str]], None],
-    parse_split_cache: Callable[[Any], tuple],
-    rerun: Callable[[], None],
-    logger,
-) -> None:
-    meaning_map_df, meaning_map_meta, chart_ready, meaning_map_error = None, {}, False, None
-    if has_model and has_split and has_embed:
-        try:
-            X_tr_t, X_te_t, X_tr_b, X_te_b, y_tr, y_te = parse_split_cache(ss["split_cache"])
-            meaning_map_df, meaning_map_meta = _prepare_meaning_map(
-                list(X_tr_t) if X_tr_t else [],
-                list(X_tr_b) if X_tr_b else [],
-                list(y_tr) if y_tr else [],
-                ss.get("model"),
-            )
-            gp = ss.get("guard_params", {}) or {}
-            center_default = float(gp.get("assist_center", float(ss.get("threshold", 0.6))))
-            band_default = float(gp.get("uncertainty_band", 0.08))
-            meaning_map_meta.setdefault("guard_center_probability", center_default)
-            meaning_map_meta.setdefault("guard_margin_probability", band_default)
-            c = float(meaning_map_meta["guard_center_probability"])
-            b = float(meaning_map_meta["guard_margin_probability"])
-            meaning_map_meta.setdefault("guard_window_low", max(0.0, c - b))
-            meaning_map_meta.setdefault("guard_window_high", min(1.0, c + b))
-            chart_ready = meaning_map_df is not None and not meaning_map_df.empty
-        except Exception as exc:
-            meaning_map_error = f"Meaning Map unavailable ({exc})."
-            meaning_map_df, meaning_map_meta = None, {}
-            chart_ready = False
-
-    ss["train_storyboard_payload"] = {
-        "meaning_map_df": meaning_map_df if chart_ready else None,
-        "meaning_map_meta": meaning_map_meta if meaning_map_meta else {},
-        "meaning_map_error": meaning_map_error,
-        "chart_ready": chart_ready,
-    }
-
-    refresh_expected = bool(ss.get("train_refresh_expected"))
-    refresh_attempts = int(ss.get("train_refresh_attempts", 0) or 0)
-    if refresh_expected:
-        if chart_ready:
-            ss["train_refresh_expected"] = False
-            ss["train_refresh_attempts"] = 0
-        elif refresh_attempts > 0:
-            ss["train_refresh_attempts"] = refresh_attempts - 1
-            logger.debug(
-                "Meaning map still warming after training; scheduling auto-rerun (%s attempts left)",
-                refresh_attempts - 1,
-            )
-            st.caption("Refreshing training meaning maps…")
-            time.sleep(0.35)
-            rerun()
-            return
-        else:
-            ss["train_refresh_expected"] = False
-            ss["train_refresh_attempts"] = 0
-
-    with section_surface():
-        st.markdown("### How training works — live storyboard")
-
-        left1, right1 = st.columns([0.48, 0.52], gap="large")
-        with left1:
-            pre_training = not (has_model and has_split)
-            show_examples = False
-            if pre_training:
-                st.markdown(
-                    "**1) Meaning points**  \n"
-                    "Think of each email as a dot placed by MiniLM in a 2-D meaning space:\n\n"
-                    "- **Meaning dimension 1**: a blend of traits such as *formality ↔ salesy tone*, *generic phrasing ↔ brand-specific details*, or *routine biz-speak ↔ promotional language*.\n"
-                    "- **Meaning dimension 2**: a complementary blend such as *calm, factual ↔ urgent, persuasive*, *low CTA ↔ strong CTA*, or *neutral ↔ attention-grabbing*.\n\n"
-                    "Below is a **conceptual meaning map** (an illustrative example shown *before* training). "
-                    "Instead of dots, it uses chip-style cards to preview likely clusters from this dataset — "
-                    "meeting notes, courier tracking, promotional blasts, security alerts, and other themes — each placed where that tone usually lands. "
-                    "This helps you imagine the semantic neighborhoods MiniLM will uncover and why borderline content often sits near the middle. "
-                    "After you train on your labeled emails, this sketch will be replaced by the **real** map built from your data."
-                )
-            else:
-                st.markdown("**1) Meaning points**")
-                st.markdown(
-                    "MiniLM places each email so **similar wording lands close**. "
-                    "These two axes are the first two directions of that meaning space — "
-                    "_meaning dimension 1_ and _meaning dimension 2_."
-                )
-                if has_model and has_split:
-                    if st.button(
-                        "Refresh chart",
-                        key=f"refresh_meaning_map_section1_{ss.get('train_story_run_id') or 'initial'}",
-                    ):
-                        request_meaning_map_refresh("section1")
-
-        with right1:
-            pre_training = not (has_model and has_split)
-            story_run_id = ss.get("train_story_run_id") or "initial"
-            if pre_training:
-                try:
-                    chart = _conceptual_meaning_sketch()
-                except Exception:
-                    st.info("Illustrative map unavailable (Altair missing)")
-                else:
-                    st.altair_chart(
-                        chart,
-                        use_container_width=True,
-                        key=f"conceptual_meaning_sketch_{story_run_id}",
-                    )
-                _render_training_examples_preview()
-            elif meaning_map_error:
-                st.info(meaning_map_error)
-                _render_training_examples_preview()
-            elif chart_ready:
-                chart1 = _build_meaning_map_chart(
-                    meaning_map_df,
-                    meaning_map_meta,
-                    show_examples=show_examples,
-                    show_class_centers=False,
-                    highlight_borderline=False,
-                )
-                if chart1 is not None:
-                    st.altair_chart(
-                        chart1,
-                        use_container_width=True,
-                        key=f"meaning_map_chart1_live_{story_run_id}",
-                    )
-                else:
-                    st.info("Meaning Map unavailable for this run.")
-                _render_training_examples_preview()
-            else:
-                st.altair_chart(
-                    _ghost_meaning_map_enhanced(
-                        ss,
-                        title="Meaning map (schematic)",
-                        show_divider=False,
-                        show_band=False,
-                    ),
-                    use_container_width=True,
-                    key=f"ghost_live_map1_{story_run_id}",
-                )
-                _render_training_examples_preview()
-
-        left2, right2 = st.columns([0.48, 0.52], gap="large")
-        with left2:
-            st.markdown("**2) A simple dividing line**")
-            st.markdown(
-                "A straight line will separate spam from safe. Before training, we show where the **current configuration** "
-                "would place that dividing line conceptually. After training, you’ll see the actual learned boundary in a "
-                "zoomed-in view that spotlights borderline emails and those closest to each class center."
-            )
-            show_centers = bool(has_model and has_split)
-            if has_model and has_split:
-                if st.button(
-                    "Refresh chart",
-                    key=f"refresh_meaning_map_section2_{story_run_id}",
-                ):
-                    request_meaning_map_refresh("section2")
-
-        with right2:
-            if meaning_map_error:
-                st.info(meaning_map_error)
-            elif chart_ready:
-                zoom_df = _meaning_map_zoom_subset(meaning_map_df, meaning_map_meta)
-                chart2 = _build_meaning_map_chart(
-                    zoom_df if zoom_df is not None else meaning_map_df,
-                    meaning_map_meta,
-                    show_examples=False,
-                    show_class_centers=show_centers,
-                    highlight_borderline=False,
-                )
-                if chart2 is not None:
-                    st.altair_chart(
-                        chart2,
-                        use_container_width=True,
-                        key=f"meaning_map_chart2_live_{story_run_id}",
-                    )
-                else:
-                    st.info("Meaning Map unavailable for this run.")
-            else:
-                st.altair_chart(
-                    _ghost_meaning_map_enhanced(
-                        ss,
-                        title="Dividing line (schematic)",
-                        show_divider=True,
-                        show_band=False,
-                    ),
-                    use_container_width=True,
-                    key=f"ghost_live_map2_{story_run_id}",
-                )
-
-        guard_params = ss.get("guard_params", {}) if hasattr(ss, "get") else {}
-        try:
-            assist_center = float(guard_params.get("assist_center", ss.get("threshold", 0.6)))
-        except Exception:
-            assist_center = float(ss.get("threshold", 0.6))
-        try:
-            uncertainty_band = float(guard_params.get("uncertainty_band", 0.08))
-        except Exception:
-            uncertainty_band = 0.08
-
-        left3, right3 = st.columns([0.48, 0.52], gap="large")
-        with left3:
-            st.markdown("**3) Extra clues when unsure**")
-            st.markdown(
-                f"When the text score is near **τ≈{assist_center:.2f}**, numeric guardrails help out within a small window "
-                f"(**±{uncertainty_band:.2f}**) — we look at links, ALL-CAPS, money or urgency hints."
-            )
-            guard_low = None
-            guard_high = None
-            if isinstance(meaning_map_meta, dict):
-                guard_low = meaning_map_meta.get("guard_window_low")
-                guard_high = meaning_map_meta.get("guard_window_high")
-            if chart_ready and isinstance(guard_low, (int, float)) and isinstance(guard_high, (int, float)):
-                st.caption(
-                    f"Showing emails where the spam probability falls between {guard_low:.2f} and {guard_high:.2f}."
-                )
-            else:
-                st.caption("Train the model to see which emails triggered these numeric clues.")
-            if has_model and has_split:
-                if st.button(
-                    "Refresh chart",
-                    key=f"refresh_meaning_map_section3_{story_run_id}",
-                ):
-                    request_meaning_map_refresh("section3")
-
-        with right3:
-            if meaning_map_error:
-                st.info(meaning_map_error)
-            elif chart_ready:
-                _render_numeric_clue_cards(meaning_map_df)
-            else:
-                _render_numeric_clue_preview(assist_center, uncertainty_band)
-
-        st.caption(_numeric_guardrails_caption_text(ss))

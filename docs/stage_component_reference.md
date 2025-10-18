@@ -29,7 +29,7 @@ numbers use `nl -ba` numbering (1-indexed) for quick cross-checks.
 
 Supporting helpers for training live alongside the stage:
 - `pages/train_stage/` – package hosting callbacks (`callbacks.py`), navigation helpers (`navigation.py`), and visualization utilities (`visualizations.py`) that support `render_train_stage_page`.
-- `pages/train_helpers.py` – shared callbacks and utilities for the training workflow.
+- `pages/train_stage/helpers/` – grouped training helpers split by concern (`meaning_map.py`, `numeric_clues.py`, `guardrails.py`, etc.) for the Train stage workflow.
 - `pages/__init__.py` – central exports for stage renderers consumed by `streamlit_app.py`.
 
 ## Component placement map

@@ -112,7 +112,7 @@ This document provides a guided tour of the repository so contributors can quick
 - `data/` – Prepare stage package with the orchestrator (`page.py`) and supporting builder, review, and PII modules.【F:pages/data/page.py†L1-L194】【F:pages/data/builder.py†L1-L508】【F:pages/data/review.py†L1-L865】【F:pages/data/pii.py†L1-L201】
 - `train_stage/page.py` – Full training stage implementation covering dataset prep callbacks, modeling workflows, interpretability panels, and narrative storytelling.【F:pages/train_stage/page.py†L1-L1241】
 - `train_stage/` – Package consolidating Train stage callbacks, navigation helpers, and visualization utilities now shared across the page implementation.【F:pages/train_stage/__init__.py†L1-L5】【F:pages/train_stage/callbacks.py†L1-L69】【F:pages/train_stage/navigation.py†L1-L32】
-- `train_helpers.py` – Shared utilities for the training stage, including feature explanations, meaning maps, and Altair selection helpers.【F:pages/train_helpers.py†L1-L1857】
+- `train_stage/helpers/` – Modularised training helpers covering meaning map preparation, numeric guardrails, storyboard rendering, and related utilities.【F:pages/train_stage/helpers/__init__.py†L1-L23】【F:pages/train_stage/helpers/meaning_map.py†L1-L1196】【F:pages/train_stage/helpers/storyboard.py†L1-L261】
 - `evaluate.py` – Evaluation dashboards for metrics, threshold management, and governance summaries.【F:pages/evaluate.py†L44-L566】
 - `use.py` – Live classification console with autonomy toggles, adaptiveness, and routing diagnostics.【F:pages/use.py†L37-L489】
 - `model_card.py` – Transparency surface that renders the downloadable model card and supporting dataset context.【F:pages/model_card.py†L21-L141】
