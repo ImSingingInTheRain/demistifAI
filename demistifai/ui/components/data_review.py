@@ -155,6 +155,150 @@ def data_review_styles() -> str:
     return f"{base_css}\n{share_css}\n</style>"
 
 
+def dataset_snapshot_styles() -> str:
+    """Return the scoped CSS for dataset snapshot surfaces."""
+
+    return dedent(
+        """
+        <style>
+            .dataset-snapshot-card {
+                border: 1px solid #E5E7EB;
+                border-radius: 12px;
+                padding: 1rem 1.25rem;
+                margin-bottom: 0.75rem;
+            }
+
+            .dataset-snapshot-card__sections {
+                display: flex;
+                gap: 1.5rem;
+                flex-wrap: wrap;
+            }
+
+            .dataset-snapshot-card__section {
+                flex: 1 1 240px;
+                min-width: 220px;
+            }
+
+            .dataset-snapshot-card__section-title {
+                font-weight: 600;
+                font-size: 0.95rem;
+                margin-bottom: 0.6rem;
+            }
+
+            .dataset-snapshot-card__rows {
+                display: flex;
+                flex-direction: column;
+                gap: 0.4rem;
+                font-size: 0.9rem;
+            }
+
+            .dataset-snapshot-row {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
+
+            .dataset-snapshot-row__label {
+                color: #111827;
+            }
+
+            .dataset-snapshot-row__value {
+                font-weight: 600;
+                color: #111827;
+            }
+
+            .dataset-snapshot-name {
+                display: flex;
+                align-items: center;
+                gap: 0.35rem;
+            }
+
+            .dataset-snapshot-name__text {
+                font-weight: 600;
+            }
+
+            .dataset-snapshot-badge {
+                display: inline-flex;
+                align-items: center;
+                border-radius: 999px;
+                padding: 2px 8px;
+                font-size: 0.7rem;
+                font-weight: 600;
+                line-height: 1;
+            }
+
+            .dataset-snapshot-badge--active {
+                background: #DCFCE7;
+                color: #166534;
+            }
+        </style>
+        """
+    )
+
+
+def _dataset_snapshot_rows_html(rows: Sequence[Tuple[object, object]]) -> str:
+    """Return HTML for snapshot rows."""
+
+    fragments = []
+    for label, value in rows:
+        label_text = html.escape(str(label) if label is not None else "")
+        value_text = html.escape(str(value) if value is not None else "")
+        fragments.append(
+            dedent(
+                f"""
+                <div class="dataset-snapshot-row">
+                    <span class="dataset-snapshot-row__label">{label_text}</span>
+                    <span class="dataset-snapshot-row__value">{value_text}</span>
+                </div>
+                """
+            ).strip()
+        )
+
+    return "\n".join(fragments)
+
+
+def dataset_snapshot_card_html(
+    summary_rows: Sequence[Tuple[object, object]],
+    fingerprint_rows: Sequence[Tuple[object, object]],
+) -> str:
+    """Build the dataset snapshot summary card markup."""
+
+    summary_html = _dataset_snapshot_rows_html(summary_rows)
+    fingerprint_html = _dataset_snapshot_rows_html(fingerprint_rows)
+
+    return dedent(
+        f"""
+        <div class="dataset-snapshot-card">
+            <div class="dataset-snapshot-card__sections">
+                <div class="dataset-snapshot-card__section">
+                    <div class="dataset-snapshot-card__section-title">Summary</div>
+                    <div class="dataset-snapshot-card__rows">
+                        {summary_html}
+                    </div>
+                </div>
+                <div class="dataset-snapshot-card__section">
+                    <div class="dataset-snapshot-card__section-title">Fingerprint</div>
+                    <div class="dataset-snapshot-card__rows">
+                        {fingerprint_html}
+                    </div>
+                </div>
+            </div>
+        </div>
+        """
+    ).strip()
+
+
+def dataset_snapshot_active_badge(is_active: bool, label: str = "Active") -> str:
+    """Return the active badge markup when the snapshot is active."""
+
+    if not is_active:
+        return ""
+
+    return (
+        f'<span class="dataset-snapshot-badge dataset-snapshot-badge--active">{html.escape(label)}</span>'
+    )
+
+
 def dataset_balance_bar_html(spam_ratio: float) -> str:
     """Return the HTML for the dataset balance bar."""
 
