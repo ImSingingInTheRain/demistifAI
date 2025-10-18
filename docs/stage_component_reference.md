@@ -28,7 +28,7 @@ numbers use `nl -ba` numbering (1-indexed) for quick cross-checks.
 | `model_card` | `pages/model_card.py` | 21–141 | Transparency summary, dataset snapshot details, and download affordances. |
 
 Supporting helpers for training live alongside the stage:
-- `pages/train_stage/` – package hosting callbacks, navigation, and visualization helpers for the Train stage.
+- `pages/train_stage/` – package hosting callbacks (`callbacks.py`), navigation helpers (`navigation.py`), and visualization utilities (`visualizations.py`) that support `render_train_stage_page`.
 - `pages/train_helpers.py` – shared callbacks and utilities for the training workflow.
 - `pages/__init__.py` – central exports for stage renderers consumed by `streamlit_app.py`.
 
@@ -44,7 +44,7 @@ Supporting helpers for training live alongside the stage:
 - **`demistifai/incoming_generator.py`** – Synthetic incoming email batches used in the Classify stage.
 - **`pages/overview.py`** – Overview stage UI, system snapshot, and mission briefing components.
 - **`pages/model_card.py`** – Model card transparency stage UI and download helpers.
-- **`pages/train_stage.py` & `pages/train_helpers.py`** – Dedicated training UI and supporting logic.
+- **`pages/train_stage/page.py` & package modules under `pages/train_stage/`** – Dedicated training UI entry point (`render_train_stage_page`) and supporting logic.
 
 ## Maintenance expectations
 - When stage content moves or grows, update the line ranges above so future contributors land in the right place.
