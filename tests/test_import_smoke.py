@@ -28,6 +28,11 @@ class ConfigImportSmokeTests(unittest.TestCase):
         pii_module = importlib.import_module("demistifai.core.pii")
         self.assertTrue(hasattr(pii_module, "render_pii_cleanup_banner"))
 
+    def test_core_nav_exports_stage_grid(self) -> None:
+        nav_module = importlib.import_module("demistifai.core.nav")
+        self.assertTrue(hasattr(nav_module, "render_stage_top_grid"))
+        self.assertTrue(hasattr(nav_module, "StageTopGridSlots"))
+
 
 if __name__ == "__main__":  # pragma: no cover - convenience for direct execution
     unittest.main()

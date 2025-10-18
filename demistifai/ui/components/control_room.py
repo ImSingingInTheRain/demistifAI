@@ -1,4 +1,10 @@
-"""Reusable Stage Control Room surface for Streamlit stages."""
+"""Reusable Stage Control Room surface for Streamlit stages.
+
+The stage header grid and navigation controls previously bundled with this
+module now live in :mod:`demistifai.core.nav`. Import
+``render_stage_top_grid`` and related helpers from that module instead when
+building new stages.
+"""
 
 from __future__ import annotations
 
