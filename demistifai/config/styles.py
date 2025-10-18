@@ -2,6 +2,6 @@
 
 from __future__ import annotations
 
-from demistifai.constants import APP_THEME_CSS
+from demistifai.styles import APP_THEME_CSS
 
 __all__ = ["APP_THEME_CSS"]

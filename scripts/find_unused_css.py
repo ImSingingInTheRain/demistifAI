@@ -15,7 +15,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from demistifai.constants import APP_THEME_CSS
+from demistifai.styles.theme import APP_THEME_CSS
 
 CLASS_PATTERN = re.compile(r"\.([A-Za-z_][A-Za-z0-9_-]*)")
 DEFAULT_SEARCH_PATHS: Sequence[str] = ("demistifai", "pages", "streamlit_app.py")
@@ -62,7 +62,7 @@ def extract_class_names(css: str) -> list[str]:
     return list(classes.keys())
 
 
-CONSTANTS_PATH = (REPO_ROOT / "demistifai" / "constants.py").resolve()
+THEME_PATH = (REPO_ROOT / "demistifai" / "styles" / "theme.py").resolve()
 
 
 def iter_search_files(root: Path, search_paths: Sequence[str]) -> Iterable[Path]:
@@ -97,7 +97,7 @@ def class_is_used(class_name: str, files: Iterable[Path]) -> bool:
         if not pattern.search(text):
             continue
         # Avoid counting CSS references embedded in APP_THEME_CSS itself
-        if candidate.resolve() == CONSTANTS_PATH and "APP_THEME_CSS" in text:
+        if candidate.resolve() == THEME_PATH and "APP_THEME_CSS" in text:
             continue
         return True
     return False

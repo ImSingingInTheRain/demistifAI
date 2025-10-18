@@ -1,7 +1,7 @@
 """demistifAI application package."""
 
+from .styles import APP_THEME_CSS
 from .constants import (
-    APP_THEME_CSS,
     AUTONOMY_LEVELS,
     BRANDS,
     CLASSES,
