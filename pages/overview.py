@@ -5,14 +5,12 @@ from __future__ import annotations
 import html
 import re
 import textwrap
-from datetime import datetime
 from typing import Any, Callable, ContextManager, Dict, List, MutableMapping, Optional
 
 import pandas as pd
 import streamlit as st
 from streamlit.delta_generator import DeltaGenerator
 
-from demistifai.constants import AUTONOMY_LEVELS, STAGE_BY_KEY, STAGE_INDEX, STAGES
 from demistifai.ui.components.arch_demai import demai_architecture_markup, demai_architecture_styles
 from demistifai.ui.components.mac_window import render_mac_window
 from demistifai.ui.components.terminal.boot_sequence import (
@@ -40,28 +38,7 @@ def render_overview_stage(
         Context manager that wraps stage sections with shared styling.
     """
 
-    next_stage_key: Optional[str] = None
-    overview_index = STAGE_INDEX.get("overview")
-    if overview_index is not None and overview_index < len(STAGES) - 1:
-        next_stage_key = STAGES[overview_index + 1].key
-
-    labeled_examples = ss.get("labeled") or []
-    dataset_rows = len(labeled_examples)
-    dataset_last_built = ss.get("dataset_last_built_at")
-    if dataset_last_built:
-        try:
-            built_dt = datetime.fromisoformat(dataset_last_built)
-            dataset_timestamp = f"Dataset build: {built_dt.strftime('%b %d, %H:%M')}"
-        except ValueError:
-            dataset_timestamp = f"Dataset build: {dataset_last_built}"
-    else:
-        dataset_timestamp = "Dataset build: pending"
-
     incoming_records = ss.get("incoming") or []
-    incoming_count = len(incoming_records)
-    incoming_seed = ss.get("incoming_seed")
-    autonomy_label = str(ss.get("autonomy", AUTONOMY_LEVELS[0]))
-    adaptiveness_enabled = bool(ss.get("adaptive", False))
     nerd_enabled = bool(ss.get("nerd_mode_train") or ss.get("nerd_mode"))
 
     def _render_overview_terminal(slot: DeltaGenerator) -> None:
@@ -88,134 +65,6 @@ def render_overview_stage(
     st.markdown(
         """
         <style>
-        .overview-intro-card {
-            background: linear-gradient(135deg, rgba(59, 130, 246, 0.16), rgba(14, 116, 144, 0.16));
-            border-radius: 1.25rem;
-            padding: 1.6rem;
-            border: 1px solid rgba(15, 23, 42, 0.08);
-            box-shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
-            margin-bottom: 1.4rem;
-        }
-        .overview-intro-card__header {
-            display: flex;
-            align-items: flex-start;
-            gap: 1rem;
-            margin-bottom: 1rem;
-        }
-        .overview-intro-card__icon {
-            font-size: 1.9rem;
-            line-height: 1;
-            background: rgba(15, 23, 42, 0.08);
-            border-radius: 0.9rem;
-            padding: 0.55rem 0.95rem;
-            box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.06);
-        }
-        .overview-intro-card__eyebrow {
-            font-size: 0.75rem;
-            letter-spacing: 0.16em;
-            text-transform: uppercase;
-            font-weight: 700;
-            color: rgba(15, 23, 42, 0.6);
-            display: inline-block;
-            margin-bottom: 0.35rem;
-        }
-        .overview-intro-card__title {
-            margin: 0;
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: #0f172a;
-        }
-        .overview-intro-card__body {
-            margin: 0;
-            color: rgba(15, 23, 42, 0.82);
-            font-size: 0.98rem;
-            line-height: 1.65;
-        }
-        .overview-checklist {
-            margin: 1.1rem 0 0;
-            padding: 0;
-            list-style: none;
-            display: flex;
-            flex-direction: column;
-            gap: 0.6rem;
-        }
-        .overview-checklist li {
-            display: flex;
-            gap: 0.6rem;
-            align-items: flex-start;
-            color: rgba(15, 23, 42, 0.78);
-            font-size: 0.95rem;
-            line-height: 1.6;
-        }
-        .overview-checklist li::before {
-            content: "✔";
-            font-weight: 700;
-            color: #1d4ed8;
-            margin-top: 0.1rem;
-        }
-        .overview-intro-actions {
-            margin-top: 1.35rem;
-            display: flex;
-            flex-direction: column;
-            gap: 0.45rem;
-        }
-        .overview-intro-actions__hint {
-            font-size: 0.85rem;
-            color: rgba(15, 23, 42, 0.62);
-        }
-        .overview-cta {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.5rem;
-            padding: 0.7rem 1.1rem;
-            border-radius: 999px;
-            background: linear-gradient(135deg, #2563eb, #1d4ed8);
-            color: white;
-            font-weight: 600;
-            text-decoration: none;
-            border: none;
-        }
-        .overview-cta__next {
-            background: rgba(37, 99, 235, 0.12);
-            color: #1d4ed8;
-        }
-        .overview-intro-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-            gap: 1.2rem;
-        }
-        .status-card {
-            padding: 1.1rem 1.3rem;
-            border-radius: 1.1rem;
-            background: rgba(248, 250, 252, 0.92);
-            border: 1px solid rgba(148, 163, 184, 0.2);
-            box-shadow: 0 12px 26px rgba(15, 23, 42, 0.08);
-            display: grid;
-            gap: 0.45rem;
-        }
-        .status-card__eyebrow {
-            font-size: 0.72rem;
-            letter-spacing: 0.14em;
-            text-transform: uppercase;
-            font-weight: 700;
-            color: rgba(15, 23, 42, 0.55);
-        }
-        .status-card__value {
-            font-size: 1.35rem;
-            font-weight: 700;
-            color: #0f172a;
-        }
-        .status-card__body {
-            margin: 0;
-            font-size: 0.9rem;
-            color: rgba(15, 23, 42, 0.7);
-        }
-        .status-card__footnote {
-            margin: 0;
-            font-size: 0.8rem;
-            color: rgba(15, 23, 42, 0.55);
-        }
         .mission-brief {
             background: rgba(255, 255, 255, 0.96);
             border-radius: 1.4rem;
@@ -473,17 +322,6 @@ def render_overview_stage(
         unsafe_allow_html=True,
     )
 
-    dataset_value = f"{dataset_rows:,} labeled emails ready" if dataset_rows else "Starter dataset loading"
-    incoming_value = f"{incoming_count:,} emails queued"
-    if incoming_seed is not None:
-        incoming_value = f"{incoming_value} • seed {incoming_seed}"
-
-    adaptiveness_value = (
-        "Adaptiveness on — confirmations feed future training"
-        if adaptiveness_enabled
-        else "Adaptiveness off — corrections stay manual"
-    )
-
     render_mac_window(
         st,
         title="System snapshot",
@@ -540,63 +378,6 @@ def render_overview_stage(
             </div>
             """.strip()
         )
-
-    next_stage_cta_html = ""
-    if next_stage_key and next_stage_key in STAGE_BY_KEY:
-        next_stage_cta_html = (
-            f"<a class=\"overview-cta overview-cta__next\" href=\"#\">Next: {html.escape(STAGE_BY_KEY[next_stage_key].title)}</a>"
-        )
-
-    overview_intro_html = textwrap.dedent(
-        f"""
-        <div class="overview-intro-card">
-            <div class="overview-intro-card__header">
-                <div class="overview-intro-card__icon">🛰️</div>
-                <div>
-                    <span class="overview-intro-card__eyebrow">Lifecycle orientation</span>
-                    <h2 class="overview-intro-card__title">Welcome to the demistifAI control room</h2>
-                </div>
-            </div>
-            <p class="overview-intro-card__body">
-                This guided workspace links every stage of your AI lifecycle. Start with a mission briefing,
-                keep an eye on the system snapshot, then follow the checklist to build, evaluate, and govern your spam detector.
-            </p>
-            <div class="overview-intro-actions">
-                <div class="overview-intro-actions__hint">First time here? Move through the stages from left to right.</div>
-                {next_stage_cta_html}
-            </div>
-        </div>
-        """
-    ).strip()
-
-    with section_surface():
-        st.markdown(overview_intro_html, unsafe_allow_html=True)
-
-        status_cards_html = textwrap.dedent(
-            f"""
-            <div class="overview-intro-grid">
-                <div class="status-card">
-                    <span class="status-card__eyebrow">Dataset status</span>
-                    <span class="status-card__value">{dataset_value}</span>
-                    <p class="status-card__body">Labeled emails power model training and evaluation.</p>
-                    <p class="status-card__footnote">{dataset_timestamp}</p>
-                </div>
-                <div class="status-card">
-                    <span class="status-card__eyebrow">Inbox feed</span>
-                    <span class="status-card__value">{incoming_value}</span>
-                    <p class="status-card__body">Generate synthetic emails to stress-test routing decisions.</p>
-                    <p class="status-card__footnote">Use stage controls to refresh the queue.</p>
-                </div>
-                <div class="status-card">
-                    <span class="status-card__eyebrow">Operating mode</span>
-                    <span class="status-card__value">{autonomy_label}</span>
-                    <p class="status-card__body">Adjust autonomy and adaptiveness to balance control and scale.</p>
-                    <p class="status-card__footnote">{adaptiveness_value}</p>
-                </div>
-            </div>
-            """
-        ).strip()
-        st.markdown(status_cards_html, unsafe_allow_html=True)
 
     mailbox_html = textwrap.dedent(
         """
