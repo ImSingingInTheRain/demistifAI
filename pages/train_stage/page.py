@@ -77,14 +77,20 @@ from demistifai.modeling import (
     verdict_label,
 )
 
-from pages.train_helpers import (
-    _build_meaning_map_chart,
+from pages.train_stage.helpers.guardrails import (
     _guardrail_window_values,
-    _meaning_map_zoom_subset,
     _numeric_guardrails_caption_text,
+)
+from pages.train_stage.helpers.meaning_map import (
+    _build_meaning_map_chart,
+    _meaning_map_zoom_subset,
     _prepare_meaning_map,
+)
+from pages.train_stage.helpers.numeric_clues import (
     _render_numeric_clue_cards,
     _render_numeric_clue_preview,
+)
+from pages.train_stage.helpers.storyboard import (
     _render_training_examples_preview,
     _render_unified_training_storyboard,
 )
