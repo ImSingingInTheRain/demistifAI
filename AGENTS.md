@@ -4,7 +4,7 @@ Welcome! This repository contains the **demistifAI** Streamlit lab that walks us
 
 ## Architectural quick facts
 - [`streamlit_app.py`](./streamlit_app.py) is the Streamlit entry point. It wires the stage registry (`STAGES` in [`demistifai/constants.py`](./demistifai/constants.py)) to the renderer map in `STAGE_RENDERERS` and imports the shared UI primitives from `demistifai/ui`.
-- Stage-specific views now live in the [`pages/`](./pages) package (for example `pages/data/page.py`, `pages/train_stage.py`, `pages/evaluate.py`). Keep new stage logic in this package and surface it through the renderer map.
+- Stage-specific views now live in the [`pages/`](./pages) package (for example `pages/data/page.py`, `pages/train_stage/page.py`, `pages/evaluate.py`; the package re-exports `render_train_stage_page`). Keep new stage logic in this package and surface it through the renderer map.
 - Core utilities are organised under [`demistifai/core`](./demistifai/core): navigation and session management (`navigation.py`, `state.py`, `session_defaults.py`), dataset health (`dataset.py`, `validation.py`), guardrails (`guardrails.py`, `pii.py`), routing (`routing.py`), and download/export helpers.
 - Modeling, dataset generation, and simulated inbox traffic remain in [`demistifai/modeling.py`](./demistifai/modeling.py), [`demistifai/dataset.py`](./demistifai/dataset.py), and [`demistifai/incoming_generator.py`](./demistifai/incoming_generator.py). Extend these modules rather than duplicating logic in pages.
 - Visual primitives (mailbox tables, Nerd Mode toggles, EU AI quotes, section wrappers) live in [`demistifai/ui/primitives`](./demistifai/ui/primitives). Compose new UI from these helpers to keep styling consistent.
