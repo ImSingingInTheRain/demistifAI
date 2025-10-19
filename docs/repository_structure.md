@@ -39,9 +39,7 @@ This document provides a guided tour of the repository so contributors can quick
 - `pii_indicators.py` – Displays responsive PII indicator tiles summarising detected token counts.【F:demistifai/ui/components/pii_indicators.py†L1-L25】
 - `train_animation.py` – Plotly-powered training map animation with brand token bridging, HTML wrappers, and graceful fallbacks when the optional Plotly dependency is missing.【F:demistifai/ui/components/train_animation.py†L9-L277】
 - `train_intro.py` – Training stage launchpad cards, inline notes, and CSS builders that accompany the animation panel.【F:demistifai/ui/components/train_intro.py†L1-L143】
-- `terminal/` – Animated terminal namespace with shared helpers and scenario-specific scripts:
-  - `terminal_base.py` – Shared helpers for rendering terminal sequences, including CSS injection, typing operations, and highlight logic.【F:demistifai/ui/components/terminal/terminal_base.py†L1-L200】
-  - `classic.py` – Command-line style welcome terminal typing the EU AI Act definition and demAI guidance for the classic intro experience.【F:demistifai/ui/components/terminal/classic.py†L1-L200】
+- `terminal/` – Animated terminal namespace with scenario-specific scripts powering stage introductions and walkthroughs:
   - `boot_sequence.py` – Alternate terminal script that frames the "demAI machine" boot sequence with staged prompts and Nerd Mode hints.【F:demistifai/ui/components/terminal/boot_sequence.py†L1-L228】
   - `article3.py` – Article 3-focused terminal variation highlighting the mission pillars of demAI.【F:demistifai/ui/components/terminal/article3.py†L1-L225】
   - `data_prep.py` – Terminal storyline guiding users through dataset creation, linting, and schema expectations.【F:demistifai/ui/components/terminal/data_prep.py†L1-L209】
