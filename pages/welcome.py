@@ -16,7 +16,10 @@ from demistifai.ui.components.terminal.article3 import (
     render_ai_act_terminal as render_welcome_ai_act_terminal,
 )
 from demistifai.ui.primitives import render_eu_ai_quote
-from demistifai.ui.primitives.typing_quote import EU_AI_ACT_DEF
+
+EU_AI_ACT_DEF = (
+    "An AI system infers how to generate outputs that can influence physical or virtual environments."
+)
 
 SectionSurface = Callable[[Optional[str]], ContextManager[None]]
 
