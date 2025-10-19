@@ -332,33 +332,81 @@ def mac_window_html(
             const root = document.querySelector('.mw-{suf}');
             if (!root) return;
 
-            const postSize = () => {{
-              const height = Math.ceil(root.getBoundingClientRect().height + 24);
+            const frameEl = window.frameElement;
+            let raf = null;
+
+            const numberOrZero = (value) => {{
+              const parsed = parseFloat(value);
+              return Number.isFinite(parsed) ? parsed : 0;
+            }};
+
+            const updateFrameHeight = () => {{
+              raf = null;
+              const rect = root.getBoundingClientRect();
+              const styles = window.getComputedStyle(root);
+              const marginTop = numberOrZero(styles.marginTop);
+              const marginBottom = numberOrZero(styles.marginBottom);
+              const height = Math.max(0, Math.ceil(rect.height + marginTop + marginBottom + 16));
+              if (!height) return;
+
+              if (frameEl) {{
+                frameEl.style.height = `${{height}}px`;
+                frameEl.setAttribute('height', String(height));
+              }}
+
               if (window.parent && window.parent !== window) {{
-                window.parent.postMessage({{"type": "streamlit:resize", "height": height}}, "*");
+                window.parent.postMessage({{ type: 'streamlit:resize', height }}, '*');
               }}
             }};
 
-            postSize();
+            const scheduleUpdate = () => {{
+              if (raf !== null) return;
+              raf = window.requestAnimationFrame(updateFrameHeight);
+            }};
+
+            scheduleUpdate();
 
             if (typeof ResizeObserver === 'function') {{
-              const resizeObserver = new ResizeObserver(() => {{
-                window.requestAnimationFrame(postSize);
-              }});
+              const resizeObserver = new ResizeObserver(scheduleUpdate);
               resizeObserver.observe(root);
-            }} else {{
-              window.addEventListener('transitionend', postSize);
-              window.addEventListener('animationend', postSize);
             }}
+
+            if (typeof MutationObserver === 'function') {{
+              const mutationObserver = new MutationObserver(scheduleUpdate);
+              mutationObserver.observe(root, {{ childList: true, subtree: true, characterData: true }});
+            }}
+
+            const bindOnce = (eventName, handler) => {{
+              window.addEventListener(eventName, handler, {{ once: true }});
+            }};
 
             if (document.readyState === 'complete') {{
-              postSize();
+              scheduleUpdate();
             }} else {{
-              window.addEventListener('load', postSize, {{ once: true }});
-              window.addEventListener('DOMContentLoaded', postSize, {{ once: true }});
+              bindOnce('DOMContentLoaded', scheduleUpdate);
+              bindOnce('load', scheduleUpdate);
             }}
 
-            window.addEventListener('resize', postSize);
+            if (document.fonts) {{
+              if (typeof document.fonts.addEventListener === 'function') {{
+                document.fonts.addEventListener('loadingdone', scheduleUpdate);
+                document.fonts.addEventListener('loadingerror', scheduleUpdate);
+              }} else if (typeof document.fonts.ready?.then === 'function') {{
+                document.fonts.ready.then(scheduleUpdate).catch(scheduleUpdate);
+              }}
+            }}
+
+            window.addEventListener('resize', scheduleUpdate);
+
+            let attempts = 0;
+            const tick = () => {{
+              attempts += 1;
+              scheduleUpdate();
+              if (attempts < 6) {{
+                window.setTimeout(tick, 200);
+              }}
+            }};
+            window.setTimeout(tick, 120);
           }})();
         </script>
         """
