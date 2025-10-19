@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
+from textwrap import dedent
 from typing import Callable, ContextManager, Optional
 
 import streamlit as st
 from streamlit.delta_generator import DeltaGenerator
 
-from demistifai.constants import STAGE_INDEX, STAGES
+from demistifai.core.navigation import activate_stage
+from demistifai.core.utils import streamlit_rerun
+from demistifai.constants import STAGE_INDEX, STAGES, StageMeta
 from demistifai.ui.components import render_stage_top_grid
 from demistifai.ui.components.intro import render_intro_hero
 from demistifai.ui.components.shared import render_mac_window
@@ -28,9 +31,11 @@ def render_intro_stage(*, section_surface: SectionSurface) -> None:
     """Render the welcome/intro stage surface."""
 
     next_stage_key: Optional[str] = None
+    next_stage_meta: Optional[StageMeta] = None
     intro_index = STAGE_INDEX.get("intro")
     if intro_index is not None and intro_index < len(STAGES) - 1:
-        next_stage_key = STAGES[intro_index + 1].key
+        next_stage_meta = STAGES[intro_index + 1]
+        next_stage_key = next_stage_meta.key
 
     def _render_intro_terminal(slot: DeltaGenerator) -> None:
         with slot:
@@ -54,4 +59,56 @@ def render_intro_stage(*, section_surface: SectionSurface) -> None:
             scoped_css=hero_css,
             max_width=1200,
         )
+
+        if next_stage_meta is not None and next_stage_key is not None:
+            button_key = f"intro_stage_start_{next_stage_key}"
+            with st.container():
+                cta_clicked = st.button(
+                    f"{next_stage_meta.icon} {next_stage_meta.title} ➡️",
+                    key=button_key,
+                    type="primary",
+                    use_container_width=True,
+                    help="Jump to the next stage",
+                )
+                if cta_clicked and activate_stage(next_stage_key):
+                    streamlit_rerun()
+
+            st.markdown(
+                dedent(
+                    f"""
+                    <script>
+                        (function() {{
+                            const doc = window.parent && window.parent.document ? window.parent.document : document;
+                            const buttonClass = 'st-key-{button_key}';
+                            function mountIntroStartButton() {{
+                                const target = doc.querySelector('.intro-lifecycle-sidecar .intro-start-button-source');
+                                const wrapper = doc.querySelector('.' + buttonClass);
+                                if (!target || !wrapper) {{
+                                    return false;
+                                }}
+                                if (target.contains(wrapper)) {{
+                                    return true;
+                                }}
+                                const originBlock = wrapper.closest('[data-testid="stVerticalBlock"]');
+                                target.innerHTML = '';
+                                target.classList.add('intro-start-button-source--mounted');
+                                target.appendChild(wrapper);
+                                if (originBlock) {{
+                                    originBlock.style.display = 'none';
+                                }}
+                                return true;
+                            }}
+                            if (!mountIntroStartButton()) {{
+                                const retry = setInterval(function() {{
+                                    if (mountIntroStartButton()) {{
+                                        clearInterval(retry);
+                                    }}
+                                }}, 200);
+                            }}
+                        }})();
+                    </script>
+                    """
+                ),
+                unsafe_allow_html=True,
+            )
 

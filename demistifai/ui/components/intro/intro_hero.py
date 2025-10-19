@@ -761,6 +761,11 @@ def intro_hero_scoped_css() -> str:
                 outline: 3px solid rgba(59, 130, 246, 0.45);
                 outline-offset: 3px;
             }
+            @media (min-width: 720px) {
+                .mw-intro-lifecycle .intro-start-button-slot {
+                    display: none;
+                }
+            }
             .mw-intro-lifecycle .intro-lifecycle-map {
                 display: flex;
                 flex-direction: column;
@@ -869,6 +874,10 @@ def _intro_left_column_html() -> str:
                     Click the button below to start your demAI journey!
                 </li>
             </ul>
+
+            <div class="intro-start-button-slot">
+                <div class="intro-start-button-source"></div>
+            </div>
 
         </div>
         """
