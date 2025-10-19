@@ -10,12 +10,14 @@ from streamlit.delta_generator import DeltaGenerator
 from sklearn import __version__ as sklearn_version
 from sklearn.metrics import precision_recall_fscore_support
 
-from demistifai.ui.components import render_guardrail_audit, render_stage_top_grid
+from demistifai.ui.components import (
+    render_guardrail_audit,
+    render_stage_top_grid,
+    render_threshold_controls,
+)
 from demistifai.constants import STAGE_BY_KEY
 from demistifai.core.state import ensure_state, hash_dict, validate_invariants
 from demistifai.modeling import (
-    _fmt_delta,
-    _fmt_pct,
     _pr_acc_cm,
     _y01,
     compute_confusion,
@@ -207,91 +209,22 @@ def render_evaluate_stage_page(
                 st.caption(f"📂 {extra_caption}")
 
     with section_surface():
-        st.markdown("### Spam threshold")
-        presets = threshold_presets(y_true01, p_spam)
-
-        if "eval_temp_threshold" not in ss:
-            ss["eval_temp_threshold"] = current_thr
-
-        controls_col, slider_col = st.columns([2, 3], gap="large")
-        with controls_col:
-            if st.button("Balanced (max F1)", use_container_width=True):
-                ss["eval_temp_threshold"] = float(presets["balanced_f1"])
-                st.toast(f"Suggested threshold (max F1): {ss['eval_temp_threshold']:.2f}", icon="✅")
-            if st.button("Protect inbox (≥95% precision)", use_container_width=True):
-                ss["eval_temp_threshold"] = float(presets["precision_95"])
-                st.toast(
-                    f"Suggested threshold (precision≥95%): {ss['eval_temp_threshold']:.2f}",
-                    icon="✅",
-                )
-            if st.button("Catch spam (≥90% recall)", use_container_width=True):
-                ss["eval_temp_threshold"] = float(presets["recall_90"])
-                st.toast(
-                    f"Suggested threshold (recall≥90%): {ss['eval_temp_threshold']:.2f}",
-                    icon="✅",
-                )
-            if st.button("Adopt this threshold", use_container_width=True):
-                ss["threshold"] = float(ss.get("eval_temp_threshold", current_thr))
-                st.success(
-                    f"Adopted new operating threshold: **{ss['threshold']:.2f}**. This will be used in Classify and Full Autonomy."
-                )
-        with slider_col:
-            temp_threshold = float(
-                st.slider(
-                    "Adjust threshold (temporary)",
-                    0.1,
-                    0.9,
-                    value=float(ss.get("eval_temp_threshold", current_thr)),
-                    step=0.01,
-                    key="eval_temp_threshold",
-                    help="Lower values catch more spam (higher recall) but risk more false alarms. Higher values protect the inbox (higher precision) but may miss some spam.",
-                )
-            )
-
-            cm_temp = compute_confusion(y_true01, p_spam, temp_threshold)
-            acc_temp = (cm_temp["TP"] + cm_temp["TN"]) / max(1, len(y_true01))
-            st.caption(
-                f"At {temp_threshold:.2f}, accuracy would be **{acc_temp:.2%}** (TP {cm_temp['TP']}, FP {cm_temp['FP']}, TN {cm_temp['TN']}, FN {cm_temp['FN']})."
-            )
-
-        acc_new, p_new, r_new, f1_new, cm_new = _pr_acc_cm(y_true01, p_spam, temp_threshold)
-
-        with st.container(border=True):
-            st.markdown("#### What changes when I move the threshold?")
-            st.caption("Comparing your **adopted** threshold vs. the **temporary** slider value above:")
-
-            col_left, col_right = st.columns(2)
-            with col_left:
-                st.markdown("**Current (adopted)**")
-                st.write(f"- Threshold: **{current_thr:.2f}**")
-                st.write(f"- Accuracy: {_fmt_pct(acc_cur)}")
-                st.write(f"- Precision (spam): {_fmt_pct(p_cur)}")
-                st.write(f"- Recall (spam): {_fmt_pct(r_cur)}")
-                st.write(f"- False positives (safe→spam): **{cm_cur['FP']}**")
-                st.write(f"- False negatives (spam→safe): **{cm_cur['FN']}**")
-
-            with col_right:
-                st.markdown("**If you adopt the slider value**")
-                st.write(f"- Threshold: **{temp_threshold:.2f}**")
-                st.write(f"- Accuracy: {_fmt_pct(acc_new)} ({_fmt_delta(acc_new, acc_cur)})")
-                st.write(f"- Precision (spam): {_fmt_pct(p_new)} ({_fmt_delta(p_new, p_cur)})")
-                st.write(
-                    f"- False positives: **{cm_new['FP']}** ({_fmt_delta(cm_new['FP'], cm_cur['FP'], pct=False)})"
-                )
-                st.write(
-                    f"- False negatives: **{cm_new['FN']}** ({_fmt_delta(cm_new['FN'], cm_cur['FN'], pct=False)})"
-                )
-
-            if temp_threshold > current_thr:
-                st.info(
-                    "Raising the threshold makes the model **more cautious**: usually **fewer false positives** (protects inbox) but **more spam may slip through**."
-                )
-            elif temp_threshold < current_thr:
-                st.info(
-                    "Lowering the threshold makes the model **more aggressive**: it **catches more spam** (higher recall) but may **flag more legit emails**."
-                )
-            else:
-                st.info("Same threshold as adopted — metrics unchanged.")
+        threshold_result = render_threshold_controls(
+            session_state=ss,
+            y_true01=y_true01,
+            p_spam=p_spam,
+            current_threshold=current_thr,
+            threshold_presets_fn=threshold_presets,
+            pr_acc_cm_fn=_pr_acc_cm,
+            current_metrics={
+                "accuracy": acc_cur,
+                "precision": p_cur,
+                "recall": r_cur,
+                "f1": f1_cur,
+                "confusion": cm_cur,
+            },
+        )
+        temp_threshold = threshold_result["temporary_threshold"]
 
     with section_surface():
         with st.expander("📌 Suggestions to improve your model"):
