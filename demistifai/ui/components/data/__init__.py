@@ -9,6 +9,7 @@ from .data_review import (
     edge_case_pairs_html,
     stratified_sample_cards_html,
 )
+from .builder import build_compare_panel_html, cli_command_line, cli_comment
 from .pii import (
     _highlight_spans_html,
     pii_chip_row_html,
@@ -24,6 +25,9 @@ __all__ = [
     "dataset_snapshot_styles",
     "edge_case_pairs_html",
     "stratified_sample_cards_html",
+    "build_compare_panel_html",
+    "cli_command_line",
+    "cli_comment",
     "render_pii_indicators",
     "_highlight_spans_html",
     "pii_chip_row_html",
