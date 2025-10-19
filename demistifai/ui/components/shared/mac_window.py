@@ -247,6 +247,36 @@ def mac_window_html(
               min-height: 0;
               padding: clamp(.85rem, 5vw, 1.2rem);
             }}
+          }}
+
+          @media (max-width: 600px){{
+            .mw-{suf} {{
+              --radius: 0px;
+              --shadow: none;
+              width: 100%;
+              margin: 0;
+              border-radius: 0;
+              box-shadow: none;
+              border: none;
+            }}
+            .mw-{suf}__chrome {{
+              display: none;
+            }}
+            .mw-{suf}__body {{
+              padding: 0 1rem 1.25rem;
+            }}
+            .mw-{suf}__grid {{
+              grid-template-columns: 1fr;
+              gap: clamp(.75rem, 4.5vw, 1rem);
+            }}
+            .mw-{suf}__col {{
+              padding: 0;
+              border-radius: 0;
+              background: none;
+              box-shadow: none;
+              border: 0;
+              min-height: 0;
+            }}
           }}{extra_scoped_css}
         </style>
 

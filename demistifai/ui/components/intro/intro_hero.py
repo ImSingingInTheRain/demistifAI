@@ -801,6 +801,49 @@ def intro_hero_scoped_css() -> str:
                     gap: 0.75rem;
                 }
             }
+            @media (max-width: 600px) {
+                .mw-intro-lifecycle {
+                    margin: 0;
+                    border: none;
+                    border-radius: 0;
+                    box-shadow: none;
+                    min-height: auto;
+                }
+                .mw-intro-lifecycle::before {
+                    display: none;
+                }
+                .mw-intro-lifecycle__body {
+                    background: transparent;
+                    padding: 0 1rem 1.25rem;
+                }
+                .mw-intro-lifecycle__grid {
+                    padding: 0;
+                    gap: clamp(0.75rem, 4vw, 1.1rem);
+                }
+                .mw-intro-lifecycle__col {
+                    padding: 0;
+                    border-radius: 0;
+                    border: 0;
+                    background: none;
+                    box-shadow: none;
+                    min-height: auto;
+                }
+                .mw-intro-lifecycle__col::before {
+                    display: none;
+                }
+                .mw-intro-lifecycle__col:has(> .intro-lifecycle-map) {
+                    padding: 0;
+                    background: none;
+                    border: 0;
+                    box-shadow: none;
+                }
+                .mw-intro-lifecycle__col:has(> .intro-lifecycle-map)::before {
+                    display: none;
+                }
+                .mw-intro-lifecycle .intro-lifecycle-sidecar {
+                    padding: 0;
+                }
+            }
         </style>
         """
     )
