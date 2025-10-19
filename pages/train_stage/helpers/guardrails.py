@@ -5,23 +5,7 @@ from typing import Tuple
 import altair as alt
 import pandas as pd
 
-
-def _guardrail_window_values(ss) -> Tuple[float, float, float, float]:
-    guard_params = ss.get("guard_params", {}) or {}
-    threshold_default = float(ss.get("threshold", 0.6))
-    try:
-        center = float(guard_params.get("assist_center", threshold_default))
-    except (TypeError, ValueError):
-        center = threshold_default
-    try:
-        band = float(guard_params.get("uncertainty_band", 0.08))
-    except (TypeError, ValueError):
-        band = 0.08
-    center = max(0.0, min(1.0, center))
-    band = max(0.0, band)
-    low = max(0.0, min(1.0, center - band))
-    high = max(0.0, min(1.0, center + band))
-    return center, band, low, high
+from demistifai.core.guardrails import _guardrail_window_values
 
 
 def _ghost_meaning_map_enhanced(
