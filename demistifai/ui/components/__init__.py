@@ -14,6 +14,7 @@ from .intro_hero import (
     intro_lifecycle_columns,
     render_intro_hero,
 )
+from .guardrail_panel import render_guardrail_panel
 from .data_review import (
     data_review_styles,
     dataset_balance_bar_html,
@@ -23,6 +24,7 @@ from .data_review import (
     edge_case_pairs_html,
     stratified_sample_cards_html,
 )
+from .pii_indicators import render_pii_indicators
 from .mac_window import render_mac_window
 from .overview_mission import (
     mailbox_preview_markup,
@@ -60,6 +62,7 @@ __all__ = [
     "mission_brief_markup",
     "mission_brief_styles",
     "render_intro_hero",
+    "render_guardrail_panel",
     "build_training_animation_column",
     "render_training_animation",
     "TrainingNotesColumn",
@@ -80,4 +83,5 @@ __all__ = [
     "dataset_snapshot_styles",
     "edge_case_pairs_html",
     "stratified_sample_cards_html",
+    "render_pii_indicators",
 ]

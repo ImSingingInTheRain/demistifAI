@@ -13,7 +13,7 @@ from streamlit.delta_generator import DeltaGenerator
 from sklearn import __version__ as sklearn_version
 from sklearn.metrics import precision_recall_fscore_support
 
-from demistifai.components.guardrail_panel import render_guardrail_panel
+from demistifai.ui.components import render_guardrail_panel
 from demistifai.constants import STAGE_BY_KEY
 from demistifai.core.guardrails import (
     GUARDRAIL_LABEL_ICONS,

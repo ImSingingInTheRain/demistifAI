@@ -7,7 +7,7 @@ from typing import Callable, ContextManager, Optional
 import streamlit as st
 from streamlit.delta_generator import DeltaGenerator
 
-from demistifai.components.pii_indicators import render_pii_indicators
+from demistifai.ui.components import render_pii_indicators
 from demistifai.core.pii import (
     _ensure_pii_state,
     _highlight_spans_html,
