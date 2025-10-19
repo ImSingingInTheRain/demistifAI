@@ -4,6 +4,7 @@ import html
 import re
 import uuid
 from collections.abc import Iterable
+from typing import Literal
 from textwrap import dedent, indent
 
 def _strip_style_wrappers(css_chunk: str) -> str:
@@ -41,6 +42,9 @@ def _normalise_scoped_css(scoped_css: str | Iterable[str] | None) -> str:
     return "\n" + indent(combined, "          ")
 
 
+ColumnVariant = Literal["standard", "flush"]
+
+
 def mac_window_html(
     title: str = "demAI",
     subtitle: str | None = None,
@@ -52,6 +56,7 @@ def mac_window_html(
     id_suffix: str | None = None,
     scoped_css: str | Iterable[str] | None = None,
     max_width: float | int | str = 1020,
+    column_variant: ColumnVariant = "standard",
 ) -> str:
     """Return a scoped HTML/CSS macOS-style window.
 
@@ -68,6 +73,10 @@ def mac_window_html(
         max_width: Maximum width constraint for the window. Numeric
             values are interpreted as pixel widths, preserving the
             previous 1020px default when omitted.
+        column_variant: Surface treatment for column containers. Use
+            ``"standard"`` for the padded gradient blocks (default) or
+            ``"flush"`` to remove padding, background, and shadows so the
+            injected HTML can control its own layout edge-to-edge.
     """
     if columns not in (1, 2, 3):
         raise ValueError("columns must be 1, 2 or 3")
@@ -102,28 +111,22 @@ def mac_window_html(
 
     body_padding = "clamp(1rem, 1.2vw + 0.95rem, 1.45rem)"
     col_padding = "clamp(0.95rem, 1.4vw + 0.7rem, 1.35rem)"
+    col_mobile_padding = "clamp(.85rem, 5vw, 1.2rem)"
+    col_background = "linear-gradient(160deg, rgba(248,250,252,.97), rgba(226,232,240,.7))"
+    col_box_shadow = "inset 0 0 0 1px rgba(148,163,184,.25)"
     if dense:
         body_padding = ".45rem .6rem"
         col_padding = ".65rem .75rem"
+        col_mobile_padding = "clamp(.75rem, 4.5vw, 1rem)"
 
-    col_padding_reset_css = ""
-    if id_suffix == "overview-mac-placeholder":
-        col_padding_reset_css = (
-            "\n"
-            + indent(
-                dedent(
-                    f"""
-                    .mw-{suf}__col {{
-                      padding-top: 0px;
-                      padding-bottom: 0px;
-                      padding-left: 0px;
-                      padding-right: 0px;
-                    }}
-                    """
-                ).strip("\n"),
-                "          ",
-            )
-        )
+    if column_variant not in ("standard", "flush"):
+        raise ValueError("column_variant must be 'standard' or 'flush'")
+
+    if column_variant == "flush":
+        col_padding = "0"
+        col_mobile_padding = "0"
+        col_background = "none"
+        col_box_shadow = "none"
 
     placeholders = [
         dedent(
@@ -212,14 +215,14 @@ def mac_window_html(
           }}
           .mw-{suf}__col {{
             border-radius: 12px;
-            background: linear-gradient(160deg, rgba(248,250,252,.97), rgba(226,232,240,.7));
-            box-shadow: inset 0 0 0 1px rgba(148,163,184,.25);
+            background: {col_background};
+            box-shadow: {col_box_shadow};
             padding: {col_padding};
             min-height: 180px;
             display: grid;
             align-content: start;
             gap: .65rem;
-          }}{col_padding_reset_css}
+          }}
 
           /* Placeholder skeleton */
           .mw-{suf}__placeholder {{
@@ -270,7 +273,7 @@ def mac_window_html(
             }}
             .mw-{suf}__col {{
               min-height: 0;
-              padding: clamp(.85rem, 5vw, 1.2rem);
+              padding: {col_mobile_padding};
             }}
           }}
 
