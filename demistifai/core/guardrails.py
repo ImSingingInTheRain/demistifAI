@@ -1,6 +1,6 @@
 from __future__ import annotations
 import html, re
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Mapping, Tuple
 
 # If these exist in your constants module, import them:
 # from demistifai.config.app import URGENCY, URGENCY_TERMS
@@ -20,6 +20,29 @@ GUARDRAIL_BADGE_DEFS = [
 GUARDRAIL_CAPS_THRESHOLD = 0.3
 GUARDRAIL_URGENCY_TERMS = {term.lower() for term in URGENCY} | {term.lower() for term in URGENCY_TERMS}
 GUARDRAIL_LABEL_ICONS = {"spam": "🚩", "safe": "📥"}
+
+
+def _guardrail_window_values(state: Mapping[str, Any]) -> Tuple[float, float, float, float]:
+    """Compute the guardrail band derived from session-like state."""
+
+    guard_params = state.get("guard_params", {}) or {}
+    threshold_default = float(state.get("threshold", 0.6))
+
+    try:
+        center = float(guard_params.get("assist_center", threshold_default))
+    except (TypeError, ValueError):
+        center = threshold_default
+
+    try:
+        band = float(guard_params.get("uncertainty_band", 0.08))
+    except (TypeError, ValueError):
+        band = 0.08
+
+    center = max(0.0, min(1.0, center))
+    band = max(0.0, band)
+    low = max(0.0, min(1.0, center - band))
+    high = max(0.0, min(1.0, center + band))
+    return center, band, low, high
 
 URL_CANDIDATE_RE = re.compile(r"(?i)\b(?:https?://|www\.)[\w\-._~:/?#\[\]@!$&'()*+,;=%]+")
 MONEY_CANDIDATE_RE = re.compile(

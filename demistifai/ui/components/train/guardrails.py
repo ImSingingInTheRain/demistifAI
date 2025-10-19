@@ -4,7 +4,7 @@ from typing import Any, MutableMapping
 
 import streamlit as st
 
-from pages.train_stage.helpers.guardrails import _guardrail_window_values
+from demistifai.core.guardrails import _guardrail_window_values
 
 GUARDRAIL_PREVIEW_STYLES = """
 <style>
