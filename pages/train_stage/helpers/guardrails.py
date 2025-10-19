@@ -57,9 +57,9 @@ def _ghost_meaning_map_enhanced(
         )
         rect = alt.Chart(band_df).mark_rect(opacity=0.18).encode(
             x=alt.X("x1:Q"),
-            x2="x2:Q",
+            x2=alt.X2("x2"),
             y=alt.Y("y1:Q"),
-            y2="y2:Q",
+            y2=alt.Y2("y2"),
             tooltip=[alt.Tooltip("x1:Q", title="band left"), alt.Tooltip("x2:Q", title="band right")],
         )
         layers.append(rect)
