@@ -169,6 +169,43 @@ def mission_brief_styles() -> str:
                   align-items: flex-start;
               }
           }
+          @media (max-width: 768px) {
+              .mail-row {
+                  grid-template-columns: 1fr;
+                  padding: 0.78rem 1rem;
+                  gap: 0.6rem;
+              }
+              .mail-row__status {
+                  display: flex;
+                  align-items: center;
+                  justify-content: flex-start;
+                  grid-row: 1;
+                  grid-column: 1;
+                  margin-top: 0.1rem;
+              }
+              .mail-row__details {
+                  grid-row: 1;
+                  grid-column: 1;
+                  padding-left: 1.6rem;
+                  gap: 0.3rem;
+              }
+              .mail-row__subject {
+                  line-height: 1.3;
+              }
+              .mail-row__snippet {
+                  font-size: 0.88rem;
+              }
+              .mail-row__meta {
+                  grid-column: 1 / -1;
+                  margin-top: 0.35rem;
+                  align-items: flex-start;
+                  gap: 0.3rem;
+              }
+              .mail-row__tag {
+                  padding: 0.2rem 0.5rem;
+                  font-size: 0.72rem;
+              }
+          }
         </style>
         """
     ).strip()
