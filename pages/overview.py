@@ -13,8 +13,8 @@ from demistifai.ui.components.overview import (
     demai_architecture_markup,
     demai_architecture_styles,
     mailbox_preview_markup,
-    mission_brief_markup,
     mission_brief_styles,
+    mission_overview_column_markup,
 )
 from demistifai.ui.components.shared import render_mac_window
 from demistifai.ui.components.terminal.boot_sequence import (
@@ -65,8 +65,6 @@ def render_overview_stage(
         right_first_renderer=_render_overview_nerd_toggle,
     )
 
-    st.markdown(mission_brief_styles(), unsafe_allow_html=True)
-
     render_mac_window(
         st,
         title="System snapshot",
@@ -88,10 +86,18 @@ def render_overview_stage(
         preview_records = df_incoming.head(5).to_dict("records")
 
     mailbox_html = mailbox_preview_markup(preview_records)
-    mission_html = mission_brief_markup(mailbox_html=mailbox_html)
+    mission_html = mission_overview_column_markup()
 
-    with section_surface():
-        st.markdown(mission_html, unsafe_allow_html=True)
+    render_mac_window(
+        st,
+        title="Mission briefing",
+        subtitle="Control room orientation",
+        columns=2,
+        ratios=(1.1, 0.9),
+        col_html=[mission_html, mailbox_html],
+        id_suffix="overview-mission-brief",
+        scoped_css=mission_brief_styles(),
+    )
 
     if nerd_enabled:
         with section_surface():
