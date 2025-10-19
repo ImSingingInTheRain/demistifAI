@@ -18,7 +18,8 @@ from streamlit.delta_generator import DeltaGenerator
 from demistifai.constants import CLASSES
 from demistifai.core.dataset import _evaluate_dataset_health
 from demistifai.core.embeddings import _compute_cached_embeddings
-from demistifai.core.pii import format_pii_summary, pii_chip_row_html
+from demistifai.core.pii import format_pii_summary
+from demistifai.ui.components import pii_chip_row_html
 from demistifai.core.state import _push_data_stage_flash, _set_advanced_knob_state
 from demistifai.core.utils import (
     _caps_ratio,

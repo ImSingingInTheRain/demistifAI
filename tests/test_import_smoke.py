@@ -26,9 +26,12 @@ class ConfigImportSmokeTests(unittest.TestCase):
         self.assertEqual(tokens.PII_DISPLAY_LABELS, config_pkg.PII_DISPLAY_LABELS)
         self.assertEqual(tokens.PII_CHIP_CONFIG, config_pkg.PII_CHIP_CONFIG)
 
-    def test_core_pii_imports_tokens_without_cycle(self) -> None:
-        pii_module = importlib.import_module("demistifai.core.pii")
-        self.assertTrue(hasattr(pii_module, "render_pii_cleanup_banner"))
+    def test_pii_helpers_split_between_core_and_ui(self) -> None:
+        pii_core = importlib.import_module("demistifai.core.pii")
+        self.assertTrue(hasattr(pii_core, "summarize_pii_counts"))
+
+        pii_ui = importlib.import_module("demistifai.ui.components.pii")
+        self.assertTrue(hasattr(pii_ui, "render_pii_cleanup_banner"))
 
     def test_stage_navigation_component_exports_stage_grid(self) -> None:
         nav_component = importlib.import_module("demistifai.ui.components.stage_navigation")

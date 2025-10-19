@@ -10,10 +10,8 @@ from demistifai.constants import (
     STAGE_TEMPLATE_CSS,
     STAGES,
 )
-from demistifai.core.language import (
-    summarize_language_mix,
-    render_language_mix_chip_rows,
-)
+from demistifai.core.language import summarize_language_mix
+from demistifai.ui.components import render_language_mix_chip_rows
 from demistifai.core.state import _apply_pending_advanced_knob_state, ensure_state, validate_invariants
 from demistifai.core.navigation import activate_stage, synchronize_stage_selection
 from demistifai.core.session_defaults import initialize_session_defaults

@@ -21,12 +21,19 @@ from .data_review import (
     edge_case_pairs_html,
     stratified_sample_cards_html,
 )
+from .language_mix import render_language_mix_chip_rows
 from .pii_indicators import render_pii_indicators
 from .mac_window import render_mac_window
 from .overview_mission import (
     mailbox_preview_markup,
     mission_brief_markup,
     mission_brief_styles,
+)
+from .pii import (
+    _ensure_pii_state,
+    _highlight_spans_html,
+    pii_chip_row_html,
+    render_pii_cleanup_banner,
 )
 from .train_animation import (
     build_training_animation_column,
@@ -86,4 +93,9 @@ __all__ = [
     "StageBlockRenderer",
     "StageTopCardContent",
     "render_stage_top_grid",
+    "render_language_mix_chip_rows",
+    "_ensure_pii_state",
+    "_highlight_spans_html",
+    "pii_chip_row_html",
+    "render_pii_cleanup_banner",
 ]
