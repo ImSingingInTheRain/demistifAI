@@ -327,6 +327,88 @@ def mac_window_html(
             </div>
           </div>
         </section>
+        <script>
+          (function() {{
+            const root = document.querySelector('.mw-{suf}');
+            if (!root) return;
+
+            const frameEl = window.frameElement;
+            let raf = null;
+
+            const numberOrZero = (value) => {{
+              const parsed = parseFloat(value);
+              return Number.isFinite(parsed) ? parsed : 0;
+            }};
+
+            const updateFrameHeight = () => {{
+              raf = null;
+              const rect = root.getBoundingClientRect();
+              const styles = window.getComputedStyle(root);
+              const marginTop = numberOrZero(styles.marginTop);
+              const marginBottom = numberOrZero(styles.marginBottom);
+              const height = Math.max(0, Math.ceil(rect.height + marginTop + marginBottom + 16));
+              if (!height) return;
+
+              if (frameEl) {{
+                frameEl.style.height = `${{height}}px`;
+                frameEl.setAttribute('height', String(height));
+              }}
+
+              if (window.parent && window.parent !== window) {{
+                window.parent.postMessage({{ type: 'streamlit:resize', height }}, '*');
+              }}
+            }};
+
+            const scheduleUpdate = () => {{
+              if (raf !== null) return;
+              raf = window.requestAnimationFrame(updateFrameHeight);
+            }};
+
+            scheduleUpdate();
+
+            if (typeof ResizeObserver === 'function') {{
+              const resizeObserver = new ResizeObserver(scheduleUpdate);
+              resizeObserver.observe(root);
+            }}
+
+            if (typeof MutationObserver === 'function') {{
+              const mutationObserver = new MutationObserver(scheduleUpdate);
+              mutationObserver.observe(root, {{ childList: true, subtree: true, characterData: true }});
+            }}
+
+            const bindOnce = (eventName, handler) => {{
+              window.addEventListener(eventName, handler, {{ once: true }});
+            }};
+
+            if (document.readyState === 'complete') {{
+              scheduleUpdate();
+            }} else {{
+              bindOnce('DOMContentLoaded', scheduleUpdate);
+              bindOnce('load', scheduleUpdate);
+            }}
+
+            if (document.fonts) {{
+              if (typeof document.fonts.addEventListener === 'function') {{
+                document.fonts.addEventListener('loadingdone', scheduleUpdate);
+                document.fonts.addEventListener('loadingerror', scheduleUpdate);
+              }} else if (typeof document.fonts.ready?.then === 'function') {{
+                document.fonts.ready.then(scheduleUpdate).catch(scheduleUpdate);
+              }}
+            }}
+
+            window.addEventListener('resize', scheduleUpdate);
+
+            let attempts = 0;
+            const tick = () => {{
+              attempts += 1;
+              scheduleUpdate();
+              if (attempts < 6) {{
+                window.setTimeout(tick, 200);
+              }}
+            }};
+            window.setTimeout(tick, 120);
+          }})();
+        </script>
         """
     )
 
@@ -358,14 +440,13 @@ def render_mac_window(
     # animation) render without sanitisation. Always prefer it so interactive
     # payloads behave consistently across Streamlit versions.
     if fallback_height is None:
-        # ``components.html`` requires an explicit height; without it, the iframe
-        # collapses to 0px which hides rich content like the training animation.
-        # Pick a generous default so the mac window has room to render while
-        # still allowing call sites to opt in to a custom height when needed.
-        fallback_height = 720
+        # Keep a minimal height for scenarios where client-side resizing is
+        # unavailable (e.g., JS disabled). The resize script injected by
+        # :func:`mac_window_html` will immediately grow the iframe when enabled.
+        fallback_height = 360
 
     st.components.v1.html(
         html_str,
         height=fallback_height,
-        scrolling=True,
+        scrolling=False,
     )
