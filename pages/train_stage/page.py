@@ -16,10 +16,6 @@ from pages.train_stage.helpers.meaning_map import (
     _meaning_map_zoom_subset,
     _prepare_meaning_map,
 )
-from pages.train_stage.helpers.numeric_clues import (
-    _render_numeric_clue_cards,
-    _render_numeric_clue_preview,
-)
 from pages.train_stage.helpers.storyboard import (
     _render_training_examples_preview,
     _render_unified_training_storyboard,
@@ -32,6 +28,8 @@ from demistifai.ui.components.train import (
     build_training_animation_column,
     build_token_chip,
     build_training_notes_column,
+    render_numeric_clue_cards,
+    render_numeric_clue_preview,
     training_stage_stylesheet,
 )
 from .callbacks import (

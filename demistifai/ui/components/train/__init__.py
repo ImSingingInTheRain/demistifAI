@@ -1,6 +1,7 @@
 """Train stage UI components."""
 
 from .language_mix import render_language_mix_chip_rows
+from .numeric_clues import render_numeric_clue_cards, render_numeric_clue_preview
 from .train_animation import (
     build_training_animation_column,
     render_training_animation,
@@ -30,4 +31,6 @@ __all__ = [
     "build_training_notes_column",
     "build_nerd_intro_card",
     "training_stage_stylesheet",
+    "render_numeric_clue_preview",
+    "render_numeric_clue_cards",
 ]

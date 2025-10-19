@@ -10,11 +10,7 @@ from .meaning_map import (
     _meaning_map_zoom_subset,
     _prepare_meaning_map,
 )
-from .numeric_clues import (
-    _extract_numeric_clues,
-    _render_numeric_clue_cards,
-    _render_numeric_clue_preview,
-)
+from .numeric_clues import _extract_numeric_clues
 from .sampling import _sample_indices_by_label
 from .storyboard import (
     _render_training_examples_preview,
@@ -31,8 +27,6 @@ __all__ = [
     "_meaning_map_zoom_subset",
     "_prepare_meaning_map",
     "_extract_numeric_clues",
-    "_render_numeric_clue_cards",
-    "_render_numeric_clue_preview",
     "_sample_indices_by_label",
     "_render_training_examples_preview",
     "_render_unified_training_storyboard",
