@@ -327,6 +327,40 @@ def mac_window_html(
             </div>
           </div>
         </section>
+        <script>
+          (function() {{
+            const root = document.querySelector('.mw-{suf}');
+            if (!root) return;
+
+            const postSize = () => {{
+              const height = Math.ceil(root.getBoundingClientRect().height + 24);
+              if (window.parent && window.parent !== window) {{
+                window.parent.postMessage({{"type": "streamlit:resize", "height": height}}, "*");
+              }}
+            }};
+
+            postSize();
+
+            if (typeof ResizeObserver === 'function') {{
+              const resizeObserver = new ResizeObserver(() => {{
+                window.requestAnimationFrame(postSize);
+              }});
+              resizeObserver.observe(root);
+            }} else {{
+              window.addEventListener('transitionend', postSize);
+              window.addEventListener('animationend', postSize);
+            }}
+
+            if (document.readyState === 'complete') {{
+              postSize();
+            }} else {{
+              window.addEventListener('load', postSize, {{ once: true }});
+              window.addEventListener('DOMContentLoaded', postSize, {{ once: true }});
+            }}
+
+            window.addEventListener('resize', postSize);
+          }})();
+        </script>
         """
     )
 
@@ -358,14 +392,13 @@ def render_mac_window(
     # animation) render without sanitisation. Always prefer it so interactive
     # payloads behave consistently across Streamlit versions.
     if fallback_height is None:
-        # ``components.html`` requires an explicit height; without it, the iframe
-        # collapses to 0px which hides rich content like the training animation.
-        # Pick a generous default so the mac window has room to render while
-        # still allowing call sites to opt in to a custom height when needed.
-        fallback_height = 720
+        # Keep a minimal height for scenarios where client-side resizing is
+        # unavailable (e.g., JS disabled). The resize script injected by
+        # :func:`mac_window_html` will immediately grow the iframe when enabled.
+        fallback_height = 360
 
     st.components.v1.html(
         html_str,
         height=fallback_height,
-        scrolling=True,
+        scrolling=False,
     )
