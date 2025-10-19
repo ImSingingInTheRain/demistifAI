@@ -152,6 +152,17 @@ def mac_window_html(
 
     extra_scoped_css = _normalise_scoped_css(scoped_css)
 
+    subtitle_block = (
+        f'\n              <div class="mw-{suf}__subtitle">{subtitle_text}</div>'
+        if subtitle_text
+        else ""
+    )
+    mobile_subtitle_block = (
+        f'\n                <div class="mw-{suf}__subtitle">{subtitle_text}</div>'
+        if subtitle_text
+        else ""
+    )
+
     return dedent(
         f"""
         <style>
@@ -322,13 +333,13 @@ def mac_window_html(
               <span class="mw-{suf}__light mw-{suf}__light--green"></span>
             </div>
             <div class="mw-{suf}__titles">
-              <div class="mw-{suf}__title">{escaped_title}</div>{f"\n              <div class=\"mw-{suf}__subtitle\">{subtitle_text}</div>" if subtitle_text else ""}
+              <div class="mw-{suf}__title">{escaped_title}</div>{subtitle_block}
             </div>
           </header>
 
           <div class="mw-{suf}__body">
             <div class="mw-{suf}__mobile-header">
-              <div class="mw-{suf}__title">{escaped_title}</div>{f"\n                <div class=\"mw-{suf}__subtitle\">{subtitle_text}</div>" if subtitle_text else ""}
+              <div class="mw-{suf}__title">{escaped_title}</div>{mobile_subtitle_block}
             </div>
             <div class="mw-{suf}__grid">
               {''.join(cols)}
