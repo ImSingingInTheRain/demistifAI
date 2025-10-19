@@ -64,9 +64,9 @@ This document provides a guided tour of the repository so contributors can quick
 ### Package root
 - `__init__.py` – Re-exports constants, dataset utilities, modeling helpers, and core utility functions for convenient imports throughout the app.【F:demistifai/__init__.py†L1-L161】
 - `constants.py` – Centralised application metadata, CSS themes, stage descriptors, and lifecycle assets referenced by the UI.【F:demistifai/constants.py†L1-L60】
-- `dataset.py` – Synthetic dataset generator, linting, provenance tracking, and summary utilities used in data preparation and classification stages.【F:demistifai/dataset.py†L1-L60】
-- `incoming_generator.py` – Synthesises unlabeled incoming email batches and spam archetypes for the Use stage.【F:demistifai/incoming_generator.py†L1-L40】
-- `modeling.py` – End-to-end modeling toolkit providing feature engineering, embedding support, hybrid logistic model definitions, evaluation helpers, and interpretability utilities.【F:demistifai/modeling.py†L1-L40】
+- `dataset.py` – Drives dataset synthesis (spam/safe templates, attachments, edge cases), TypedDict-backed configs, linting/PII scanners, provenance hashing, summaries, and narrative deltas that explain configuration shifts.【F:demistifai/dataset.py†L1-L856】
+- `incoming_generator.py` – Produces unlabeled inbox batches by blending spam/safe archetypes, urgency cues, links, and attachments for evaluation or live-routing demos.【F:demistifai/incoming_generator.py†L1-L185】
+- `modeling.py` – Full modeling stack covering feature extraction, embedding backends, hybrid logistic pipeline, calibrators, threshold analytics, interpretability stories, and batch probability helpers used across stages.【F:demistifai/modeling.py†L1-L1002】
 
 ### `demistifai/config/`
 - `__init__.py` – Re-exports stage metadata, theme CSS (via `demistifai.styles.APP_THEME_CSS`), and token policies so callers can continue importing from `demistifai.config`.【F:demistifai/config/__init__.py†L1-L16】
@@ -77,8 +77,8 @@ This document provides a guided tour of the repository so contributors can quick
 - `dataset.py` – Evaluates dataset health metrics and produces badges summarising row counts, spam ratios, and lint status for governance surfaces.【F:demistifai/core/dataset.py†L1-L52】
 - `audit.py` – Appends timestamped audit entries to the session log during the Use stage.【F:demistifai/core/audit.py†L1-L11】
 - `downloads.py` – Provides a Streamlit download link helper for exporting text artefacts.【F:demistifai/core/downloads.py†L1-L7】
-- `language.py` – Wraps optional language-detection, summarises language mix statistics, and renders chip-based summaries for train/test splits.【F:demistifai/core/language.py†L1-L80】
-- `nav.py` – Renders the stage top grid, manages previous/next navigation buttons, and keeps query parameters in sync with stage selection.【F:demistifai/core/nav.py†L1-L160】
+- `language.py` – Handles optional language-detection fallbacks, aggregates language mix stats, and renders chip/caption summaries for train/test splits within Streamlit containers.【F:demistifai/core/language.py†L1-L102】
+- `nav.py` – Builds the Stage Top Grid dataclass, wires previous/next CTA buttons, syncs query parameters, and exposes placeholder slots for stage-specific widgets.【F:demistifai/core/nav.py†L1-L224】
 - `navigation.py` – Synchronises active stage selection between query params, session state, and the renderer map and exposes the `activate_stage` helper used in `streamlit_app.py`.【F:demistifai/core/navigation.py†L1-L108】
 - `routing.py` – Computes recommended or automatic routing decisions based on autonomy level, predictions, and thresholds.【F:demistifai/core/routing.py†L1-L15】
 - `export.py` – Normalises batch processing logs into a pandas DataFrame ready for CSV/JSON export.【F:demistifai/core/export.py†L1-L13】
