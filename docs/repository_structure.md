@@ -31,7 +31,6 @@ This document provides a guided tour of the repository so contributors can quick
 ### Components (`demistifai/ui/components/`)
 - `__init__.py` – Aggregates hero, training, terminal, guardrail, and mission components so pages can import them from a single namespace.【F:demistifai/ui/components/__init__.py†L1-L87】
 - `arch_demai.py` – Dataclass-driven architecture cards and styling that render the demAI system diagram within Streamlit.【F:demistifai/ui/components/arch_demai.py†L1-L146】
-- `control_room.py` – Stage Control Room surface that standardises headers, Nerd Mode toggles, and navigation CTAs across stages.【F:demistifai/ui/components/control_room.py†L1-L152】
 - `data_review.py` – Dataset balance bars, sample cards, and scoped CSS helpers for the Prepare stage review panels.【F:demistifai/ui/components/data_review.py†L1-L74】
 - `guardrail_panel.py` – Streams charts and guardrail cards within a styled panel, injecting CSS once per session.【F:demistifai/ui/components/guardrail_panel.py†L1-L48】
 - `intro_hero.py` – Welcome-stage hero layout, lifecycle diagram markup, and scoped quote wrappers for the EU AI Act narrative.【F:demistifai/ui/components/intro_hero.py†L1-L112】

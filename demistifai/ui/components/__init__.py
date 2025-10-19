@@ -6,7 +6,6 @@ from .arch_demai import (
     demai_architecture_styles,
     render_demai_architecture,
 )
-from .control_room import stage_control_room
 from .intro_hero import (
     intro_hero_scoped_css,
     intro_lifecycle_columns,
@@ -70,7 +69,6 @@ __all__ = [
     "build_training_notes_column",
     "build_nerd_intro_card",
     "training_stage_stylesheet",
-    "stage_control_room",
     "terminal",
     "data_review_styles",
     "dataset_balance_bar_html",
