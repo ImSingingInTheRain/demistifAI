@@ -10,7 +10,6 @@ import streamlit as st
 from demistifai.config.tokens import PII_CHIP_CONFIG
 
 __all__ = [
-    "_ensure_pii_state",
     "_highlight_spans_html",
     "pii_chip_row_html",
     "render_pii_cleanup_banner",
@@ -116,13 +115,3 @@ def render_pii_cleanup_banner(lint_counts: Dict[str, int]) -> bool:
     return start
 
 
-def _ensure_pii_state() -> None:
-    session = st.session_state
-    session.setdefault("pii_queue_idx", 0)
-    session.setdefault("pii_score", 0)
-    session.setdefault("pii_total_flagged", 0)
-    session.setdefault("pii_cleaned_count", 0)
-    session.setdefault("pii_queue", [])
-    session.setdefault("pii_hits_map", {})
-    session.setdefault("pii_edits", {})
-    session.setdefault("pii_open", False)

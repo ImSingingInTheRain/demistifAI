@@ -10,7 +10,6 @@ from .data_review import (
     stratified_sample_cards_html,
 )
 from .pii import (
-    _ensure_pii_state,
     _highlight_spans_html,
     pii_chip_row_html,
     render_pii_cleanup_banner,
@@ -26,7 +25,6 @@ __all__ = [
     "edge_case_pairs_html",
     "stratified_sample_cards_html",
     "render_pii_indicators",
-    "_ensure_pii_state",
     "_highlight_spans_html",
     "pii_chip_row_html",
     "render_pii_cleanup_banner",

@@ -2,7 +2,6 @@
 
 from . import terminal
 from .data import (
-    _ensure_pii_state,
     _highlight_spans_html,
     data_review_styles,
     dataset_balance_bar_html,
@@ -90,6 +89,5 @@ __all__ = [
     "stratified_sample_cards_html",
     "terminal",
     "training_stage_stylesheet",
-    "_ensure_pii_state",
     "_highlight_spans_html",
 ]
