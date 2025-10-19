@@ -50,15 +50,17 @@ def render_intro_stage(*, section_surface: SectionSurface) -> None:
     with section_surface("section-surface--hero"):
         hero_css, left_col_html, right_col_html = render_intro_hero()
 
-        render_mac_window(
+        with render_mac_window(
             st,
             title="Start your demAI journey",
             ratios=(0.33, 0.67),
-            col_html=[left_col_html, right_col_html],
+            columns=2,
             id_suffix="intro-lifecycle",
             scoped_css=hero_css,
             max_width=1200,
-        )
+        ) as (left_col, right_col):
+            left_col.markdown(left_col_html, unsafe_allow_html=True)
+            right_col.markdown(right_col_html, unsafe_allow_html=True)
 
         if next_stage_meta is not None and next_stage_key is not None:
             button_key = f"intro_stage_start_{next_stage_key}"

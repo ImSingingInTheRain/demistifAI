@@ -92,17 +92,20 @@ def render_train_stage_page(
     animation_column = build_training_animation_column()
     notes_column = build_training_notes_column()
 
-    render_mac_window(
+    with render_mac_window(
         st,
         title="Training dynamics monitor",
         subtitle="MiniLM organising emails by meaning",
         columns=2,
         ratios=(0.3, 0.7),
-        col_html=[notes_column.html, animation_column.html],
         id_suffix="train-animation",
-        fallback_height=animation_column.fallback_height,
         scoped_css=notes_column.css,
-    )
+    ) as (notes_slot, animation_slot):
+        notes_slot.markdown(notes_column.html, unsafe_allow_html=True)
+        animation_slot.markdown(
+            animation_column.html,
+            unsafe_allow_html=True,
+        )
 
     has_embed = callable_or_attr(encode_texts)
 

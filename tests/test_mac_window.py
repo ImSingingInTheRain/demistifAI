@@ -7,28 +7,37 @@ import sys
 
 sys.path.append(str(Path(__file__).resolve().parents[1]))
 
-from demistifai.ui.components.shared.mac_window import mac_window_html
+import pytest
+
+from demistifai.ui.components.shared.mac_window import (  # type: ignore  # noqa: E402
+    _format_grid_template,
+    _format_max_width,
+)
 
 
-def test_mac_window_uses_default_max_width() -> None:
-    """Omitting ``max_width`` keeps the legacy 1020px constraint."""
+def test_format_max_width_uses_px_for_numbers() -> None:
+    """Numeric ``max_width`` values are converted into pixel tokens."""
 
-    html = mac_window_html()
-
-    assert "width: min(100%, 1020px);" in html
+    assert _format_max_width(1280) == "1280px"
 
 
-def test_mac_window_accepts_custom_max_width() -> None:
-    """A numeric ``max_width`` is converted to a pixel-based constraint."""
+def test_format_max_width_accepts_css_tokens() -> None:
+    """String ``max_width`` values are returned verbatim after stripping."""
 
-    html = mac_window_html(max_width=1280)
-
-    assert "width: min(100%, 1280px);" in html
+    assert _format_max_width(" 72rem ") == "72rem"
 
 
-def test_mac_window_accepts_css_max_width_tokens() -> None:
-    """String ``max_width`` values flow straight into the style rule."""
+def test_format_grid_template_balances_ratios() -> None:
+    """Ratios are normalised into percentage-based grid tracks."""
 
-    html = mac_window_html(max_width="72rem")
+    columns = 2
+    ratios = (1, 2)
+    template = _format_grid_template(columns, ratios)
+    assert template.split() == ["33.33333%", "66.66667%"]
 
-    assert "width: min(100%, 72rem);" in html
+
+def test_format_grid_template_validates_lengths() -> None:
+    """Mismatched column counts raise a ``ValueError``."""
+
+    with pytest.raises(ValueError):
+        _format_grid_template(3, (1, 1))

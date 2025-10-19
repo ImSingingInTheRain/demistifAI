@@ -14,46 +14,46 @@ def mission_brief_styles() -> str:
     return dedent(
         """
         <style>
-          .mission-brief {
+          .mac-window .mission-brief {
               display: grid;
               gap: 1.4rem;
           }
-          .mission-brief__header {
+          .mac-window .mission-brief__header {
               display: flex;
               gap: 1rem;
               align-items: center;
           }
-          .mission-brief__icon {
+          .mac-window .mission-brief__icon {
               font-size: 2.1rem;
           }
-          .mission-brief__eyebrow {
+          .mac-window .mission-brief__eyebrow {
               font-size: 0.78rem;
               letter-spacing: 0.16em;
               text-transform: uppercase;
               color: rgba(37, 99, 235, 0.7);
               font-weight: 700;
           }
-          .mission-brief__title {
+          .mac-window .mission-brief__title {
               margin: 0;
               font-size: 1.45rem;
               font-weight: 700;
               color: #0f172a;
           }
-          .mission-brief__bridge,
-          .mission-brief__summary {
+          .mac-window .mission-brief__bridge,
+          .mac-window .mission-brief__summary {
               margin: 0;
               font-size: 0.98rem;
               color: rgba(15, 23, 42, 0.75);
               line-height: 1.55;
           }
-          .mission-brief__summary {
+          .mac-window .mission-brief__summary {
               color: rgba(15, 23, 42, 0.72);
           }
-          .mission-brief__objective {
+          .mac-window .mission-brief__objective {
               display: grid;
               gap: 0.95rem;
           }
-          .mission-brief__list {
+          .mac-window .mission-brief__list {
               margin: 0;
               padding-left: 1.2rem;
               display: grid;
@@ -62,10 +62,10 @@ def mission_brief_styles() -> str:
               color: rgba(15, 23, 42, 0.72);
               line-height: 1.5;
           }
-          .mission-brief__list li::marker {
+          .mac-window .mission-brief__list li::marker {
               color: rgba(37, 99, 235, 0.7);
           }
-          .mailbox-preview {
+          .mac-window .mailbox-preview {
               background: rgba(255, 255, 255, 0.85);
               border-radius: 1.1rem;
               border: 1px solid rgba(37, 99, 235, 0.16);
@@ -73,7 +73,7 @@ def mission_brief_styles() -> str:
               display: grid;
               gap: 0;
           }
-          .mailbox-preview__header {
+          .mac-window .mailbox-preview__header {
               display: flex;
               justify-content: space-between;
               align-items: center;
@@ -81,21 +81,21 @@ def mission_brief_styles() -> str:
               background: linear-gradient(135deg, rgba(37, 99, 235, 0.12), rgba(59, 130, 246, 0.08));
               border-bottom: 1px solid rgba(37, 99, 235, 0.18);
           }
-          .mailbox-preview__header h4 {
+          .mac-window .mailbox-preview__header h4 {
               margin: 0;
               font-size: 1.05rem;
               font-weight: 600;
               color: #1e3a8a;
           }
-          .mailbox-preview__header span {
+          .mac-window .mailbox-preview__header span {
               font-size: 0.85rem;
               color: rgba(15, 23, 42, 0.65);
           }
-          .mail-rows {
+          .mac-window .mail-rows {
               display: flex;
               flex-direction: column;
           }
-          .mail-row {
+          .mac-window .mail-row {
               display: grid;
               grid-template-columns: auto 1fr auto;
               align-items: start;
@@ -104,10 +104,10 @@ def mission_brief_styles() -> str:
               border-bottom: 1px solid rgba(15, 23, 42, 0.06);
               background: rgba(248, 250, 252, 0.78);
           }
-          .mail-row:nth-child(even) {
+          .mac-window .mail-row:nth-child(even) {
               background: rgba(255, 255, 255, 0.92);
           }
-          .mail-row__status {
+          .mac-window .mail-row__status {
               width: 12px;
               height: 12px;
               border-radius: 999px;
@@ -115,24 +115,24 @@ def mission_brief_styles() -> str:
               margin-top: 0.35rem;
               box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
           }
-          .mail-row__details {
+          .mac-window .mail-row__details {
               display: flex;
               flex-direction: column;
               gap: 0.35rem;
           }
-          .mail-row__subject {
+          .mac-window .mail-row__subject {
               margin: 0;
               font-size: 0.98rem;
               font-weight: 600;
               color: #0f172a;
           }
-          .mail-row__snippet {
+          .mac-window .mail-row__snippet {
               margin: 0;
               font-size: 0.9rem;
               color: rgba(15, 23, 42, 0.68);
               line-height: 1.45;
           }
-          .mail-row__meta {
+          .mac-window .mail-row__meta {
               display: flex;
               flex-direction: column;
               align-items: flex-end;
@@ -140,7 +140,7 @@ def mission_brief_styles() -> str:
               font-size: 0.8rem;
               color: rgba(15, 23, 42, 0.6);
           }
-          .mail-row__tag {
+          .mac-window .mail-row__tag {
               display: inline-flex;
               align-items: center;
               justify-content: center;
@@ -153,29 +153,29 @@ def mission_brief_styles() -> str:
               letter-spacing: 0.08em;
               text-transform: uppercase;
           }
-          .mail-empty {
+          .mac-window .mail-empty {
               padding: 1.2rem 1.3rem;
               font-size: 0.92rem;
               color: rgba(15, 23, 42, 0.65);
           }
           @media (max-width: 960px) {
-              .mission-brief {
+              .mac-window .mission-brief {
                   gap: 1.2rem;
               }
-              .mail-row {
+              .mac-window .mail-row {
                   grid-template-columns: auto 1fr;
               }
-              .mail-row__meta {
+              .mac-window .mail-row__meta {
                   align-items: flex-start;
               }
           }
           @media (max-width: 768px) {
-              .mail-row {
+              .mac-window .mail-row {
                   grid-template-columns: 1fr;
                   padding: 0.78rem 1rem;
                   gap: 0.6rem;
               }
-              .mail-row__status {
+              .mac-window .mail-row__status {
                   display: flex;
                   align-items: center;
                   justify-content: flex-start;
@@ -183,25 +183,25 @@ def mission_brief_styles() -> str:
                   grid-column: 1;
                   margin-top: 0.1rem;
               }
-              .mail-row__details {
+              .mac-window .mail-row__details {
                   grid-row: 1;
                   grid-column: 1;
                   padding-left: 1.6rem;
                   gap: 0.3rem;
               }
-              .mail-row__subject {
+              .mac-window .mail-row__subject {
                   line-height: 1.3;
               }
-              .mail-row__snippet {
+              .mac-window .mail-row__snippet {
                   font-size: 0.88rem;
               }
-              .mail-row__meta {
+              .mac-window .mail-row__meta {
                   grid-column: 1 / -1;
                   margin-top: 0.35rem;
                   align-items: flex-start;
                   gap: 0.3rem;
               }
-              .mail-row__tag {
+              .mac-window .mail-row__tag {
                   padding: 0.2rem 0.5rem;
                   font-size: 0.72rem;
               }

@@ -1,14 +1,256 @@
+"""macOS-style window layout helpers for Streamlit."""
+
 from __future__ import annotations
 
 import html
 import re
-import uuid
-from collections.abc import Iterable
-from typing import Literal
-from textwrap import dedent, indent
+from contextlib import contextmanager
+from typing import Iterable, Iterator, Literal, Sequence
+from textwrap import dedent
+
+ColumnVariant = Literal["standard", "flush"]
+
+_MAC_WINDOW_BASE_STYLE = dedent(
+    """
+    <style>
+      .mac-window {
+        --mw-max-width: 1020px;
+        --mw-chrome-bg: #f5f7fb;
+        --mw-chrome-border: rgba(15,23,42,.12);
+        --mw-body-bg: #ffffff;
+        --mw-title: #0f172a;
+        --mw-subtitle: rgba(15,23,42,.70);
+        --mw-placeholder: rgba(15,23,42,.55);
+        --mw-body-padding: clamp(1rem, 1.2vw + 0.95rem, 1.45rem);
+        --mw-col-padding: clamp(0.95rem, 1.4vw + 0.7rem, 1.35rem);
+        --mw-col-mobile-padding: clamp(.85rem, 5vw, 1.2rem);
+        --mw-col-background: linear-gradient(160deg, rgba(248,250,252,.97), rgba(226,232,240,.7));
+        --mw-col-shadow: inset 0 0 0 1px rgba(148,163,184,.25);
+        --mw-grid-gap: 1.15rem;
+        border-radius: 14px;
+        overflow: hidden;
+        box-shadow: 0 16px 40px rgba(15,23,42,.12);
+        background: var(--mw-body-bg);
+        width: min(100%, var(--mw-max-width));
+        margin: clamp(0.75rem, 3vw, 1.75rem) auto;
+        isolation: isolate;
+      }
+
+      .mac-window--dark {
+        --mw-chrome-bg: #111827;
+        --mw-chrome-border: rgba(255,255,255,.12);
+        --mw-body-bg: #0b1220;
+        --mw-title: #e5e7eb;
+        --mw-subtitle: rgba(229,231,235,.70);
+        --mw-placeholder: rgba(229,231,235,.55);
+      }
+
+      .mac-window--dense {
+        --mw-body-padding: .45rem .6rem;
+        --mw-col-padding: .65rem .75rem;
+        --mw-col-mobile-padding: clamp(.75rem, 4.5vw, 1rem);
+      }
+
+      .mac-window--flush {
+        --mw-col-padding: 0;
+        --mw-col-mobile-padding: 0;
+        --mw-col-background: none;
+        --mw-col-shadow: none;
+      }
+
+      .mac-window > div[data-testid="stVerticalBlock"],
+      .mac-window__body > div[data-testid="stVerticalBlock"],
+      .mac-window__grid > div[data-testid="stVerticalBlock"],
+      .mac-window__grid > div[data-testid="column"],
+      .mac-window__grid > div[data-testid="stVerticalBlock"] > div[data-testid="stVerticalBlock"],
+      .mac-window__grid > div[data-testid="stVerticalBlock"] > div[data-testid="column"] {
+        display: contents;
+      }
+
+      .mac-window__chrome {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        align-items: center;
+        gap: .75rem;
+        padding: .65rem 1rem;
+        background: var(--mw-chrome-bg);
+        border-bottom: 1px solid var(--mw-chrome-border);
+      }
+
+      .mac-window__lights {
+        display: inline-flex;
+        gap: .45rem;
+        padding-left: .15rem;
+      }
+
+      .mac-window__light {
+        width: 12px;
+        height: 12px;
+        border-radius: 999px;
+        box-shadow: inset 0 0 0 1px rgba(0,0,0,.08);
+      }
+
+      .mac-window__light--red { background:#ff5f56; }
+      .mac-window__light--yellow { background:#ffbd2e; }
+      .mac-window__light--green { background:#27c93f; }
+
+      .mac-window__titles {
+        display: grid;
+        gap: .15rem;
+      }
+
+      .mac-window__title {
+        font-weight: 800;
+        color: var(--mw-title);
+        line-height: 1.2;
+      }
+
+      .mac-window__subtitle {
+        font-size: .92rem;
+        color: var(--mw-subtitle);
+      }
+
+      .mac-window__mobile-header {
+        display: none;
+        margin-bottom: clamp(.75rem, 4.5vw, 1rem);
+        gap: .35rem;
+      }
+
+      .mac-window__body {
+        padding: var(--mw-body-padding);
+      }
+
+      .mac-window__grid {
+        display: grid;
+        grid-template-columns: var(--mw-grid-template, 1fr);
+        gap: var(--mw-grid-gap);
+        align-items: stretch;
+      }
+
+      .mac-window__col {
+        border-radius: 12px;
+        background: var(--mw-col-background);
+        box-shadow: var(--mw-col-shadow);
+        padding: var(--mw-col-padding);
+        min-height: 180px;
+        display: grid;
+        align-content: start;
+        gap: .65rem;
+      }
+
+      .mac-window__placeholder {
+        color: var(--mw-placeholder);
+      }
+
+      .mac-window__placeholder-title {
+        font-weight: 700;
+        margin-bottom: .15rem;
+      }
+
+      .mac-window__placeholder-lines {
+        display: grid;
+        gap: .45rem;
+      }
+
+      .mac-window__placeholder-lines span {
+        display:block;
+        height: 9px;
+        border-radius: 6px;
+        background: linear-gradient(90deg, rgba(148,163,184,.28), rgba(148,163,184,.16), rgba(148,163,184,.28));
+        background-size: 180% 100%;
+        animation: mac-window-shimmer 1.6s infinite linear;
+      }
+
+      .mac-window__placeholder-lines span.short {
+        width: 60%;
+      }
+
+      @keyframes mac-window-shimmer {
+        0% { background-position: 180% 0; }
+        100% { background-position: -20% 0; }
+      }
+
+      @media (max-width: 920px) {
+        .mac-window__grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media (max-width: 720px) {
+        .mac-window {
+          --mw-max-width: 100%;
+          border-radius: 12px;
+          box-shadow: 0 14px 32px rgba(15,23,42,.12);
+        }
+
+        .mac-window__chrome {
+          padding: .55rem .85rem;
+          grid-template-columns: 1fr;
+          row-gap: .5rem;
+        }
+
+        .mac-window__lights {
+          order: 2;
+          justify-self: start;
+        }
+
+        .mac-window__body {
+          padding: clamp(.85rem, 5vw, 1.15rem);
+        }
+
+        .mac-window__grid {
+          gap: clamp(.75rem, 4.5vw, 1rem);
+        }
+
+        .mac-window__col {
+          min-height: 0;
+          padding: var(--mw-col-mobile-padding);
+        }
+      }
+
+      @media (max-width: 600px) {
+        .mac-window {
+          border-radius: 0;
+          box-shadow: none;
+          margin: 0;
+          border: none;
+        }
+
+        .mac-window__chrome {
+          display: none;
+        }
+
+        .mac-window__body {
+          padding: clamp(.9rem, 5.5vw, 1.35rem) 1rem 1.25rem;
+        }
+
+        .mac-window__grid {
+          grid-template-columns: 1fr;
+          gap: clamp(.75rem, 4.5vw, 1rem);
+        }
+
+        .mac-window__col {
+          padding: 0;
+          border-radius: 0;
+          background: none;
+          box-shadow: none;
+          border: 0;
+          min-height: 0;
+        }
+
+        .mac-window__mobile-header {
+          display: grid;
+        }
+      }
+    </style>
+    """
+).strip()
+
+_BASE_STYLE_EMITTED = False
+
 
 def _strip_style_wrappers(css_chunk: str) -> str:
-    """Return CSS stripped of optional <style> wrappers."""
+    """Return CSS stripped of optional ``<style>`` wrappers."""
 
     cleaned = (css_chunk or "").strip()
     if not cleaned:
@@ -22,15 +264,15 @@ def _strip_style_wrappers(css_chunk: str) -> str:
 
 
 def _normalise_scoped_css(scoped_css: str | Iterable[str] | None) -> str:
-    """Normalise scoped CSS blocks into an indented string for the template."""
+    """Normalise scoped CSS blocks into a ``<style>`` element."""
 
     if scoped_css is None:
         return ""
 
     if isinstance(scoped_css, str):
-        css_chunks = [scoped_css]
+        css_chunks: Iterable[str] = [scoped_css]
     else:
-        css_chunks = [chunk for chunk in scoped_css if chunk]
+        css_chunks = (chunk for chunk in scoped_css if chunk)
 
     cleaned_chunks = [_strip_style_wrappers(chunk) for chunk in css_chunks]
     cleaned_chunks = [chunk for chunk in cleaned_chunks if chunk]
@@ -39,433 +281,172 @@ def _normalise_scoped_css(scoped_css: str | Iterable[str] | None) -> str:
         return ""
 
     combined = "\n\n".join(cleaned_chunks)
-    return "\n" + indent(combined, "          ")
+    return f"<style>\n{combined}\n</style>"
 
 
-ColumnVariant = Literal["standard", "flush"]
+def _emit_base_styles(st) -> None:
+    """Ensure the shared mac-window stylesheet is registered once."""
+
+    global _BASE_STYLE_EMITTED
+    if _BASE_STYLE_EMITTED:
+        return
+
+    st.markdown(_MAC_WINDOW_BASE_STYLE, unsafe_allow_html=True)
+    _BASE_STYLE_EMITTED = True
 
 
-def mac_window_html(
-    title: str = "demAI",
-    subtitle: str | None = None,
-    columns: int = 2,
-    ratios: tuple[float, ...] | None = None,
-    col_html: list[str] | None = None,
-    dense: bool = False,
-    theme: str = "light",
-    id_suffix: str | None = None,
-    scoped_css: str | Iterable[str] | None = None,
-    max_width: float | int | str = 1020,
-    column_variant: ColumnVariant = "standard",
-) -> str:
-    """Return a scoped HTML/CSS macOS-style window.
-
-    Args:
-        title: Window title shown in the chrome.
-        subtitle: Optional subtitle rendered under the title.
-        columns: Number of content columns (1–3).
-        ratios: Relative column width ratios.
-        col_html: Pre-rendered HTML for each column.
-        dense: When ``True`` the body/columns use reduced padding.
-        theme: ``"light"`` or ``"dark"`` chrome palette.
-        id_suffix: Optional suffix used to scope the CSS classes.
-        scoped_css: Extra CSS scoped to the rendered window.
-        max_width: Maximum width constraint for the window. Numeric
-            values are interpreted as pixel widths, preserving the
-            previous 1020px default when omitted.
-        column_variant: Surface treatment for column containers. Use
-            ``"standard"`` for the padded gradient blocks (default) or
-            ``"flush"`` to remove padding, background, and shadows so the
-            injected HTML can control its own layout edge-to-edge.
-    """
-    if columns not in (1, 2, 3):
-        raise ValueError("columns must be 1, 2 or 3")
-    if ratios is None:
-        ratios = tuple(1 for _ in range(columns))
-    if len(ratios) != columns or any(r <= 0 for r in ratios):
-        raise ValueError("ratios must match columns and be positive")
-    if col_html is None:
-        col_html = [None] * columns
-    if len(col_html) != columns:
-        raise ValueError("col_html length must equal columns")
-
-    suf = id_suffix or uuid.uuid4().hex[:8]
-    total = float(sum(ratios))
-    cols_css = " ".join(f"{(r / total) * 100:.5f}%" for r in ratios)
+def _format_max_width(max_width: float | int | str) -> str:
+    """Normalise ``max_width`` values into CSS tokens."""
 
     if isinstance(max_width, (int, float)):
         if max_width <= 0:
             raise ValueError("max_width must be positive")
-        max_width_css = f"{format(max_width, 'g')}px"
-    else:
-        max_width_css = str(max_width).strip()
-        if not max_width_css:
-            raise ValueError("max_width must not be empty")
+        return f"{format(max_width, 'g')}px"
 
-    chrome_bg = "#f5f7fb" if theme == "light" else "#111827"
-    chrome_border = "rgba(15,23,42,.12)" if theme == "light" else "rgba(255,255,255,.12)"
-    body_bg = "#ffffff" if theme == "light" else "#0b1220"
-    title_color = "#0f172a" if theme == "light" else "#e5e7eb"
-    sub_color = "rgba(15,23,42,.70)" if theme == "light" else "rgba(229,231,235,.70)"
-    ph_text = "rgba(15,23,42,.55)" if theme == "light" else "rgba(229,231,235,.55)"
+    max_width_css = str(max_width).strip()
+    if not max_width_css:
+        raise ValueError("max_width must not be empty")
+    return max_width_css
 
-    body_padding = "clamp(1rem, 1.2vw + 0.95rem, 1.45rem)"
-    col_padding = "clamp(0.95rem, 1.4vw + 0.7rem, 1.35rem)"
-    col_mobile_padding = "clamp(.85rem, 5vw, 1.2rem)"
-    col_background = "linear-gradient(160deg, rgba(248,250,252,.97), rgba(226,232,240,.7))"
-    col_box_shadow = "inset 0 0 0 1px rgba(148,163,184,.25)"
-    if dense:
-        body_padding = ".45rem .6rem"
-        col_padding = ".65rem .75rem"
-        col_mobile_padding = "clamp(.75rem, 4.5vw, 1rem)"
+
+def _format_grid_template(columns: int, ratios: Sequence[float] | None) -> str:
+    """Return the CSS ``grid-template-columns`` declaration for the window."""
+
+    if columns not in (1, 2, 3):
+        raise ValueError("columns must be 1, 2 or 3")
+
+    if ratios is None:
+        ratios = tuple(1 for _ in range(columns))
+
+    if len(ratios) != columns or any(r <= 0 for r in ratios):
+        raise ValueError("ratios must match columns and be positive")
+
+    total = float(sum(ratios))
+    return " ".join(f"{(r / total) * 100:.5f}%" for r in ratios)
+
+
+def _suffix_class(prefix: str | None, element: str) -> str:
+    """Return a suffix-scoped class for the provided element."""
+
+    if not prefix:
+        return ""
+    return f" {prefix}{element}"
+
+
+@contextmanager
+def render_mac_window(
+    st,
+    *,
+    title: str = "demAI",
+    subtitle: str | None = None,
+    columns: int = 2,
+    ratios: Sequence[float] | None = None,
+    dense: bool = False,
+    theme: Literal["light", "dark"] = "light",
+    id_suffix: str | None = None,
+    scoped_css: str | Iterable[str] | None = None,
+    max_width: float | int | str = 1020,
+    column_variant: ColumnVariant = "standard",
+) -> Iterator[tuple["DeltaGenerator", ...]]:
+    """Render a macOS-style window and yield Streamlit containers for its columns."""
+
+    from streamlit.delta_generator import DeltaGenerator
 
     if column_variant not in ("standard", "flush"):
         raise ValueError("column_variant must be 'standard' or 'flush'")
 
+    max_width_css = _format_max_width(max_width)
+    grid_template = _format_grid_template(columns, ratios)
+
+    _emit_base_styles(st)
+
+    scoped_style_block = _normalise_scoped_css(scoped_css)
+    if scoped_style_block:
+        st.markdown(scoped_style_block, unsafe_allow_html=True)
+
+    root_classes = ["mac-window"]
+    if theme == "dark":
+        root_classes.append("mac-window--dark")
+    if dense:
+        root_classes.append("mac-window--dense")
     if column_variant == "flush":
-        col_padding = "0"
-        col_mobile_padding = "0"
-        col_background = "none"
-        col_box_shadow = "none"
+        root_classes.append("mac-window--flush")
 
-    placeholders = [
-        dedent(
-            f"""
-            <div class=\"mw-{suf}__placeholder\">
-              <div class=\"mw-{suf}__ph-title\">Placeholder</div>
-              <div class=\"mw-{suf}__ph-lines\">
-                <span></span><span></span><span class=\"short\"></span>
-              </div>
-            </div>
-            """
-        ).strip()
-        for _ in range(columns)
-    ]
-
-    cols = []
-    for i in range(columns):
-        inner = col_html[i] if col_html[i] else placeholders[i]
-        cols.append(f'<div class="mw-{suf}__col">{inner}</div>')
+    suffix_prefix = f"mw-{id_suffix}" if id_suffix else None
+    if suffix_prefix:
+        root_classes.append(suffix_prefix)
 
     escaped_title = html.escape(title)
-    subtitle_text = html.escape(subtitle) if subtitle else ""
-
-    extra_scoped_css = _normalise_scoped_css(scoped_css)
+    subtitle_html = html.escape(subtitle) if subtitle else ""
 
     subtitle_block = (
-        f'\n              <div class="mw-{suf}__subtitle">{subtitle_text}</div>'
-        if subtitle_text
+        f'<div class="mac-window__subtitle{_suffix_class(suffix_prefix, "__subtitle")}">{subtitle_html}</div>'
+        if subtitle_html
         else ""
     )
+
     mobile_subtitle_block = (
-        f'\n                <div class="mw-{suf}__subtitle">{subtitle_text}</div>'
-        if subtitle_text
+        f'<div class="mac-window__subtitle{_suffix_class(suffix_prefix, "__subtitle")}">{subtitle_html}</div>'
+        if subtitle_html
         else ""
     )
 
-    return dedent(
-        f"""
-        <style>
-          /* === mac window (scoped) ======================================== */
-          .mw-{suf} {{
-            --chrome-bg: {chrome_bg};
-            --chrome-border: {chrome_border};
-            --body-bg: {body_bg};
-            --title: {title_color};
-            --subtitle: {sub_color};
-            --ph-text: {ph_text};
-            --radius: 14px;
-            --shadow: 0 16px 40px rgba(15,23,42,.12);
-            border-radius: var(--radius);
-            overflow: hidden;
-            box-shadow: var(--shadow);
-            background: var(--body-bg);
-            width: min(100%, {max_width_css});
-            margin: clamp(0.75rem, 3vw, 1.75rem) auto;
-          }}
-          .mw-{suf}__chrome {{
-            display: grid;
-            grid-template-columns: auto 1fr;
-            align-items: center;
-            gap: .75rem;
-            padding: .65rem 1rem;
-            background: var(--chrome-bg);
-            border-bottom: 1px solid var(--chrome-border);
-          }}
-          .mw-{suf}__lights {{
-            display: inline-flex; gap: .45rem; padding-left: .15rem;
-          }}
-          .mw-{suf}__light {{
-            width: 12px; height: 12px; border-radius: 999px;
-            box-shadow: inset 0 0 0 1px rgba(0,0,0,.08);
-          }}
-          .mw-{suf}__light--red    {{ background:#ff5f56; }}
-          .mw-{suf}__light--yellow {{ background:#ffbd2e; }}
-          .mw-{suf}__light--green  {{ background:#27c93f; }}
-          .mw-{suf}__titles {{
-            display: grid; gap: .15rem;
-          }}
-          .mw-{suf}__title {{
-            font-weight: 800; color: var(--title); line-height: 1.2;
-          }}
-          .mw-{suf}__subtitle {{
-            font-size: .92rem; color: var(--subtitle);
-          }}
+    root_container = st.container()
 
-          .mw-{suf}__mobile-header {{
-            display: none;
-            margin-bottom: clamp(.75rem, 4.5vw, 1rem);
-            gap: .35rem;
-          }}
+    with root_container:
+        root_container.markdown(
+            dedent(
+                f"""
+                <section class="{' '.join(root_classes)}" style="--mw-max-width: {max_width_css}; --mw-grid-template: {grid_template};" role="group" aria-label="{escaped_title} window">
+                  <header class="mac-window__chrome{_suffix_class(suffix_prefix, '__chrome')}" aria-hidden="false">
+                    <div class="mac-window__lights" aria-hidden="true">
+                      <span class="mac-window__light mac-window__light--red"></span>
+                      <span class="mac-window__light mac-window__light--yellow"></span>
+                      <span class="mac-window__light mac-window__light--green"></span>
+                    </div>
+                    <div class="mac-window__titles{_suffix_class(suffix_prefix, '__titles')}">
+                      <div class="mac-window__title{_suffix_class(suffix_prefix, '__title')}">{escaped_title}</div>
+                      {subtitle_block}
+                    </div>
+                  </header>
+                  <div class="mac-window__body{_suffix_class(suffix_prefix, '__body')}">
+                    <div class="mac-window__mobile-header{_suffix_class(suffix_prefix, '__mobile-header')}">
+                      <div class="mac-window__title{_suffix_class(suffix_prefix, '__title')}">{escaped_title}</div>
+                      {mobile_subtitle_block}
+                    </div>
+                    <div class="mac-window__grid{_suffix_class(suffix_prefix, '__grid')}">
+                """
+            ).strip(),
+            unsafe_allow_html=True,
+        )
 
-          .mw-{suf}__body {{
-            padding: {body_padding};
-          }}
-          .mw-{suf}__grid {{
-            display: grid;
-            grid-template-columns: {cols_css};
-            gap: 1.15rem;
-            align-items: stretch;
-          }}
-          .mw-{suf}__col {{
-            border-radius: 12px;
-            background: {col_background};
-            box-shadow: {col_box_shadow};
-            padding: {col_padding};
-            min-height: 180px;
-            display: grid;
-            align-content: start;
-            gap: .65rem;
-          }}
+    column_wrappers: list[DeltaGenerator] = []
+    column_slots: list[DeltaGenerator] = []
 
-          /* Placeholder skeleton */
-          .mw-{suf}__placeholder {{
-            color: var(--ph-text);
-          }}
-          .mw-{suf}__ph-title {{
-            font-weight: 700; margin-bottom: .15rem;
-          }}
-          .mw-{suf}__ph-lines {{
-            display: grid; gap: .45rem;
-          }}
-          .mw-{suf}__ph-lines span {{
-            display:block; height: 9px; border-radius: 6px;
-            background: linear-gradient(90deg, rgba(148,163,184,.28), rgba(148,163,184,.16), rgba(148,163,184,.28));
-            background-size: 180% 100%;
-            animation: mw-{suf}-shimmer 1.6s infinite linear;
-          }}
-          .mw-{suf}__ph-lines span.short {{ width: 60%; }}
-          @keyframes mw-{suf}-shimmer {{
-            0% {{ background-position: 180% 0; }}
-            100% {{ background-position: -20% 0; }}
-          }}
+    for index in range(columns):
+        wrapper = root_container.container()
+        wrapper.markdown(
+            f'<div class="mac-window__col{_suffix_class(suffix_prefix, "__col")}" data-mw-col="{index}">',
+            unsafe_allow_html=True,
+        )
+        content_slot = wrapper.container()
+        column_wrappers.append(wrapper)
+        column_slots.append(content_slot)
 
-          /* Responsive */
-          @media (max-width: 920px){{
-            .mw-{suf}__grid {{ grid-template-columns: 1fr; }}
-          }}
+    try:
+        yield tuple(column_slots)
+    finally:
+        for wrapper in column_wrappers:
+            wrapper.markdown("</div>", unsafe_allow_html=True)
 
-          @media (max-width: 720px){{
-            .mw-{suf} {{
-              --radius: 12px;
-              box-shadow: 0 14px 32px rgba(15,23,42,.12);
-            }}
-            .mw-{suf}__chrome {{
-              padding: .55rem .85rem;
-              grid-template-columns: 1fr;
-              row-gap: .5rem;
-            }}
-            .mw-{suf}__lights {{
-              order: 2;
-              justify-self: start;
-            }}
-            .mw-{suf}__body {{
-              padding: clamp(.85rem, 5vw, 1.15rem);
-            }}
-            .mw-{suf}__grid {{
-              gap: clamp(.75rem, 4.5vw, 1rem);
-            }}
-            .mw-{suf}__col {{
-              min-height: 0;
-              padding: {col_mobile_padding};
-            }}
-          }}
+        root_container.markdown(
+            dedent(
+                """
+                    </div>
+                  </div>
+                </section>
+                """
+            ).strip(),
+            unsafe_allow_html=True,
+        )
 
-          @media (max-width: 600px){{
-            .mw-{suf} {{
-              --radius: 0px;
-              --shadow: none;
-              width: 100%;
-              margin: 0;
-              border-radius: 0;
-              box-shadow: none;
-              border: none;
-            }}
-            .mw-{suf}__chrome {{
-              display: none;
-            }}
-            .mw-{suf}__body {{
-              padding: clamp(.9rem, 5.5vw, 1.35rem) 1rem 1.25rem;
-            }}
-            .mw-{suf}__grid {{
-              grid-template-columns: 1fr;
-              gap: clamp(.75rem, 4.5vw, 1rem);
-            }}
-            .mw-{suf}__col {{
-              padding: 0;
-              border-radius: 0;
-              background: none;
-              box-shadow: none;
-              border: 0;
-              min-height: 0;
-            }}
-            .mw-{suf}__mobile-header {{
-              display: grid;
-            }}
-          }}{extra_scoped_css}
-        </style>
-
-        <section class="mw-{suf}" role="group" aria-label="{escaped_title} window">
-          <header class="mw-{suf}__chrome" aria-hidden="false">
-            <div class="mw-{suf}__lights" aria-hidden="true">
-              <span class="mw-{suf}__light mw-{suf}__light--red"></span>
-              <span class="mw-{suf}__light mw-{suf}__light--yellow"></span>
-              <span class="mw-{suf}__light mw-{suf}__light--green"></span>
-            </div>
-            <div class="mw-{suf}__titles">
-              <div class="mw-{suf}__title">{escaped_title}</div>{subtitle_block}
-            </div>
-          </header>
-
-          <div class="mw-{suf}__body">
-            <div class="mw-{suf}__mobile-header">
-              <div class="mw-{suf}__title">{escaped_title}</div>{mobile_subtitle_block}
-            </div>
-            <div class="mw-{suf}__grid">
-              {''.join(cols)}
-            </div>
-          </div>
-        </section>
-        <script>
-          (function() {{
-            const root = document.querySelector('.mw-{suf}');
-            if (!root) return;
-
-            const frameEl = window.frameElement;
-            let raf = null;
-
-            const numberOrZero = (value) => {{
-              const parsed = parseFloat(value);
-              return Number.isFinite(parsed) ? parsed : 0;
-            }};
-
-            const updateFrameHeight = () => {{
-              raf = null;
-              const rect = root.getBoundingClientRect();
-              const styles = window.getComputedStyle(root);
-              const marginTop = numberOrZero(styles.marginTop);
-              const marginBottom = numberOrZero(styles.marginBottom);
-              const height = Math.max(0, Math.ceil(rect.height + marginTop + marginBottom + 16));
-              if (!height) return;
-
-              if (frameEl) {{
-                frameEl.style.height = `${{height}}px`;
-                frameEl.setAttribute('height', String(height));
-              }}
-
-              if (window.parent && window.parent !== window) {{
-                window.parent.postMessage({{ type: 'streamlit:resize', height }}, '*');
-              }}
-            }};
-
-            const scheduleUpdate = () => {{
-              if (raf !== null) return;
-              raf = window.requestAnimationFrame(updateFrameHeight);
-            }};
-
-            scheduleUpdate();
-
-            if (typeof ResizeObserver === 'function') {{
-              const resizeObserver = new ResizeObserver(scheduleUpdate);
-              resizeObserver.observe(root);
-            }}
-
-            if (typeof MutationObserver === 'function') {{
-              const mutationObserver = new MutationObserver(scheduleUpdate);
-              mutationObserver.observe(root, {{ childList: true, subtree: true, characterData: true }});
-            }}
-
-            const bindOnce = (eventName, handler) => {{
-              window.addEventListener(eventName, handler, {{ once: true }});
-            }};
-
-            if (document.readyState === 'complete') {{
-              scheduleUpdate();
-            }} else {{
-              bindOnce('DOMContentLoaded', scheduleUpdate);
-              bindOnce('load', scheduleUpdate);
-            }}
-
-            if (document.fonts) {{
-              if (typeof document.fonts.addEventListener === 'function') {{
-                document.fonts.addEventListener('loadingdone', scheduleUpdate);
-                document.fonts.addEventListener('loadingerror', scheduleUpdate);
-              }} else if (typeof document.fonts.ready?.then === 'function') {{
-                document.fonts.ready.then(scheduleUpdate).catch(scheduleUpdate);
-              }}
-            }}
-
-            window.addEventListener('resize', scheduleUpdate);
-
-            let attempts = 0;
-            const tick = () => {{
-              attempts += 1;
-              scheduleUpdate();
-              if (attempts < 6) {{
-                window.setTimeout(tick, 200);
-              }}
-            }};
-            window.setTimeout(tick, 120);
-          }})();
-        </script>
-        """
-    )
-
-
-
-def render_mac_window(
-    st,
-    *,
-    fallback_height: int | None = None,
-    scoped_css: str | Iterable[str] | None = None,
-    max_width: float | int | str = 1020,
-    **kwargs,
-):
-    """Render the macOS-style window in Streamlit.
-
-    Args:
-        st: Streamlit module proxy used for rendering.
-        fallback_height: Optional iframe height when Streamlit cannot
-            auto-size the HTML container.
-        scoped_css: Additional CSS scoped to the rendered window.
-        max_width: Maximum width passed through to :func:`mac_window_html`.
-        **kwargs: Remaining keyword arguments forwarded to
-            :func:`mac_window_html`.
-    """
-
-    html_str = mac_window_html(scoped_css=scoped_css, max_width=max_width, **kwargs)
-
-    # ``components.html`` ensures rich HTML (including scripts like the training
-    # animation) render without sanitisation. Always prefer it so interactive
-    # payloads behave consistently across Streamlit versions.
-    if fallback_height is None:
-        # Keep a minimal height for scenarios where client-side resizing is
-        # unavailable (e.g., JS disabled). The resize script injected by
-        # :func:`mac_window_html` will immediately grow the iframe when enabled.
-        fallback_height = 360
-
-    st.components.v1.html(
-        html_str,
-        height=fallback_height,
-        scrolling=False,
-    )

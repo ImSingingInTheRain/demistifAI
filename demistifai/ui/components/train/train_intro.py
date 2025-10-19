@@ -16,17 +16,17 @@ class TrainingNotesColumn:
 
 _TRAINING_NOTES_CSS = textwrap.dedent(
     """
-    .train-animation__notes {
+    .mac-window .train-animation__notes {
       display: grid;
       gap: 0.75rem;
     }
-    .train-animation__notes h4 {
+    .mac-window .train-animation__notes h4 {
       margin: 0;
       font-size: 1.0rem;
       font-weight: 700;
       color: #0f172a;
     }
-    .train-animation__notes ul {
+    .mac-window .train-animation__notes ul {
       margin: 0;
       padding-left: 1.15rem;
       display: grid;
@@ -35,7 +35,7 @@ _TRAINING_NOTES_CSS = textwrap.dedent(
       line-height: 1.45;
       color: rgba(15, 23, 42, 0.78);
     }
-    .train-animation__notes li strong {
+    .mac-window .train-animation__notes li strong {
       color: #1d4ed8;
     }
     """
