@@ -10,7 +10,7 @@ from streamlit.delta_generator import DeltaGenerator
 
 from demistifai.constants import AUTONOMY_LEVELS
 from demistifai.core.downloads import download_text
-from demistifai.core.nav import render_stage_top_grid
+from demistifai.ui.components import render_stage_top_grid
 from demistifai.dataset import DEFAULT_DATASET_CONFIG
 
 

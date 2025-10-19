@@ -8,7 +8,7 @@ import streamlit as st
 
 from demistifai.constants import STAGE_BY_KEY, STAGE_INDEX, StageMeta
 from demistifai.core.language import HAS_LANGDETECT
-from demistifai.core.nav import render_stage_top_grid
+from demistifai.ui.components import render_stage_top_grid
 from demistifai.core.state import ensure_state, validate_invariants
 from demistifai.core.utils import streamlit_rerun
 from demistifai.modeling import encode_texts
