@@ -53,7 +53,7 @@ from .train import (
     render_training_animation,
     training_stage_stylesheet,
 )
-from .use import render_incoming_preview
+from .use import render_batch_results_panel, render_incoming_preview
 
 __all__ = [
     "ArchitectureCard",
@@ -89,6 +89,7 @@ __all__ = [
     "render_intro_hero",
     "render_language_mix_chip_rows",
     "render_mac_window",
+    "render_batch_results_panel",
     "render_incoming_preview",
     "render_pii_cleanup_banner",
     "render_pii_indicators",
