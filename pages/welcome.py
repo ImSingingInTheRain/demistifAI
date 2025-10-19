@@ -59,8 +59,3 @@ def render_intro_stage(*, section_surface: SectionSurface) -> None:
             scoped_css=hero_css,
         )
 
-    quote_wrapper_close = intro_ai_act_quote_wrapper_close()
-    st.markdown(ai_act_quote_wrapper_open, unsafe_allow_html=True)
-    render_eu_ai_quote(EU_AI_ACT_DEF)
-    st.markdown(quote_wrapper_close, unsafe_allow_html=True)
-
