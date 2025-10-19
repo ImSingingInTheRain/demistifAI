@@ -1,6 +1,6 @@
 from __future__ import annotations
 from dataclasses import dataclass
-from typing import Callable, Dict, Tuple
+from typing import Callable, Dict
 import html
 import streamlit as st
 from streamlit.delta_generator import DeltaGenerator
@@ -14,15 +14,6 @@ except Exception:
     STAGES, STAGE_BY_KEY = [], {}
 
 StageBlockRenderer = Callable[[DeltaGenerator], None]
-
-@dataclass
-class StageTopGridSlots:
-    left: DeltaGenerator
-    right_primary: DeltaGenerator
-    right_secondary: DeltaGenerator
-    prev_clicked: bool
-    next_clicked: bool
-
 
 @dataclass(frozen=True)
 class StageTopCardContent:
@@ -95,11 +86,13 @@ def _render_stage_top_card(stage_key: str, slot: DeltaGenerator) -> None:
         st.markdown(html_card, unsafe_allow_html=True)
 
 
-def _render_stage_navigation_controls(stage_key: str, next_slot: DeltaGenerator, prev_slot: DeltaGenerator):
+def _render_stage_navigation_controls(
+    stage_key: str, next_slot: DeltaGenerator, prev_slot: DeltaGenerator
+) -> None:
     try:
         index, total, stage, prev_stage, next_stage = _stage_navigation_context(stage_key)
     except ValueError:
-        return False, False
+        return None
 
     next_label = "Proceed" if next_stage is None else f"{next_stage.icon} {next_stage.title} ➡️"
     prev_label = "Back" if prev_stage is None else f"⬅️ {prev_stage.icon} {prev_stage.title}"
@@ -161,11 +154,15 @@ def _render_stage_navigation_controls(stage_key: str, next_slot: DeltaGenerator,
         unsafe_allow_html=True,
     )
 
-    return prev_clicked, next_clicked
+    return None
 
-def render_stage_top_grid(stage_key: str, *, left_renderer: StageBlockRenderer | None = None,
-                          right_first_renderer: StageBlockRenderer | None = None,
-                          right_second_renderer: StageBlockRenderer | None = None) -> StageTopGridSlots:
+def render_stage_top_grid(
+    stage_key: str,
+    *,
+    left_renderer: StageBlockRenderer | None = None,
+    right_first_renderer: StageBlockRenderer | None = None,
+    right_second_renderer: StageBlockRenderer | None = None,
+) -> None:
     grid_container = st.container()
     left_col, right_col = grid_container.columns([0.65, 0.35], gap="large")
     left_slot = left_col.container()
@@ -180,7 +177,7 @@ def render_stage_top_grid(stage_key: str, *, left_renderer: StageBlockRenderer |
     prev_slot = right_col.container()
 
     _render_stage_top_card(stage_key, highlight_slot)
-    prev_clicked, next_clicked = _render_stage_navigation_controls(stage_key, next_slot, prev_slot)
+    _render_stage_navigation_controls(stage_key, next_slot, prev_slot)
 
     if left_renderer is not None:
         left_renderer(left_slot)
@@ -216,7 +213,4 @@ def render_stage_top_grid(stage_key: str, *, left_renderer: StageBlockRenderer |
             """, unsafe_allow_html=True
         )
 
-    return StageTopGridSlots(
-        left=left_slot, right_primary=right_first_slot, right_secondary=right_second_slot,
-        prev_clicked=prev_clicked, next_clicked=next_clicked
-    )
+    return None

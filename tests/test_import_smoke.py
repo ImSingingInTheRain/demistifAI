@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import importlib
+import inspect
 import unittest
 
 
@@ -31,7 +32,12 @@ class ConfigImportSmokeTests(unittest.TestCase):
     def test_core_nav_exports_stage_grid(self) -> None:
         nav_module = importlib.import_module("demistifai.core.nav")
         self.assertTrue(hasattr(nav_module, "render_stage_top_grid"))
-        self.assertTrue(hasattr(nav_module, "StageTopGridSlots"))
+        render_fn = getattr(nav_module, "render_stage_top_grid")
+        sig = inspect.signature(render_fn)
+        self.assertIn(
+            sig.return_annotation,
+            (inspect.Signature.empty, None, "None"),
+        )
 
 
 if __name__ == "__main__":  # pragma: no cover - convenience for direct execution
