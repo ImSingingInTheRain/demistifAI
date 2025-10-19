@@ -7,7 +7,7 @@ from typing import Any, Callable, ContextManager, Optional
 import streamlit as st
 from streamlit.delta_generator import DeltaGenerator
 
-from demistifai.core.dataset import compute_dataset_summary
+from demistifai.dataset import compute_dataset_summary
 from demistifai.ui.components import render_stage_top_grid
 from demistifai.core.state import ensure_state, validate_invariants
 from demistifai.ui.components.terminal.data_prep import render_prepare_terminal
