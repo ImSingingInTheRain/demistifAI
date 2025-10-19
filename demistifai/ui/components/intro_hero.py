@@ -7,8 +7,6 @@ from textwrap import dedent
 __all__ = [
     "intro_hero_scoped_css",
     "intro_lifecycle_columns",
-    "intro_ai_act_quote_wrapper_open",
-    "intro_ai_act_quote_wrapper_close",
     "render_intro_hero",
 ]
 
@@ -850,56 +848,9 @@ def intro_lifecycle_columns() -> tuple[str, str]:
     return _intro_left_column_html(), _intro_right_column_html()
 
 
-def intro_ai_act_quote_wrapper_open() -> str:
-    """Return the wrapper HTML (opening fragment) for the Article 3 quote."""
-
-    return dedent(
-        """
-        <style>
-            .ai-act-quote-block {
-                position: relative;
-                display: flex;
-                justify-content: center;
-                padding: clamp(1.3rem, 2.8vw, 2.1rem);
-                border-radius: 1.75rem;
-                background: linear-gradient(135deg, rgba(59, 130, 246, 0.16), rgba(236, 72, 153, 0.12));
-                border: 1px solid rgba(37, 99, 235, 0.2);
-                box-shadow: 0 24px 52px rgba(37, 99, 235, 0.2);
-                overflow: hidden;
-            }
-
-            .ai-act-quote-block::before {
-                content: "";
-                position: absolute;
-                inset: 0;
-                pointer-events: none;
-                background: radial-gradient(circle at top right, rgba(59, 130, 246, 0.2), transparent 55%),
-                    radial-gradient(circle at bottom left, rgba(236, 72, 153, 0.2), transparent 60%);
-                opacity: 0.9;
-            }
-
-            .ai-act-quote-block > div[data-testid="stComponent"] {
-                width: 100%;
-                margin: 0;
-                position: relative;
-                z-index: 1;
-            }
-        </style>
-        <div class="ai-act-quote-block" role="region" aria-label="From the EU AI Act, Article 3">
-        """
-    ).strip()
-
-
-def intro_ai_act_quote_wrapper_close() -> str:
-    """Return the closing wrapper HTML for the Article 3 quote."""
-
-    return "</div>"
-
-
-def render_intro_hero() -> tuple[str, str, str, str]:
+def render_intro_hero() -> tuple[str, str, str]:
     """Return the scoped CSS and markup needed to render the intro hero."""
 
     scoped_css = intro_hero_scoped_css()
     left_col, right_col = intro_lifecycle_columns()
-    quote_wrapper_open = intro_ai_act_quote_wrapper_open()
-    return scoped_css, left_col, right_col, quote_wrapper_open
+    return scoped_css, left_col, right_col

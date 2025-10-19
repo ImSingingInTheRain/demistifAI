@@ -9,10 +9,7 @@ from streamlit.delta_generator import DeltaGenerator
 
 from demistifai.constants import STAGE_INDEX, STAGES
 from demistifai.core.nav import render_stage_top_grid
-from demistifai.ui.components.intro_hero import (
-    intro_ai_act_quote_wrapper_close,
-    render_intro_hero,
-)
+from demistifai.ui.components.intro_hero import render_intro_hero
 from demistifai.ui.components.mac_window import render_mac_window
 from demistifai.ui.components.terminal.article3 import (
     _WELCOME_LINES,
@@ -43,12 +40,7 @@ def render_intro_stage(*, section_surface: SectionSurface) -> None:
     render_stage_top_grid("intro", left_renderer=_render_intro_terminal)
 
     with section_surface("section-surface--hero"):
-        (
-            hero_css,
-            left_col_html,
-            right_col_html,
-            ai_act_quote_wrapper_open,
-        ) = render_intro_hero()
+        hero_css, left_col_html, right_col_html = render_intro_hero()
 
         render_mac_window(
             st,
