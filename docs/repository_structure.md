@@ -51,7 +51,6 @@ This document provides a guided tour of the repository so contributors can quick
 - `quotes.py` – EU AI Act quote helpers powering the welcome stage hero copy.【F:demistifai/ui/primitives/quotes.py†L1-L32】
 - `sections.py` – Section surface and Nerd Mode toggle primitives reused to style stage panels.【F:demistifai/ui/primitives/sections.py†L1-L64】
 - `text.py` – Shared text utilities such as `shorten_text` for trimming long strings in tables.【F:demistifai/ui/primitives/text.py†L1-L11】
-- `typing_quote.py` – Inline typing effect that animates and highlights Article 3 language for the welcome panels.【F:demistifai/ui/primitives/typing_quote.py†L1-L677】
 
 ### Assets (`demistifai/ui/assets/`)
 - `__init__.py` – Placeholder package for icons, SVGs, or CSS fragments as they are added.【F:demistifai/ui/assets/__init__.py†L1-L3】
@@ -99,7 +98,7 @@ This document provides a guided tour of the repository so contributors can quick
 - `repository_structure.md` – (This file) describes the repository layout for new contributors.
 
 ## Stage pages (`pages/`)
-- `welcome.py` – Renders the intro stage terminal, lifecycle hero window, and EU AI Act quote wrapper while wiring the next-stage handoff.【F:pages/welcome.py†L1-L66】
+- `welcome.py` – Renders the intro stage terminal, lifecycle hero window, EU AI Act quote wrapper, and houses the Article 3 definition constant consumed by the hero surfaces while wiring the next-stage handoff.【F:pages/welcome.py†L1-L66】
 - `overview.py` – Sets up the overview stage grid, mission briefing panels, Nerd Mode toggle, and system snapshot window with mailbox previews.【F:pages/overview.py†L1-L203】
 - `data/` – Prepare stage package with the orchestrator (`page.py`), dataset builder flows, review dashboards, PII scrubbing, session-state helpers, and HTML/markup utilities.【F:pages/data/page.py†L1-L194】【F:pages/data/builder.py†L1-L508】【F:pages/data/review.py†L1-L865】【F:pages/data/pii.py†L1-L201】【F:pages/data/dataset_io.py†L1-L118】【F:pages/data/ui.py†L1-L104】
 - `train_stage/page.py` – Orchestrates the Train stage, preparing session state, launching runs, and delegating guardrail controls, storyboard rendering, and results panels to the supporting modules below.【F:pages/train_stage/page.py†L1-L307】
