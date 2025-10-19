@@ -8,8 +8,6 @@ from .arch_demai import (
 )
 from .control_room import stage_control_room
 from .intro_hero import (
-    intro_ai_act_quote_wrapper_close,
-    intro_ai_act_quote_wrapper_open,
     intro_hero_scoped_css,
     intro_lifecycle_columns,
     render_intro_hero,
@@ -53,8 +51,6 @@ __all__ = [
     "demai_architecture_markup",
     "demai_architecture_styles",
     "render_demai_architecture",
-    "intro_ai_act_quote_wrapper_close",
-    "intro_ai_act_quote_wrapper_open",
     "intro_hero_scoped_css",
     "intro_lifecycle_columns",
     "render_mac_window",
