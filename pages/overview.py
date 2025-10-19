@@ -78,6 +78,7 @@ def render_overview_stage(
         ],
         id_suffix="overview-mac-placeholder",
         scoped_css=demai_architecture_styles(),
+        column_variant="flush",
     )
 
     preview_records: List[Dict[str, Any]] = []
