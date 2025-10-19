@@ -29,8 +29,8 @@ from .overview import (
     demai_architecture_markup,
     demai_architecture_styles,
     mailbox_preview_markup,
-    mission_brief_markup,
     mission_brief_styles,
+    mission_overview_column_markup,
     render_demai_architecture,
 )
 from .shared import (
@@ -79,8 +79,8 @@ __all__ = [
     "intro_hero_scoped_css",
     "intro_lifecycle_columns",
     "mailbox_preview_markup",
-    "mission_brief_markup",
     "mission_brief_styles",
+    "mission_overview_column_markup",
     "pii_chip_row_html",
     "render_demai_architecture",
     "render_guardrail_audit",

@@ -42,7 +42,7 @@ Supporting helpers for training live alongside the stage:
 - **`demistifai/dataset.py`** – Dataset generation, CSV I/O, and linting utilities for Prepare/Data stages.
 - **`demistifai/modeling.py`** – Feature engineering, model training, calibration, and interpretability helpers.
 - **`demistifai/incoming_generator.py`** – Synthetic incoming email batches used in the Classify stage.
-- **`pages/overview.py`** – Overview stage UI, system snapshot, and mission briefing components.
+- **`pages/overview.py`** – Overview stage UI with macOS windows for the system snapshot and the mission briefing + inbox preview columns.
 - **`pages/model_card.py`** – Model card transparency stage UI and download helpers.
 - **`pages/train_stage/page.py` & package modules under `pages/train_stage/`** – Dedicated training UI entry point (`render_train_stage_page`) and supporting logic.
 

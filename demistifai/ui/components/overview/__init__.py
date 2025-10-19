@@ -8,8 +8,8 @@ from .arch_demai import (
 )
 from .overview_mission import (
     mailbox_preview_markup,
-    mission_brief_markup,
     mission_brief_styles,
+    mission_overview_column_markup,
 )
 
 __all__ = [
@@ -18,6 +18,6 @@ __all__ = [
     "demai_architecture_styles",
     "render_demai_architecture",
     "mailbox_preview_markup",
-    "mission_brief_markup",
     "mission_brief_styles",
+    "mission_overview_column_markup",
 ]
