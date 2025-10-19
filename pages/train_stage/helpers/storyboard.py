@@ -5,6 +5,11 @@ from typing import Any, Callable, Optional
 
 import streamlit as st
 
+from demistifai.ui.components.train import (
+    render_numeric_clue_cards,
+    render_numeric_clue_preview,
+)
+
 from .guardrails import (
     _ghost_meaning_map_enhanced,
     _numeric_guardrails_caption_text,
@@ -15,7 +20,6 @@ from .meaning_map import (
     _meaning_map_zoom_subset,
     _prepare_meaning_map,
 )
-from .numeric_clues import _render_numeric_clue_cards, _render_numeric_clue_preview
 
 
 def _render_training_examples_preview() -> None:
@@ -254,8 +258,8 @@ def _render_unified_training_storyboard(
             if meaning_map_error:
                 st.info(meaning_map_error)
             elif chart_ready:
-                _render_numeric_clue_cards(meaning_map_df)
+                render_numeric_clue_cards(meaning_map_df)
             else:
-                _render_numeric_clue_preview(assist_center, uncertainty_band)
+                render_numeric_clue_preview(assist_center, uncertainty_band)
 
         st.caption(_numeric_guardrails_caption_text(ss))
