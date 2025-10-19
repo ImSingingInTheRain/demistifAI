@@ -28,6 +28,7 @@ from demistifai.ui.components.train import (
     build_training_animation_column,
     build_token_chip,
     build_training_notes_column,
+    render_guardrail_window_preview,
     render_numeric_clue_cards,
     render_numeric_clue_preview,
     training_stage_stylesheet,
@@ -41,7 +42,6 @@ from .callbacks import (
 )
 from .navigation import render_prepare_dataset_prompt, render_train_terminal_slot
 from .visualizations import build_calibration_chart
-from .guardrails import render_guardrail_window_preview
 from .panels import render_launchpad_panel, render_nerd_mode_panels
 from .results import render_training_results
 from .state import (

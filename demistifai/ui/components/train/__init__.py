@@ -1,5 +1,6 @@
 """Train stage UI components."""
 
+from .guardrails import build_guardrail_window_preview, render_guardrail_window_preview
 from .language_mix import render_language_mix_chip_rows
 from .numeric_clues import render_numeric_clue_cards, render_numeric_clue_preview
 from .train_animation import (
@@ -33,4 +34,6 @@ __all__ = [
     "training_stage_stylesheet",
     "render_numeric_clue_preview",
     "render_numeric_clue_cards",
+    "render_guardrail_window_preview",
+    "build_guardrail_window_preview",
 ]
