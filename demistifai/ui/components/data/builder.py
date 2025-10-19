@@ -1,4 +1,4 @@
-"""UI helpers for the Prepare stage."""
+"""Dataset builder UI helpers for the Prepare stage."""
 
 from __future__ import annotations
 
@@ -168,4 +168,3 @@ __all__ = [
     "cli_command_line",
     "cli_comment",
 ]
-

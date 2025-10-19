@@ -28,7 +28,11 @@ from pages.data.dataset_io import (
     generate_preview_from_config,
     reset_dataset_to_baseline,
 )
-from pages.data.ui import build_compare_panel_html, cli_command_line, cli_comment
+from demistifai.ui.components.data import (
+    build_compare_panel_html,
+    cli_command_line,
+    cli_comment,
+)
 
 
 @dataclass
