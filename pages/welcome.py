@@ -52,5 +52,6 @@ def render_intro_stage(*, section_surface: SectionSurface) -> None:
             col_html=[left_col_html, right_col_html],
             id_suffix="intro-lifecycle",
             scoped_css=hero_css,
+            max_width=1200,
         )
 

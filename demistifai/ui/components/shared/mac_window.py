@@ -51,8 +51,24 @@ def mac_window_html(
     theme: str = "light",
     id_suffix: str | None = None,
     scoped_css: str | Iterable[str] | None = None,
+    max_width: float | int | str = 1020,
 ) -> str:
-    """Return a scoped HTML/CSS macOS-style window."""
+    """Return a scoped HTML/CSS macOS-style window.
+
+    Args:
+        title: Window title shown in the chrome.
+        subtitle: Optional subtitle rendered under the title.
+        columns: Number of content columns (1–3).
+        ratios: Relative column width ratios.
+        col_html: Pre-rendered HTML for each column.
+        dense: When ``True`` the body/columns use reduced padding.
+        theme: ``"light"`` or ``"dark"`` chrome palette.
+        id_suffix: Optional suffix used to scope the CSS classes.
+        scoped_css: Extra CSS scoped to the rendered window.
+        max_width: Maximum width constraint for the window. Numeric
+            values are interpreted as pixel widths, preserving the
+            previous 1020px default when omitted.
+    """
     if columns not in (1, 2, 3):
         raise ValueError("columns must be 1, 2 or 3")
     if ratios is None:
@@ -67,6 +83,15 @@ def mac_window_html(
     suf = id_suffix or uuid.uuid4().hex[:8]
     total = float(sum(ratios))
     cols_css = " ".join(f"{(r / total) * 100:.5f}%" for r in ratios)
+
+    if isinstance(max_width, (int, float)):
+        if max_width <= 0:
+            raise ValueError("max_width must be positive")
+        max_width_css = f"{format(max_width, 'g')}px"
+    else:
+        max_width_css = str(max_width).strip()
+        if not max_width_css:
+            raise ValueError("max_width must not be empty")
 
     chrome_bg = "#f5f7fb" if theme == "light" else "#111827"
     chrome_border = "rgba(15,23,42,.12)" if theme == "light" else "rgba(255,255,255,.12)"
@@ -144,7 +169,7 @@ def mac_window_html(
             overflow: hidden;
             box-shadow: var(--shadow);
             background: var(--body-bg);
-            width: min(100%, 1020px);
+            width: min(100%, {max_width_css});
             margin: clamp(0.75rem, 3vw, 1.75rem) auto;
           }}
           .mw-{suf}__chrome {{
@@ -309,11 +334,22 @@ def render_mac_window(
     *,
     fallback_height: int | None = None,
     scoped_css: str | Iterable[str] | None = None,
+    max_width: float | int | str = 1020,
     **kwargs,
 ):
-    """Render the macOS-style window in Streamlit."""
+    """Render the macOS-style window in Streamlit.
 
-    html_str = mac_window_html(scoped_css=scoped_css, **kwargs)
+    Args:
+        st: Streamlit module proxy used for rendering.
+        fallback_height: Optional iframe height when Streamlit cannot
+            auto-size the HTML container.
+        scoped_css: Additional CSS scoped to the rendered window.
+        max_width: Maximum width passed through to :func:`mac_window_html`.
+        **kwargs: Remaining keyword arguments forwarded to
+            :func:`mac_window_html`.
+    """
+
+    html_str = mac_window_html(scoped_css=scoped_css, max_width=max_width, **kwargs)
 
     # ``components.html`` ensures rich HTML (including scripts like the training
     # animation) render without sanitisation. Always prefer it so interactive
