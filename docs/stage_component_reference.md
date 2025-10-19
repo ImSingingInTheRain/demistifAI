@@ -35,7 +35,7 @@ Supporting helpers for training live alongside the stage:
 ## Component placement map
 - **`streamlit_app.py`** – Entry point; orchestrates layout, stage switching, and cross-stage session state.
 - **`demistifai/core/navigation.py`** – Synchronizes stage selection across state containers and exposes `activate_stage` for programmatic jumps.
-- **`demistifai/ui/components/stage_navigation.py`** – Hosts the stage top grid renderer plus next/previous controls that were migrated out of the control room component.
+- **`demistifai/ui/components/shared/stage_navigation.py`** – Hosts the stage top grid renderer plus next/previous controls that were migrated out of the control room component.
 - **`pages/data/page.py`** – Prepare/Data stage orchestrator delegating to builder, review, and PII modules under `pages/data/`.
 - **`pages/use.py`** – Use/Classify stage UI handling batch processing, autonomy, and adaptiveness workflows.
 - **`demistifai/constants.py`** – Stage metadata, icons, copy blocks, and shared CSS snippets.

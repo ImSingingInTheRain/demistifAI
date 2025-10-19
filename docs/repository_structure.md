@@ -29,19 +29,13 @@ This document provides a guided tour of the repository so contributors can quick
 
 ## UI toolkit (`demistifai/ui/`)
 ### Components (`demistifai/ui/components/`)
-- `__init__.py` – Aggregates hero, training, terminal, guardrail, mission, language mix, and PII helpers so pages can import them from a single namespace.【F:demistifai/ui/components/__init__.py†L1-L101】
-- `arch_demai.py` – Dataclass-driven architecture cards and styling that render the demAI system diagram within Streamlit.【F:demistifai/ui/components/arch_demai.py†L1-L146】
-- `data_review.py` – Dataset balance bars, sample cards, and scoped CSS helpers for the Prepare stage review panels.【F:demistifai/ui/components/data_review.py†L1-L74】
-- `guardrail_panel.py` – Streams charts and guardrail cards within a styled panel, injecting CSS once per session.【F:demistifai/ui/components/guardrail_panel.py†L1-L48】
-- `intro_hero.py` – Welcome-stage hero layout, lifecycle diagram markup, and scoped quote wrappers for the EU AI Act narrative.【F:demistifai/ui/components/intro_hero.py†L1-L112】
-- `mac_window.py` – Utility for generating scoped macOS-style window shells with configurable columns and theming.【F:demistifai/ui/components/mac_window.py†L1-L158】
-- `overview_mission.py` – Mission briefing markup and mailbox preview helpers that style the overview stage briefing cards.【F:demistifai/ui/components/overview_mission.py†L1-L129】
-- `stage_navigation.py` – Stage top grid renderer, highlight card, and previous/next CTA controls shared across lifecycle pages.【F:demistifai/ui/components/stage_navigation.py†L1-L179】
-- `pii_indicators.py` – Displays responsive PII indicator tiles summarising detected token counts.【F:demistifai/ui/components/pii_indicators.py†L1-L25】
-- `language_mix.py` – Streamlit chip renderer that visualises train/test language mix stats from the core package.【F:demistifai/ui/components/language_mix.py†L1-L68】
-- `pii.py` – Cleanup banner, highlight markup, and chip row helpers powering the Prepare stage's personal data workflow.【F:demistifai/ui/components/pii.py†L1-L128】
-- `train_animation.py` – Plotly-powered training map animation with brand token bridging, HTML wrappers, and graceful fallbacks when the optional Plotly dependency is missing.【F:demistifai/ui/components/train_animation.py†L9-L277】
-- `train_intro.py` – Training stage launchpad cards, inline notes, and CSS builders that accompany the animation panel.【F:demistifai/ui/components/train_intro.py†L1-L143】
+- `__init__.py` – Aggregates stage-focused packages (intro, overview, data, train, evaluate) plus shared utilities so pages can import components from a single namespace.【F:demistifai/ui/components/__init__.py†L1-L95】
+- `intro/` – Welcome-stage hero layout and lifecycle markup that frame the Article 3 walkthrough (`intro_hero.py`). Add new intro UI in this package to keep the hero experience cohesive.【F:demistifai/ui/components/intro/__init__.py†L1-L13】【F:demistifai/ui/components/intro/intro_hero.py†L1-L112】
+- `overview/` – Mission briefings and architecture diagram helpers used on the Overview stage (`overview_mission.py`, `arch_demai.py`). Extend this folder when adding more context cards for the system snapshot.【F:demistifai/ui/components/overview/__init__.py†L1-L22】【F:demistifai/ui/components/overview/arch_demai.py†L1-L146】
+- `data/` – Prepare-stage dataset review panels, PII cleanup surfaces, and indicator widgets that light up lint results (`data_review.py`, `pii.py`, `pii_indicators.py`). Add new Prepare UI here so linting and review styling stays consistent.【F:demistifai/ui/components/data/__init__.py†L1-L30】【F:demistifai/ui/components/data/pii.py†L1-L128】
+- `train/` – Training launchpad cards, animation scaffolding, and language mix chips (`train_intro.py`, `train_animation.py`, `language_mix.py`). Put Train stage expansions in this package to reuse shared CSS and chips.【F:demistifai/ui/components/train/__init__.py†L1-L32】【F:demistifai/ui/components/train/train_animation.py†L1-L274】
+- `evaluate/` – Evaluation guardrail panel renderer that streams charts and cards into a scoped window (`guardrail_panel.py`). Future Evaluate surfaces belong here.【F:demistifai/ui/components/evaluate/__init__.py†L1-L4】【F:demistifai/ui/components/evaluate/guardrail_panel.py†L1-L48】
+- `shared/` – Cross-stage primitives such as the macOS-style window shell and the stage navigation grid (`mac_window.py`, `stage_navigation.py`). Use this folder for reusable UI shared between stages.【F:demistifai/ui/components/shared/__init__.py†L1-L13】【F:demistifai/ui/components/shared/stage_navigation.py†L1-L179】
 - `terminal/` – Animated terminal namespace with scenario-specific scripts powering stage introductions and walkthroughs:
   - `boot_sequence.py` – Alternate terminal script that frames the "demAI machine" boot sequence with staged prompts and Nerd Mode hints.【F:demistifai/ui/components/terminal/boot_sequence.py†L1-L228】
   - `article3.py` – Article 3-focused terminal variation highlighting the mission pillars of demAI.【F:demistifai/ui/components/terminal/article3.py†L1-L225】
@@ -80,7 +74,7 @@ This document provides a guided tour of the repository so contributors can quick
 - `audit.py` – Appends timestamped audit entries to the session log during the Use stage.【F:demistifai/core/audit.py†L1-L11】
 - `downloads.py` – Provides a Streamlit download link helper for exporting text artefacts.【F:demistifai/core/downloads.py†L1-L7】
 - `language.py` – Handles optional language-detection fallbacks, aggregates language mix stats, and formats summaries consumed by UI renderers.【F:demistifai/core/language.py†L1-L65】
-- `nav.py` – Deprecated shim that re-exports the stage navigation grid from the UI layer; import `demistifai.ui.components.stage_navigation` instead.【F:demistifai/core/nav.py†L1-L27】
+- `nav.py` – Deprecated shim that re-exports the stage navigation grid from the UI layer; import `demistifai.ui.components.shared.stage_navigation` instead.【F:demistifai/core/nav.py†L1-L27】
 - `navigation.py` – Synchronises active stage selection between query params, session state, and the renderer map and exposes the `activate_stage` helper used in `streamlit_app.py`.【F:demistifai/core/navigation.py†L1-L108】
 - `routing.py` – Computes recommended or automatic routing decisions based on autonomy level, predictions, and thresholds.【F:demistifai/core/routing.py†L1-L15】
 - `export.py` – Normalises batch processing logs into a pandas DataFrame ready for CSV/JSON export.【F:demistifai/core/export.py†L1-L13】
