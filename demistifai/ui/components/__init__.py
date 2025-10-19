@@ -14,7 +14,11 @@ from .data import (
     render_pii_indicators,
     stratified_sample_cards_html,
 )
-from .evaluate import render_guardrail_panel
+from .evaluate import (
+    render_guardrail_audit,
+    render_guardrail_panel,
+    render_threshold_controls,
+)
 from .intro import (
     intro_hero_scoped_css,
     intro_lifecycle_columns,
@@ -78,7 +82,9 @@ __all__ = [
     "mission_brief_styles",
     "pii_chip_row_html",
     "render_demai_architecture",
+    "render_guardrail_audit",
     "render_guardrail_panel",
+    "render_threshold_controls",
     "render_intro_hero",
     "render_language_mix_chip_rows",
     "render_mac_window",
