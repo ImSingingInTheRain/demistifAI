@@ -8,7 +8,6 @@ import streamlit as st
 
 from demistifai.constants import STAGE_BY_KEY, STAGE_INDEX, StageMeta
 from demistifai.core.language import HAS_LANGDETECT
-from demistifai.ui.components import render_stage_top_grid
 from demistifai.core.state import ensure_state, validate_invariants
 from demistifai.core.utils import streamlit_rerun
 from demistifai.modeling import encode_texts
@@ -26,10 +25,11 @@ from pages.train_stage.helpers.storyboard import (
     _render_unified_training_storyboard,
 )
 
-from demistifai.ui.components.mac_window import render_mac_window
-from demistifai.ui.components.train_animation import build_training_animation_column
-from demistifai.ui.components.train_intro import (
+from demistifai.ui.components import render_stage_top_grid
+from demistifai.ui.components.shared import render_mac_window
+from demistifai.ui.components.train import (
     build_inline_note,
+    build_training_animation_column,
     build_token_chip,
     build_training_notes_column,
     training_stage_stylesheet,

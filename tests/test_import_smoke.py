@@ -30,11 +30,11 @@ class ConfigImportSmokeTests(unittest.TestCase):
         pii_core = importlib.import_module("demistifai.core.pii")
         self.assertTrue(hasattr(pii_core, "summarize_pii_counts"))
 
-        pii_ui = importlib.import_module("demistifai.ui.components.pii")
+        pii_ui = importlib.import_module("demistifai.ui.components.data.pii")
         self.assertTrue(hasattr(pii_ui, "render_pii_cleanup_banner"))
 
     def test_stage_navigation_component_exports_stage_grid(self) -> None:
-        nav_component = importlib.import_module("demistifai.ui.components.stage_navigation")
+        nav_component = importlib.import_module("demistifai.ui.components.shared.stage_navigation")
         self.assertTrue(hasattr(nav_component, "render_stage_top_grid"))
         render_fn = getattr(nav_component, "render_stage_top_grid")
         sig = inspect.signature(render_fn)

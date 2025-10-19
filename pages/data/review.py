@@ -38,7 +38,7 @@ from demistifai.dataset import (
     lint_dataset,
 )
 from demistifai.modeling import combine_text
-from demistifai.ui.components.data_review import (
+from demistifai.ui.components.data import (
     data_review_styles,
     dataset_balance_bar_html,
     dataset_snapshot_active_badge,

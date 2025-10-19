@@ -5,7 +5,7 @@ from typing import Any, Dict, MutableMapping
 import streamlit as st
 
 from demistifai.constants import StageMeta
-from demistifai.ui.components.train_intro import (
+from demistifai.ui.components.train import (
     build_launchpad_card,
     build_launchpad_status_item,
     build_nerd_intro_card,

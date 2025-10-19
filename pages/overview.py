@@ -8,18 +8,19 @@ import pandas as pd
 import streamlit as st
 from streamlit.delta_generator import DeltaGenerator
 
-from demistifai.ui.components.arch_demai import demai_architecture_markup, demai_architecture_styles
-from demistifai.ui.components.mac_window import render_mac_window
-from demistifai.ui.components.overview_mission import (
+from demistifai.ui.components import render_stage_top_grid
+from demistifai.ui.components.overview import (
+    demai_architecture_markup,
+    demai_architecture_styles,
     mailbox_preview_markup,
     mission_brief_markup,
     mission_brief_styles,
 )
+from demistifai.ui.components.shared import render_mac_window
 from demistifai.ui.components.terminal.boot_sequence import (
     _DEFAULT_DEMAI_LINES,
     render_ai_act_terminal as render_boot_sequence_terminal,
 )
-from demistifai.ui.components import render_stage_top_grid
 
 
 def render_overview_stage(

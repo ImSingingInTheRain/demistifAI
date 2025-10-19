@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import warnings
 
-from demistifai.ui.components.stage_navigation import (
+from demistifai.ui.components.shared.stage_navigation import (
     StageBlockRenderer,
     StageTopCardContent,
     _build_default_stage_top_card_content,
@@ -16,7 +16,7 @@ from demistifai.ui.components.stage_navigation import (
 
 warnings.warn(
     "`demistifai.core.nav` is deprecated; import from "
-    "`demistifai.ui.components.stage_navigation` instead.",
+    "`demistifai.ui.components.shared.stage_navigation` instead.",
     DeprecationWarning,
     stacklevel=2,
 )
