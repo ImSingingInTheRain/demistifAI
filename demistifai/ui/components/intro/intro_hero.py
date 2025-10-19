@@ -598,11 +598,11 @@ def intro_hero_scoped_css() -> str:
             .section-surface.section-surface--hero > div[data-testid="stVerticalBlock"] > div:first-child {
                 width: min(100%, 1040px);
             }
-            .mw-intro-lifecycle iframe[srcdoc*="demai-hero"] {
+            .mac-window.mw-intro-lifecycle iframe[srcdoc*="demai-hero"] {
                 display: block;
                 margin: 0 auto;
             }
-            .mw-intro-lifecycle {
+            .mac-window.mw-intro-lifecycle {
                 position: relative;
                 margin: 0 auto clamp(1.8rem, 4vw, 2.8rem);
                 max-width: min(1200px, 100%);
@@ -613,7 +613,7 @@ def intro_hero_scoped_css() -> str:
                 border: 1px solid rgba(15, 23, 42, 0.08);
                 box-shadow: 0 30px 70px rgba(15, 23, 42, 0.16);
             }
-            .mw-intro-lifecycle::before {
+            .mac-window.mw-intro-lifecycle::before {
                 content: "";
                 position: absolute;
                 inset: 0;
@@ -623,14 +623,14 @@ def intro_hero_scoped_css() -> str:
                     radial-gradient(circle at bottom right, rgba(129, 140, 248, 0.2), transparent 62%);
                 opacity: 0.9;
             }
-            .mw-intro-lifecycle__body {
+            .mac-window.mw-intro-lifecycle .mw-intro-lifecycle__body {
                 position: relative;
                 z-index: 1;
                 background: rgba(248, 250, 252, 0.96);
                 backdrop-filter: blur(18px);
                 padding: clamp(1.1rem, 2vw, 1.6rem);
             }
-            .mw-intro-lifecycle__grid {
+            .mac-window.mw-intro-lifecycle .mw-intro-lifecycle__grid {
                 gap: clamp(1rem, 2.6vw, 1.9rem);
                 padding-top: 10px;
                 padding-left: 10px;
@@ -638,7 +638,7 @@ def intro_hero_scoped_css() -> str:
                 padding-bottom: 10px;
                 align-items: stretch;
             }
-            .mw-intro-lifecycle__col {
+            .mac-window.mw-intro-lifecycle .mw-intro-lifecycle__col {
                 position: relative;
                 display: flex;
                 flex-direction: column;
@@ -651,7 +651,7 @@ def intro_hero_scoped_css() -> str:
                 overflow: hidden;
                 min-height: clamp(320px, 48vh, 420px);
             }
-            .mw-intro-lifecycle__col::before {
+            .mac-window.mw-intro-lifecycle .mw-intro-lifecycle__col::before {
                 content: "";
                 position: absolute;
                 inset: 0;
@@ -660,23 +660,23 @@ def intro_hero_scoped_css() -> str:
                 opacity: 0.75;
                 pointer-events: none;
             }
-            .mw-intro-lifecycle__col > * {
+            .mac-window.mw-intro-lifecycle .mw-intro-lifecycle__col > * {
                 position: relative;
                 z-index: 1;
                 width: 100%;
             }
-            .mw-intro-lifecycle__col:has(> .intro-lifecycle-map) {
+            .mac-window.mw-intro-lifecycle .mw-intro-lifecycle__col:has(> .intro-lifecycle-map) {
                 padding: clamp(0.65rem, 2vw, 1.1rem);
                 background: linear-gradient(180deg, rgba(37, 99, 235, 0.18), rgba(14, 116, 144, 0.1));
                 border: 1px solid rgba(37, 99, 235, 0.32);
                 box-shadow: 0 26px 56px rgba(37, 99, 235, 0.22);
                 align-items: center;
             }
-            .mw-intro-lifecycle__col:has(> .intro-lifecycle-map)::before {
+            .mac-window.mw-intro-lifecycle .mw-intro-lifecycle__col:has(> .intro-lifecycle-map)::before {
                 background: radial-gradient(circle at center, rgba(96, 165, 250, 0.42), transparent 72%);
                 opacity: 0.68;
             }
-            .mw-intro-lifecycle .intro-lifecycle-sidecar {
+            .mac-window.mw-intro-lifecycle .intro-lifecycle-sidecar {
                 display: flex;
                 flex-direction: column;
                 gap: clamp(0.8rem, 1.8vw, 1.2rem);
@@ -685,57 +685,57 @@ def intro_hero_scoped_css() -> str:
                 padding-right: 10px;
                 padding-bottom: 10px;
             }
-            .mw-intro-lifecycle .intro-lifecycle-sidecar__eyebrow {
+            .mac-window.mw-intro-lifecycle .intro-lifecycle-sidecar__eyebrow {
                 font-size: 0.72rem;
                 letter-spacing: 0.18em;
                 text-transform: uppercase;
                 font-weight: 700;
                 color: rgba(15, 23, 42, 0.58);
             }
-            .mw-intro-lifecycle .intro-lifecycle-sidecar__title {
+            .mac-window.mw-intro-lifecycle .intro-lifecycle-sidecar__title {
                 margin: 0;
                 font-size: clamp(1.2rem, 2.4vw, 1.45rem);
                 font-weight: 700;
                 color: #0f172a;
             }
-            .mw-intro-lifecycle .intro-lifecycle-sidecar__body {
+            .mac-window.mw-intro-lifecycle .intro-lifecycle-sidecar__body {
                 margin: 0;
                 font-size: 0.98rem;
                 line-height: 1.65;
                 color: rgba(15, 23, 42, 0.78);
             }
-            .mw-intro-lifecycle .intro-lifecycle-sidecar__list {
+            .mac-window.mw-intro-lifecycle .intro-lifecycle-sidecar__list {
                 margin: 0;
                 padding: 0;
                 list-style: none;
                 display: grid;
                 gap: 0.6rem;
             }
-            .mw-intro-lifecycle .intro-lifecycle-sidecar__list li {
+            .mac-window.mw-intro-lifecycle .intro-lifecycle-sidecar__list li {
                 display: grid;
                 gap: 0.2rem;
             }
-            .mw-intro-lifecycle .intro-lifecycle-sidecar__list strong {
+            .mac-window.mw-intro-lifecycle .intro-lifecycle-sidecar__list strong {
                 font-weight: 700;
                 color: #1d4ed8;
             }
-            .mw-intro-lifecycle .intro-start-button-slot {
+            .mac-window.mw-intro-lifecycle .intro-start-button-slot {
                 margin-top: auto;
                 display: flex;
                 flex-direction: column;
                 gap: 0.6rem;
             }
-            .mw-intro-lifecycle .intro-start-button-source {
+            .mac-window.mw-intro-lifecycle .intro-start-button-source {
                 display: none;
             }
-            .mw-intro-lifecycle .intro-start-button-source.intro-start-button-source--mounted {
+            .mac-window.mw-intro-lifecycle .intro-start-button-source.intro-start-button-source--mounted {
                 display: block;
             }
-            .mw-intro-lifecycle .intro-start-button-source--mounted div[data-testid="stButton"] {
+            .mac-window.mw-intro-lifecycle .intro-start-button-source--mounted div[data-testid="stButton"] {
                 margin: 0;
                 width: 100%;
             }
-            .mw-intro-lifecycle .intro-start-button-source--mounted div[data-testid="stButton"] > button {
+            .mac-window.mw-intro-lifecycle .intro-start-button-source--mounted div[data-testid="stButton"] > button {
                 margin-top: 0.35rem;
                 display: inline-flex;
                 align-items: center;
@@ -753,20 +753,20 @@ def intro_hero_scoped_css() -> str:
                 text-align: center;
                 transition: transform 0.18s ease, box-shadow 0.18s ease;
             }
-            .mw-intro-lifecycle .intro-start-button-source--mounted div[data-testid="stButton"] > button:hover {
+            .mac-window.mw-intro-lifecycle .intro-start-button-source--mounted div[data-testid="stButton"] > button:hover {
                 transform: translateY(-1px);
                 box-shadow: 0 24px 40px rgba(37, 99, 235, 0.34);
             }
-            .mw-intro-lifecycle .intro-start-button-source--mounted div[data-testid="stButton"] > button:focus-visible {
+            .mac-window.mw-intro-lifecycle .intro-start-button-source--mounted div[data-testid="stButton"] > button:focus-visible {
                 outline: 3px solid rgba(59, 130, 246, 0.45);
                 outline-offset: 3px;
             }
             @media (min-width: 720px) {
-                .mw-intro-lifecycle .intro-start-button-slot {
+                .mac-window.mw-intro-lifecycle .intro-start-button-slot {
                     display: none;
                 }
             }
-            .mw-intro-lifecycle .intro-lifecycle-map {
+            .mac-window.mw-intro-lifecycle .intro-lifecycle-map {
                 display: flex;
                 flex-direction: column;
                 gap: 0.75rem;
@@ -774,7 +774,7 @@ def intro_hero_scoped_css() -> str:
                 align-items: center;
                 width: 100%;
             }
-            .mw-intro-lifecycle .intro-lifecycle-map #demai-lifecycle.dlc {
+            .mac-window.mw-intro-lifecycle .intro-lifecycle-map #demai-lifecycle.dlc {
                 flex: 1;
                 width: min(100%, 520px);
                 margin-inline: auto;
@@ -783,15 +783,15 @@ def intro_hero_scoped_css() -> str:
                 .section-surface.section-surface--hero > div[data-testid="stVerticalBlock"] {
                     gap: clamp(1.2rem, 4vw, 2rem);
                 }
-                .mw-intro-lifecycle {
+                .mac-window.mw-intro-lifecycle {
                     margin-bottom: clamp(1.4rem, 4vw, 2.2rem);
                 }
             }
             @media (max-width: 920px) {
-                .mw-intro-lifecycle__body {
+                .mac-window.mw-intro-lifecycle .mw-intro-lifecycle__body {
                     padding: clamp(1rem, 5vw, 1.4rem);
                 }
-                .mw-intro-lifecycle__col {
+                .mac-window.mw-intro-lifecycle .mw-intro-lifecycle__col {
                     padding: clamp(1rem, 4vw, 1.45rem);
                 }
             }
@@ -799,33 +799,33 @@ def intro_hero_scoped_css() -> str:
                 .section-surface.section-surface--hero > div[data-testid="stVerticalBlock"] > div:first-child {
                     width: 100%;
                 }
-                .mw-intro-lifecycle .intro-lifecycle-sidecar {
+                .mac-window.mw-intro-lifecycle .intro-lifecycle-sidecar {
                     text-align: center;
                 }
-                .mw-intro-lifecycle .intro-lifecycle-sidecar__list {
+                .mac-window.mw-intro-lifecycle .intro-lifecycle-sidecar__list {
                     gap: 0.75rem;
                 }
             }
             @media (max-width: 600px) {
-                .mw-intro-lifecycle {
+                .mac-window.mw-intro-lifecycle {
                     margin: 0;
                     border: none;
                     border-radius: 0;
                     box-shadow: none;
                     min-height: auto;
                 }
-                .mw-intro-lifecycle::before {
+                .mac-window.mw-intro-lifecycle::before {
                     display: none;
                 }
-                .mw-intro-lifecycle__body {
+                .mac-window.mw-intro-lifecycle .mw-intro-lifecycle__body {
                     background: transparent;
                     padding: 0 1rem 1.25rem;
                 }
-                .mw-intro-lifecycle__grid {
+                .mac-window.mw-intro-lifecycle .mw-intro-lifecycle__grid {
                     padding: 0;
                     gap: clamp(0.75rem, 4vw, 1.1rem);
                 }
-                .mw-intro-lifecycle__col {
+                .mac-window.mw-intro-lifecycle .mw-intro-lifecycle__col {
                     padding: 0;
                     border-radius: 0;
                     border: 0;
@@ -833,19 +833,19 @@ def intro_hero_scoped_css() -> str:
                     box-shadow: none;
                     min-height: auto;
                 }
-                .mw-intro-lifecycle__col::before {
+                .mac-window.mw-intro-lifecycle .mw-intro-lifecycle__col::before {
                     display: none;
                 }
-                .mw-intro-lifecycle__col:has(> .intro-lifecycle-map) {
+                .mac-window.mw-intro-lifecycle .mw-intro-lifecycle__col:has(> .intro-lifecycle-map) {
                     padding: 0;
                     background: none;
                     border: 0;
                     box-shadow: none;
                 }
-                .mw-intro-lifecycle__col:has(> .intro-lifecycle-map)::before {
+                .mac-window.mw-intro-lifecycle .mw-intro-lifecycle__col:has(> .intro-lifecycle-map)::before {
                     display: none;
                 }
-                .mw-intro-lifecycle .intro-lifecycle-sidecar {
+                .mac-window.mw-intro-lifecycle .intro-lifecycle-sidecar {
                     padding: 0;
                 }
             }

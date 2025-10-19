@@ -65,21 +65,22 @@ def render_overview_stage(
         right_first_renderer=_render_overview_nerd_toggle,
     )
 
-    render_mac_window(
+    with render_mac_window(
         st,
         title="System snapshot",
         columns=1,
         ratios=(1,),
-        col_html=[
-            demai_architecture_markup(
-                nerd_mode=nerd_enabled,
-                active_stage="overview",
-            )
-        ],
         id_suffix="overview-mac-placeholder",
         scoped_css=demai_architecture_styles(),
         column_variant="flush",
-    )
+    ) as (architecture_col,):
+        architecture_col.markdown(
+            demai_architecture_markup(
+                nerd_mode=nerd_enabled,
+                active_stage="overview",
+            ),
+            unsafe_allow_html=True,
+        )
 
     preview_records: List[Dict[str, Any]] = []
     if incoming_records:
@@ -89,16 +90,17 @@ def render_overview_stage(
     mailbox_html = mailbox_preview_markup(preview_records)
     mission_html = mission_overview_column_markup()
 
-    render_mac_window(
+    with render_mac_window(
         st,
         title="Mission briefing",
         subtitle="Control room orientation",
         columns=2,
         ratios=(1.1, 0.9),
-        col_html=[mission_html, mailbox_html],
         id_suffix="overview-mission-brief",
         scoped_css=mission_brief_styles(),
-    )
+    ) as (mission_col, mailbox_col):
+        mission_col.markdown(mission_html, unsafe_allow_html=True)
+        mailbox_col.markdown(mailbox_html, unsafe_allow_html=True)
 
     if nerd_enabled:
         with section_surface():
