@@ -401,9 +401,9 @@ def _conceptual_meaning_sketch():
         .mark_rect(cornerRadius=18, strokeOpacity=0.0)
         .encode(
             x=alt.X("x1:Q", title="meaning dimension 1", scale=alt.Scale(domain=domain)),
-            x2="x2:Q",
+            x2=alt.X2("x2"),
             y=alt.Y("y1:Q", title="meaning dimension 2", scale=alt.Scale(domain=domain)),
-            y2="y2:Q",
+            y2=alt.Y2("y2"),
             color=alt.Color("tone:N", scale=alt.Scale(range=["#f97316", "#facc15", "#38bdf8"])),
         )
     )
@@ -411,7 +411,7 @@ def _conceptual_meaning_sketch():
     card_rects = (
         alt.Chart(cards)
         .mark_rect(cornerRadius=18, fillOpacity=0.08, stroke="#0f172a", strokeOpacity=0.12, strokeWidth=2)
-        .encode(x="x1:Q", x2="x2:Q", y="y1:Q", y2="y2:Q")
+        .encode(x="x1:Q", x2=alt.X2("x2"), y="y1:Q", y2=alt.Y2("y2"))
     )
 
     card_titles = (
@@ -432,8 +432,8 @@ def _conceptual_meaning_sketch():
         .encode(
             x=alt.X("x:Q", title="meaning dimension 1"),
             y=alt.Y("y:Q", title="meaning dimension 2"),
-            x2=alt.X("width:Q"),
-            y2=alt.Y("height:Q"),
+            x2=alt.X2("width"),
+            y2=alt.Y2("height"),
         )
     )
 
