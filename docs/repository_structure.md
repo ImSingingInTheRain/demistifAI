@@ -29,13 +29,15 @@ This document provides a guided tour of the repository so contributors can quick
 
 ## UI toolkit (`demistifai/ui/`)
 ### Components (`demistifai/ui/components/`)
-- `__init__.py` – Aggregates hero, training, terminal, and mission components so pages can import them from a single namespace.【F:demistifai/ui/components/__init__.py†L1-L83】
+- `__init__.py` – Aggregates hero, training, terminal, guardrail, and mission components so pages can import them from a single namespace.【F:demistifai/ui/components/__init__.py†L1-L87】
 - `arch_demai.py` – Dataclass-driven architecture cards and styling that render the demAI system diagram within Streamlit.【F:demistifai/ui/components/arch_demai.py†L1-L146】
 - `control_room.py` – Stage Control Room surface that standardises headers, Nerd Mode toggles, and navigation CTAs across stages.【F:demistifai/ui/components/control_room.py†L1-L152】
 - `data_review.py` – Dataset balance bars, sample cards, and scoped CSS helpers for the Prepare stage review panels.【F:demistifai/ui/components/data_review.py†L1-L74】
+- `guardrail_panel.py` – Streams charts and guardrail cards within a styled panel, injecting CSS once per session.【F:demistifai/ui/components/guardrail_panel.py†L1-L48】
 - `intro_hero.py` – Welcome-stage hero layout, lifecycle diagram markup, and scoped quote wrappers for the EU AI Act narrative.【F:demistifai/ui/components/intro_hero.py†L1-L112】
 - `mac_window.py` – Utility for generating scoped macOS-style window shells with configurable columns and theming.【F:demistifai/ui/components/mac_window.py†L1-L158】
 - `overview_mission.py` – Mission briefing markup and mailbox preview helpers that style the overview stage briefing cards.【F:demistifai/ui/components/overview_mission.py†L1-L129】
+- `pii_indicators.py` – Displays responsive PII indicator tiles summarising detected token counts.【F:demistifai/ui/components/pii_indicators.py†L1-L25】
 - `train_animation.py` – Plotly-powered training map animation with brand token bridging, HTML wrappers, and graceful fallbacks when the optional Plotly dependency is missing.【F:demistifai/ui/components/train_animation.py†L9-L277】
 - `train_intro.py` – Training stage launchpad cards, inline notes, and CSS builders that accompany the animation panel.【F:demistifai/ui/components/train_intro.py†L1-L143】
 - `terminal/` – Animated terminal namespace with shared helpers and scenario-specific scripts:
@@ -90,10 +92,6 @@ This document provides a guided tour of the repository so contributors can quick
 - `state.py` – Synchronises Nerd Mode "advanced knob" widget state, queues flash messages, and records pending updates in Streamlit session state.【F:demistifai/core/state.py†L1-L80】
 - `session_defaults.py` – Populates Streamlit session state with baseline datasets, guardrail knobs, and adaptiveness settings on first load.【F:demistifai/core/session_defaults.py†L1-L118】
 - `utils.py` – Houses rerun helper, suspicious link detection, money cue counters, caps ratio computation, and TLD checks shared across the app.【F:demistifai/core/utils.py†L1-L58】
-
-### `demistifai/components/`
-- `guardrail_panel.py` – Streams charts and guardrail cards within a styled panel, injecting CSS once per session.【F:demistifai/components/guardrail_panel.py†L1-L48】
-- `pii_indicators.py` – Displays responsive PII indicator tiles summarising detected token counts.【F:demistifai/components/pii_indicators.py†L1-L25】
 
 ### `demistifai/styles/`
 - `css_blocks.py` – Reusable CSS snippets for PII indicators and guardrail panels.【F:demistifai/styles/css_blocks.py†L1-L61】
