@@ -147,11 +147,8 @@ def mac_window_html(
         inner = col_html[i] if col_html[i] else placeholders[i]
         cols.append(f'<div class="mw-{suf}__col">{inner}</div>')
 
-    subtitle_html = (
-        f'<div class="mw-{suf}__subtitle">{html.escape(subtitle)}</div>'
-        if subtitle
-        else ""
-    )
+    escaped_title = html.escape(title)
+    subtitle_text = html.escape(subtitle) if subtitle else ""
 
     extra_scoped_css = _normalise_scoped_css(scoped_css)
 
@@ -202,6 +199,12 @@ def mac_window_html(
           }}
           .mw-{suf}__subtitle {{
             font-size: .92rem; color: var(--subtitle);
+          }}
+
+          .mw-{suf}__mobile-header {{
+            display: none;
+            margin-bottom: clamp(.75rem, 4.5vw, 1rem);
+            gap: .35rem;
           }}
 
           .mw-{suf}__body {{
@@ -291,7 +294,7 @@ def mac_window_html(
               display: none;
             }}
             .mw-{suf}__body {{
-              padding: 0 1rem 1.25rem;
+              padding: clamp(.9rem, 5.5vw, 1.35rem) 1rem 1.25rem;
             }}
             .mw-{suf}__grid {{
               grid-template-columns: 1fr;
@@ -305,10 +308,13 @@ def mac_window_html(
               border: 0;
               min-height: 0;
             }}
+            .mw-{suf}__mobile-header {{
+              display: grid;
+            }}
           }}{extra_scoped_css}
         </style>
 
-        <section class="mw-{suf}" role="group" aria-label="{html.escape(title)} window">
+        <section class="mw-{suf}" role="group" aria-label="{escaped_title} window">
           <header class="mw-{suf}__chrome" aria-hidden="false">
             <div class="mw-{suf}__lights" aria-hidden="true">
               <span class="mw-{suf}__light mw-{suf}__light--red"></span>
@@ -316,12 +322,14 @@ def mac_window_html(
               <span class="mw-{suf}__light mw-{suf}__light--green"></span>
             </div>
             <div class="mw-{suf}__titles">
-              <div class="mw-{suf}__title">{html.escape(title)}</div>
-              {subtitle_html}
+              <div class="mw-{suf}__title">{escaped_title}</div>{f"\n              <div class=\"mw-{suf}__subtitle\">{subtitle_text}</div>" if subtitle_text else ""}
             </div>
           </header>
 
           <div class="mw-{suf}__body">
+            <div class="mw-{suf}__mobile-header">
+              <div class="mw-{suf}__title">{escaped_title}</div>{f"\n                <div class=\"mw-{suf}__subtitle\">{subtitle_text}</div>" if subtitle_text else ""}
+            </div>
             <div class="mw-{suf}__grid">
               {''.join(cols)}
             </div>
