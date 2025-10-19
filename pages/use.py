@@ -15,7 +15,7 @@ import streamlit as st
 from demistifai.constants import AUTONOMY_LEVELS, STAGE_BY_KEY
 from demistifai.core.audit import _append_audit
 from demistifai.core.export import _export_batch_df
-from demistifai.core.nav import render_stage_top_grid
+from demistifai.ui.components import render_stage_top_grid
 from demistifai.modeling import (
     HybridEmbedFeatsLogReg,
     cache_train_embeddings,

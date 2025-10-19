@@ -19,7 +19,7 @@ from demistifai.ui.components.terminal.boot_sequence import (
     _DEFAULT_DEMAI_LINES,
     render_ai_act_terminal as render_boot_sequence_terminal,
 )
-from demistifai.core.nav import render_stage_top_grid
+from demistifai.ui.components import render_stage_top_grid
 
 
 def render_overview_stage(

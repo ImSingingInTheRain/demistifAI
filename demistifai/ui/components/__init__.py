@@ -43,6 +43,11 @@ from .train_intro import (
     build_nerd_intro_card,
     training_stage_stylesheet,
 )
+from .stage_navigation import (
+    StageBlockRenderer,
+    StageTopCardContent,
+    render_stage_top_grid,
+)
 from . import terminal
 
 __all__ = [
@@ -78,4 +83,7 @@ __all__ = [
     "edge_case_pairs_html",
     "stratified_sample_cards_html",
     "render_pii_indicators",
+    "StageBlockRenderer",
+    "StageTopCardContent",
+    "render_stage_top_grid",
 ]

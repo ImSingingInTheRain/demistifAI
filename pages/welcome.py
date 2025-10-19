@@ -8,7 +8,7 @@ import streamlit as st
 from streamlit.delta_generator import DeltaGenerator
 
 from demistifai.constants import STAGE_INDEX, STAGES
-from demistifai.core.nav import render_stage_top_grid
+from demistifai.ui.components import render_stage_top_grid
 from demistifai.ui.components.intro_hero import render_intro_hero
 from demistifai.ui.components.mac_window import render_mac_window
 from demistifai.ui.components.terminal.article3 import (
