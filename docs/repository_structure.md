@@ -29,7 +29,7 @@ This document provides a guided tour of the repository so contributors can quick
 
 ## UI toolkit (`demistifai/ui/`)
 ### Components (`demistifai/ui/components/`)
-- `__init__.py` – Aggregates hero, training, terminal, guardrail, and mission components so pages can import them from a single namespace.【F:demistifai/ui/components/__init__.py†L1-L87】
+- `__init__.py` – Aggregates hero, training, terminal, guardrail, mission, language mix, and PII helpers so pages can import them from a single namespace.【F:demistifai/ui/components/__init__.py†L1-L101】
 - `arch_demai.py` – Dataclass-driven architecture cards and styling that render the demAI system diagram within Streamlit.【F:demistifai/ui/components/arch_demai.py†L1-L146】
 - `data_review.py` – Dataset balance bars, sample cards, and scoped CSS helpers for the Prepare stage review panels.【F:demistifai/ui/components/data_review.py†L1-L74】
 - `guardrail_panel.py` – Streams charts and guardrail cards within a styled panel, injecting CSS once per session.【F:demistifai/ui/components/guardrail_panel.py†L1-L48】
@@ -38,6 +38,8 @@ This document provides a guided tour of the repository so contributors can quick
 - `overview_mission.py` – Mission briefing markup and mailbox preview helpers that style the overview stage briefing cards.【F:demistifai/ui/components/overview_mission.py†L1-L129】
 - `stage_navigation.py` – Stage top grid renderer, highlight card, and previous/next CTA controls shared across lifecycle pages.【F:demistifai/ui/components/stage_navigation.py†L1-L179】
 - `pii_indicators.py` – Displays responsive PII indicator tiles summarising detected token counts.【F:demistifai/ui/components/pii_indicators.py†L1-L25】
+- `language_mix.py` – Streamlit chip renderer that visualises train/test language mix stats from the core package.【F:demistifai/ui/components/language_mix.py†L1-L68】
+- `pii.py` – Cleanup banner, highlight markup, and chip row helpers powering the Prepare stage's personal data workflow.【F:demistifai/ui/components/pii.py†L1-L128】
 - `train_animation.py` – Plotly-powered training map animation with brand token bridging, HTML wrappers, and graceful fallbacks when the optional Plotly dependency is missing.【F:demistifai/ui/components/train_animation.py†L9-L277】
 - `train_intro.py` – Training stage launchpad cards, inline notes, and CSS builders that accompany the animation panel.【F:demistifai/ui/components/train_intro.py†L1-L143】
 - `terminal/` – Animated terminal namespace with scenario-specific scripts powering stage introductions and walkthroughs:
@@ -77,13 +79,13 @@ This document provides a guided tour of the repository so contributors can quick
 - `dataset.py` – Evaluates dataset health metrics and produces badges summarising row counts, spam ratios, and lint status for governance surfaces.【F:demistifai/core/dataset.py†L1-L52】
 - `audit.py` – Appends timestamped audit entries to the session log during the Use stage.【F:demistifai/core/audit.py†L1-L11】
 - `downloads.py` – Provides a Streamlit download link helper for exporting text artefacts.【F:demistifai/core/downloads.py†L1-L7】
-- `language.py` – Handles optional language-detection fallbacks, aggregates language mix stats, and renders chip/caption summaries for train/test splits within Streamlit containers.【F:demistifai/core/language.py†L1-L102】
+- `language.py` – Handles optional language-detection fallbacks, aggregates language mix stats, and formats summaries consumed by UI renderers.【F:demistifai/core/language.py†L1-L65】
 - `nav.py` – Deprecated shim that re-exports the stage navigation grid from the UI layer; import `demistifai.ui.components.stage_navigation` instead.【F:demistifai/core/nav.py†L1-L27】
 - `navigation.py` – Synchronises active stage selection between query params, session state, and the renderer map and exposes the `activate_stage` helper used in `streamlit_app.py`.【F:demistifai/core/navigation.py†L1-L108】
 - `routing.py` – Computes recommended or automatic routing decisions based on autonomy level, predictions, and thresholds.【F:demistifai/core/routing.py†L1-L15】
 - `export.py` – Normalises batch processing logs into a pandas DataFrame ready for CSV/JSON export.【F:demistifai/core/export.py†L1-L13】
 - `validation.py` – Normalises dataset labels and verifies CSV schema requirements before imports.【F:demistifai/core/validation.py†L1-L20】
-- `pii.py` – Aggregates detected PII spans, formats chips/badges, applies policy-based replacements, and renders clean-up banners.【F:demistifai/core/pii.py†L1-L60】
+- `pii.py` – Aggregates detected PII spans, formats summary strings, and applies policy-based replacements for anonymised tokens.【F:demistifai/core/pii.py†L1-L64】
 - `guardrails.py` – Detects guardrail signals (links, caps, money, urgency), renders badge markup, and exposes helper regexes for suspicious content.【F:demistifai/core/guardrails.py†L1-L80】
 - `embeddings.py` – Caches MiniLM embeddings for dataset texts via Streamlit caching to accelerate retraining flows.【F:demistifai/core/embeddings.py†L1-L11】
 - `cache.py` – Streamlit cache wrappers for dataset preparation, feature extraction, and model training payloads.【F:demistifai/core/cache.py†L1-L143】

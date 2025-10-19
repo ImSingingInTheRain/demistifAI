@@ -7,14 +7,13 @@ from typing import Callable, ContextManager, Optional
 import streamlit as st
 from streamlit.delta_generator import DeltaGenerator
 
-from demistifai.ui.components import render_pii_indicators
-from demistifai.core.pii import (
+from demistifai.ui.components import (
     _ensure_pii_state,
     _highlight_spans_html,
-    format_pii_summary,
     render_pii_cleanup_banner,
-    summarize_pii_counts,
+    render_pii_indicators,
 )
+from demistifai.core.pii import format_pii_summary, summarize_pii_counts
 from demistifai.core.utils import streamlit_rerun
 from demistifai.dataset import lint_dataset, lint_dataset_detailed, lint_text_spans
 
