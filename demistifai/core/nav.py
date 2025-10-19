@@ -5,6 +5,8 @@ import html
 import streamlit as st
 from streamlit.delta_generator import DeltaGenerator
 
+from demistifai.core.navigation import activate_stage
+
 # Expect STAGES, STAGE_BY_KEY in app scope; import if you have a module for them.
 try:
     from demistifai.config.app import STAGES, STAGE_BY_KEY  # type: ignore
@@ -110,11 +112,9 @@ def _render_stage_navigation_controls(stage_key: str, next_slot: DeltaGenerator,
         use_container_width=True, type="primary", disabled=next_stage is None, help="Jump to the next stage"
     )
     if next_clicked and next_stage is not None:
-        st.session_state["active_stage"] = next_stage.key
-        st.session_state["stage_scroll_to_top"] = True
-        st.query_params["stage"] = next_stage.key
-        from demistifai.core.utils import streamlit_rerun
-        streamlit_rerun()
+        if activate_stage(next_stage.key):
+            from demistifai.core.utils import streamlit_rerun
+            streamlit_rerun()
 
     next_slot.markdown(
         f"""
@@ -128,11 +128,9 @@ def _render_stage_navigation_controls(stage_key: str, next_slot: DeltaGenerator,
         use_container_width=True, disabled=prev_stage is None, help="Return to the previous stage"
     )
     if prev_clicked and prev_stage is not None:
-        st.session_state["active_stage"] = prev_stage.key
-        st.session_state["stage_scroll_to_top"] = True
-        st.query_params["stage"] = prev_stage.key
-        from demistifai.core.utils import streamlit_rerun
-        streamlit_rerun()
+        if activate_stage(prev_stage.key):
+            from demistifai.core.utils import streamlit_rerun
+            streamlit_rerun()
 
     prev_slot.markdown(
         f"""
