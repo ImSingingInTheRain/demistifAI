@@ -8,7 +8,6 @@ import streamlit as st
 from streamlit.delta_generator import DeltaGenerator
 
 from demistifai.ui.components import (
-    _ensure_pii_state,
     _highlight_spans_html,
     render_pii_cleanup_banner,
     render_pii_indicators,
@@ -18,6 +17,20 @@ from demistifai.core.utils import streamlit_rerun
 from demistifai.dataset import lint_dataset, lint_dataset_detailed, lint_text_spans
 
 from pages.data.dataset_io import SessionState
+
+
+def ensure_pii_state() -> None:
+    """Ensure session state keys backing the PII cleanup flow exist."""
+
+    session = st.session_state
+    session.setdefault("pii_queue_idx", 0)
+    session.setdefault("pii_score", 0)
+    session.setdefault("pii_total_flagged", 0)
+    session.setdefault("pii_cleaned_count", 0)
+    session.setdefault("pii_queue", [])
+    session.setdefault("pii_hits_map", {})
+    session.setdefault("pii_edits", {})
+    session.setdefault("pii_open", False)
 
 
 def render_pii_cleanup(
@@ -30,7 +43,7 @@ def render_pii_cleanup(
     if not ss.get("dataset_preview"):
         return
 
-    _ensure_pii_state()
+    ensure_pii_state()
     preview_rows = ss["dataset_preview"]
     detailed_hits = lint_dataset_detailed(preview_rows)
     counts = summarize_pii_counts(detailed_hits)
