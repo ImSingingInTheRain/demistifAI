@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import inspect
 import json
+from dataclasses import dataclass
 from textwrap import dedent
 
 from demistifai.ui.components.shared.macos_iframe_window import MacWindowPane
@@ -18,6 +19,14 @@ __all__ = [
     "render_lifecycle_ring_component",
     "render_intro_hero",
 ]
+
+
+@dataclass(frozen=True)
+class IntroHeroContent:
+    """Container for the intro hero columns and their scoped CSS."""
+
+    css: str
+    columns: tuple[str, str]
 
 INTRO_HERO_SIDECAR_PANE_ID = "intro-hero-sidecar"
 INTRO_HERO_MAP_PANE_ID = "intro-hero-map"
@@ -780,8 +789,9 @@ def intro_lifecycle_columns() -> tuple[str, str]:
 def intro_hero_panes() -> tuple[MacWindowPane, MacWindowPane]:
     """Return the MacWindow panes that compose the intro hero."""
 
-    scoped_css = intro_hero_scoped_css()
-    left_html, right_html = intro_lifecycle_columns()
+    hero_content = render_intro_hero()
+    left_html, right_html = hero_content.columns
+    scoped_css = hero_content.css
     return (
         MacWindowPane(
             html=left_html,
@@ -909,7 +919,10 @@ def render_lifecycle_ring_component(*, height: int = 0) -> None:
         html_renderer(script)
 
 
-def render_intro_hero() -> tuple[MacWindowPane, MacWindowPane]:
-    """Return the MacWindow panes that render the intro hero."""
+def render_intro_hero() -> IntroHeroContent:
+    """Return the scoped CSS and HTML columns for the intro hero."""
 
-    return intro_hero_panes()
+    return IntroHeroContent(
+        css=intro_hero_scoped_css(),
+        columns=intro_lifecycle_columns(),
+    )
