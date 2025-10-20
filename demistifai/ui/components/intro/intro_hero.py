@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
+import json
 from textwrap import dedent
 
 __all__ = [
     "intro_hero_scoped_css",
     "intro_lifecycle_columns",
     "intro_lifecycle_ring_markup",
+    "render_lifecycle_ring_component",
     "render_intro_hero",
 ]
 
@@ -888,7 +890,7 @@ def _intro_left_column_html() -> str:
 def _intro_right_column_html() -> str:
     return dedent(
         f"""
-        <div class="intro-lifecycle-map" role="presentation" data-intro-lifecycle-slot="1"></div>
+        <div class="intro-lifecycle-map" role="presentation" data-intro-lifecycle-slot="1" id="intro-lifecycle-ring-slot"></div>
         """
     ).strip()
 
@@ -903,6 +905,80 @@ def intro_lifecycle_ring_markup() -> str:
     """Return the raw markup for the lifecycle ring widget."""
 
     return _LIFECYCLE_RING_HTML
+
+
+def render_lifecycle_ring_component(*, height: int = 0) -> None:
+    """Render the lifecycle ring bundle inside the intro hero placeholder."""
+
+    try:
+        import streamlit as st
+    except ModuleNotFoundError as err:  # pragma: no cover - streamlit should exist at runtime
+        raise RuntimeError("Streamlit is required to render the lifecycle ring component.") from err
+
+    html_renderer = getattr(st, "html", None)
+    if html_renderer is None:
+        from streamlit.components.v1 import html as components_html
+
+        html_renderer = components_html
+
+    bundle_markup = json.dumps(_LIFECYCLE_RING_HTML)
+    script = dedent(
+        f"""
+        <script>
+            (function() {{
+                const parentDoc = window.parent && window.parent.document ? window.parent.document : document;
+                const markup = {bundle_markup};
+                const placeholderSelector = '#intro-lifecycle-ring-slot';
+
+                function executeScripts(root) {{
+                    const scripts = root.querySelectorAll('script');
+                    scripts.forEach((script) => {{
+                        const replacement = parentDoc.createElement('script');
+                        Array.from(script.attributes).forEach((attr) => {{
+                            replacement.setAttribute(attr.name, attr.value);
+                        }});
+                        replacement.textContent = script.textContent;
+                        script.replaceWith(replacement);
+                    }});
+                }}
+
+                function mountLifecycle() {{
+                    const slot = parentDoc.querySelector(placeholderSelector);
+                    if (!slot) {{
+                        return false;
+                    }}
+                    if (slot.dataset.introLifecycleMounted === '1') {{
+                        return true;
+                    }}
+
+                    const template = parentDoc.createElement('template');
+                    template.innerHTML = markup;
+                    const content = template.content.cloneNode(true);
+
+                    slot.replaceChildren(content);
+                    executeScripts(slot);
+                    slot.setAttribute('data-intro-lifecycle-mounted', '1');
+                    return true;
+                }}
+
+                if (!mountLifecycle()) {{
+                    const maxWaitMs = 4000;
+                    const start = Date.now();
+
+                    const interval = setInterval(() => {{
+                        const mounted = mountLifecycle();
+                        const expired = Date.now() - start > maxWaitMs;
+                        if (mounted || expired) {{
+                            clearInterval(interval);
+                        }}
+                    }}, 100);
+                }}
+            }})();
+        </script>
+        """
+    )
+
+    html_renderer(script, height=height)
 
 
 def render_intro_hero() -> tuple[str, str, str]:
