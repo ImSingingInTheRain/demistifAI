@@ -87,48 +87,68 @@ def render_intro_stage(*, section_surface: SectionSurface) -> None:
                     f"""
                     <script>
                         (function() {{
-                            const doc = window.parent && window.parent.document ? window.parent.document : document;
+                            const rootDoc = window.parent && window.parent.document ? window.parent.document : document;
                             const buttonClass = 'st-key-{button_key}';
                             const sidecarPaneId = '{INTRO_HERO_SIDECAR_PANE_ID}';
 
                             function getPaneDocument(paneId) {{
+                                const doc = window.parent && window.parent.document ? window.parent.document : document;
+
                                 const heroSurface = doc.querySelector('.section-surface--hero');
                                 if (!heroSurface) {{
                                     return null;
                                 }}
 
-                                const heroIframe = heroSurface.querySelector('[data-testid="stHtml"] iframe');
-                                if (!heroIframe) {{
+                                const miwRoot = heroSurface.querySelector('[data-miw]');
+                                if (miwRoot) {{
+                                    const paneFrame = miwRoot.querySelector(`iframe[data-pane-id="${{paneId}}"]`);
+                                    if (!paneFrame) {{
+                                        return null;
+                                    }}
+                                    try {{
+                                        return paneFrame.contentDocument || (paneFrame.contentWindow && paneFrame.contentWindow.document) || null;
+                                    }} catch (error) {{
+                                        return null;
+                                    }}
+                                }}
+
+                                const outerFrame =
+                                    heroSurface.querySelector('[data-testid="stIFrame"] iframe') ||
+                                    heroSurface.querySelector('[data-testid="stHtml"] iframe');
+
+                                if (!outerFrame) {{
                                     return null;
                                 }}
 
-                                let heroDoc;
+                                let outerDoc = null;
                                 try {{
-                                    heroDoc = heroIframe.contentDocument || (heroIframe.contentWindow && heroIframe.contentWindow.document) || null;
+                                    outerDoc = outerFrame.contentDocument || (outerFrame.contentWindow && outerFrame.contentWindow.document) || null;
                                 }} catch (error) {{
-                                    heroDoc = null;
+                                    outerDoc = null;
                                 }}
 
-                                if (!heroDoc) {{
+                                if (!outerDoc) {{
                                     return null;
                                 }}
 
-                                const selector = `iframe[data-pane-id="${{paneId}}"]`;
-                                const paneIframe = heroDoc.querySelector(selector);
-                                if (!paneIframe) {{
+                                const paneFrame = outerDoc.querySelector(`iframe[data-pane-id="${{paneId}}"]`);
+                                if (!paneFrame) {{
                                     return null;
                                 }}
 
                                 try {{
-                                    return paneIframe.contentDocument || (paneIframe.contentWindow && paneIframe.contentWindow.document) || null;
+                                    return paneFrame.contentDocument || (paneFrame.contentWindow && paneFrame.contentWindow.document) || null;
                                 }} catch (error) {{
                                     return null;
                                 }}
                             }}
 
+                            window.__demai_getPaneDocument = getPaneDocument;
+
                             function mountIntroStartButton() {{
-                                const paneDoc = getPaneDocument(sidecarPaneId);
-                                const wrapper = doc.querySelector('.' + buttonClass);
+                                const getPaneDoc = window.__demai_getPaneDocument || function () {{ return null; }};
+                                const paneDoc = getPaneDoc(sidecarPaneId);
+                                const wrapper = rootDoc.querySelector('.' + buttonClass);
                                 if (!paneDoc || !wrapper) {{
                                     return false;
                                 }}
