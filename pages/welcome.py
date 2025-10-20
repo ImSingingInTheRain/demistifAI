@@ -113,8 +113,9 @@ def render_intro_stage(*, section_surface: SectionSurface) -> None:
                                 }}
 
                                 const outerFrame =
-                                    heroSurface.querySelector('[data-testid="stIFrame"] iframe') ||
-                                    heroSurface.querySelector('[data-testid="stHtml"] iframe');
+                                    heroSurface.querySelector('iframe[data-testid="stIFrame"]') ||
+                                    heroSurface.querySelector('iframe[data-testid="stHtml"]') ||
+                                    heroSurface.querySelector('iframe');
 
                                 if (!outerFrame) {{
                                     return null;
