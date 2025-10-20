@@ -424,6 +424,7 @@ def render_mac_window(
     )
 
     column_slots: list[DeltaGenerator] = []
+    column_closers: list[DeltaGenerator] = []
 
     for index in range(columns):
         wrapper = grid_container.container()
@@ -435,20 +436,24 @@ def render_mac_window(
             f'<div class="mac-window__col{_suffix_class(suffix_prefix, "__col")}" data-mw-col="{index}">',
             unsafe_allow_html=True,
         )
-        col_close.markdown("</div>", unsafe_allow_html=True)
 
         column_slots.append(content_slot)
+        column_closers.append(col_close)
 
-    section_tail.markdown(
-        dedent(
-            """
-                </div>
-              </div>
-            </section>
-            """
-        ).strip(),
-        unsafe_allow_html=True,
-    )
+    try:
+        yield tuple(column_slots)
+    finally:
+        for closer in column_closers:
+            closer.markdown("</div>", unsafe_allow_html=True)
 
-    yield tuple(column_slots)
+        section_tail.markdown(
+            dedent(
+                """
+                    </div>
+                  </div>
+                </section>
+                """
+            ).strip(),
+            unsafe_allow_html=True,
+        )
 
