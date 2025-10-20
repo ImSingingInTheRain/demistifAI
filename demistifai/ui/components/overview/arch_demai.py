@@ -68,7 +68,7 @@ def _style_block() -> str:
     return dedent(
         """
         <style>
-          .mac-window .arch-surface{
+          [data-mw-root] .arch-surface{
             --surface-bg:linear-gradient(180deg, rgba(231,244,255,.9), rgba(219,234,254,.65));
             --surface-grid:rgba(56,118,171,.18);
             --surface-border:rgba(96,165,250,.45);
@@ -87,7 +87,7 @@ def _style_block() -> str:
             overflow:hidden;
           }
 
-          .mac-window .arch-surface::before{
+          [data-mw-root] .arch-surface::before{
             content:"";
             position:absolute;
             inset:0;
@@ -99,7 +99,7 @@ def _style_block() -> str:
             z-index:-1;
           }
 
-          .mac-window .arch-surface__frame{
+          [data-mw-root] .arch-surface__frame{
             border-radius: 14px;
             padding: clamp(12px, 2.4vw, 22px);
             background: rgba(255,255,255,.72);
@@ -108,8 +108,8 @@ def _style_block() -> str:
             position:relative;
           }
 
-          .mac-window .arch-surface__frame::before,
-          .mac-window .arch-surface__frame::after{
+          [data-mw-root] .arch-surface__frame::before,
+          [data-mw-root] .arch-surface__frame::after{
             content:"";
             position:absolute;
             border: 1px solid rgba(148,197,255,.28);
@@ -117,17 +117,17 @@ def _style_block() -> str:
             pointer-events:none;
           }
 
-          .mac-window .arch-surface__frame::before{
+          [data-mw-root] .arch-surface__frame::before{
             inset:12px;
             opacity:.55;
           }
 
-          .mac-window .arch-surface__frame::after{
+          [data-mw-root] .arch-surface__frame::after{
             inset:24px;
             opacity:.28;
           }
 
-          .mac-window .arch-grid{
+          [data-mw-root] .arch-grid{
             display:grid;
             gap: clamp(12px, 2vw, 20px);
             grid-template-columns: repeat(auto-fit, minmax(210px,1fr));
@@ -136,13 +136,13 @@ def _style_block() -> str:
           }
 
           @media (min-width: 900px){
-            .mac-window .arch-grid{
+            [data-mw-root] .arch-grid{
               grid-template-columns: repeat(3, 1fr);
               grid-auto-rows: 1fr;
             }
           }
 
-          .mac-window .arch-grid::before{
+          [data-mw-root] .arch-grid::before{
             content:"";
             position:absolute;
             inset: clamp(10px, 1.8vw, 20px);
@@ -152,7 +152,7 @@ def _style_block() -> str:
             opacity:.55;
           }
 
-          .mac-window .arch-grid::after{
+          [data-mw-root] .arch-grid::after{
             content:"";
             position:absolute;
             top: 50%;
@@ -164,7 +164,7 @@ def _style_block() -> str:
             pointer-events:none;
           }
 
-          .mac-window .arch-card{
+          [data-mw-root] .arch-card{
             list-style:none;
             position:relative;
             border-radius: 14px;
@@ -180,7 +180,7 @@ def _style_block() -> str:
             gap: clamp(10px, 1.6vw, 16px);
           }
 
-          .mac-window .arch-card::before{
+          [data-mw-root] .arch-card::before{
             content:"";
             position:absolute;
             inset: 9px;
@@ -190,7 +190,7 @@ def _style_block() -> str:
             pointer-events:none;
           }
 
-          .mac-window .arch-card::after{
+          [data-mw-root] .arch-card::after{
             content:"";
             position:absolute;
             width: 38px;
@@ -205,16 +205,16 @@ def _style_block() -> str:
             filter: blur(.4px);
           }
 
-          .mac-window .arch-card[data-arch="model"]::after{ left: 50%; transform: translateX(-50%); }
-          .mac-window .arch-card[data-arch="inbox"]::after{ left: auto; right: 10px; }
+          [data-mw-root] .arch-card[data-arch="model"]::after{ left: 50%; transform: translateX(-50%); }
+          [data-mw-root] .arch-card[data-arch="inbox"]::after{ left: auto; right: 10px; }
 
-          .mac-window .arch-card__header{
+          [data-mw-root] .arch-card__header{
             display:flex;
             align-items:center;
             gap: clamp(12px, 1.6vw, 18px);
           }
 
-          .mac-window .arch-card__icon{
+          [data-mw-root] .arch-card__icon{
             font-size: clamp(1.45rem, 1.8vw, 1.9rem);
             filter: drop-shadow(0 10px 18px rgba(15,23,42,.32));
             display:flex;
@@ -228,13 +228,13 @@ def _style_block() -> str:
             box-shadow: inset 0 0 0 1px rgba(59,130,246,.2), 0 14px 26px rgba(59,130,246,.28);
           }
 
-          .mac-window .arch-card__text{
+          [data-mw-root] .arch-card__text{
             display:flex;
             flex-direction:column;
             gap: .4rem;
           }
 
-          .mac-window .arch-card__title{
+          [data-mw-root] .arch-card__title{
             margin:0;
             font-size: clamp(1.02rem, .65vw + .95rem, 1.18rem);
             font-weight:700;
@@ -242,14 +242,14 @@ def _style_block() -> str:
             color: var(--text-primary);
           }
 
-          .mac-window .arch-card__summary{
+          [data-mw-root] .arch-card__summary{
             margin:0;
             color: var(--text-muted);
             font-size: clamp(.88rem, .35vw + .86rem, .98rem);
             line-height:1.45;
           }
 
-          .mac-window .arch-card__body{
+          [data-mw-root] .arch-card__body{
             margin-top:0;
             padding-top: clamp(12px, 1.2vw, 16px);
             border-top: 1px dashed rgba(148,163,184,.4);
@@ -263,7 +263,7 @@ def _style_block() -> str:
             transition: max-height .35s ease, opacity .3s ease;
           }
 
-          .mac-window .arch-card__detail{
+          [data-mw-root] .arch-card__detail{
             margin:0;
             color: rgba(30,41,59,.92);
             font-size: clamp(.86rem, .35vw + .86rem, .98rem);
@@ -274,35 +274,35 @@ def _style_block() -> str:
             box-shadow: inset 0 0 0 1px rgba(148,163,184,.18);
           }
 
-          .mac-window .arch-card:hover{
+          [data-mw-root] .arch-card:hover{
             transform: translateY(-3px);
             border-color: rgba(59,130,246,.65);
             box-shadow: 0 20px 38px rgba(59,130,246,.22);
           }
 
-          .mac-window .arch-card.is-highlight{
+          [data-mw-root] .arch-card.is-highlight{
             border-color: rgba(59,130,246,.75);
             box-shadow: 0 24px 44px rgba(59,130,246,.28);
             background: linear-gradient(180deg, rgba(224,242,254,.92), rgba(191,219,254,.88));
           }
 
-          .mac-window .arch-card.is-highlight::before{
+          [data-mw-root] .arch-card.is-highlight::before{
             border-color: rgba(59,130,246,.55);
             opacity:.65;
           }
 
-          .mac-window .arch-card.is-highlight .arch-card__title{ color: #0b1f3a; }
+          [data-mw-root] .arch-card.is-highlight .arch-card__title{ color: #0b1f3a; }
 
-          .mac-window .arch-card.is-open .arch-card__body,
-          .mac-window .arch-surface.nerd-on .arch-card.is-open .arch-card__body{
+          [data-mw-root] .arch-card.is-open .arch-card__body,
+          [data-mw-root] .arch-surface.nerd-on .arch-card.is-open .arch-card__body{
             max-height: 220px;
             opacity:1;
             pointer-events:auto;
           }
 
           @media (max-width: 640px){
-            .mac-window .arch-grid::after{ display:none; }
-            .mac-window .arch-card::after{ display:none; }
+            [data-mw-root] .arch-grid::after{ display:none; }
+            [data-mw-root] .arch-card::after{ display:none; }
           }
         </style>
         """

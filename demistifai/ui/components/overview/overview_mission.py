@@ -14,46 +14,46 @@ def mission_brief_styles() -> str:
     return dedent(
         """
         <style>
-          .mac-window .mission-brief {
+          [data-mw-root] .mission-brief {
               display: grid;
               gap: 1.4rem;
           }
-          .mac-window .mission-brief__header {
+          [data-mw-root] .mission-brief__header {
               display: flex;
               gap: 1rem;
               align-items: center;
           }
-          .mac-window .mission-brief__icon {
+          [data-mw-root] .mission-brief__icon {
               font-size: 2.1rem;
           }
-          .mac-window .mission-brief__eyebrow {
+          [data-mw-root] .mission-brief__eyebrow {
               font-size: 0.78rem;
               letter-spacing: 0.16em;
               text-transform: uppercase;
               color: rgba(37, 99, 235, 0.7);
               font-weight: 700;
           }
-          .mac-window .mission-brief__title {
+          [data-mw-root] .mission-brief__title {
               margin: 0;
               font-size: 1.45rem;
               font-weight: 700;
               color: #0f172a;
           }
-          .mac-window .mission-brief__bridge,
-          .mac-window .mission-brief__summary {
+          [data-mw-root] .mission-brief__bridge,
+          [data-mw-root] .mission-brief__summary {
               margin: 0;
               font-size: 0.98rem;
               color: rgba(15, 23, 42, 0.75);
               line-height: 1.55;
           }
-          .mac-window .mission-brief__summary {
+          [data-mw-root] .mission-brief__summary {
               color: rgba(15, 23, 42, 0.72);
           }
-          .mac-window .mission-brief__objective {
+          [data-mw-root] .mission-brief__objective {
               display: grid;
               gap: 0.95rem;
           }
-          .mac-window .mission-brief__list {
+          [data-mw-root] .mission-brief__list {
               margin: 0;
               padding-left: 1.2rem;
               display: grid;
@@ -62,10 +62,10 @@ def mission_brief_styles() -> str:
               color: rgba(15, 23, 42, 0.72);
               line-height: 1.5;
           }
-          .mac-window .mission-brief__list li::marker {
+          [data-mw-root] .mission-brief__list li::marker {
               color: rgba(37, 99, 235, 0.7);
           }
-          .mac-window .mailbox-preview {
+          [data-mw-root] .mailbox-preview {
               background: rgba(255, 255, 255, 0.85);
               border-radius: 1.1rem;
               border: 1px solid rgba(37, 99, 235, 0.16);
@@ -73,7 +73,7 @@ def mission_brief_styles() -> str:
               display: grid;
               gap: 0;
           }
-          .mac-window .mailbox-preview__header {
+          [data-mw-root] .mailbox-preview__header {
               display: flex;
               justify-content: space-between;
               align-items: center;
@@ -81,21 +81,21 @@ def mission_brief_styles() -> str:
               background: linear-gradient(135deg, rgba(37, 99, 235, 0.12), rgba(59, 130, 246, 0.08));
               border-bottom: 1px solid rgba(37, 99, 235, 0.18);
           }
-          .mac-window .mailbox-preview__header h4 {
+          [data-mw-root] .mailbox-preview__header h4 {
               margin: 0;
               font-size: 1.05rem;
               font-weight: 600;
               color: #1e3a8a;
           }
-          .mac-window .mailbox-preview__header span {
+          [data-mw-root] .mailbox-preview__header span {
               font-size: 0.85rem;
               color: rgba(15, 23, 42, 0.65);
           }
-          .mac-window .mail-rows {
+          [data-mw-root] .mail-rows {
               display: flex;
               flex-direction: column;
           }
-          .mac-window .mail-row {
+          [data-mw-root] .mail-row {
               display: grid;
               grid-template-columns: auto 1fr auto;
               align-items: start;
@@ -104,10 +104,10 @@ def mission_brief_styles() -> str:
               border-bottom: 1px solid rgba(15, 23, 42, 0.06);
               background: rgba(248, 250, 252, 0.78);
           }
-          .mac-window .mail-row:nth-child(even) {
+          [data-mw-root] .mail-row:nth-child(even) {
               background: rgba(255, 255, 255, 0.92);
           }
-          .mac-window .mail-row__status {
+          [data-mw-root] .mail-row__status {
               width: 12px;
               height: 12px;
               border-radius: 999px;
@@ -115,24 +115,24 @@ def mission_brief_styles() -> str:
               margin-top: 0.35rem;
               box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
           }
-          .mac-window .mail-row__details {
+          [data-mw-root] .mail-row__details {
               display: flex;
               flex-direction: column;
               gap: 0.35rem;
           }
-          .mac-window .mail-row__subject {
+          [data-mw-root] .mail-row__subject {
               margin: 0;
               font-size: 0.98rem;
               font-weight: 600;
               color: #0f172a;
           }
-          .mac-window .mail-row__snippet {
+          [data-mw-root] .mail-row__snippet {
               margin: 0;
               font-size: 0.9rem;
               color: rgba(15, 23, 42, 0.68);
               line-height: 1.45;
           }
-          .mac-window .mail-row__meta {
+          [data-mw-root] .mail-row__meta {
               display: flex;
               flex-direction: column;
               align-items: flex-end;
@@ -140,7 +140,7 @@ def mission_brief_styles() -> str:
               font-size: 0.8rem;
               color: rgba(15, 23, 42, 0.6);
           }
-          .mac-window .mail-row__tag {
+          [data-mw-root] .mail-row__tag {
               display: inline-flex;
               align-items: center;
               justify-content: center;
@@ -153,29 +153,29 @@ def mission_brief_styles() -> str:
               letter-spacing: 0.08em;
               text-transform: uppercase;
           }
-          .mac-window .mail-empty {
+          [data-mw-root] .mail-empty {
               padding: 1.2rem 1.3rem;
               font-size: 0.92rem;
               color: rgba(15, 23, 42, 0.65);
           }
           @media (max-width: 960px) {
-              .mac-window .mission-brief {
+              [data-mw-root] .mission-brief {
                   gap: 1.2rem;
               }
-              .mac-window .mail-row {
+              [data-mw-root] .mail-row {
                   grid-template-columns: auto 1fr;
               }
-              .mac-window .mail-row__meta {
+              [data-mw-root] .mail-row__meta {
                   align-items: flex-start;
               }
           }
           @media (max-width: 768px) {
-              .mac-window .mail-row {
+              [data-mw-root] .mail-row {
                   grid-template-columns: 1fr;
                   padding: 0.78rem 1rem;
                   gap: 0.6rem;
               }
-              .mac-window .mail-row__status {
+              [data-mw-root] .mail-row__status {
                   display: flex;
                   align-items: center;
                   justify-content: flex-start;
@@ -183,25 +183,25 @@ def mission_brief_styles() -> str:
                   grid-column: 1;
                   margin-top: 0.1rem;
               }
-              .mac-window .mail-row__details {
+              [data-mw-root] .mail-row__details {
                   grid-row: 1;
                   grid-column: 1;
                   padding-left: 1.6rem;
                   gap: 0.3rem;
               }
-              .mac-window .mail-row__subject {
+              [data-mw-root] .mail-row__subject {
                   line-height: 1.3;
               }
-              .mac-window .mail-row__snippet {
+              [data-mw-root] .mail-row__snippet {
                   font-size: 0.88rem;
               }
-              .mac-window .mail-row__meta {
+              [data-mw-root] .mail-row__meta {
                   grid-column: 1 / -1;
                   margin-top: 0.35rem;
                   align-items: flex-start;
                   gap: 0.3rem;
               }
-              .mac-window .mail-row__tag {
+              [data-mw-root] .mail-row__tag {
                   padding: 0.2rem 0.5rem;
                   font-size: 0.72rem;
               }

@@ -352,6 +352,11 @@ def macos_window_markup(
     if suffix_prefix:
         root_classes.append(suffix_prefix)
 
+    data_scope_attr = (
+        f' data-mw-scope="{html.escape(id_suffix, quote=True)}"' if id_suffix else ""
+    )
+    data_attrs = f'data-mw-root="true"{data_scope_attr}'
+
     escaped_title = html.escape(title)
     subtitle_html = html.escape(subtitle) if subtitle else ""
 
@@ -383,7 +388,7 @@ def macos_window_markup(
     return (
         dedent(
             f"""
-            <section class="{' '.join(root_classes)}" style="--mw-max-width: {max_width_css}; --mw-grid-template: {grid_template};" role="group" aria-label="{escaped_title} window">
+            <section class="{' '.join(root_classes)}" {data_attrs} style="--mw-max-width: {max_width_css}; --mw-grid-template: {grid_template};" role="group" aria-label="{escaped_title} window">
               <header class="mac-window__chrome{_suffix_class(suffix_prefix, '__chrome')}" aria-hidden="false">
                 <div class="mac-window__lights" aria-hidden="true">
                   <span class="mac-window__light mac-window__light--red"></span>
