@@ -7,209 +7,235 @@ import re
 from textwrap import dedent
 from typing import Iterable, Mapping
 
+from demistifai.ui.components.shared.macos_iframe_window import MacWindowPane
+
+
+_MISSION_BRIEF_CSS = dedent(
+    """
+    <style>
+      .mission-brief {
+          display: grid;
+          gap: 1.4rem;
+          font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+          color: #0f172a;
+      }
+      .mission-brief__header {
+          display: flex;
+          gap: 1rem;
+          align-items: center;
+      }
+      .mission-brief__icon {
+          font-size: 2.1rem;
+      }
+      .mission-brief__eyebrow {
+          font-size: 0.78rem;
+          letter-spacing: 0.16em;
+          text-transform: uppercase;
+          color: rgba(37, 99, 235, 0.7);
+          font-weight: 700;
+      }
+      .mission-brief__title {
+          margin: 0;
+          font-size: 1.45rem;
+          font-weight: 700;
+          color: #0f172a;
+      }
+      .mission-brief__bridge,
+      .mission-brief__summary {
+          margin: 0;
+          font-size: 0.98rem;
+          color: rgba(15, 23, 42, 0.75);
+          line-height: 1.55;
+      }
+      .mission-brief__summary {
+          color: rgba(15, 23, 42, 0.72);
+      }
+      .mission-brief__objective {
+          display: grid;
+          gap: 0.95rem;
+      }
+      .mission-brief__list {
+          margin: 0;
+          padding-left: 1.2rem;
+          display: grid;
+          gap: 0.55rem;
+          font-size: 0.92rem;
+          color: rgba(15, 23, 42, 0.72);
+          line-height: 1.5;
+      }
+      .mission-brief__list li::marker {
+          color: rgba(37, 99, 235, 0.7);
+      }
+      @media (max-width: 960px) {
+          .mission-brief {
+              gap: 1.2rem;
+          }
+      }
+    </style>
+    """
+).strip()
+
+
+_MAILBOX_PREVIEW_CSS = dedent(
+    """
+    <style>
+      .mailbox-preview {
+          background: rgba(255, 255, 255, 0.85);
+          border-radius: 1.1rem;
+          border: 1px solid rgba(37, 99, 235, 0.16);
+          overflow: hidden;
+          display: grid;
+          gap: 0;
+          font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+          color: #0f172a;
+      }
+      .mailbox-preview__header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 1.05rem 1.3rem;
+          background: linear-gradient(135deg, rgba(37, 99, 235, 0.12), rgba(59, 130, 246, 0.08));
+          border-bottom: 1px solid rgba(37, 99, 235, 0.18);
+      }
+      .mailbox-preview__header h4 {
+          margin: 0;
+          font-size: 1.05rem;
+          font-weight: 600;
+          color: #1e3a8a;
+      }
+      .mailbox-preview__header span {
+          font-size: 0.85rem;
+          color: rgba(15, 23, 42, 0.65);
+      }
+      .mail-rows {
+          display: flex;
+          flex-direction: column;
+      }
+      .mail-row {
+          display: grid;
+          grid-template-columns: auto 1fr auto;
+          align-items: start;
+          gap: 1rem;
+          padding: 0.95rem 1.3rem;
+          border-bottom: 1px solid rgba(15, 23, 42, 0.06);
+          background: rgba(248, 250, 252, 0.78);
+      }
+      .mail-row:nth-child(even) {
+          background: rgba(255, 255, 255, 0.92);
+      }
+      .mail-row__status {
+          width: 12px;
+          height: 12px;
+          border-radius: 999px;
+          background: linear-gradient(135deg, #1d4ed8, #2563eb);
+          margin-top: 0.35rem;
+          box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+      }
+      .mail-row__details {
+          display: flex;
+          flex-direction: column;
+          gap: 0.35rem;
+      }
+      .mail-row__subject {
+          margin: 0;
+          font-size: 0.98rem;
+          font-weight: 600;
+          color: #0f172a;
+      }
+      .mail-row__snippet {
+          margin: 0;
+          font-size: 0.9rem;
+          color: rgba(15, 23, 42, 0.68);
+          line-height: 1.45;
+      }
+      .mail-row__meta {
+          display: flex;
+          flex-direction: column;
+          align-items: flex-end;
+          gap: 0.4rem;
+          font-size: 0.8rem;
+          color: rgba(15, 23, 42, 0.6);
+      }
+      .mail-row__tag {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          padding: 0.25rem 0.6rem;
+          border-radius: 999px;
+          background: rgba(37, 99, 235, 0.14);
+          color: #1d4ed8;
+          font-weight: 600;
+          font-size: 0.75rem;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+      }
+      .mail-empty {
+          padding: 1.2rem 1.3rem;
+          font-size: 0.92rem;
+          color: rgba(15, 23, 42, 0.65);
+      }
+      @media (max-width: 960px) {
+          .mail-row {
+              grid-template-columns: auto 1fr;
+          }
+          .mail-row__meta {
+              align-items: flex-start;
+          }
+      }
+      @media (max-width: 768px) {
+          .mail-row {
+              grid-template-columns: 1fr;
+              padding: 0.78rem 1rem;
+              gap: 0.6rem;
+          }
+          .mail-row__status {
+              display: flex;
+              align-items: center;
+              justify-content: flex-start;
+              grid-row: 1;
+              grid-column: 1;
+              margin-top: 0.1rem;
+          }
+          .mail-row__details {
+              grid-row: 1;
+              grid-column: 1;
+              padding-left: 1.6rem;
+              gap: 0.3rem;
+          }
+          .mail-row__subject {
+              line-height: 1.3;
+          }
+      }
+      @media (max-width: 640px) {
+          .mail-row__details {
+              font-size: 0.88rem;
+          }
+          .mail-row__meta {
+              grid-column: 1 / -1;
+              margin-top: 0.35rem;
+              align-items: flex-start;
+              gap: 0.3rem;
+          }
+          .mail-row__tag {
+              padding: 0.2rem 0.5rem;
+              font-size: 0.72rem;
+          }
+      }
+    </style>
+    """
+).strip()
+
 
 def mission_brief_styles() -> str:
-    """Return the scoped CSS for the overview mission briefing."""
+    """Return scoped CSS for the mission briefing pane."""
 
-    return dedent(
-        """
-        <style>
-          [data-mw-root] .mission-brief {
-              display: grid;
-              gap: 1.4rem;
-          }
-          [data-mw-root] .mission-brief__header {
-              display: flex;
-              gap: 1rem;
-              align-items: center;
-          }
-          [data-mw-root] .mission-brief__icon {
-              font-size: 2.1rem;
-          }
-          [data-mw-root] .mission-brief__eyebrow {
-              font-size: 0.78rem;
-              letter-spacing: 0.16em;
-              text-transform: uppercase;
-              color: rgba(37, 99, 235, 0.7);
-              font-weight: 700;
-          }
-          [data-mw-root] .mission-brief__title {
-              margin: 0;
-              font-size: 1.45rem;
-              font-weight: 700;
-              color: #0f172a;
-          }
-          [data-mw-root] .mission-brief__bridge,
-          [data-mw-root] .mission-brief__summary {
-              margin: 0;
-              font-size: 0.98rem;
-              color: rgba(15, 23, 42, 0.75);
-              line-height: 1.55;
-          }
-          [data-mw-root] .mission-brief__summary {
-              color: rgba(15, 23, 42, 0.72);
-          }
-          [data-mw-root] .mission-brief__objective {
-              display: grid;
-              gap: 0.95rem;
-          }
-          [data-mw-root] .mission-brief__list {
-              margin: 0;
-              padding-left: 1.2rem;
-              display: grid;
-              gap: 0.55rem;
-              font-size: 0.92rem;
-              color: rgba(15, 23, 42, 0.72);
-              line-height: 1.5;
-          }
-          [data-mw-root] .mission-brief__list li::marker {
-              color: rgba(37, 99, 235, 0.7);
-          }
-          [data-mw-root] .mailbox-preview {
-              background: rgba(255, 255, 255, 0.85);
-              border-radius: 1.1rem;
-              border: 1px solid rgba(37, 99, 235, 0.16);
-              overflow: hidden;
-              display: grid;
-              gap: 0;
-          }
-          [data-mw-root] .mailbox-preview__header {
-              display: flex;
-              justify-content: space-between;
-              align-items: center;
-              padding: 1.05rem 1.3rem;
-              background: linear-gradient(135deg, rgba(37, 99, 235, 0.12), rgba(59, 130, 246, 0.08));
-              border-bottom: 1px solid rgba(37, 99, 235, 0.18);
-          }
-          [data-mw-root] .mailbox-preview__header h4 {
-              margin: 0;
-              font-size: 1.05rem;
-              font-weight: 600;
-              color: #1e3a8a;
-          }
-          [data-mw-root] .mailbox-preview__header span {
-              font-size: 0.85rem;
-              color: rgba(15, 23, 42, 0.65);
-          }
-          [data-mw-root] .mail-rows {
-              display: flex;
-              flex-direction: column;
-          }
-          [data-mw-root] .mail-row {
-              display: grid;
-              grid-template-columns: auto 1fr auto;
-              align-items: start;
-              gap: 1rem;
-              padding: 0.95rem 1.3rem;
-              border-bottom: 1px solid rgba(15, 23, 42, 0.06);
-              background: rgba(248, 250, 252, 0.78);
-          }
-          [data-mw-root] .mail-row:nth-child(even) {
-              background: rgba(255, 255, 255, 0.92);
-          }
-          [data-mw-root] .mail-row__status {
-              width: 12px;
-              height: 12px;
-              border-radius: 999px;
-              background: linear-gradient(135deg, #1d4ed8, #2563eb);
-              margin-top: 0.35rem;
-              box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
-          }
-          [data-mw-root] .mail-row__details {
-              display: flex;
-              flex-direction: column;
-              gap: 0.35rem;
-          }
-          [data-mw-root] .mail-row__subject {
-              margin: 0;
-              font-size: 0.98rem;
-              font-weight: 600;
-              color: #0f172a;
-          }
-          [data-mw-root] .mail-row__snippet {
-              margin: 0;
-              font-size: 0.9rem;
-              color: rgba(15, 23, 42, 0.68);
-              line-height: 1.45;
-          }
-          [data-mw-root] .mail-row__meta {
-              display: flex;
-              flex-direction: column;
-              align-items: flex-end;
-              gap: 0.4rem;
-              font-size: 0.8rem;
-              color: rgba(15, 23, 42, 0.6);
-          }
-          [data-mw-root] .mail-row__tag {
-              display: inline-flex;
-              align-items: center;
-              justify-content: center;
-              padding: 0.25rem 0.6rem;
-              border-radius: 999px;
-              background: rgba(37, 99, 235, 0.14);
-              color: #1d4ed8;
-              font-weight: 600;
-              font-size: 0.75rem;
-              letter-spacing: 0.08em;
-              text-transform: uppercase;
-          }
-          [data-mw-root] .mail-empty {
-              padding: 1.2rem 1.3rem;
-              font-size: 0.92rem;
-              color: rgba(15, 23, 42, 0.65);
-          }
-          @media (max-width: 960px) {
-              [data-mw-root] .mission-brief {
-                  gap: 1.2rem;
-              }
-              [data-mw-root] .mail-row {
-                  grid-template-columns: auto 1fr;
-              }
-              [data-mw-root] .mail-row__meta {
-                  align-items: flex-start;
-              }
-          }
-          @media (max-width: 768px) {
-              [data-mw-root] .mail-row {
-                  grid-template-columns: 1fr;
-                  padding: 0.78rem 1rem;
-                  gap: 0.6rem;
-              }
-              [data-mw-root] .mail-row__status {
-                  display: flex;
-                  align-items: center;
-                  justify-content: flex-start;
-                  grid-row: 1;
-                  grid-column: 1;
-                  margin-top: 0.1rem;
-              }
-              [data-mw-root] .mail-row__details {
-                  grid-row: 1;
-                  grid-column: 1;
-                  padding-left: 1.6rem;
-                  gap: 0.3rem;
-              }
-              [data-mw-root] .mail-row__subject {
-                  line-height: 1.3;
-              }
-              [data-mw-root] .mail-row__snippet {
-                  font-size: 0.88rem;
-              }
-              [data-mw-root] .mail-row__meta {
-                  grid-column: 1 / -1;
-                  margin-top: 0.35rem;
-                  align-items: flex-start;
-                  gap: 0.3rem;
-              }
-              [data-mw-root] .mail-row__tag {
-                  padding: 0.2rem 0.5rem;
-                  font-size: 0.72rem;
-              }
-          }
-        </style>
-        """
-    ).strip()
+    return _MISSION_BRIEF_CSS
 
+
+def mailbox_preview_styles() -> str:
+    """Return scoped CSS for the mailbox preview pane."""
+
+    return _MAILBOX_PREVIEW_CSS
 
 def mission_overview_column_markup() -> str:
     """Return HTML for the mission overview column."""
@@ -288,6 +314,30 @@ def mailbox_preview_markup(
         </div>
         """
     ).format(count=len(record_list) or 0, rows="".join(inbox_rows_html)).strip()
+
+
+def mission_brief_pane() -> MacWindowPane:
+    """Return the mission briefing pane for iframe embedding."""
+
+    return MacWindowPane(
+        html=mission_overview_column_markup(),
+        css=mission_brief_styles(),
+        min_height=420,
+        pane_id="overview-mission-brief",
+    )
+
+
+def mailbox_preview_pane(
+    records: Iterable[Mapping[str, object]], *, snippet_limit: int = 110
+) -> MacWindowPane:
+    """Return the mailbox preview pane for iframe embedding."""
+
+    return MacWindowPane(
+        html=mailbox_preview_markup(records, snippet_limit=snippet_limit),
+        css=mailbox_preview_styles(),
+        min_height=420,
+        pane_id="overview-mission-mailbox",
+    )
 
 
 def _format_snippet(text: object | None, *, limit: int) -> str:

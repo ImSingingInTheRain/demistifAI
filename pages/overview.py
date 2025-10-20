@@ -10,17 +10,18 @@ from streamlit.delta_generator import DeltaGenerator
 
 from demistifai.ui.components import render_stage_top_grid
 from demistifai.ui.components.overview import (
-    demai_architecture_markup,
-    demai_architecture_styles,
-    mailbox_preview_markup,
-    mission_brief_styles,
-    mission_overview_column_markup,
+    demai_architecture_pane,
+    mailbox_preview_pane,
+    mission_brief_pane,
 )
 from demistifai.ui.components.terminal.boot_sequence import (
     _DEFAULT_DEMAI_LINES,
     render_ai_act_terminal as render_boot_sequence_terminal,
 )
-from demistifai.ui.theme.macos_window import macos_window_markup, macos_window_styles
+from demistifai.ui.components.shared.macos_iframe_window import (
+    MacWindowConfig,
+    render_macos_iframe_window,
+)
 
 
 def render_overview_stage(
@@ -65,48 +66,37 @@ def render_overview_stage(
         right_first_renderer=_render_overview_nerd_toggle,
     )
 
-    macos_theme_key = "macos_window_theme_injected"
-    if not ss.get(macos_theme_key):
-        st.markdown(macos_window_styles(), unsafe_allow_html=True)
-        ss[macos_theme_key] = True
-
-    architecture_window = macos_window_markup(
-        "System snapshot",
-        columns=1,
-        column_blocks=(
-            demai_architecture_markup(
-                nerd_mode=nerd_enabled,
-                active_stage="overview",
-            ),
-        ),
-        id_suffix="overview-mac-placeholder",
-        column_variant="flush",
+    architecture_pane = demai_architecture_pane(
+        nerd_mode=nerd_enabled,
+        active_stage="overview",
     )
-    architecture_styles = demai_architecture_styles()
-    if architecture_styles:
-        architecture_window = f"{architecture_styles}\n{architecture_window}"
-    st.markdown(architecture_window, unsafe_allow_html=True)
+    render_macos_iframe_window(
+        st,
+        MacWindowConfig(
+            panes=[architecture_pane],
+            rows=1,
+            columns=1,
+        ),
+    )
 
     preview_records: List[Dict[str, Any]] = []
     if incoming_records:
         df_incoming = pd.DataFrame(incoming_records)
         preview_records = df_incoming.head(5).to_dict("records")
 
-    mailbox_html = mailbox_preview_markup(preview_records)
-    mission_html = mission_overview_column_markup()
-
-    mission_window = macos_window_markup(
-        "Mission briefing",
-        subtitle="Control room orientation",
-        columns=2,
-        ratios=(1.1, 0.9),
-        id_suffix="overview-mission-brief",
-        column_blocks=(mission_html, mailbox_html),
+    mission_panes = (
+        mission_brief_pane(),
+        mailbox_preview_pane(preview_records),
     )
-    mission_styles = mission_brief_styles()
-    if mission_styles:
-        mission_window = f"{mission_styles}\n{mission_window}"
-    st.markdown(mission_window, unsafe_allow_html=True)
+    render_macos_iframe_window(
+        st,
+        MacWindowConfig(
+            panes=mission_panes,
+            rows=1,
+            columns=2,
+            column_ratios=(1.1, 0.9),
+        ),
+    )
 
     if nerd_enabled:
         with section_surface():

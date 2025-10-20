@@ -7,6 +7,8 @@ import html
 from textwrap import dedent
 from typing import Iterable
 
+from demistifai.ui.components.shared.macos_iframe_window import MacWindowPane
+
 import streamlit as st
 
 
@@ -68,7 +70,7 @@ def _style_block() -> str:
     return dedent(
         """
         <style>
-          [data-mw-root] .arch-surface{
+          .arch-surface{
             --surface-bg:linear-gradient(180deg, rgba(231,244,255,.9), rgba(219,234,254,.65));
             --surface-grid:rgba(56,118,171,.18);
             --surface-border:rgba(96,165,250,.45);
@@ -85,9 +87,11 @@ def _style_block() -> str:
             background: var(--surface-bg);
             box-shadow: inset 0 0 0 1px rgba(148,197,255,.22), 0 26px 50px rgba(15,23,42,.15);
             overflow:hidden;
+            font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            color: var(--text-primary);
           }
 
-          [data-mw-root] .arch-surface::before{
+          .arch-surface::before{
             content:"";
             position:absolute;
             inset:0;
@@ -99,7 +103,7 @@ def _style_block() -> str:
             z-index:-1;
           }
 
-          [data-mw-root] .arch-surface__frame{
+          .arch-surface__frame{
             border-radius: 14px;
             padding: clamp(12px, 2.4vw, 22px);
             background: rgba(255,255,255,.72);
@@ -108,8 +112,8 @@ def _style_block() -> str:
             position:relative;
           }
 
-          [data-mw-root] .arch-surface__frame::before,
-          [data-mw-root] .arch-surface__frame::after{
+          .arch-surface__frame::before,
+          .arch-surface__frame::after{
             content:"";
             position:absolute;
             border: 1px solid rgba(148,197,255,.28);
@@ -117,17 +121,17 @@ def _style_block() -> str:
             pointer-events:none;
           }
 
-          [data-mw-root] .arch-surface__frame::before{
+          .arch-surface__frame::before{
             inset:12px;
             opacity:.55;
           }
 
-          [data-mw-root] .arch-surface__frame::after{
+          .arch-surface__frame::after{
             inset:24px;
             opacity:.28;
           }
 
-          [data-mw-root] .arch-grid{
+          .arch-grid{
             display:grid;
             gap: clamp(12px, 2vw, 20px);
             grid-template-columns: repeat(auto-fit, minmax(210px,1fr));
@@ -136,13 +140,13 @@ def _style_block() -> str:
           }
 
           @media (min-width: 900px){
-            [data-mw-root] .arch-grid{
+            .arch-grid{
               grid-template-columns: repeat(3, 1fr);
               grid-auto-rows: 1fr;
             }
           }
 
-          [data-mw-root] .arch-grid::before{
+          .arch-grid::before{
             content:"";
             position:absolute;
             inset: clamp(10px, 1.8vw, 20px);
@@ -152,7 +156,7 @@ def _style_block() -> str:
             opacity:.55;
           }
 
-          [data-mw-root] .arch-grid::after{
+          .arch-grid::after{
             content:"";
             position:absolute;
             top: 50%;
@@ -164,7 +168,7 @@ def _style_block() -> str:
             pointer-events:none;
           }
 
-          [data-mw-root] .arch-card{
+          .arch-card{
             list-style:none;
             position:relative;
             border-radius: 14px;
@@ -180,7 +184,7 @@ def _style_block() -> str:
             gap: clamp(10px, 1.6vw, 16px);
           }
 
-          [data-mw-root] .arch-card::before{
+          .arch-card::before{
             content:"";
             position:absolute;
             inset: 9px;
@@ -190,7 +194,7 @@ def _style_block() -> str:
             pointer-events:none;
           }
 
-          [data-mw-root] .arch-card::after{
+          .arch-card::after{
             content:"";
             position:absolute;
             width: 38px;
@@ -205,16 +209,16 @@ def _style_block() -> str:
             filter: blur(.4px);
           }
 
-          [data-mw-root] .arch-card[data-arch="model"]::after{ left: 50%; transform: translateX(-50%); }
-          [data-mw-root] .arch-card[data-arch="inbox"]::after{ left: auto; right: 10px; }
+          .arch-card[data-arch="model"]::after{ left: 50%; transform: translateX(-50%); }
+          .arch-card[data-arch="inbox"]::after{ left: auto; right: 10px; }
 
-          [data-mw-root] .arch-card__header{
+          .arch-card__header{
             display:flex;
             align-items:center;
             gap: clamp(12px, 1.6vw, 18px);
           }
 
-          [data-mw-root] .arch-card__icon{
+          .arch-card__icon{
             font-size: clamp(1.45rem, 1.8vw, 1.9rem);
             filter: drop-shadow(0 10px 18px rgba(15,23,42,.32));
             display:flex;
@@ -228,13 +232,13 @@ def _style_block() -> str:
             box-shadow: inset 0 0 0 1px rgba(59,130,246,.2), 0 14px 26px rgba(59,130,246,.28);
           }
 
-          [data-mw-root] .arch-card__text{
+          .arch-card__text{
             display:flex;
             flex-direction:column;
             gap: .4rem;
           }
 
-          [data-mw-root] .arch-card__title{
+          .arch-card__title{
             margin:0;
             font-size: clamp(1.02rem, .65vw + .95rem, 1.18rem);
             font-weight:700;
@@ -242,14 +246,14 @@ def _style_block() -> str:
             color: var(--text-primary);
           }
 
-          [data-mw-root] .arch-card__summary{
+          .arch-card__summary{
             margin:0;
             color: var(--text-muted);
             font-size: clamp(.88rem, .35vw + .86rem, .98rem);
             line-height:1.45;
           }
 
-          [data-mw-root] .arch-card__body{
+          .arch-card__body{
             margin-top:0;
             padding-top: clamp(12px, 1.2vw, 16px);
             border-top: 1px dashed rgba(148,163,184,.4);
@@ -263,7 +267,7 @@ def _style_block() -> str:
             transition: max-height .35s ease, opacity .3s ease;
           }
 
-          [data-mw-root] .arch-card__detail{
+          .arch-card__detail{
             margin:0;
             color: rgba(30,41,59,.92);
             font-size: clamp(.86rem, .35vw + .86rem, .98rem);
@@ -274,35 +278,35 @@ def _style_block() -> str:
             box-shadow: inset 0 0 0 1px rgba(148,163,184,.18);
           }
 
-          [data-mw-root] .arch-card:hover{
+          .arch-card:hover{
             transform: translateY(-3px);
             border-color: rgba(59,130,246,.65);
             box-shadow: 0 20px 38px rgba(59,130,246,.22);
           }
 
-          [data-mw-root] .arch-card.is-highlight{
+          .arch-card.is-highlight{
             border-color: rgba(59,130,246,.75);
             box-shadow: 0 24px 44px rgba(59,130,246,.28);
             background: linear-gradient(180deg, rgba(224,242,254,.92), rgba(191,219,254,.88));
           }
 
-          [data-mw-root] .arch-card.is-highlight::before{
+          .arch-card.is-highlight::before{
             border-color: rgba(59,130,246,.55);
             opacity:.65;
           }
 
-          [data-mw-root] .arch-card.is-highlight .arch-card__title{ color: #0b1f3a; }
+          .arch-card.is-highlight .arch-card__title{ color: #0b1f3a; }
 
-          [data-mw-root] .arch-card.is-open .arch-card__body,
-          [data-mw-root] .arch-surface.nerd-on .arch-card.is-open .arch-card__body{
+          .arch-card.is-open .arch-card__body,
+          .arch-surface.nerd-on .arch-card.is-open .arch-card__body{
             max-height: 220px;
             opacity:1;
             pointer-events:auto;
           }
 
           @media (max-width: 640px){
-            [data-mw-root] .arch-grid::after{ display:none; }
-            [data-mw-root] .arch-card::after{ display:none; }
+            .arch-grid::after{ display:none; }
+            .arch-card::after{ display:none; }
           }
         </style>
         """
@@ -382,3 +386,16 @@ def demai_architecture_markup(
     if include_styles:
         return "\n".join([_style_block(), container_html])
     return container_html
+
+
+def demai_architecture_pane(
+    *, nerd_mode: bool = False, active_stage: str | None = None
+) -> MacWindowPane:
+    """Return a MacWindow pane containing the architecture overview."""
+
+    return MacWindowPane(
+        html=demai_architecture_markup(nerd_mode=nerd_mode, active_stage=active_stage),
+        css=_style_block(),
+        min_height=520,
+        pane_id="overview-architecture",
+    )
