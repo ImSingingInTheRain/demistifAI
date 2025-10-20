@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import inspect
 import json
 from textwrap import dedent
 
@@ -916,10 +917,17 @@ def render_lifecycle_ring_component(*, height: int = 0) -> None:
         raise RuntimeError("Streamlit is required to render the lifecycle ring component.") from err
 
     html_renderer = getattr(st, "html", None)
+    renderer_supports_height = False
     if html_renderer is None:
         from streamlit.components.v1 import html as components_html
 
         html_renderer = components_html
+        renderer_supports_height = True
+    else:
+        try:
+            renderer_supports_height = "height" in inspect.signature(html_renderer).parameters
+        except (TypeError, ValueError):  # pragma: no cover - signature introspection can fail on some callables
+            renderer_supports_height = False
 
     bundle_markup = json.dumps(_LIFECYCLE_RING_HTML)
     script = dedent(
@@ -978,7 +986,10 @@ def render_lifecycle_ring_component(*, height: int = 0) -> None:
         """
     )
 
-    html_renderer(script, height=height)
+    if renderer_supports_height:
+        html_renderer(script, height=height)
+    else:
+        html_renderer(script)
 
 
 def render_intro_hero() -> tuple[str, str, str]:
