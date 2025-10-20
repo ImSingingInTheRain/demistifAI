@@ -6,7 +6,7 @@ from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple
 import pandas as pd
 import streamlit as st
 
-from demistifai.constants import STAGE_BY_KEY, STAGE_INDEX, StageMeta
+from demistifai.constants import STAGE_BY_KEY, STAGE_INDEX
 from demistifai.core.language import HAS_LANGDETECT
 from demistifai.core.state import ensure_state, validate_invariants
 from demistifai.core.utils import streamlit_rerun
@@ -59,6 +59,8 @@ from .state import (
 
 
 logger = logging.getLogger(__name__)
+
+
 def render_train_stage_page(
     *,
     set_active_stage: Callable[[str], None],
@@ -84,6 +86,8 @@ def render_train_stage_page(
 
     prepared_df = data_state.get("prepared")
 
+    inject_macos_window_theme(st)
+
     render_stage_top_grid("train", left_renderer=render_train_terminal_slot)
 
     if prepared_df is None:
@@ -94,8 +98,6 @@ def render_train_stage_page(
 
     animation_column = build_training_animation_column()
     notes_column = build_training_notes_column()
-
-    inject_macos_window_theme(st)
     st.markdown(
         build_macos_window(
             title="Training dynamics monitor",
@@ -166,6 +168,7 @@ def render_train_stage(
     ss["guard_params"].setdefault("numeric_logit_cap", 1.0)
     ss["guard_params"].setdefault("combine_strategy", "blend")
 
+    inject_macos_window_theme(st)
     st.markdown(training_stage_stylesheet(), unsafe_allow_html=True)
 
     stage_number = STAGE_INDEX.get(stage.key, 0) - STAGE_INDEX.get("data", 0) + 1
