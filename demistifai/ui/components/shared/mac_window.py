@@ -436,7 +436,16 @@ def render_mac_window(
             f"""
             <script id="{instance_id}-mw-source-marker">
             (function() {{
-                const doc = window.parent && window.parent.document ? window.parent.document : document;
+                const doc = (() => {{
+                    try {{
+                        if (window.parent && window.parent !== window && window.parent.document) {{
+                            return window.parent.document;
+                        }}
+                    }} catch (error) {{
+                        // Ignore cross-origin access errors and fall back to the current document.
+                    }}
+                    return document;
+                }})();
                 const marker = doc.getElementById('{instance_id}-mw-source-marker');
                 if (!marker) {{
                     return;
@@ -468,7 +477,16 @@ def render_mac_window(
                 f"""
                 <script id="{instance_id}-mw-mount">
                 (function() {{
-                    const doc = window.parent && window.parent.document ? window.parent.document : document;
+                    const doc = (() => {{
+                        try {{
+                            if (window.parent && window.parent !== window && window.parent.document) {{
+                                return window.parent.document;
+                            }}
+                        }} catch (error) {{
+                            // Ignore cross-origin access errors and fall back to the current document.
+                        }}
+                        return document;
+                    }})();
                     const gridSelector = '[data-mw-grid="{instance_id}"]';
                     const sourceSelector = '[data-mw-source="{instance_id}"]';
                     const columnClass = '{column_class}';
