@@ -250,17 +250,32 @@ def render_macos_iframe_window(st, config: MacWindowConfig) -> None:
     grid_row_style = _resolve_ratio_styles(config.row_ratios, config.rows)
 
     iframe_cells: List[str] = []
+    default_fallback_height = 360
     for pane in panes:
         srcdoc = build_srcdoc(pane, window_id=window_id)
         escaped_srcdoc = html.escape(srcdoc, quote=True)
         iframe_style = _build_iframe_styles(pane)
+        fallback_height = (
+            pane.min_height
+            or pane.max_height
+            or default_fallback_height
+        )
+        data_attributes = [
+            f'data-pane-id="{pane.pane_id}"',
+            f'data-fallback-height="{int(fallback_height)}"',
+        ]
+        if pane.min_height is not None:
+            data_attributes.append(f'data-min-height="{int(pane.min_height)}"')
+        if pane.max_height is not None:
+            data_attributes.append(f'data-max-height="{int(pane.max_height)}"')
+        iframe_data_attrs = " ".join(data_attributes)
         iframe_cells.append(
             dedent(
                 f"""
                 <div class="miw__cell" data-pane-id="{pane.pane_id}">
                     <iframe
                         title="macOS window pane"
-                        data-pane-id="{pane.pane_id}"
+                        {iframe_data_attrs}
                         srcdoc="{escaped_srcdoc}"
                         sandbox="allow-scripts allow-same-origin"
                         loading="lazy"
@@ -521,12 +536,43 @@ def render_macos_iframe_window(st, config: MacWindowConfig) -> None:
                     }});
                 }};
 
+                const DEFAULT_PANE_HEIGHT = {default_fallback_height};
+
+                const resolveHeight = (frame, height) => {{
+                    const numericHeight = Number(height);
+                    if (Number.isFinite(numericHeight) && numericHeight > 0) {{
+                        return numericHeight;
+                    }}
+
+                    const fallback = Number(frame.dataset.fallbackHeight);
+                    if (Number.isFinite(fallback) && fallback > 0) {{
+                        return fallback;
+                    }}
+
+                    return DEFAULT_PANE_HEIGHT;
+                }};
+
+                const clampHeight = (frame, value) => {{
+                    let result = value;
+                    const minHeight = Number(frame.dataset.minHeight);
+                    if (Number.isFinite(minHeight) && minHeight > 0) {{
+                        result = Math.max(result, minHeight);
+                    }}
+                    const maxHeight = Number(frame.dataset.maxHeight);
+                    if (Number.isFinite(maxHeight) && maxHeight > 0) {{
+                        result = Math.min(result, maxHeight);
+                    }}
+                    return result;
+                }};
+
                 const applyHeight = (paneId, height) => {{
                     const frame = frameMap.get(paneId);
                     if (!frame) {{
                         return;
                     }}
-                    const rounded = Math.max(40, Math.ceil(Number(height)));
+                    const resolved = resolveHeight(frame, height);
+                    const clamped = clampHeight(frame, resolved);
+                    const rounded = Math.max(40, Math.ceil(clamped));
                     frame.style.height = rounded + 'px';
                     scheduleComponentHeightUpdate();
                 }};
