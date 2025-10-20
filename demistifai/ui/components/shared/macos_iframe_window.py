@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 import html
 from textwrap import dedent
-from typing import List, Literal, Sequence
+from typing import Callable, List, Literal, Sequence
 
 
 @dataclass
@@ -153,6 +153,48 @@ def _build_iframe_styles(pane: MacWindowPane) -> str:
     if pane.max_width is not None:
         styles.append(f"max-width: {pane.max_width}px")
     return "; ".join(styles)
+
+
+def _estimate_component_height(config: MacWindowConfig, panes: Sequence[MacWindowPane]) -> int:
+    """Best-effort initial height for embedding the macOS window."""
+
+    if not panes:
+        return 360
+
+    chrome_height = 88  # Title bar and light strip area.
+    body_padding = 72  # Top + bottom padding defined via CSS variables.
+    row_gap = 28  # Approximate grid gap between stacked rows.
+    default_pane_height = 360
+
+    row_heights: List[int] = [0 for _ in range(config.rows)]
+    for index, pane in enumerate(panes):
+        row_index = min(index // config.columns, config.rows - 1)
+        candidate = pane.min_height or pane.max_height or default_pane_height
+        row_heights[row_index] = max(row_heights[row_index], int(candidate))
+
+    total_height = chrome_height + body_padding + sum(row_heights)
+    if config.rows > 1:
+        total_height += row_gap * (config.rows - 1)
+
+    return max(total_height, 320)
+
+
+def _resolve_html_renderer(st) -> Callable[..., None] | None:
+    """Return a callable that can render raw HTML within ``st`` containers."""
+
+    html_renderer = getattr(st, "html", None)
+    if callable(html_renderer):
+        return html_renderer
+
+    components = getattr(st, "components", None)
+    if components is not None:
+        v1 = getattr(components, "v1", None)
+        if v1 is not None:
+            html_renderer = getattr(v1, "html", None)
+            if callable(html_renderer):
+                return html_renderer
+
+    return None
 
 
 def render_macos_iframe_window(st, config: MacWindowConfig) -> None:
@@ -404,6 +446,47 @@ def render_macos_iframe_window(st, config: MacWindowConfig) -> None:
                     frameMap.set(frame.dataset.paneId, frame);
                 }});
 
+                const isEmbedded = window.parent && window.parent !== window;
+                let pendingHeightFrame = null;
+
+                const computeContainerHeight = () => {{
+                    const doc = document.documentElement;
+                    const body = document.body;
+                    const primary = root.querySelector('.miw');
+                    const baseHeight = primary ? primary.getBoundingClientRect().height : 0;
+                    const offsetTop = primary ? primary.offsetTop || 0 : 0;
+                    const docHeights = [
+                        doc ? doc.scrollHeight : 0,
+                        doc ? doc.offsetHeight : 0,
+                        body ? body.scrollHeight : 0,
+                        body ? body.offsetHeight : 0,
+                        baseHeight + offsetTop,
+                    ];
+                    const measured = Math.max(...docHeights);
+                    return Math.ceil(measured);
+                }};
+
+                const scheduleComponentHeightUpdate = () => {{
+                    if (!isEmbedded) {{
+                        return;
+                    }}
+                    if (pendingHeightFrame !== null) {{
+                        cancelAnimationFrame(pendingHeightFrame);
+                    }}
+                    pendingHeightFrame = requestAnimationFrame(() => {{
+                        pendingHeightFrame = null;
+                        const height = computeContainerHeight();
+                        try {{
+                            window.parent.postMessage(
+                                {{ isStreamlitMessage: true, type: 'streamlit:setFrameHeight', height }},
+                                '*'
+                            );
+                        }} catch (error) {{
+                            // Ignore cross-origin or missing parent exceptions.
+                        }}
+                    }});
+                }};
+
                 const applyHeight = (paneId, height) => {{
                     const frame = frameMap.get(paneId);
                     if (!frame) {{
@@ -411,6 +494,7 @@ def render_macos_iframe_window(st, config: MacWindowConfig) -> None:
                     }}
                     const rounded = Math.max(40, Math.ceil(Number(height)));
                     frame.style.height = rounded + 'px';
+                    scheduleComponentHeightUpdate();
                 }};
 
                 window.addEventListener('message', (event) => {{
@@ -439,12 +523,22 @@ def render_macos_iframe_window(st, config: MacWindowConfig) -> None:
                     setTimeout(() => requestHeight(frame), 120);
                     setInterval(() => requestHeight(frame), 1500);
                 }});
+
+                scheduleComponentHeightUpdate();
+                window.addEventListener('load', scheduleComponentHeightUpdate, {{ once: true }});
+                window.addEventListener('resize', scheduleComponentHeightUpdate);
             }})();
         </script>
         """
     )
 
     output = f"{css}{html_markup}{parent_script}"
-    st.markdown(output, unsafe_allow_html=True)
+
+    html_renderer = _resolve_html_renderer(st)
+    if html_renderer is not None:
+        fallback_height = _estimate_component_height(config, panes)
+        html_renderer(output, height=fallback_height, scrolling=False)
+    else:
+        st.markdown(output, unsafe_allow_html=True)
 
     return None
