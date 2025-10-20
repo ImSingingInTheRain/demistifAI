@@ -929,7 +929,10 @@ def render_lifecycle_ring_component(*, height: int = 0) -> None:
         except (TypeError, ValueError):  # pragma: no cover - signature introspection can fail on some callables
             renderer_supports_height = False
 
-    bundle_markup = json.dumps(_LIFECYCLE_RING_HTML)
+    # Prevent ``</script>`` tokens in the lifecycle markup from terminating the
+    # embedding script tag prematurely when injected into Streamlit's iframe.
+    escaped_markup = _LIFECYCLE_RING_HTML.replace("</script>", "<\\/script>")
+    bundle_markup = json.dumps(escaped_markup)
     script = dedent(
         f"""
         <script>
