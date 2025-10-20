@@ -848,13 +848,32 @@ def render_lifecycle_ring_component(*, height: int = 0) -> None:
                 const mapPaneId = 'intro-hero-map';
 
                 function getPaneDocument() {
-                    const selector = `iframe[data-pane-id="${mapPaneId}"]`;
-                    const iframe = parentDoc.querySelector(selector);
-                    if (!iframe) {
+                    const macWindowIframe = Array.from(parentDoc.querySelectorAll('iframe')).find((candidate) => {
+                        const srcdoc = candidate.getAttribute('srcdoc') || '';
+                        return srcdoc.includes('.miw-container');
+                    });
+                    if (!macWindowIframe) {
                         return null;
                     }
+
+                    let macWindowDoc;
                     try {
-                        return iframe.contentDocument || (iframe.contentWindow && iframe.contentWindow.document) || null;
+                        macWindowDoc = macWindowIframe.contentDocument || (macWindowIframe.contentWindow && macWindowIframe.contentWindow.document) || null;
+                    } catch (error) {
+                        macWindowDoc = null;
+                    }
+                    if (!macWindowDoc) {
+                        return null;
+                    }
+
+                    const selector = `iframe[data-pane-id="${mapPaneId}"]`;
+                    const paneIframe = macWindowDoc.querySelector(selector);
+                    if (!paneIframe) {
+                        return null;
+                    }
+
+                    try {
+                        return paneIframe.contentDocument || (paneIframe.contentWindow && paneIframe.contentWindow.document) || null;
                     } catch (error) {
                         return null;
                     }
