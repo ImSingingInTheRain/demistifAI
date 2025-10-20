@@ -7,6 +7,7 @@ from textwrap import dedent
 __all__ = [
     "intro_hero_scoped_css",
     "intro_lifecycle_columns",
+    "intro_lifecycle_ring_markup",
     "render_intro_hero",
 ]
 
@@ -887,9 +888,7 @@ def _intro_left_column_html() -> str:
 def _intro_right_column_html() -> str:
     return dedent(
         f"""
-        <div class="intro-lifecycle-map" role="presentation">
-            {_LIFECYCLE_RING_HTML}
-        </div>
+        <div class="intro-lifecycle-map" role="presentation" data-intro-lifecycle-slot="1"></div>
         """
     ).strip()
 
@@ -898,6 +897,12 @@ def intro_lifecycle_columns() -> tuple[str, str]:
     """Return HTML for the lifecycle hero columns."""
 
     return _intro_left_column_html(), _intro_right_column_html()
+
+
+def intro_lifecycle_ring_markup() -> str:
+    """Return the raw markup for the lifecycle ring widget."""
+
+    return _LIFECYCLE_RING_HTML
 
 
 def render_intro_hero() -> tuple[str, str, str]:
