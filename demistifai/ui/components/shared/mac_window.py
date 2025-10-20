@@ -6,6 +6,7 @@ import html
 import re
 from contextlib import contextmanager
 from typing import Iterable, Iterator, Literal, Sequence
+from uuid import uuid4
 from textwrap import dedent
 
 ColumnVariant = Literal["standard", "flush"]
@@ -394,13 +395,15 @@ def render_mac_window(
     root_container = st.container()
 
     section_head = root_container.empty()
-    grid_container = root_container.container()
+    column_source = root_container.container()
     section_tail = root_container.empty()
+
+    instance_id = suffix_prefix or f"mw-instance-{uuid4().hex[:8]}"
 
     section_head.markdown(
         dedent(
             f"""
-            <section class="{' '.join(root_classes)}" style="--mw-max-width: {max_width_css}; --mw-grid-template: {grid_template};" role="group" aria-label="{escaped_title} window">
+            <section class="{' '.join(root_classes)}" style="--mw-max-width: {max_width_css}; --mw-grid-template: {grid_template};" role="group" aria-label="{escaped_title} window" data-mw-instance="{instance_id}">
               <header class="mac-window__chrome{_suffix_class(suffix_prefix, '__chrome')}" aria-hidden="false">
                 <div class="mac-window__lights" aria-hidden="true">
                   <span class="mac-window__light mac-window__light--red"></span>
@@ -417,32 +420,7 @@ def render_mac_window(
                   <div class="mac-window__title{_suffix_class(suffix_prefix, '__title')}">{escaped_title}</div>
                   {mobile_subtitle_block}
                 </div>
-                <div class="mac-window__grid{_suffix_class(suffix_prefix, '__grid')}">
-            """
-        ).strip(),
-        unsafe_allow_html=True,
-    )
-
-    column_slots: list[DeltaGenerator] = []
-
-    for index in range(columns):
-        wrapper = grid_container.container()
-        col_open = wrapper.empty()
-        content_slot = wrapper.container()
-        col_close = wrapper.empty()
-
-        col_open.markdown(
-            f'<div class="mac-window__col{_suffix_class(suffix_prefix, "__col")}" data-mw-col="{index}">',
-            unsafe_allow_html=True,
-        )
-        col_close.markdown("</div>", unsafe_allow_html=True)
-
-        column_slots.append(content_slot)
-
-    section_tail.markdown(
-        dedent(
-            """
-                </div>
+                <div class="mac-window__grid{_suffix_class(suffix_prefix, '__grid')}" data-mw-grid="{instance_id}"></div>
               </div>
             </section>
             """
@@ -450,5 +428,98 @@ def render_mac_window(
         unsafe_allow_html=True,
     )
 
-    yield tuple(column_slots)
+    column_slots = column_source.columns(columns)
+
+    source_marker = column_source.empty()
+    source_marker.markdown(
+        dedent(
+            f"""
+            <script id="{instance_id}-mw-source-marker">
+            (function() {{
+                const doc = window.parent && window.parent.document ? window.parent.document : document;
+                const marker = doc.getElementById('{instance_id}-mw-source-marker');
+                if (!marker) {{
+                    return;
+                }}
+                const block = marker.closest('[data-testid="stVerticalBlock"]');
+                if (!block) {{
+                    return;
+                }}
+                const horizontal = block.querySelector('[data-testid="stHorizontalBlock"]');
+                if (!horizontal) {{
+                    return;
+                }}
+                horizontal.setAttribute('data-mw-source', '{instance_id}');
+                horizontal.style.display = 'none';
+            }})();
+            </script>
+            """
+        ).strip(),
+        unsafe_allow_html=True,
+    )
+
+    column_class = f"mac-window__col{_suffix_class(suffix_prefix, '__col')}"
+
+    try:
+        yield tuple(column_slots)
+    finally:
+        section_tail.markdown(
+            dedent(
+                f"""
+                <script id="{instance_id}-mw-mount">
+                (function() {{
+                    const doc = window.parent && window.parent.document ? window.parent.document : document;
+                    const gridSelector = '[data-mw-grid="{instance_id}"]';
+                    const sourceSelector = '[data-mw-source="{instance_id}"]';
+                    const columnClass = '{column_class}';
+
+                    function relocateColumns() {{
+                        const grid = doc.querySelector(gridSelector);
+                        const source = doc.querySelector(sourceSelector);
+                        if (!grid || !source) {{
+                            return false;
+                        }}
+
+                        const columnNodes = source.querySelectorAll(':scope > div[data-testid="column"]');
+                        if (!columnNodes.length) {{
+                            return false;
+                        }}
+
+                        grid.innerHTML = '';
+
+                        columnNodes.forEach(function(columnNode, index) {{
+                            const wrapper = doc.createElement('div');
+                            wrapper.className = columnClass;
+                            wrapper.setAttribute('data-mw-col', String(index));
+                            while (columnNode.firstChild) {{
+                                wrapper.appendChild(columnNode.firstChild);
+                            }}
+                            grid.appendChild(wrapper);
+                        }});
+
+                        const vertical = source.closest('[data-testid="stVerticalBlock"]');
+                        if (vertical) {{
+                            vertical.remove();
+                        }} else {{
+                            source.remove();
+                        }}
+
+                        return true;
+                    }}
+
+                    if (!relocateColumns()) {{
+                        const observer = new MutationObserver(function() {{
+                            if (relocateColumns()) {{
+                                observer.disconnect();
+                            }}
+                        }});
+                        observer.observe(doc.body, {{ childList: true, subtree: true }});
+                        setTimeout(function() {{ observer.disconnect(); }}, 4000);
+                    }}
+                }})();
+                </script>
+                """
+            ).strip(),
+            unsafe_allow_html=True,
+        )
 
