@@ -14,8 +14,8 @@ from demistifai.constants import STAGE_INDEX, STAGES, StageMeta
 from demistifai.ui.components import render_stage_top_grid
 from demistifai.ui.components.intro import render_intro_hero
 from demistifai.ui.theme.macos_window import (
-    build_macos_window,
     inject_macos_window_theme,
+    macos_window_markup,
 )
 from demistifai.ui.components.terminal.article3 import (
     _WELCOME_LINES,
@@ -52,20 +52,22 @@ def render_intro_stage(*, section_surface: SectionSurface) -> None:
 
     with section_surface("section-surface--hero"):
         hero_css, left_col_html, right_col_html = render_intro_hero()
+        hero_title = "Start your demAI journey"
+        hero_subtitle = "Explore the AI system lifecycle with EU AI Act guidance."
+        hero_columns = (left_col_html, right_col_html)
 
         inject_macos_window_theme(st)
-        st.markdown(
-            build_macos_window(
-                title="Start your demAI journey",
-                column_blocks=(left_col_html, right_col_html),
-                ratios=(0.33, 0.67),
-                columns=2,
-                id_suffix="intro-lifecycle",
-                scoped_css=hero_css,
-                max_width=1200,
-            ),
-            unsafe_allow_html=True,
+        window_markup = macos_window_markup(
+            hero_title,
+            subtitle=hero_subtitle,
+            columns=len(hero_columns),
+            ratios=(0.33, 0.67),
+            id_suffix="intro-lifecycle",
+            column_blocks=hero_columns,
+            max_width=1200,
         )
+        combined_markup = f"{hero_css}\n{window_markup}" if hero_css else window_markup
+        st.markdown(combined_markup, unsafe_allow_html=True)
 
         if next_stage_meta is not None and next_stage_key is not None:
             button_key = f"intro_stage_start_{next_stage_key}"
