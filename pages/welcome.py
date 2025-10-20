@@ -13,7 +13,10 @@ from demistifai.core.utils import streamlit_rerun
 from demistifai.constants import STAGE_INDEX, STAGES, StageMeta
 from demistifai.ui.components import render_stage_top_grid
 from demistifai.ui.components.intro import render_intro_hero
-from demistifai.ui.components.shared import render_mac_window
+from demistifai.ui.theme.macos_window import (
+    build_macos_window,
+    inject_macos_window_theme,
+)
 from demistifai.ui.components.terminal.article3 import (
     _WELCOME_LINES,
     render_ai_act_terminal as render_welcome_ai_act_terminal,
@@ -50,17 +53,19 @@ def render_intro_stage(*, section_surface: SectionSurface) -> None:
     with section_surface("section-surface--hero"):
         hero_css, left_col_html, right_col_html = render_intro_hero()
 
-        with render_mac_window(
-            st,
-            title="Start your demAI journey",
-            ratios=(0.33, 0.67),
-            columns=2,
-            id_suffix="intro-lifecycle",
-            scoped_css=hero_css,
-            max_width=1200,
-        ) as (left_col, right_col):
-            left_col.markdown(left_col_html, unsafe_allow_html=True)
-            right_col.markdown(right_col_html, unsafe_allow_html=True)
+        inject_macos_window_theme(st)
+        st.markdown(
+            build_macos_window(
+                title="Start your demAI journey",
+                column_blocks=(left_col_html, right_col_html),
+                ratios=(0.33, 0.67),
+                columns=2,
+                id_suffix="intro-lifecycle",
+                scoped_css=hero_css,
+                max_width=1200,
+            ),
+            unsafe_allow_html=True,
+        )
 
         if next_stage_meta is not None and next_stage_key is not None:
             button_key = f"intro_stage_start_{next_stage_key}"

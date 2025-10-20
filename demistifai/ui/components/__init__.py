@@ -36,7 +36,6 @@ from .overview import (
 from .shared import (
     StageBlockRenderer,
     StageTopCardContent,
-    render_mac_window,
     render_stage_top_grid,
 )
 from .train import (
@@ -88,7 +87,6 @@ __all__ = [
     "render_threshold_controls",
     "render_intro_hero",
     "render_language_mix_chip_rows",
-    "render_mac_window",
     "render_batch_results_panel",
     "render_incoming_preview",
     "render_pii_cleanup_banner",
