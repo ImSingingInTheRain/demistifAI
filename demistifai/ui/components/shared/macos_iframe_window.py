@@ -140,13 +140,15 @@ def build_srcdoc(pane: MacWindowPane, *, window_id: str) -> str:
 
     pane_markup = pane.html.strip() if pane.html else ""
 
+    joined_css_blocks = "\n".join(css_blocks)
+
     return dedent(
         f"""
         <!DOCTYPE html>
         <html lang="en">
             <head>
                 <meta charset="utf-8" />
-                {'\n'.join(css_blocks)}
+                {joined_css_blocks}
             </head>
             <body data-miw-pane="{pane.pane_id}">
                 {pane_markup}
