@@ -16,17 +16,19 @@ class TrainingNotesColumn:
 
 _TRAINING_NOTES_CSS = textwrap.dedent(
     """
-    [data-mw-root] .train-animation__notes {
+    .train-animation__notes {
       display: grid;
       gap: 0.75rem;
+      font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: #0f172a;
     }
-    [data-mw-root] .train-animation__notes h4 {
+    .train-animation__notes h4 {
       margin: 0;
       font-size: 1.0rem;
       font-weight: 700;
       color: #0f172a;
     }
-    [data-mw-root] .train-animation__notes ul {
+    .train-animation__notes ul {
       margin: 0;
       padding-left: 1.15rem;
       display: grid;
@@ -35,7 +37,7 @@ _TRAINING_NOTES_CSS = textwrap.dedent(
       line-height: 1.45;
       color: rgba(15, 23, 42, 0.78);
     }
-    [data-mw-root] .train-animation__notes li strong {
+    .train-animation__notes li strong {
       color: #1d4ed8;
     }
     """

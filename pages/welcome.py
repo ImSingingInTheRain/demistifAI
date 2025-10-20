@@ -13,12 +13,14 @@ from demistifai.core.utils import streamlit_rerun
 from demistifai.constants import STAGE_INDEX, STAGES, StageMeta
 from demistifai.ui.components import render_stage_top_grid
 from demistifai.ui.components.intro import (
+    INTRO_HERO_MAP_PANE_ID,
+    INTRO_HERO_SIDECAR_PANE_ID,
     render_intro_hero,
     render_lifecycle_ring_component,
 )
-from demistifai.ui.theme.macos_window import (
-    inject_macos_window_theme,
-    macos_window_markup,
+from demistifai.ui.components.shared.macos_iframe_window import (
+    MacWindowConfig,
+    render_macos_iframe_window,
 )
 from demistifai.ui.components.terminal.article3 import (
     _WELCOME_LINES,
@@ -54,23 +56,16 @@ def render_intro_stage(*, section_surface: SectionSurface) -> None:
     render_stage_top_grid("intro", left_renderer=_render_intro_terminal)
 
     with section_surface("section-surface--hero"):
-        hero_css, left_col_html, right_col_html = render_intro_hero()
-        hero_title = "Start your demAI journey"
-        hero_subtitle = "Explore the AI system lifecycle with EU AI Act guidance."
-        hero_columns = (left_col_html, right_col_html)
-
-        inject_macos_window_theme(st)
-        window_markup = macos_window_markup(
-            hero_title,
-            subtitle=hero_subtitle,
-            columns=len(hero_columns),
-            ratios=(0.33, 0.67),
-            id_suffix="intro-lifecycle",
-            column_blocks=hero_columns,
-            max_width=1200,
+        hero_panes = render_intro_hero()
+        render_macos_iframe_window(
+            st,
+            MacWindowConfig(
+                panes=hero_panes,
+                rows=1,
+                columns=2,
+                column_ratios=(0.33, 0.67),
+            ),
         )
-        combined_markup = f"{hero_css}\n{window_markup}" if hero_css else window_markup
-        st.markdown(combined_markup, unsafe_allow_html=True)
 
         render_lifecycle_ring_component(height=0)
 
@@ -94,26 +89,55 @@ def render_intro_stage(*, section_surface: SectionSurface) -> None:
                         (function() {{
                             const doc = window.parent && window.parent.document ? window.parent.document : document;
                             const buttonClass = 'st-key-{button_key}';
+                            const sidecarPaneId = '{INTRO_HERO_SIDECAR_PANE_ID}';
+
+                            function getPaneDocument(paneId) {{
+                                const selector = `iframe[data-pane-id="${{paneId}}"]`;
+                                const iframe = doc.querySelector(selector);
+                                if (!iframe) {{
+                                    return null;
+                                }}
+                                try {{
+                                    return iframe.contentDocument || (iframe.contentWindow && iframe.contentWindow.document) || null;
+                                }} catch (error) {{
+                                    return null;
+                                }}
+                            }}
+
                             function mountIntroStartButton() {{
-                                const target = doc.querySelector('.intro-lifecycle-sidecar .intro-start-button-source');
+                                const paneDoc = getPaneDocument(sidecarPaneId);
                                 const wrapper = doc.querySelector('.' + buttonClass);
-                                if (!target || !wrapper) {{
+                                if (!paneDoc || !wrapper) {{
+                                    return false;
+                                }}
+
+                                const target = paneDoc.querySelector('.intro-start-button-source');
+                                if (!target) {{
                                     return false;
                                 }}
                                 if (target.contains(wrapper)) {{
                                     return true;
                                 }}
+
                                 const originBlock = wrapper.closest('[data-testid="stVerticalBlock"]');
                                 target.innerHTML = '';
                                 target.classList.add('intro-start-button-source--mounted');
-                                target.appendChild(wrapper);
+                                try {{
+                                    const adopted = paneDoc.adoptNode(wrapper);
+                                    target.appendChild(adopted);
+                                }} catch (error) {{
+                                    const clone = paneDoc.importNode(wrapper, true);
+                                    target.appendChild(clone);
+                                    wrapper.remove();
+                                }}
                                 if (originBlock) {{
                                     originBlock.style.display = 'none';
                                 }}
                                 return true;
                             }}
+
                             if (!mountIntroStartButton()) {{
-                                const retry = setInterval(function() {{
+                                const retry = setInterval(() => {{
                                     if (mountIntroStartButton()) {{
                                         clearInterval(retry);
                                     }}

@@ -6,13 +6,21 @@ import inspect
 import json
 from textwrap import dedent
 
+from demistifai.ui.components.shared.macos_iframe_window import MacWindowPane
+
 __all__ = [
+    "INTRO_HERO_MAP_PANE_ID",
+    "INTRO_HERO_SIDECAR_PANE_ID",
+    "intro_hero_panes",
     "intro_hero_scoped_css",
     "intro_lifecycle_columns",
     "intro_lifecycle_ring_markup",
     "render_lifecycle_ring_component",
     "render_intro_hero",
 ]
+
+INTRO_HERO_SIDECAR_PANE_ID = "intro-hero-sidecar"
+INTRO_HERO_MAP_PANE_ID = "intro-hero-map"
 
 _LIFECYCLE_RING_HTML = dedent(
     """\
@@ -587,159 +595,94 @@ _LIFECYCLE_RING_HTML = dedent(
 
 
 def intro_hero_scoped_css() -> str:
-    """Return scoped CSS for the intro lifecycle hero."""
+    """Return scoped CSS for the intro lifecycle hero panes."""
 
     return dedent(
         """
         <style>
-            .section-surface.section-surface--hero > div[data-testid="stVerticalBlock"] {
+            .intro-hero-pane {
+                font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+                color: #0f172a;
+                line-height: 1.6;
                 display: flex;
                 flex-direction: column;
-                align-items: center;
-                gap: clamp(1.4rem, 3vw, 2.4rem);
-                padding: 0;
-            }
-            .section-surface.section-surface--hero > div[data-testid="stVerticalBlock"] > div:first-child {
-                width: min(100%, 1040px);
-            }
-            [data-mw-scope="intro-lifecycle"] iframe[srcdoc*="demai-hero"] {
-                display: block;
-                margin: 0 auto;
-            }
-            [data-mw-scope="intro-lifecycle"] {
-                position: relative;
-                margin: 0 auto clamp(1.8rem, 4vw, 2.8rem);
-                max-width: min(1200px, 100%);
-                min-height: clamp(420px, 56vh, 520px);
-                border-radius: 22px;
-                overflow: hidden;
-                isolation: isolate;
-                border: 1px solid rgba(15, 23, 42, 0.08);
-                box-shadow: 0 30px 70px rgba(15, 23, 42, 0.16);
-            }
-            [data-mw-scope="intro-lifecycle"]::before {
-                content: "";
-                position: absolute;
-                inset: 0;
-                pointer-events: none;
-                background:
-                    radial-gradient(circle at top left, rgba(96, 165, 250, 0.24), transparent 58%),
-                    radial-gradient(circle at bottom right, rgba(129, 140, 248, 0.2), transparent 62%);
-                opacity: 0.9;
-            }
-            [data-mw-scope="intro-lifecycle"] .mw-intro-lifecycle__body {
-                position: relative;
-                z-index: 1;
-                background: rgba(248, 250, 252, 0.96);
-                backdrop-filter: blur(18px);
-                padding: clamp(1.1rem, 2vw, 1.6rem);
-            }
-            [data-mw-scope="intro-lifecycle"] .mw-intro-lifecycle__grid {
-                gap: clamp(1rem, 2.6vw, 1.9rem);
-                padding-top: 10px;
-                padding-left: 10px;
-                padding-right: clamp(1.2rem, 3.6vw, 2.4rem);
-                padding-bottom: 10px;
-                align-items: stretch;
-            }
-            [data-mw-scope="intro-lifecycle"] .mw-intro-lifecycle__col {
-                position: relative;
-                display: flex;
-                flex-direction: column;
-                gap: clamp(0.75rem, 1.6vw, 1.1rem);
+                gap: clamp(0.85rem, 1.8vw, 1.3rem);
+                padding: clamp(1.1rem, 2.4vw, 1.7rem);
                 border-radius: 18px;
-                padding: clamp(1.1rem, 2.4vw, 1.75rem);
-                background: linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(226, 232, 240, 0.68));
+                background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(226, 232, 240, 0.76));
                 border: 1px solid rgba(148, 163, 184, 0.22);
                 box-shadow: 0 20px 44px rgba(15, 23, 42, 0.12);
-                overflow: hidden;
                 min-height: clamp(320px, 48vh, 420px);
             }
-            [data-mw-scope="intro-lifecycle"] .mw-intro-lifecycle__col::before {
-                content: "";
-                position: absolute;
-                inset: 0;
-                border-radius: inherit;
-                background: linear-gradient(135deg, rgba(59, 130, 246, 0.18), transparent 65%);
-                opacity: 0.75;
-                pointer-events: none;
-            }
-            [data-mw-scope="intro-lifecycle"] .mw-intro-lifecycle__col > * {
-                position: relative;
-                z-index: 1;
-                width: 100%;
-            }
-            [data-mw-scope="intro-lifecycle"] .mw-intro-lifecycle__col:has(> .intro-lifecycle-map) {
-                padding: clamp(0.65rem, 2vw, 1.1rem);
-                background: linear-gradient(180deg, rgba(37, 99, 235, 0.18), rgba(14, 116, 144, 0.1));
-                border: 1px solid rgba(37, 99, 235, 0.32);
-                box-shadow: 0 26px 56px rgba(37, 99, 235, 0.22);
+            .intro-hero-pane--visual {
+                padding: clamp(0.75rem, 2.1vw, 1.2rem);
                 align-items: center;
+                justify-content: center;
+                background: linear-gradient(180deg, rgba(37, 99, 235, 0.18), rgba(14, 165, 233, 0.12));
+                border: 1px solid rgba(37, 99, 235, 0.32);
+                box-shadow: 0 26px 56px rgba(37, 99, 235, 0.18);
             }
-            [data-mw-scope="intro-lifecycle"] .mw-intro-lifecycle__col:has(> .intro-lifecycle-map)::before {
-                background: radial-gradient(circle at center, rgba(96, 165, 250, 0.42), transparent 72%);
-                opacity: 0.68;
+            .intro-hero-pane--notes {
+                gap: clamp(0.75rem, 1.7vw, 1.2rem);
+                background: linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(226, 232, 240, 0.82));
             }
-            [data-mw-scope="intro-lifecycle"] .intro-lifecycle-sidecar {
+            .intro-lifecycle-sidecar {
                 display: flex;
                 flex-direction: column;
-                gap: clamp(0.8rem, 1.8vw, 1.2rem);
-                padding-top: 10px;
-                padding-left: 10px;
-                padding-right: 10px;
-                padding-bottom: 10px;
+                gap: clamp(0.85rem, 1.9vw, 1.35rem);
             }
-            [data-mw-scope="intro-lifecycle"] .intro-lifecycle-sidecar__eyebrow {
+            .intro-lifecycle-sidecar__eyebrow {
                 font-size: 0.72rem;
                 letter-spacing: 0.18em;
                 text-transform: uppercase;
                 font-weight: 700;
-                color: rgba(15, 23, 42, 0.58);
+                color: rgba(15, 23, 42, 0.6);
             }
-            [data-mw-scope="intro-lifecycle"] .intro-lifecycle-sidecar__title {
+            .intro-lifecycle-sidecar__title {
                 margin: 0;
                 font-size: clamp(1.2rem, 2.4vw, 1.45rem);
                 font-weight: 700;
                 color: #0f172a;
+                line-height: 1.3;
             }
-            [data-mw-scope="intro-lifecycle"] .intro-lifecycle-sidecar__body {
+            .intro-lifecycle-sidecar__body {
                 margin: 0;
                 font-size: 0.98rem;
                 line-height: 1.65;
                 color: rgba(15, 23, 42, 0.78);
             }
-            [data-mw-scope="intro-lifecycle"] .intro-lifecycle-sidecar__list {
+            .intro-lifecycle-sidecar__list {
                 margin: 0;
                 padding: 0;
                 list-style: none;
                 display: grid;
                 gap: 0.6rem;
             }
-            [data-mw-scope="intro-lifecycle"] .intro-lifecycle-sidecar__list li {
+            .intro-lifecycle-sidecar__list li {
                 display: grid;
                 gap: 0.2rem;
             }
-            [data-mw-scope="intro-lifecycle"] .intro-lifecycle-sidecar__list strong {
+            .intro-lifecycle-sidecar__list strong {
                 font-weight: 700;
                 color: #1d4ed8;
             }
-            [data-mw-scope="intro-lifecycle"] .intro-start-button-slot {
+            .intro-start-button-slot {
                 margin-top: auto;
                 display: flex;
                 flex-direction: column;
                 gap: 0.6rem;
             }
-            [data-mw-scope="intro-lifecycle"] .intro-start-button-source {
+            .intro-start-button-source {
                 display: none;
             }
-            [data-mw-scope="intro-lifecycle"] .intro-start-button-source.intro-start-button-source--mounted {
+            .intro-start-button-source.intro-start-button-source--mounted {
                 display: block;
             }
-            [data-mw-scope="intro-lifecycle"] .intro-start-button-source--mounted div[data-testid="stButton"] {
+            .intro-start-button-source--mounted div[data-testid="stButton"] {
                 margin: 0;
                 width: 100%;
             }
-            [data-mw-scope="intro-lifecycle"] .intro-start-button-source--mounted div[data-testid="stButton"] > button {
+            .intro-start-button-source--mounted div[data-testid="stButton"] > button {
                 margin-top: 0.35rem;
                 display: inline-flex;
                 align-items: center;
@@ -757,132 +700,62 @@ def intro_hero_scoped_css() -> str:
                 text-align: center;
                 transition: transform 0.18s ease, box-shadow 0.18s ease;
             }
-            [data-mw-scope="intro-lifecycle"] .intro-start-button-source--mounted div[data-testid="stButton"] > button:hover {
+            .intro-start-button-source--mounted div[data-testid="stButton"] > button:hover {
                 transform: translateY(-1px);
-                box-shadow: 0 24px 40px rgba(37, 99, 235, 0.34);
+                box-shadow: 0 22px 42px rgba(37, 99, 235, 0.32);
             }
-            [data-mw-scope="intro-lifecycle"] .intro-start-button-source--mounted div[data-testid="stButton"] > button:focus-visible {
-                outline: 3px solid rgba(59, 130, 246, 0.45);
-                outline-offset: 3px;
+            .intro-start-button-source--mounted div[data-testid="stButton"] > button:focus-visible {
+                outline: 3px solid rgba(59, 130, 246, 0.65);
+                outline-offset: 2px;
             }
-            @media (min-width: 720px) {
-                [data-mw-scope="intro-lifecycle"] .intro-start-button-slot {
-                    display: none;
-                }
-            }
-            [data-mw-scope="intro-lifecycle"] .intro-lifecycle-map {
-                display: flex;
-                flex-direction: column;
-                gap: 0.75rem;
-                min-height: 100%;
-                align-items: center;
+            .intro-hero-pane--visual .intro-lifecycle-map {
                 width: 100%;
+                max-width: 520px;
+                min-height: clamp(320px, 48vh, 420px);
+                display: grid;
+                place-items: center;
+                background: transparent;
             }
-            [data-mw-scope="intro-lifecycle"] .intro-lifecycle-map #demai-lifecycle.dlc {
-                flex: 1;
-                width: min(100%, 520px);
-                margin-inline: auto;
-            }
-            @media (max-width: 1024px) {
-                .section-surface.section-surface--hero > div[data-testid="stVerticalBlock"] {
-                    gap: clamp(1.2rem, 4vw, 2rem);
-                }
-                [data-mw-scope="intro-lifecycle"] {
-                    margin-bottom: clamp(1.4rem, 4vw, 2.2rem);
-                }
-            }
-            @media (max-width: 920px) {
-                [data-mw-scope="intro-lifecycle"] .mw-intro-lifecycle__body {
-                    padding: clamp(1rem, 5vw, 1.4rem);
-                }
-                [data-mw-scope="intro-lifecycle"] .mw-intro-lifecycle__col {
-                    padding: clamp(1rem, 4vw, 1.45rem);
-                }
-            }
-            @media (max-width: 680px) {
-                .section-surface.section-surface--hero > div[data-testid="stVerticalBlock"] > div:first-child {
-                    width: 100%;
-                }
-                [data-mw-scope="intro-lifecycle"] .intro-lifecycle-sidecar {
-                    text-align: center;
-                }
-                [data-mw-scope="intro-lifecycle"] .intro-lifecycle-sidecar__list {
-                    gap: 0.75rem;
-                }
-            }
-            @media (max-width: 600px) {
-                [data-mw-scope="intro-lifecycle"] {
-                    margin: 0;
-                    border: none;
-                    border-radius: 0;
-                    box-shadow: none;
+            @media (max-width: 760px) {
+                .intro-hero-pane {
                     min-height: auto;
+                    padding: clamp(1rem, 3vw, 1.4rem);
                 }
-                [data-mw-scope="intro-lifecycle"]::before {
-                    display: none;
-                }
-                [data-mw-scope="intro-lifecycle"] .mw-intro-lifecycle__body {
-                    background: transparent;
-                    padding: 0 1rem 1.25rem;
-                }
-                [data-mw-scope="intro-lifecycle"] .mw-intro-lifecycle__grid {
-                    padding: 0;
-                    gap: clamp(0.75rem, 4vw, 1.1rem);
-                }
-                [data-mw-scope="intro-lifecycle"] .mw-intro-lifecycle__col {
-                    padding: 0;
-                    border-radius: 0;
-                    border: 0;
-                    background: none;
-                    box-shadow: none;
-                    min-height: auto;
-                }
-                [data-mw-scope="intro-lifecycle"] .mw-intro-lifecycle__col::before {
-                    display: none;
-                }
-                [data-mw-scope="intro-lifecycle"] .mw-intro-lifecycle__col:has(> .intro-lifecycle-map) {
-                    padding: 0;
-                    background: none;
-                    border: 0;
-                    box-shadow: none;
-                }
-                [data-mw-scope="intro-lifecycle"] .mw-intro-lifecycle__col:has(> .intro-lifecycle-map)::before {
-                    display: none;
-                }
-                [data-mw-scope="intro-lifecycle"] .intro-lifecycle-sidecar {
-                    padding: 0;
+                .intro-hero-pane--visual .intro-lifecycle-map {
+                    min-height: clamp(260px, 60vw, 380px);
                 }
             }
         </style>
         """
-    )
+    ).strip()
 
 
 def _intro_left_column_html() -> str:
     return dedent(
         """
-        <div class="intro-lifecycle-sidecar" role="complementary" aria-label="Lifecycle guidance">
-            <div class="intro-lifecycle-sidecar__eyebrow">What you'll do</div>
-            <h5 class="intro-lifecycle-sidecar__title">Build and use an AI spam detector</h5>
-            <p class="intro-lifecycle-sidecar__body">
-                In this interactive journey, you’ll build and use your own AI system, an email spam detector. You will experience the key steps of a development lifecycle, step by step: no technical skills are needed.
-                Along the way, you’ll uncover how AI systems learn, make predictions, while applying in practice key concepts from the EU AI Act.
-            </p>
-            <ul class="intro-lifecycle-sidecar__list">
-                <li>
-                    <strong>Discover your journey</strong>
-                    To your right, you’ll find an interactive map showing the full lifecycle of your AI system— this is your guide through this hands-on exploration of responsible and transparent AI.
-                </li>
-                <li>
-                    <strong>Are you ready to make a machine learn?</strong>
-                    Click the button below to start your demAI journey!
-                </li>
-            </ul>
+        <div class="intro-hero-pane intro-hero-pane--notes" role="complementary" aria-label="Lifecycle guidance">
+            <div class="intro-lifecycle-sidecar">
+                <div class="intro-lifecycle-sidecar__eyebrow">What you'll do</div>
+                <h5 class="intro-lifecycle-sidecar__title">Build and use an AI spam detector</h5>
+                <p class="intro-lifecycle-sidecar__body">
+                    In this interactive journey, you’ll build and use your own AI system, an email spam detector. You will experience the key steps of a development lifecycle, step by step: no technical skills are needed.
+                    Along the way, you’ll uncover how AI systems learn, make predictions, while applying in practice key concepts from the EU AI Act.
+                </p>
+                <ul class="intro-lifecycle-sidecar__list">
+                    <li>
+                        <strong>Discover your journey</strong>
+                        To your right, you’ll find an interactive map showing the full lifecycle of your AI system— this is your guide through this hands-on exploration of responsible and transparent AI.
+                    </li>
+                    <li>
+                        <strong>Are you ready to make a machine learn?</strong>
+                        Click the button below to start your demAI journey!
+                    </li>
+                </ul>
 
-            <div class="intro-start-button-slot">
-                <div class="intro-start-button-source"></div>
+                <div class="intro-start-button-slot">
+                    <div class="intro-start-button-source"></div>
+                </div>
             </div>
-
         </div>
         """
     ).strip()
@@ -891,7 +764,9 @@ def _intro_left_column_html() -> str:
 def _intro_right_column_html() -> str:
     return dedent(
         f"""
-        <div class="intro-lifecycle-map" role="presentation" data-intro-lifecycle-slot="1" id="intro-lifecycle-ring-slot"></div>
+        <div class="intro-hero-pane intro-hero-pane--visual">
+            <div class="intro-lifecycle-map" role="presentation" data-intro-lifecycle-slot="1" id="intro-lifecycle-ring-slot"></div>
+        </div>
         """
     ).strip()
 
@@ -900,6 +775,27 @@ def intro_lifecycle_columns() -> tuple[str, str]:
     """Return HTML for the lifecycle hero columns."""
 
     return _intro_left_column_html(), _intro_right_column_html()
+
+
+def intro_hero_panes() -> tuple[MacWindowPane, MacWindowPane]:
+    """Return the MacWindow panes that compose the intro hero."""
+
+    scoped_css = intro_hero_scoped_css()
+    left_html, right_html = intro_lifecycle_columns()
+    return (
+        MacWindowPane(
+            html=left_html,
+            css=scoped_css,
+            min_height=520,
+            pane_id=INTRO_HERO_SIDECAR_PANE_ID,
+        ),
+        MacWindowPane(
+            html=right_html,
+            css=scoped_css,
+            min_height=520,
+            pane_id=INTRO_HERO_MAP_PANE_ID,
+        ),
+    )
 
 
 def intro_lifecycle_ring_markup() -> str:
@@ -933,61 +829,79 @@ def render_lifecycle_ring_component(*, height: int = 0) -> None:
     # embedding script tag prematurely when injected into Streamlit's iframe.
     escaped_markup = _LIFECYCLE_RING_HTML.replace("</script>", "<\\/script>")
     bundle_markup = json.dumps(escaped_markup)
-    script = dedent(
-        f"""
+    script_template = dedent(
+        """
         <script>
-            (function() {{
+            (function() {
                 const parentDoc = window.parent && window.parent.document ? window.parent.document : document;
-                const markup = {bundle_markup};
-                const placeholderSelector = '#intro-lifecycle-ring-slot';
+                const markup = __BUNDLE_MARKUP__;
+                const mapPaneId = 'intro-hero-map';
 
-                function executeScripts(root) {{
+                function getPaneDocument() {
+                    const selector = `iframe[data-pane-id="${mapPaneId}"]`;
+                    const iframe = parentDoc.querySelector(selector);
+                    if (!iframe) {
+                        return null;
+                    }
+                    try {
+                        return iframe.contentDocument || (iframe.contentWindow && iframe.contentWindow.document) || null;
+                    } catch (error) {
+                        return null;
+                    }
+                }
+
+                function executeScripts(targetDoc, root) {
                     const scripts = root.querySelectorAll('script');
-                    scripts.forEach((script) => {{
-                        const replacement = parentDoc.createElement('script');
-                        Array.from(script.attributes).forEach((attr) => {{
+                    scripts.forEach((script) => {
+                        const replacement = targetDoc.createElement('script');
+                        Array.from(script.attributes).forEach((attr) => {
                             replacement.setAttribute(attr.name, attr.value);
-                        }});
+                        });
                         replacement.textContent = script.textContent;
                         script.replaceWith(replacement);
-                    }});
-                }}
+                    });
+                }
 
-                function mountLifecycle() {{
-                    const slot = parentDoc.querySelector(placeholderSelector);
-                    if (!slot) {{
+                function mountLifecycle() {
+                    const paneDoc = getPaneDocument();
+                    if (!paneDoc) {
                         return false;
-                    }}
-                    if (slot.dataset.introLifecycleMounted === '1') {{
+                    }
+                    const slot = paneDoc.querySelector('#intro-lifecycle-ring-slot');
+                    if (!slot) {
+                        return false;
+                    }
+                    if (slot.dataset.introLifecycleMounted === '1') {
                         return true;
-                    }}
+                    }
 
-                    const template = parentDoc.createElement('template');
+                    const template = paneDoc.createElement('template');
                     template.innerHTML = markup;
                     const content = template.content.cloneNode(true);
 
                     slot.replaceChildren(content);
-                    executeScripts(slot);
+                    executeScripts(paneDoc, slot);
                     slot.setAttribute('data-intro-lifecycle-mounted', '1');
                     return true;
-                }}
+                }
 
-                if (!mountLifecycle()) {{
+                if (!mountLifecycle()) {
                     const maxWaitMs = 4000;
                     const start = Date.now();
 
-                    const interval = setInterval(() => {{
+                    const interval = setInterval(() => {
                         const mounted = mountLifecycle();
                         const expired = Date.now() - start > maxWaitMs;
-                        if (mounted || expired) {{
+                        if (mounted || expired) {
                             clearInterval(interval);
-                        }}
-                    }}, 100);
-                }}
-            }})();
+                        }
+                    }, 120);
+                }
+            })();
         </script>
         """
     )
+    script = script_template.replace("__BUNDLE_MARKUP__", bundle_markup)
 
     if renderer_supports_height:
         html_renderer(script, height=height)
@@ -995,9 +909,7 @@ def render_lifecycle_ring_component(*, height: int = 0) -> None:
         html_renderer(script)
 
 
-def render_intro_hero() -> tuple[str, str, str]:
-    """Return the scoped CSS and markup needed to render the intro hero."""
+def render_intro_hero() -> tuple[MacWindowPane, MacWindowPane]:
+    """Return the MacWindow panes that render the intro hero."""
 
-    scoped_css = intro_hero_scoped_css()
-    left_col, right_col = intro_lifecycle_columns()
-    return scoped_css, left_col, right_col
+    return intro_hero_panes()
