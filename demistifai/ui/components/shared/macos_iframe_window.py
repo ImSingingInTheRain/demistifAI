@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-import html
 import inspect
+import re
 from textwrap import dedent
 from typing import Callable, Dict, List, Literal, Sequence
 
@@ -49,6 +49,9 @@ class MacWindowConfig:
             raise ValueError(
                 "Number of panes must equal rows * columns for macOS window layout"
             )
+
+
+_UNESCAPED_AMPERSAND_PATTERN = re.compile(r"&(?![#\w]+;)")
 
 
 def build_srcdoc(pane: MacWindowPane, *, window_id: str) -> str:
@@ -132,6 +135,13 @@ def build_srcdoc(pane: MacWindowPane, *, window_id: str) -> str:
         """
     )
     return base_style + pane_css + pane.html + monitor_script
+
+
+def _escape_srcdoc_attribute(value: str) -> str:
+    """Escape a srcdoc payload for safe embedding in an iframe attribute."""
+
+    sanitized = _UNESCAPED_AMPERSAND_PATTERN.sub("&amp;", value)
+    return sanitized.replace('"', "&quot;")
 
 
 def _resolve_ratio_styles(ratios: Sequence[float] | None, count: int) -> str:
@@ -253,7 +263,7 @@ def render_macos_iframe_window(st, config: MacWindowConfig) -> None:
     default_fallback_height = 360
     for pane in panes:
         srcdoc = build_srcdoc(pane, window_id=window_id)
-        escaped_srcdoc = html.escape(srcdoc, quote=True)
+        escaped_srcdoc = _escape_srcdoc_attribute(srcdoc)
         iframe_style = _build_iframe_styles(pane)
         fallback_height = (
             pane.min_height
