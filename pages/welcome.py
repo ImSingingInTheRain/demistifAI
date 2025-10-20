@@ -114,13 +114,35 @@ def render_intro_stage(*, section_surface: SectionSurface) -> None:
                             const sidecarPaneId = '{INTRO_HERO_SIDECAR_PANE_ID}';
 
                             function getPaneDocument(paneId) {{
-                                const selector = `iframe[data-pane-id="${{paneId}}"]`;
-                                const iframe = doc.querySelector(selector);
-                                if (!iframe) {{
+                                const heroSurface = doc.querySelector('.section-surface--hero');
+                                if (!heroSurface) {{
                                     return null;
                                 }}
+
+                                const heroIframe = heroSurface.querySelector('[data-testid="stHtml"] iframe');
+                                if (!heroIframe) {{
+                                    return null;
+                                }}
+
+                                let heroDoc;
                                 try {{
-                                    return iframe.contentDocument || (iframe.contentWindow && iframe.contentWindow.document) || null;
+                                    heroDoc = heroIframe.contentDocument || (heroIframe.contentWindow && heroIframe.contentWindow.document) || null;
+                                }} catch (error) {{
+                                    heroDoc = null;
+                                }}
+
+                                if (!heroDoc) {{
+                                    return null;
+                                }}
+
+                                const selector = `iframe[data-pane-id="${{paneId}}"]`;
+                                const paneIframe = heroDoc.querySelector(selector);
+                                if (!paneIframe) {{
+                                    return null;
+                                }}
+
+                                try {{
+                                    return paneIframe.contentDocument || (paneIframe.contentWindow && paneIframe.contentWindow.document) || null;
                                 }} catch (error) {{
                                     return null;
                                 }}
