@@ -98,26 +98,139 @@ def build_srcdoc(pane: MacWindowPane, *, window_id: str) -> str:
             (function() {{
                 const paneId = {pane.pane_id!r};
                 const windowId = {window_id!r};
-                const postHeight = () => {{
+                const raf = window.requestAnimationFrame ? window.requestAnimationFrame.bind(window) : ((cb) => window.setTimeout(cb, 16));
+                const caf = window.cancelAnimationFrame ? window.cancelAnimationFrame.bind(window) : window.clearTimeout.bind(window);
+
+                const queryPaneElement = () => {{
                     try {{
-                        const height = document.documentElement.scrollHeight || document.body.scrollHeight || 0;
-                        parent.postMessage({{ type: "macosPaneHeight", paneId, height, windowId }}, "*");
+                        return document.querySelector(`[data-miw-pane="${{paneId}}"]`) || document.body;
                     }} catch (error) {{
-                        // Suppress cross-origin issues silently.
+                        return document.body;
                     }}
                 }};
 
-                const supportsResizeObserver = typeof ResizeObserver !== "undefined";
-                if (supportsResizeObserver) {{
-                    const observer = new ResizeObserver(() => postHeight());
-                    observer.observe(document.documentElement);
-                }} else {{
-                    setInterval(postHeight, 500);
+                let pendingFrame = null;
+
+                const computeHeight = () => {{
+                    const heights = [];
+                    const root = document.scrollingElement || document.documentElement;
+                    const body = document.body;
+                    const paneEl = queryPaneElement();
+
+                    const push = (value) => {{
+                        if (typeof value === "number" && Number.isFinite(value) && value > 0) {{
+                            heights.push(value);
+                        }}
+                    }};
+
+                    if (root) {{
+                        push(root.scrollHeight);
+                        push(root.offsetHeight);
+                        push(root.clientHeight);
+                    }}
+                    if (body && body !== root) {{
+                        push(body.scrollHeight);
+                        push(body.offsetHeight);
+                        push(body.clientHeight);
+                    }}
+                    if (paneEl) {{
+                        push(paneEl.scrollHeight);
+                        push(paneEl.offsetHeight);
+                        push(paneEl.clientHeight);
+                        try {{
+                            const rect = paneEl.getBoundingClientRect();
+                            push(rect.bottom);
+                            push(rect.top + rect.height);
+                            push(rect.height);
+                        }} catch (error) {{
+                            // Ignore measurement errors.
+                        }}
+                    }}
+
+                    if (!heights.length) {{
+                        return 0;
+                    }}
+
+                    return Math.ceil(Math.max(...heights));
+                }};
+
+                const postHeight = () => {{
+                    try {{
+                        const height = computeHeight();
+                        parent.postMessage({{ type: "macosPaneHeight", paneId, height, windowId }}, "*");
+                    }} catch (error) {{
+                        // Suppress cross-origin or detached-frame issues silently.
+                    }}
+                }};
+
+                const scheduleHeight = () => {{
+                    if (pendingFrame !== null) {{
+                        caf(pendingFrame);
+                    }}
+                    pendingFrame = raf(() => {{
+                        pendingFrame = null;
+                        postHeight();
+                    }});
+                }};
+
+                const observeResizes = () => {{
+                    if (typeof ResizeObserver === "undefined") {{
+                        return null;
+                    }}
+                    try {{
+                        const observer = new ResizeObserver(() => scheduleHeight());
+                        const targets = new Set();
+                        if (document.documentElement) {{
+                            targets.add(document.documentElement);
+                        }}
+                        if (document.body) {{
+                            targets.add(document.body);
+                        }}
+                        const paneEl = queryPaneElement();
+                        if (paneEl) {{
+                            targets.add(paneEl);
+                        }}
+                        targets.forEach((target) => {{
+                            try {{
+                                observer.observe(target);
+                            }} catch (error) {{
+                                // Ignore observation errors.
+                            }}
+                        }});
+                        return observer;
+                    }} catch (error) {{
+                        return null;
+                    }}
+                }};
+
+                observeResizes();
+
+                if (typeof MutationObserver !== "undefined") {{
+                    try {{
+                        const mutationObserver = new MutationObserver(() => scheduleHeight());
+                        mutationObserver.observe(document.body || document.documentElement, {{
+                            childList: true,
+                            subtree: true,
+                            characterData: true,
+                            attributes: true,
+                        }});
+                    }} catch (error) {{
+                        // Ignore mutation observer errors.
+                    }}
                 }}
 
-                window.addEventListener("load", postHeight);
-                if (document.readyState !== "loading") {{
-                    postHeight();
+                if (document.fonts) {{
+                    try {{
+                        if (document.fonts.addEventListener) {{
+                            document.fonts.addEventListener("loadingdone", scheduleHeight);
+                            document.fonts.addEventListener("loadingerror", scheduleHeight);
+                        }}
+                        if (document.fonts.ready && document.fonts.ready.then) {{
+                            document.fonts.ready.then(scheduleHeight).catch(() => {{}});
+                        }}
+                    }} catch (error) {{
+                        // Ignore font observation issues.
+                    }}
                 }}
 
                 window.addEventListener("message", (event) => {{
@@ -131,10 +244,20 @@ def build_srcdoc(pane: MacWindowPane, *, window_id: str) -> str:
                     if (data.windowId && data.windowId !== windowId) {{
                         return;
                     }}
-                    postHeight();
+                    scheduleHeight();
                 }});
 
-                postHeight();
+                window.addEventListener("load", scheduleHeight);
+                window.addEventListener("resize", scheduleHeight);
+                window.addEventListener("orientationchange", scheduleHeight);
+                document.addEventListener("readystatechange", scheduleHeight);
+
+                setInterval(() => scheduleHeight(), 1800);
+
+                if (document.readyState !== "loading") {{
+                    scheduleHeight();
+                }}
+                scheduleHeight();
             }})();
         </script>
         """
