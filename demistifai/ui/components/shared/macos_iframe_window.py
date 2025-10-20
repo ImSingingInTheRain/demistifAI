@@ -5,6 +5,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 import inspect
 import re
+from importlib import import_module
+import importlib.util
 from textwrap import dedent
 from typing import Callable, Dict, List, Literal, Sequence
 
@@ -177,6 +179,8 @@ def _resolve_ratio_styles(ratios: Sequence[float] | None, count: int) -> str:
 
 def _build_iframe_styles(pane: MacWindowPane) -> str:
     styles: List[str] = ["width: 100%", "border: 0", "background: transparent", "overflow: hidden"]
+    initial_height = pane.min_height or pane.max_height or 360
+    styles.append(f"height: {int(initial_height)}px")
     if pane.min_height is not None:
         styles.append(f"min-height: {pane.min_height}px")
     if pane.max_height is not None:
@@ -226,6 +230,13 @@ def _resolve_html_renderer(st) -> Callable[..., None] | None:
             html_renderer = getattr(v1, "html", None)
             if callable(html_renderer):
                 return html_renderer
+
+    spec = importlib.util.find_spec("streamlit.components.v1")
+    if spec is not None:
+        components_module = import_module("streamlit.components.v1")
+        components_html = getattr(components_module, "html", None)
+        if callable(components_html):
+            return components_html
 
     return None
 
@@ -310,7 +321,6 @@ def render_macos_iframe_window(st, config: MacWindowConfig) -> None:
                         {iframe_data_attrs}
                         srcdoc="{escaped_srcdoc}"
                         sandbox="allow-scripts allow-same-origin"
-                        loading="lazy"
                         style="{iframe_style}"
                     ></iframe>
                 </div>
@@ -647,12 +657,15 @@ def render_macos_iframe_window(st, config: MacWindowConfig) -> None:
     output = f"{css}{html_markup}{parent_script}"
 
     html_renderer = _resolve_html_renderer(st)
-    if html_renderer is not None:
-        fallback_height = _estimate_component_height(config, panes)
-        _render_with_compatible_signature(
-            html_renderer, output, fallback_height=fallback_height
+    if html_renderer is None:
+        raise RuntimeError(
+            "No HTML renderer available. Use Streamlit >= 1.37 (st.html) or "
+            "ensure streamlit.components.v1.html is importable."
         )
-    else:
-        st.markdown(output, unsafe_allow_html=True)
+
+    fallback_height = _estimate_component_height(config, panes)
+    _render_with_compatible_signature(
+        html_renderer, output, fallback_height=fallback_height
+    )
 
     return None
