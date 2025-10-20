@@ -529,15 +529,17 @@ def intro_hero_panes() -> tuple[MacWindowPane, MacWindowPane]:
     scoped_css = hero_content.css
     return (
         MacWindowPane(
-            html=left_html,
+            html=left_html.strip(),
             css=scoped_css,
             min_height=520,
+            max_width=520,
             pane_id=INTRO_HERO_SIDECAR_PANE_ID,
         ),
         MacWindowPane(
-            html=right_html,
+            html=right_html.strip(),
             css=scoped_css,
             min_height=520,
+            max_width=780,
             pane_id=INTRO_HERO_MAP_PANE_ID,
         ),
     )

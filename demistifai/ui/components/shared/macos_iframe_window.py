@@ -55,7 +55,7 @@ _UNESCAPED_AMPERSAND_PATTERN = re.compile(r"&(?![#\w]+;)")
 
 
 def build_srcdoc(pane: MacWindowPane, *, window_id: str) -> str:
-    """Assemble srcdoc HTML for an iframe pane."""
+    """Assemble a fully-formed HTML document for an iframe pane."""
 
     if pane.pane_id is None:
         raise ValueError("Pane must have pane_id assigned before building srcdoc")
@@ -82,11 +82,14 @@ def build_srcdoc(pane: MacWindowPane, *, window_id: str) -> str:
             }
         </style>
         """
-    )
+    ).strip()
+
     if pane.css:
-        pane_css = pane.css if "<style" in pane.css else f"<style>{pane.css}</style>"
+        pane_css = pane.css.strip()
+        css_blocks = [base_style, pane_css if "<style" in pane_css else f"<style>{pane_css}</style>"]
     else:
-        pane_css = ""
+        css_blocks = [base_style]
+
     monitor_script = dedent(
         f"""
         <script>
@@ -133,8 +136,25 @@ def build_srcdoc(pane: MacWindowPane, *, window_id: str) -> str:
             }})();
         </script>
         """
-    )
-    return base_style + pane_css + pane.html + monitor_script
+    ).strip()
+
+    pane_markup = pane.html.strip() if pane.html else ""
+
+    return dedent(
+        f"""
+        <!DOCTYPE html>
+        <html lang="en">
+            <head>
+                <meta charset="utf-8" />
+                {'\n'.join(css_blocks)}
+            </head>
+            <body data-miw-pane="{pane.pane_id}">
+                {pane_markup}
+                {monitor_script}
+            </body>
+        </html>
+        """
+    ).strip()
 
 
 def _escape_srcdoc_attribute(value: str) -> str:
