@@ -20,6 +20,7 @@ from demistifai.ui.components.intro import (
 )
 from demistifai.ui.components.shared.macos_iframe_window import (
     MacWindowConfig,
+    MacWindowPane,
     render_macos_iframe_window,
 )
 from demistifai.ui.components.terminal.article3 import (
@@ -56,14 +57,35 @@ def render_intro_stage(*, section_surface: SectionSurface) -> None:
     render_stage_top_grid("intro", left_renderer=_render_intro_terminal)
 
     with section_surface("section-surface--hero"):
-        hero_panes = render_intro_hero()
+        hero_content = render_intro_hero()
+
+        def _hero_pane(html: str, *, pane_id: str, max_width: int) -> MacWindowPane:
+            return MacWindowPane(
+                html=f"{hero_content.css}\n{html}",
+                min_height=520,
+                max_width=max_width,
+                pane_id=pane_id,
+            )
+
+        hero_panes = (
+            _hero_pane(
+                hero_content.columns[0],
+                pane_id=INTRO_HERO_SIDECAR_PANE_ID,
+                max_width=520,
+            ),
+            _hero_pane(
+                hero_content.columns[1],
+                pane_id=INTRO_HERO_MAP_PANE_ID,
+                max_width=780,
+            ),
+        )
         render_macos_iframe_window(
             st,
             MacWindowConfig(
                 panes=hero_panes,
                 rows=1,
                 columns=2,
-                column_ratios=(0.33, 0.67),
+                column_ratios=(0.4, 0.6),
             ),
         )
 
