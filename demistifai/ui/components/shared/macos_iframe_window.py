@@ -4,8 +4,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import html
+import inspect
 from textwrap import dedent
-from typing import Callable, List, Literal, Sequence
+from typing import Callable, Dict, List, Literal, Sequence
 
 
 @dataclass
@@ -195,6 +196,39 @@ def _resolve_html_renderer(st) -> Callable[..., None] | None:
                 return html_renderer
 
     return None
+
+
+def _render_with_compatible_signature(
+    renderer: Callable[..., None],
+    markup: str,
+    *,
+    fallback_height: int,
+) -> None:
+    """Invoke ``renderer`` with kwargs supported by its signature."""
+
+    try:
+        signature = inspect.signature(renderer)
+    except (TypeError, ValueError):
+        signature = None
+
+    kwargs: Dict[str, object] = {}
+    if signature is not None:
+        parameters = signature.parameters
+        accepts_var_kw = any(
+            parameter.kind is inspect.Parameter.VAR_KEYWORD
+            for parameter in parameters.values()
+        )
+        if accepts_var_kw or "height" in parameters:
+            kwargs["height"] = fallback_height
+        if accepts_var_kw or "scrolling" in parameters:
+            kwargs["scrolling"] = False
+    else:
+        kwargs = {"height": fallback_height, "scrolling": False}
+
+    try:
+        renderer(markup, **kwargs)
+    except TypeError:
+        renderer(markup)
 
 
 def render_macos_iframe_window(st, config: MacWindowConfig) -> None:
@@ -537,7 +571,9 @@ def render_macos_iframe_window(st, config: MacWindowConfig) -> None:
     html_renderer = _resolve_html_renderer(st)
     if html_renderer is not None:
         fallback_height = _estimate_component_height(config, panes)
-        html_renderer(output, height=fallback_height, scrolling=False)
+        _render_with_compatible_signature(
+            html_renderer, output, fallback_height=fallback_height
+        )
     else:
         st.markdown(output, unsafe_allow_html=True)
 
