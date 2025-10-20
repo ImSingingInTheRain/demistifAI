@@ -393,60 +393,62 @@ def render_mac_window(
 
     root_container = st.container()
 
-    with root_container:
-        root_container.markdown(
-            dedent(
-                f"""
-                <section class="{' '.join(root_classes)}" style="--mw-max-width: {max_width_css}; --mw-grid-template: {grid_template};" role="group" aria-label="{escaped_title} window">
-                  <header class="mac-window__chrome{_suffix_class(suffix_prefix, '__chrome')}" aria-hidden="false">
-                    <div class="mac-window__lights" aria-hidden="true">
-                      <span class="mac-window__light mac-window__light--red"></span>
-                      <span class="mac-window__light mac-window__light--yellow"></span>
-                      <span class="mac-window__light mac-window__light--green"></span>
-                    </div>
-                    <div class="mac-window__titles{_suffix_class(suffix_prefix, '__titles')}">
-                      <div class="mac-window__title{_suffix_class(suffix_prefix, '__title')}">{escaped_title}</div>
-                      {subtitle_block}
-                    </div>
-                  </header>
-                  <div class="mac-window__body{_suffix_class(suffix_prefix, '__body')}">
-                    <div class="mac-window__mobile-header{_suffix_class(suffix_prefix, '__mobile-header')}">
-                      <div class="mac-window__title{_suffix_class(suffix_prefix, '__title')}">{escaped_title}</div>
-                      {mobile_subtitle_block}
-                    </div>
-                    <div class="mac-window__grid{_suffix_class(suffix_prefix, '__grid')}">
-                """
-            ).strip(),
-            unsafe_allow_html=True,
-        )
+    section_head = root_container.empty()
+    grid_container = root_container.container()
+    section_tail = root_container.empty()
 
-    column_wrappers: list[DeltaGenerator] = []
+    section_head.markdown(
+        dedent(
+            f"""
+            <section class="{' '.join(root_classes)}" style="--mw-max-width: {max_width_css}; --mw-grid-template: {grid_template};" role="group" aria-label="{escaped_title} window">
+              <header class="mac-window__chrome{_suffix_class(suffix_prefix, '__chrome')}" aria-hidden="false">
+                <div class="mac-window__lights" aria-hidden="true">
+                  <span class="mac-window__light mac-window__light--red"></span>
+                  <span class="mac-window__light mac-window__light--yellow"></span>
+                  <span class="mac-window__light mac-window__light--green"></span>
+                </div>
+                <div class="mac-window__titles{_suffix_class(suffix_prefix, '__titles')}">
+                  <div class="mac-window__title{_suffix_class(suffix_prefix, '__title')}">{escaped_title}</div>
+                  {subtitle_block}
+                </div>
+              </header>
+              <div class="mac-window__body{_suffix_class(suffix_prefix, '__body')}">
+                <div class="mac-window__mobile-header{_suffix_class(suffix_prefix, '__mobile-header')}">
+                  <div class="mac-window__title{_suffix_class(suffix_prefix, '__title')}">{escaped_title}</div>
+                  {mobile_subtitle_block}
+                </div>
+                <div class="mac-window__grid{_suffix_class(suffix_prefix, '__grid')}">
+            """
+        ).strip(),
+        unsafe_allow_html=True,
+    )
+
     column_slots: list[DeltaGenerator] = []
 
     for index in range(columns):
-        wrapper = root_container.container()
-        wrapper.markdown(
+        wrapper = grid_container.container()
+        col_open = wrapper.empty()
+        content_slot = wrapper.container()
+        col_close = wrapper.empty()
+
+        col_open.markdown(
             f'<div class="mac-window__col{_suffix_class(suffix_prefix, "__col")}" data-mw-col="{index}">',
             unsafe_allow_html=True,
         )
-        content_slot = wrapper.container()
-        column_wrappers.append(wrapper)
+        col_close.markdown("</div>", unsafe_allow_html=True)
+
         column_slots.append(content_slot)
 
-    try:
-        yield tuple(column_slots)
-    finally:
-        for wrapper in column_wrappers:
-            wrapper.markdown("</div>", unsafe_allow_html=True)
+    section_tail.markdown(
+        dedent(
+            """
+                </div>
+              </div>
+            </section>
+            """
+        ).strip(),
+        unsafe_allow_html=True,
+    )
 
-        root_container.markdown(
-            dedent(
-                """
-                    </div>
-                  </div>
-                </section>
-                """
-            ).strip(),
-            unsafe_allow_html=True,
-        )
+    yield tuple(column_slots)
 
