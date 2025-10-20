@@ -20,10 +20,7 @@ from demistifai.ui.components.terminal.boot_sequence import (
     _DEFAULT_DEMAI_LINES,
     render_ai_act_terminal as render_boot_sequence_terminal,
 )
-from demistifai.ui.theme.macos_window import (
-    build_macos_window,
-    inject_macos_window_theme,
-)
+from demistifai.ui.theme.macos_window import macos_window_markup, macos_window_styles
 
 
 def render_overview_stage(
@@ -68,24 +65,27 @@ def render_overview_stage(
         right_first_renderer=_render_overview_nerd_toggle,
     )
 
-    inject_macos_window_theme(st)
-    st.markdown(
-        build_macos_window(
-            title="System snapshot",
-            column_blocks=(
-                demai_architecture_markup(
-                    nerd_mode=nerd_enabled,
-                    active_stage="overview",
-                ),
+    macos_theme_key = "macos_window_theme_injected"
+    if not ss.get(macos_theme_key):
+        st.markdown(macos_window_styles(), unsafe_allow_html=True)
+        ss[macos_theme_key] = True
+
+    architecture_window = macos_window_markup(
+        "System snapshot",
+        columns=1,
+        column_blocks=(
+            demai_architecture_markup(
+                nerd_mode=nerd_enabled,
+                active_stage="overview",
             ),
-            columns=1,
-            ratios=(1,),
-            id_suffix="overview-mac-placeholder",
-            scoped_css=demai_architecture_styles(),
-            column_variant="flush",
         ),
-        unsafe_allow_html=True,
+        id_suffix="overview-mac-placeholder",
+        column_variant="flush",
     )
+    architecture_styles = demai_architecture_styles()
+    if architecture_styles:
+        architecture_window = f"{architecture_styles}\n{architecture_window}"
+    st.markdown(architecture_window, unsafe_allow_html=True)
 
     preview_records: List[Dict[str, Any]] = []
     if incoming_records:
@@ -95,18 +95,18 @@ def render_overview_stage(
     mailbox_html = mailbox_preview_markup(preview_records)
     mission_html = mission_overview_column_markup()
 
-    st.markdown(
-        build_macos_window(
-            title="Mission briefing",
-            subtitle="Control room orientation",
-            column_blocks=(mission_html, mailbox_html),
-            columns=2,
-            ratios=(1.1, 0.9),
-            id_suffix="overview-mission-brief",
-            scoped_css=mission_brief_styles(),
-        ),
-        unsafe_allow_html=True,
+    mission_window = macos_window_markup(
+        "Mission briefing",
+        subtitle="Control room orientation",
+        columns=2,
+        ratios=(1.1, 0.9),
+        id_suffix="overview-mission-brief",
+        column_blocks=(mission_html, mailbox_html),
     )
+    mission_styles = mission_brief_styles()
+    if mission_styles:
+        mission_window = f"{mission_styles}\n{mission_window}"
+    st.markdown(mission_window, unsafe_allow_html=True)
 
     if nerd_enabled:
         with section_surface():
