@@ -1,15 +1,15 @@
 """Theme helpers for demistifAI UI primitives."""
 
-from .macos_window import (
-    build_macos_window,
-    inject_macos_window_theme,
-    macos_window_markup,
-    macos_window_styles,
+from demistifai.ui.components.shared.macos_iframe_window import (
+    MacWindowConfig,
+    MacWindowPane,
+    build_srcdoc,
+    render_macos_iframe_window,
 )
 
 __all__ = [
-    "build_macos_window",
-    "inject_macos_window_theme",
-    "macos_window_markup",
-    "macos_window_styles",
+    "MacWindowConfig",
+    "MacWindowPane",
+    "build_srcdoc",
+    "render_macos_iframe_window",
 ]
