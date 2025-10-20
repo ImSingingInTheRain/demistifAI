@@ -32,9 +32,10 @@ from demistifai.ui.components.train import (
     render_numeric_clue_preview,
     training_stage_stylesheet,
 )
-from demistifai.ui.theme.macos_window import (
-    build_macos_window,
-    inject_macos_window_theme,
+from demistifai.ui.components.shared import (
+    MacWindowConfig,
+    MacWindowPane,
+    render_macos_iframe_window,
 )
 from .callbacks import (
     callable_or_attr,
@@ -86,8 +87,6 @@ def render_train_stage_page(
 
     prepared_df = data_state.get("prepared")
 
-    inject_macos_window_theme(st)
-
     render_stage_top_grid("train", left_renderer=render_train_terminal_slot)
 
     if prepared_df is None:
@@ -98,17 +97,26 @@ def render_train_stage_page(
 
     animation_column = build_training_animation_column()
     notes_column = build_training_notes_column()
-    st.markdown(
-        build_macos_window(
-            title="Training dynamics monitor",
-            subtitle="MiniLM organising emails by meaning",
-            column_blocks=(notes_column.html, animation_column.html),
+    render_macos_iframe_window(
+        st,
+        MacWindowConfig(
+            panes=(
+                MacWindowPane(
+                    html=notes_column.html,
+                    css=notes_column.css,
+                    min_height=320,
+                    pane_id="train-animation-notes",
+                ),
+                MacWindowPane(
+                    html=animation_column.html,
+                    min_height=520,
+                    pane_id="train-animation-visual",
+                ),
+            ),
+            rows=1,
             columns=2,
-            ratios=(0.3, 0.7),
-            id_suffix="train-animation",
-            scoped_css=notes_column.css,
+            column_ratios=(0.3, 0.7),
         ),
-        unsafe_allow_html=True,
     )
 
     has_embed = callable_or_attr(encode_texts)
@@ -153,8 +161,6 @@ def render_train_stage(
     section_surface,
     summarize_language_mix,
 ):
-
-
     stage = STAGE_BY_KEY["train"]
     ss.setdefault("token_budget_cache", {})
     ss.setdefault("guard_params", {})
@@ -168,7 +174,6 @@ def render_train_stage(
     ss["guard_params"].setdefault("numeric_logit_cap", 1.0)
     ss["guard_params"].setdefault("combine_strategy", "blend")
 
-    inject_macos_window_theme(st)
     st.markdown(training_stage_stylesheet(), unsafe_allow_html=True)
 
     stage_number = STAGE_INDEX.get(stage.key, 0) - STAGE_INDEX.get("data", 0) + 1
