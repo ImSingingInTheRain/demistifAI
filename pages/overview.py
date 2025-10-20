@@ -10,9 +10,12 @@ from streamlit.delta_generator import DeltaGenerator
 
 from demistifai.ui.components import render_stage_top_grid
 from demistifai.ui.components.overview import (
-    demai_architecture_pane,
-    mailbox_preview_pane,
-    mission_brief_pane,
+    demai_architecture_markup,
+    demai_architecture_styles,
+    mailbox_preview_markup,
+    mailbox_preview_styles,
+    mission_brief_styles,
+    mission_overview_column_markup,
 )
 from demistifai.ui.components.terminal.boot_sequence import (
     _DEFAULT_DEMAI_LINES,
@@ -20,6 +23,7 @@ from demistifai.ui.components.terminal.boot_sequence import (
 )
 from demistifai.ui.components.shared.macos_iframe_window import (
     MacWindowConfig,
+    MacWindowPane,
     render_macos_iframe_window,
 )
 
@@ -66,9 +70,14 @@ def render_overview_stage(
         right_first_renderer=_render_overview_nerd_toggle,
     )
 
-    architecture_pane = demai_architecture_pane(
-        nerd_mode=nerd_enabled,
-        active_stage="overview",
+    architecture_pane = MacWindowPane(
+        html=demai_architecture_markup(
+            nerd_mode=nerd_enabled,
+            active_stage="overview",
+        ),
+        css=demai_architecture_styles(),
+        min_height=520,
+        pane_id="overview-architecture",
     )
     render_macos_iframe_window(
         st,
@@ -85,8 +94,18 @@ def render_overview_stage(
         preview_records = df_incoming.head(5).to_dict("records")
 
     mission_panes = (
-        mission_brief_pane(),
-        mailbox_preview_pane(preview_records),
+        MacWindowPane(
+            html=mission_overview_column_markup(),
+            css=mission_brief_styles(),
+            min_height=420,
+            pane_id="overview-mission-brief",
+        ),
+        MacWindowPane(
+            html=mailbox_preview_markup(preview_records),
+            css=mailbox_preview_styles(),
+            min_height=420,
+            pane_id="overview-mission-mailbox",
+        ),
     )
     render_macos_iframe_window(
         st,
