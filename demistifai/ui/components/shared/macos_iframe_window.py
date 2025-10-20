@@ -219,10 +219,6 @@ def _estimate_component_height(config: MacWindowConfig, panes: Sequence[MacWindo
 def _resolve_html_renderer(st) -> Callable[..., None] | None:
     """Return a callable that can render raw HTML within ``st`` containers."""
 
-    html_renderer = getattr(st, "html", None)
-    if callable(html_renderer):
-        return html_renderer
-
     components = getattr(st, "components", None)
     if components is not None:
         v1 = getattr(components, "v1", None)
@@ -237,6 +233,13 @@ def _resolve_html_renderer(st) -> Callable[..., None] | None:
         components_html = getattr(components_module, "html", None)
         if callable(components_html):
             return components_html
+
+    # ``st.html`` became available in Streamlit 1.32+, but it sanitises markup by
+    # default which strips the iframe panes that this component relies on. We only
+    # fall back to it if the components API cannot be reached.
+    html_renderer = getattr(st, "html", None)
+    if callable(html_renderer):
+        return html_renderer
 
     return None
 
