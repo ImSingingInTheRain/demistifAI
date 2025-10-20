@@ -16,10 +16,13 @@ from demistifai.ui.components.overview import (
     mission_brief_styles,
     mission_overview_column_markup,
 )
-from demistifai.ui.components.shared import render_mac_window
 from demistifai.ui.components.terminal.boot_sequence import (
     _DEFAULT_DEMAI_LINES,
     render_ai_act_terminal as render_boot_sequence_terminal,
+)
+from demistifai.ui.theme.macos_window import (
+    build_macos_window,
+    inject_macos_window_theme,
 )
 
 
@@ -65,22 +68,24 @@ def render_overview_stage(
         right_first_renderer=_render_overview_nerd_toggle,
     )
 
-    with render_mac_window(
-        st,
-        title="System snapshot",
-        columns=1,
-        ratios=(1,),
-        id_suffix="overview-mac-placeholder",
-        scoped_css=demai_architecture_styles(),
-        column_variant="flush",
-    ) as (architecture_col,):
-        architecture_col.markdown(
-            demai_architecture_markup(
-                nerd_mode=nerd_enabled,
-                active_stage="overview",
+    inject_macos_window_theme(st)
+    st.markdown(
+        build_macos_window(
+            title="System snapshot",
+            column_blocks=(
+                demai_architecture_markup(
+                    nerd_mode=nerd_enabled,
+                    active_stage="overview",
+                ),
             ),
-            unsafe_allow_html=True,
-        )
+            columns=1,
+            ratios=(1,),
+            id_suffix="overview-mac-placeholder",
+            scoped_css=demai_architecture_styles(),
+            column_variant="flush",
+        ),
+        unsafe_allow_html=True,
+    )
 
     preview_records: List[Dict[str, Any]] = []
     if incoming_records:
@@ -90,17 +95,18 @@ def render_overview_stage(
     mailbox_html = mailbox_preview_markup(preview_records)
     mission_html = mission_overview_column_markup()
 
-    with render_mac_window(
-        st,
-        title="Mission briefing",
-        subtitle="Control room orientation",
-        columns=2,
-        ratios=(1.1, 0.9),
-        id_suffix="overview-mission-brief",
-        scoped_css=mission_brief_styles(),
-    ) as (mission_col, mailbox_col):
-        mission_col.markdown(mission_html, unsafe_allow_html=True)
-        mailbox_col.markdown(mailbox_html, unsafe_allow_html=True)
+    st.markdown(
+        build_macos_window(
+            title="Mission briefing",
+            subtitle="Control room orientation",
+            column_blocks=(mission_html, mailbox_html),
+            columns=2,
+            ratios=(1.1, 0.9),
+            id_suffix="overview-mission-brief",
+            scoped_css=mission_brief_styles(),
+        ),
+        unsafe_allow_html=True,
+    )
 
     if nerd_enabled:
         with section_surface():

@@ -22,7 +22,6 @@ from pages.train_stage.helpers.storyboard import (
 )
 
 from demistifai.ui.components import render_stage_top_grid
-from demistifai.ui.components.shared import render_mac_window
 from demistifai.ui.components.train import (
     build_inline_note,
     build_training_animation_column,
@@ -32,6 +31,10 @@ from demistifai.ui.components.train import (
     render_numeric_clue_cards,
     render_numeric_clue_preview,
     training_stage_stylesheet,
+)
+from demistifai.ui.theme.macos_window import (
+    build_macos_window,
+    inject_macos_window_theme,
 )
 from .callbacks import (
     callable_or_attr,
@@ -92,20 +95,19 @@ def render_train_stage_page(
     animation_column = build_training_animation_column()
     notes_column = build_training_notes_column()
 
-    with render_mac_window(
-        st,
-        title="Training dynamics monitor",
-        subtitle="MiniLM organising emails by meaning",
-        columns=2,
-        ratios=(0.3, 0.7),
-        id_suffix="train-animation",
-        scoped_css=notes_column.css,
-    ) as (notes_slot, animation_slot):
-        notes_slot.markdown(notes_column.html, unsafe_allow_html=True)
-        animation_slot.markdown(
-            animation_column.html,
-            unsafe_allow_html=True,
-        )
+    inject_macos_window_theme(st)
+    st.markdown(
+        build_macos_window(
+            title="Training dynamics monitor",
+            subtitle="MiniLM organising emails by meaning",
+            column_blocks=(notes_column.html, animation_column.html),
+            columns=2,
+            ratios=(0.3, 0.7),
+            id_suffix="train-animation",
+            scoped_css=notes_column.css,
+        ),
+        unsafe_allow_html=True,
+    )
 
     has_embed = callable_or_attr(encode_texts)
 

@@ -1,15 +1,14 @@
-"""macOS-style window layout helpers for Streamlit."""
+"""macOS-style window theme helpers."""
 
 from __future__ import annotations
 
 import html
 import re
-from contextlib import contextmanager
-from typing import Iterable, Iterator, Literal, Sequence
-from uuid import uuid4
 from textwrap import dedent
+from typing import Iterable, Literal, Sequence
 
 ColumnVariant = Literal["standard", "flush"]
+ThemeVariant = Literal["light", "dark"]
 
 _MAC_WINDOW_BASE_STYLE = dedent(
     """
@@ -57,15 +56,6 @@ _MAC_WINDOW_BASE_STYLE = dedent(
         --mw-col-mobile-padding: 0;
         --mw-col-background: none;
         --mw-col-shadow: none;
-      }
-
-      .mac-window > div[data-testid="stVerticalBlock"],
-      .mac-window__body > div[data-testid="stVerticalBlock"],
-      .mac-window__grid > div[data-testid="stVerticalBlock"],
-      .mac-window__grid > div[data-testid="column"],
-      .mac-window__grid > div[data-testid="stVerticalBlock"] > div[data-testid="stVerticalBlock"],
-      .mac-window__grid > div[data-testid="stVerticalBlock"] > div[data-testid="column"] {
-        display: contents;
       }
 
       .mac-window__chrome {
@@ -285,17 +275,6 @@ def _normalise_scoped_css(scoped_css: str | Iterable[str] | None) -> str:
     return f"<style>\n{combined}\n</style>"
 
 
-def _emit_base_styles(st) -> None:
-    """Ensure the shared mac-window stylesheet is registered once."""
-
-    global _BASE_STYLE_EMITTED
-    if _BASE_STYLE_EMITTED:
-        return
-
-    st.markdown(_MAC_WINDOW_BASE_STYLE, unsafe_allow_html=True)
-    _BASE_STYLE_EMITTED = True
-
-
 def _format_max_width(max_width: float | int | str) -> str:
     """Normalise ``max_width`` values into CSS tokens."""
 
@@ -334,36 +313,32 @@ def _suffix_class(prefix: str | None, element: str) -> str:
     return f" {prefix}{element}"
 
 
-@contextmanager
-def render_mac_window(
-    st,
-    *,
-    title: str = "demAI",
-    subtitle: str | None = None,
-    columns: int = 2,
-    ratios: Sequence[float] | None = None,
-    dense: bool = False,
-    theme: Literal["light", "dark"] = "light",
-    id_suffix: str | None = None,
-    scoped_css: str | Iterable[str] | None = None,
-    max_width: float | int | str = 1020,
-    column_variant: ColumnVariant = "standard",
-) -> Iterator[tuple["DeltaGenerator", ...]]:
-    """Render a macOS-style window and yield Streamlit containers for its columns."""
+def macos_window_styles() -> str:
+    """Return the shared macOS window stylesheet."""
 
-    from streamlit.delta_generator import DeltaGenerator
+    return _MAC_WINDOW_BASE_STYLE
+
+
+def macos_window_markup(
+    title: str,
+    *,
+    subtitle: str | None = None,
+    columns: int = 1,
+    ratios: Sequence[float] | None = None,
+    id_suffix: str | None = None,
+    column_blocks: Sequence[str | None] | None = None,
+    dense: bool = False,
+    theme: ThemeVariant = "light",
+    column_variant: ColumnVariant = "standard",
+    max_width: float | int | str = 1020,
+) -> str:
+    """Return HTML markup for a macOS-style window."""
 
     if column_variant not in ("standard", "flush"):
         raise ValueError("column_variant must be 'standard' or 'flush'")
 
     max_width_css = _format_max_width(max_width)
     grid_template = _format_grid_template(columns, ratios)
-
-    _emit_base_styles(st)
-
-    scoped_style_block = _normalise_scoped_css(scoped_css)
-    if scoped_style_block:
-        st.markdown(scoped_style_block, unsafe_allow_html=True)
 
     root_classes = ["mac-window"]
     if theme == "dark":
@@ -392,18 +367,23 @@ def render_mac_window(
         else ""
     )
 
-    root_container = st.container()
+    column_contents = list(column_blocks or [])
+    if not column_contents:
+        column_contents = ["" for _ in range(columns)]
+    elif len(column_contents) < columns:
+        column_contents.extend(["" for _ in range(columns - len(column_contents))])
+    elif len(column_contents) > columns:
+        raise ValueError("column_blocks length cannot exceed the number of columns")
 
-    section_head = root_container.empty()
-    column_source = root_container.container()
-    section_tail = root_container.empty()
+    column_class = f"mac-window__col{_suffix_class(suffix_prefix, '__col')}"
+    columns_markup = "\n".join(
+        f'<div class="{column_class}">{content or ""}</div>' for content in column_contents
+    )
 
-    instance_id = suffix_prefix or f"mw-instance-{uuid4().hex[:8]}"
-
-    section_head.markdown(
+    return (
         dedent(
             f"""
-            <section class="{' '.join(root_classes)}" style="--mw-max-width: {max_width_css}; --mw-grid-template: {grid_template};" role="group" aria-label="{escaped_title} window" data-mw-instance="{instance_id}">
+            <section class="{' '.join(root_classes)}" style="--mw-max-width: {max_width_css}; --mw-grid-template: {grid_template};" role="group" aria-label="{escaped_title} window">
               <header class="mac-window__chrome{_suffix_class(suffix_prefix, '__chrome')}" aria-hidden="false">
                 <div class="mac-window__lights" aria-hidden="true">
                   <span class="mac-window__light mac-window__light--red"></span>
@@ -420,124 +400,62 @@ def render_mac_window(
                   <div class="mac-window__title{_suffix_class(suffix_prefix, '__title')}">{escaped_title}</div>
                   {mobile_subtitle_block}
                 </div>
-                <div class="mac-window__grid{_suffix_class(suffix_prefix, '__grid')}" data-mw-grid="{instance_id}"></div>
+                <div class="mac-window__grid{_suffix_class(suffix_prefix, '__grid')}">
+                  {columns_markup}
+                </div>
               </div>
             </section>
             """
-        ).strip(),
-        unsafe_allow_html=True,
-    )
-
-    column_slots = column_source.columns(columns)
-
-    source_marker = column_source.empty()
-    source_marker.markdown(
-        dedent(
-            f"""
-            <script id="{instance_id}-mw-source-marker">
-            (function() {{
-                const doc = (() => {{
-                    try {{
-                        if (window.parent && window.parent !== window && window.parent.document) {{
-                            return window.parent.document;
-                        }}
-                    }} catch (error) {{
-                        // Ignore cross-origin access errors and fall back to the current document.
-                    }}
-                    return document;
-                }})();
-                const marker = doc.getElementById('{instance_id}-mw-source-marker');
-                if (!marker) {{
-                    return;
-                }}
-                const block = marker.closest('[data-testid="stVerticalBlock"]');
-                if (!block) {{
-                    return;
-                }}
-                const horizontal = block.querySelector('[data-testid="stHorizontalBlock"]');
-                if (!horizontal) {{
-                    return;
-                }}
-                horizontal.setAttribute('data-mw-source', '{instance_id}');
-                horizontal.style.display = 'none';
-            }})();
-            </script>
-            """
-        ).strip(),
-        unsafe_allow_html=True,
-    )
-
-    column_class = f"mac-window__col{_suffix_class(suffix_prefix, '__col')}"
-
-    try:
-        yield tuple(column_slots)
-    finally:
-        section_tail.markdown(
-            dedent(
-                f"""
-                <script id="{instance_id}-mw-mount">
-                (function() {{
-                    const doc = (() => {{
-                        try {{
-                            if (window.parent && window.parent !== window && window.parent.document) {{
-                                return window.parent.document;
-                            }}
-                        }} catch (error) {{
-                            // Ignore cross-origin access errors and fall back to the current document.
-                        }}
-                        return document;
-                    }})();
-                    const gridSelector = '[data-mw-grid="{instance_id}"]';
-                    const sourceSelector = '[data-mw-source="{instance_id}"]';
-                    const columnClass = '{column_class}';
-
-                    function relocateColumns() {{
-                        const grid = doc.querySelector(gridSelector);
-                        const source = doc.querySelector(sourceSelector);
-                        if (!grid || !source) {{
-                            return false;
-                        }}
-
-                        const columnNodes = source.querySelectorAll(':scope > div[data-testid="column"]');
-                        if (!columnNodes.length) {{
-                            return false;
-                        }}
-
-                        grid.innerHTML = '';
-
-                        columnNodes.forEach(function(columnNode, index) {{
-                            const wrapper = doc.createElement('div');
-                            wrapper.className = columnClass;
-                            wrapper.setAttribute('data-mw-col', String(index));
-                            while (columnNode.firstChild) {{
-                                wrapper.appendChild(columnNode.firstChild);
-                            }}
-                            grid.appendChild(wrapper);
-                        }});
-
-                        const vertical = source.closest('[data-testid="stVerticalBlock"]');
-                        if (vertical) {{
-                            vertical.remove();
-                        }} else {{
-                            source.remove();
-                        }}
-
-                        return true;
-                    }}
-
-                    if (!relocateColumns()) {{
-                        const observer = new MutationObserver(function() {{
-                            if (relocateColumns()) {{
-                                observer.disconnect();
-                            }}
-                        }});
-                        observer.observe(doc.body, {{ childList: true, subtree: true }});
-                        setTimeout(function() {{ observer.disconnect(); }}, 4000);
-                    }}
-                }})();
-                </script>
-                """
-            ).strip(),
-            unsafe_allow_html=True,
         )
+        .strip()
+    )
 
+
+def build_macos_window(
+    *,
+    title: str,
+    subtitle: str | None = None,
+    column_blocks: Sequence[str | None],
+    ratios: Sequence[float] | None = None,
+    id_suffix: str | None = None,
+    dense: bool = False,
+    theme: ThemeVariant = "light",
+    column_variant: ColumnVariant = "standard",
+    max_width: float | int | str = 1020,
+    columns: int | None = None,
+    scoped_css: str | Iterable[str] | None = None,
+) -> str:
+    """Return combined CSS (if any) and markup for a macOS window."""
+
+    resolved_columns = columns or len(column_blocks)
+    if resolved_columns <= 0:
+        raise ValueError("columns must be positive")
+
+    markup = macos_window_markup(
+        title,
+        subtitle=subtitle,
+        columns=resolved_columns,
+        ratios=ratios,
+        id_suffix=id_suffix,
+        column_blocks=column_blocks,
+        dense=dense,
+        theme=theme,
+        column_variant=column_variant,
+        max_width=max_width,
+    )
+
+    scoped_style = _normalise_scoped_css(scoped_css)
+    if scoped_style:
+        return f"{scoped_style}\n{markup}"
+    return markup
+
+
+def inject_macos_window_theme(st) -> None:
+    """Ensure the shared mac-window stylesheet is registered once."""
+
+    global _BASE_STYLE_EMITTED
+    if _BASE_STYLE_EMITTED:
+        return
+
+    st.markdown(macos_window_styles(), unsafe_allow_html=True)
+    _BASE_STYLE_EMITTED = True
