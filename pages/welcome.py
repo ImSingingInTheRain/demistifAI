@@ -2,21 +2,19 @@
 
 from __future__ import annotations
 
-import json
 from textwrap import dedent
 from typing import Callable, ContextManager, Optional
 
 import streamlit as st
 from streamlit.delta_generator import DeltaGenerator
-from streamlit.components.v1 import html as components_html
 
 from demistifai.core.navigation import activate_stage
 from demistifai.core.utils import streamlit_rerun
 from demistifai.constants import STAGE_INDEX, STAGES, StageMeta
 from demistifai.ui.components import render_stage_top_grid
 from demistifai.ui.components.intro import (
-    intro_lifecycle_ring_markup,
     render_intro_hero,
+    render_lifecycle_ring_component,
 )
 from demistifai.ui.theme.macos_window import (
     inject_macos_window_theme,
@@ -74,60 +72,7 @@ def render_intro_stage(*, section_surface: SectionSurface) -> None:
         combined_markup = f"{hero_css}\n{window_markup}" if hero_css else window_markup
         st.markdown(combined_markup, unsafe_allow_html=True)
 
-        lifecycle_markup = intro_lifecycle_ring_markup()
-        components_html(
-            dedent(
-                f"""
-                <script>
-                    (function() {{
-                        const doc = window.parent && window.parent.document ? window.parent.document : document;
-                        const markup = {json.dumps(lifecycle_markup)};
-
-                        function executeScripts(root) {{
-                            root.querySelectorAll('script').forEach((script) => {{
-                                const replacement = doc.createElement('script');
-                                Array.from(script.attributes).forEach((attr) => {{
-                                    replacement.setAttribute(attr.name, attr.value);
-                                }});
-                                replacement.textContent = script.textContent;
-                                script.replaceWith(replacement);
-                            }});
-                        }}
-
-                        function mountLifecycle() {{
-                            const slot = doc.querySelector('[data-intro-lifecycle-slot]');
-                            if (!slot) {{
-                                return false;
-                            }}
-
-                            const template = doc.createElement('template');
-                            template.innerHTML = markup;
-                            const content = template.content.cloneNode(true);
-
-                            slot.replaceChildren(content);
-                            executeScripts(slot);
-                            slot.setAttribute('data-intro-lifecycle-mounted', '1');
-                            return true;
-                        }}
-
-                        if (!mountLifecycle()) {{
-                            const maxWaitMs = 4000;
-                            const start = Date.now();
-
-                            const interval = setInterval(() => {{
-                                const mounted = mountLifecycle();
-                                const expired = Date.now() - start > maxWaitMs;
-                                if (mounted || expired) {{
-                                    clearInterval(interval);
-                                }}
-                            }}, 100);
-                        }}
-                    }})();
-                </script>
-                """
-            ),
-            height=0,
-        )
+        render_lifecycle_ring_component(height=0)
 
         if next_stage_meta is not None and next_stage_key is not None:
             button_key = f"intro_stage_start_{next_stage_key}"
