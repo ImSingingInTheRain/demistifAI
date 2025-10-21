@@ -515,7 +515,8 @@ def intro_hero_scoped_css() -> str:
 
                 .intro-lifecycle__details {
                     position: absolute;
-                    inset: clamp(-0.4rem, -4.6vw, -0.95rem);
+                    inset: 0;
+                    grid-area: 1 / 1 / 4 / 4;
                     border-radius: inherit;
                     background: rgba(248, 250, 252, 0.98);
                     box-shadow: 0 28px 52px rgba(15, 23, 42, 0.32);
