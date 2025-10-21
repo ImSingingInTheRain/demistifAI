@@ -616,6 +616,7 @@ def render_macos_iframe_window(st, config: MacWindowConfig) -> None:
                 [data-miw="{window_id}"] .miw {{
                     border-radius: 16px;
                     box-shadow: 0 20px 44px rgba(15,23,42,0.25);
+                    --miw-grid-gap: clamp(0.65rem, 3vw, 0.9rem);
                 }}
                 [data-miw="{window_id}"] .miw__chrome {{
                     grid-template-columns: minmax(0, 1fr);
