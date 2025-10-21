@@ -421,6 +421,167 @@ def intro_hero_scoped_css() -> str:
                 }
             }
 
+            @media (max-width: 640px) {
+                .intro-lifecycle {
+                    width: min(100%, 440px);
+                }
+
+                .intro-lifecycle__ring {
+                    border-radius: 32px;
+                    background: linear-gradient(170deg, rgba(37, 99, 235, 0.14), rgba(14, 165, 233, 0.08));
+                    box-shadow: inset 0 0 0 1px rgba(59, 130, 246, 0.16), 0 20px 50px rgba(15, 23, 42, 0.14);
+                    display: grid;
+                    grid-template-columns: repeat(5, minmax(0, 1fr));
+                    grid-template-rows: repeat(5, minmax(0, 1fr));
+                    gap: clamp(0.45rem, 2.6vw, 0.7rem);
+                    padding: clamp(1.6rem, 7vw, 2.2rem);
+                    align-items: stretch;
+                    justify-items: stretch;
+                }
+
+                .intro-lifecycle__ring::before,
+                .intro-lifecycle__ring::after {
+                    content: "";
+                    position: absolute;
+                    left: 50%;
+                    top: 50%;
+                    transform: translate(-50%, -50%);
+                    pointer-events: none;
+                    background: linear-gradient(
+                        160deg,
+                        rgba(37, 99, 235, 0),
+                        rgba(59, 130, 246, 0.18) 28%,
+                        rgba(14, 165, 233, 0)
+                    );
+                }
+
+                .intro-lifecycle__ring::before {
+                    width: 1px;
+                    height: calc(100% - clamp(2.4rem, 13vw, 3.2rem));
+                }
+
+                .intro-lifecycle__ring::after {
+                    height: 1px;
+                    width: calc(100% - clamp(2.4rem, 13vw, 3.2rem));
+                }
+
+                .intro-lifecycle__loop {
+                    grid-column: 3;
+                    grid-row: 3;
+                    width: clamp(90px, 28vw, 118px);
+                    height: clamp(90px, 28vw, 118px);
+                    border-radius: 28px;
+                    font-size: clamp(1.6rem, 6vw, 2rem);
+                    z-index: 2;
+                }
+
+                .intro-lifecycle__stages {
+                    display: contents;
+                }
+
+                .intro-lifecycle__stage {
+                    position: relative;
+                    inset: auto;
+                    transform: none;
+                    width: min(240px, 92vw);
+                    min-width: 0;
+                    margin: 0;
+                    padding: clamp(0.65rem, 2.6vw, 0.95rem) clamp(0.75rem, 3vw, 1.1rem);
+                    border-radius: 18px;
+                    box-shadow: 0 14px 36px rgba(15, 23, 42, 0.16), inset 0 0 0 1px rgba(148, 163, 184, 0.28);
+                    display: grid;
+                    gap: 0.35rem;
+                    justify-self: center;
+                    align-self: center;
+                    text-align: center;
+                    background: rgba(255, 255, 255, 0.96);
+                    z-index: 3;
+                }
+
+                .intro-lifecycle__stage::after {
+                    display: grid;
+                    width: 30px;
+                    height: 30px;
+                    place-items: center;
+                    font-size: 0.9rem;
+                    background: #fff;
+                    color: rgba(37, 99, 235, 0.85);
+                    border-radius: 999px;
+                    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.16), inset 0 0 0 1px rgba(59, 130, 246, 0.28);
+                }
+
+                .intro-lifecycle__stage[data-pos="0"] {
+                    grid-column: 2 / span 3;
+                    grid-row: 1 / span 2;
+                    align-self: end;
+                }
+
+                .intro-lifecycle__stage[data-pos="1"] {
+                    grid-column: 4 / span 2;
+                    grid-row: 2 / span 3;
+                    justify-self: start;
+                    text-align: left;
+                }
+
+                .intro-lifecycle__stage[data-pos="2"] {
+                    grid-column: 2 / span 3;
+                    grid-row: 4 / span 2;
+                    align-self: start;
+                }
+
+                .intro-lifecycle__stage[data-pos="3"] {
+                    grid-column: 1 / span 2;
+                    grid-row: 2 / span 3;
+                    justify-self: end;
+                    text-align: right;
+                }
+
+                .intro-lifecycle__stage[data-pos="0"]::after {
+                    content: "➝";
+                    top: 50%;
+                    right: -22px;
+                    transform: translate(50%, -50%);
+                }
+
+                .intro-lifecycle__stage[data-pos="1"]::after {
+                    content: "➝";
+                    bottom: -22px;
+                    left: 50%;
+                    transform: translate(-50%, 50%) rotate(90deg);
+                }
+
+                .intro-lifecycle__stage[data-pos="2"]::after {
+                    content: "➝";
+                    left: -22px;
+                    top: 50%;
+                    transform: translate(-50%, -50%) rotate(180deg);
+                }
+
+                .intro-lifecycle__stage[data-pos="3"]::after {
+                    content: "➝";
+                    top: -22px;
+                    left: 50%;
+                    transform: translate(-50%, -50%) rotate(270deg);
+                }
+
+                .intro-lifecycle__stage-index {
+                    font-size: 0.66rem;
+                }
+
+                .intro-lifecycle__label {
+                    font-size: 0.94rem;
+                }
+
+                .intro-lifecycle__copy {
+                    font-size: 0.78rem;
+                    line-height: 1.5;
+                }
+
+                .intro-lifecycle__legend {
+                    padding-top: 0.2rem;
+                }
+            }
+
             @media (prefers-reduced-motion: reduce) {
                 .intro-lifecycle__stage {
                     transition: none;
