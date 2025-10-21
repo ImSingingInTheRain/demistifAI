@@ -241,7 +241,10 @@ def intro_hero_scoped_css() -> str:
                 position: absolute;
                 top: 50%;
                 left: 50%;
-                transform: translate(-50%, -50%);
+                --stage-translate-x: 0%;
+                --stage-translate-y: 0%;
+                transform: translate(-50%, -50%)
+                    translate(var(--stage-translate-x), var(--stage-translate-y));
                 width: min(48%, 180px);
                 min-width: 140px;
                 background: #fff;
@@ -270,25 +273,27 @@ def intro_hero_scoped_css() -> str:
 
             .intro-lifecycle__stage:hover,
             .intro-lifecycle__stage:focus-visible {
-                transform: translate(-50%, -50%) scale(1.04);
+                transform: translate(-50%, -50%)
+                    translate(var(--stage-translate-x), var(--stage-translate-y))
+                    scale(1.04);
                 box-shadow: 0 22px 48px rgba(15, 23, 42, 0.18), inset 0 0 0 1px rgba(59, 130, 246, 0.45);
                 outline: none;
             }
 
             .intro-lifecycle__stage[data-pos="0"] {
-                transform: translate(-50%, -50%) translateY(-140%);
+                --stage-translate-y: -140%;
             }
 
             .intro-lifecycle__stage[data-pos="1"] {
-                transform: translate(-50%, -50%) translateX(140%);
+                --stage-translate-x: 140%;
             }
 
             .intro-lifecycle__stage[data-pos="2"] {
-                transform: translate(-50%, -50%) translateY(140%);
+                --stage-translate-y: 140%;
             }
 
             .intro-lifecycle__stage[data-pos="3"] {
-                transform: translate(-50%, -50%) translateX(-140%);
+                --stage-translate-x: -140%;
             }
 
             .intro-lifecycle__stage[data-pos="0"]::after {
