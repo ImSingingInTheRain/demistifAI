@@ -495,7 +495,12 @@ def intro_hero_scoped_css() -> str:
                 }
 
                 .intro-lifecycle__ring {
-                    padding: clamp(1rem, 7vw, 1.4rem);
+                    padding: clamp(0.75rem, 5.8vw, 1.2rem);
+                }
+
+                .intro-lifecycle__stage-square {
+                    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.4fr) minmax(0, 0.9fr);
+                    grid-template-rows: minmax(0, 0.9fr) minmax(0, 1.4fr) minmax(0, 0.9fr);
                 }
 
                 .intro-lifecycle__stage {
@@ -510,7 +515,7 @@ def intro_hero_scoped_css() -> str:
 
                 .intro-lifecycle__details {
                     position: absolute;
-                    inset: 0;
+                    inset: clamp(-0.4rem, -4.6vw, -0.95rem);
                     border-radius: inherit;
                     background: rgba(248, 250, 252, 0.98);
                     box-shadow: 0 28px 52px rgba(15, 23, 42, 0.32);
@@ -526,7 +531,7 @@ def intro_hero_scoped_css() -> str:
                     inset: 0;
                     width: auto;
                     min-height: 100%;
-                    border-radius: inherit;
+                    border-radius: clamp(26px, 9vw, 34px);
                     padding: clamp(1.1rem, 6vw, 2rem);
                     gap: clamp(0.7rem, 4vw, 1.1rem);
                     display: none;
