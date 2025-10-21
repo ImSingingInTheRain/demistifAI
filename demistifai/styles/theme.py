@@ -42,8 +42,8 @@ APP_THEME_CSS = """
 
 @media (max-width: 720px) {
     [data-testid="stMainBlockContainer"] {
-        padding-left: clamp(0.65rem, 4.5vw, 1.1rem);
-        padding-right: clamp(0.65rem, 4.5vw, 1.1rem);
+        padding-left: 0 !important;
+        padding-right: 0 !important;
     }
     .section-surface > div[data-testid="stVerticalBlock"] {
         margin-bottom: clamp(1rem, 3vw, 1.5rem);
