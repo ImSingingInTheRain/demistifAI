@@ -232,10 +232,19 @@ def intro_hero_scoped_css() -> str:
                 position: relative;
                 width: 100%;
                 height: 100%;
+                border-radius: 36px;
+                isolation: isolate;
+            }
+
+            .intro-lifecycle__stage-square {
+                position: relative;
+                z-index: 1;
+                width: 100%;
+                height: 100%;
                 display: grid;
                 grid-template-columns: repeat(3, minmax(0, 1fr));
                 grid-template-rows: repeat(3, minmax(0, 1fr));
-                border-radius: 36px;
+                border-radius: inherit;
             }
 
             .intro-lifecycle__grid::before {
@@ -245,6 +254,7 @@ def intro_hero_scoped_css() -> str:
                 border-radius: 50%;
                 box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.24);
                 pointer-events: none;
+                z-index: 0;
             }
 
             .intro-lifecycle__stage-input {
@@ -501,13 +511,14 @@ def intro_hero_scoped_css() -> str:
                 .intro-lifecycle__details {
                     position: absolute;
                     inset: 0;
-                    border-radius: 28px;
+                    border-radius: inherit;
                     background: rgba(248, 250, 252, 0.98);
                     box-shadow: 0 28px 52px rgba(15, 23, 42, 0.32);
                     opacity: 0;
                     pointer-events: none;
                     transition: opacity 0.18s ease;
                     z-index: 8;
+                    padding: 0;
                 }
 
                 .intro-lifecycle__detail {
@@ -515,7 +526,7 @@ def intro_hero_scoped_css() -> str:
                     inset: 0;
                     width: auto;
                     min-height: 100%;
-                    border-radius: 28px;
+                    border-radius: inherit;
                     padding: clamp(1.1rem, 6vw, 2rem);
                     gap: clamp(0.7rem, 4vw, 1.1rem);
                     display: none;
@@ -622,11 +633,13 @@ def intro_lifecycle_ring_markup() -> str:
             </div>
             <div class="intro-lifecycle__ring" role="group" aria-label="AI system lifecycle stages">
                 <div class="intro-lifecycle__grid">
-                    <input type="radio" class="intro-lifecycle__stage-input" name="intro-lifecycle-stage" id="intro-lifecycle-stage-none" value="" checked aria-label="Hide lifecycle details">
-                    {controls_markup}
-                    {arrows_markup}
-                    <div class="intro-lifecycle__details" aria-live="polite">
-                        {details_markup}
+                    <div class="intro-lifecycle__stage-square">
+                        <input type="radio" class="intro-lifecycle__stage-input" name="intro-lifecycle-stage" id="intro-lifecycle-stage-none" value="" checked aria-label="Hide lifecycle details">
+                        {controls_markup}
+                        {arrows_markup}
+                        <div class="intro-lifecycle__details" aria-live="polite">
+                            {details_markup}
+                        </div>
                     </div>
                 </div>
             </div>
