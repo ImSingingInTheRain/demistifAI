@@ -18,6 +18,10 @@ _MISSION_BRIEF_CSS = dedent(
           gap: 1.4rem;
           font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
           color: #0f172a;
+          background: linear-gradient(160deg, rgba(37, 99, 235, 0.06), rgba(37, 99, 235, 0));
+          border: 1px solid rgba(37, 99, 235, 0.16);
+          border-radius: 1.2rem;
+          padding: 1.5rem 1.75rem;
       }
       .mission-brief__header {
           display: flex;
@@ -68,7 +72,63 @@ _MISSION_BRIEF_CSS = dedent(
       }
       @media (max-width: 960px) {
           .mission-brief {
-              gap: 1.2rem;
+              gap: 1.25rem;
+              padding: 1.35rem 1.55rem;
+          }
+      }
+      @media (max-width: 768px) {
+          .mission-brief {
+              padding: 1.2rem 1.35rem;
+          }
+          .mission-brief__title {
+              font-size: 1.32rem;
+          }
+          .mission-brief__bridge,
+          .mission-brief__summary {
+              font-size: 0.94rem;
+          }
+      }
+      @media (max-width: 600px) {
+          .mission-brief {
+              padding: 1.1rem 1.25rem;
+              border-radius: 1rem;
+          }
+          .mission-brief__header {
+              align-items: flex-start;
+              gap: 0.8rem;
+          }
+          .mission-brief__title {
+              font-size: 1.26rem;
+          }
+          .mission-brief__bridge,
+          .mission-brief__summary {
+              line-height: 1.55;
+          }
+      }
+      @media (max-width: 480px) {
+          .mission-brief {
+              gap: 1.05rem;
+              padding: 1rem 1.15rem 1.15rem;
+              box-shadow: 0 16px 40px -28px rgba(15, 23, 42, 0.45);
+          }
+          .mission-brief__header {
+              flex-direction: column;
+              align-items: flex-start;
+              gap: 0.45rem;
+          }
+          .mission-brief__icon {
+              font-size: 1.8rem;
+          }
+          .mission-brief__eyebrow {
+              font-size: 0.72rem;
+              letter-spacing: 0.14em;
+          }
+          .mission-brief__title {
+              font-size: 1.18rem;
+          }
+          .mission-brief__bridge,
+          .mission-brief__summary {
+              font-size: 0.9rem;
           }
       }
     </style>
@@ -80,7 +140,7 @@ _MAILBOX_PREVIEW_CSS = dedent(
     """
     <style>
       .mailbox-preview {
-          background: rgba(255, 255, 255, 0.85);
+          background: rgba(255, 255, 255, 0.9);
           border-radius: 1.1rem;
           border: 1px solid rgba(37, 99, 235, 0.16);
           overflow: hidden;
@@ -88,6 +148,7 @@ _MAILBOX_PREVIEW_CSS = dedent(
           gap: 0;
           font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
           color: #0f172a;
+          box-shadow: 0 20px 40px -32px rgba(15, 23, 42, 0.45);
       }
       .mailbox-preview__header {
           display: flex;
@@ -183,37 +244,90 @@ _MAILBOX_PREVIEW_CSS = dedent(
           font-size: 0.92rem;
           color: rgba(15, 23, 42, 0.65);
       }
+      @media (max-width: 1024px) {
+          .mailbox-preview {
+              border-radius: 1rem;
+          }
+      }
       @media (max-width: 960px) {
           .mailbox-preview__header {
               flex-direction: column;
               align-items: flex-start;
+              padding: 1rem 1.15rem;
+              gap: 0.35rem;
+          }
+          .mailbox-preview__header h4 {
+              font-size: 1.02rem;
           }
       }
-      @media (max-width: 768px) {
+      @media (max-width: 820px) {
+          .mailbox-preview {
+              box-shadow: 0 16px 40px -30px rgba(15, 23, 42, 0.5);
+          }
           .mail-row {
               padding: 0.85rem 1rem 0.95rem;
               gap: 0.55rem;
           }
+      }
+      @media (max-width: 720px) {
           .mail-row__header {
-              gap: 0.7rem;
+              gap: 0.65rem;
           }
           .mail-row__subject-line {
               gap: 0.5rem;
           }
-          .mail-row__tag {
-              padding: 0.22rem 0.6rem;
-              font-size: 0.72rem;
-          }
       }
       @media (max-width: 640px) {
+          .mailbox-preview {
+              border-radius: 0.95rem;
+          }
           .mail-row {
-              padding: 0.78rem 0.9rem 0.88rem;
+              padding: 0.8rem 0.9rem 0.9rem;
           }
           .mail-row__subject {
               font-size: 0.95rem;
           }
           .mail-row__snippet {
               font-size: 0.88rem;
+          }
+      }
+      @media (max-width: 520px) {
+          .mailbox-preview__header {
+              background: linear-gradient(135deg, rgba(37, 99, 235, 0.18), rgba(59, 130, 246, 0.12));
+              padding: 0.9rem 1.05rem;
+              border-bottom-width: 0;
+              border-bottom-left-radius: 0;
+              border-bottom-right-radius: 0;
+          }
+          .mailbox-preview__header h4 {
+              font-size: 0.98rem;
+          }
+          .mailbox-preview__header span {
+              font-size: 0.8rem;
+          }
+          .mail-row__subject-line {
+              flex-direction: column;
+              align-items: flex-start;
+          }
+          .mail-row__tag {
+              margin-top: 0.1rem;
+          }
+      }
+      @media (max-width: 460px) {
+          .mailbox-preview {
+              border-radius: 0.9rem;
+          }
+          .mail-row {
+              padding: 0.78rem 0.85rem 0.85rem;
+          }
+          .mail-row__subject {
+              font-size: 0.92rem;
+          }
+          .mail-row__snippet {
+              font-size: 0.84rem;
+          }
+          .mail-row__tag {
+              font-size: 0.7rem;
           }
       }
     </style>
