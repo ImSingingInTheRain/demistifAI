@@ -96,6 +96,7 @@ _MAILBOX_PREVIEW_CSS = dedent(
           padding: 1.05rem 1.3rem;
           background: linear-gradient(135deg, rgba(37, 99, 235, 0.12), rgba(59, 130, 246, 0.08));
           border-bottom: 1px solid rgba(37, 99, 235, 0.18);
+          gap: 0.75rem;
       }
       .mailbox-preview__header h4 {
           margin: 0;
@@ -112,62 +113,70 @@ _MAILBOX_PREVIEW_CSS = dedent(
           flex-direction: column;
       }
       .mail-row {
-          display: grid;
-          grid-template-columns: auto 1fr auto;
-          align-items: start;
-          gap: 1rem;
-          padding: 0.95rem 1.3rem;
+          display: flex;
+          flex-direction: column;
+          gap: 0.6rem;
+          padding: 0.9rem 1.3rem 1rem;
           border-bottom: 1px solid rgba(15, 23, 42, 0.06);
           background: rgba(248, 250, 252, 0.78);
       }
       .mail-row:nth-child(even) {
           background: rgba(255, 255, 255, 0.92);
       }
+      .mail-row__header {
+          display: flex;
+          align-items: flex-start;
+          gap: 0.85rem;
+      }
       .mail-row__status {
           width: 12px;
           height: 12px;
           border-radius: 999px;
           background: linear-gradient(135deg, #1d4ed8, #2563eb);
-          margin-top: 0.35rem;
+          margin-top: 0.25rem;
           box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+          flex-shrink: 0;
       }
       .mail-row__details {
           display: flex;
           flex-direction: column;
-          gap: 0.35rem;
+          gap: 0.45rem;
+          min-width: 0;
+      }
+      .mail-row__subject-line {
+          display: flex;
+          align-items: center;
+          gap: 0.6rem;
+          flex-wrap: wrap;
       }
       .mail-row__subject {
           margin: 0;
           font-size: 0.98rem;
           font-weight: 600;
           color: #0f172a;
-      }
-      .mail-row__snippet {
-          margin: 0;
-          font-size: 0.9rem;
-          color: rgba(15, 23, 42, 0.68);
-          line-height: 1.45;
-      }
-      .mail-row__meta {
-          display: flex;
-          flex-direction: column;
-          align-items: flex-end;
-          gap: 0.4rem;
-          font-size: 0.8rem;
-          color: rgba(15, 23, 42, 0.6);
+          flex: 1 1 auto;
+          line-height: 1.35;
+          word-break: break-word;
       }
       .mail-row__tag {
           display: inline-flex;
           align-items: center;
           justify-content: center;
-          padding: 0.25rem 0.6rem;
+          padding: 0.25rem 0.65rem;
           border-radius: 999px;
-          background: rgba(37, 99, 235, 0.14);
+          background: rgba(37, 99, 235, 0.16);
           color: #1d4ed8;
           font-weight: 600;
-          font-size: 0.75rem;
+          font-size: 0.74rem;
           letter-spacing: 0.08em;
           text-transform: uppercase;
+      }
+      .mail-row__snippet {
+          margin: 0;
+          font-size: 0.9rem;
+          color: rgba(15, 23, 42, 0.7);
+          line-height: 1.5;
+          word-break: break-word;
       }
       .mail-empty {
           padding: 1.2rem 1.3rem;
@@ -175,50 +184,36 @@ _MAILBOX_PREVIEW_CSS = dedent(
           color: rgba(15, 23, 42, 0.65);
       }
       @media (max-width: 960px) {
-          .mail-row {
-              grid-template-columns: auto 1fr;
-          }
-          .mail-row__meta {
+          .mailbox-preview__header {
+              flex-direction: column;
               align-items: flex-start;
           }
       }
       @media (max-width: 768px) {
           .mail-row {
-              grid-template-columns: 1fr;
-              padding: 0.78rem 1rem;
-              gap: 0.6rem;
+              padding: 0.85rem 1rem 0.95rem;
+              gap: 0.55rem;
           }
-          .mail-row__status {
-              display: flex;
-              align-items: center;
-              justify-content: flex-start;
-              grid-row: 1;
-              grid-column: 1;
-              margin-top: 0.1rem;
+          .mail-row__header {
+              gap: 0.7rem;
           }
-          .mail-row__details {
-              grid-row: 1;
-              grid-column: 1;
-              padding-left: 1.6rem;
-              gap: 0.3rem;
+          .mail-row__subject-line {
+              gap: 0.5rem;
           }
-          .mail-row__subject {
-              line-height: 1.3;
+          .mail-row__tag {
+              padding: 0.22rem 0.6rem;
+              font-size: 0.72rem;
           }
       }
       @media (max-width: 640px) {
-          .mail-row__details {
+          .mail-row {
+              padding: 0.78rem 0.9rem 0.88rem;
+          }
+          .mail-row__subject {
+              font-size: 0.95rem;
+          }
+          .mail-row__snippet {
               font-size: 0.88rem;
-          }
-          .mail-row__meta {
-              grid-column: 1 / -1;
-              margin-top: 0.35rem;
-              align-items: flex-start;
-              gap: 0.3rem;
-          }
-          .mail-row__tag {
-              padding: 0.2rem 0.5rem;
-              font-size: 0.72rem;
           }
       }
     </style>
@@ -281,13 +276,15 @@ def mailbox_preview_markup(
             dedent(
                 """
                 <div class="mail-row">
-                    <div class="mail-row__status"></div>
-                    <div class="mail-row__details">
-                        <p class="mail-row__subject">{subject}</p>
-                        <p class="mail-row__snippet">{snippet}</p>
-                    </div>
-                    <div class="mail-row__meta">
-                        <span class="mail-row__tag">Queued</span>
+                    <div class="mail-row__header">
+                        <span class="mail-row__status" aria-hidden="true"></span>
+                        <div class="mail-row__details">
+                            <div class="mail-row__subject-line">
+                                <p class="mail-row__subject">{subject}</p>
+                                <span class="mail-row__tag">Queued</span>
+                            </div>
+                            <p class="mail-row__snippet">{snippet}</p>
+                        </div>
                     </div>
                 </div>
                 """
