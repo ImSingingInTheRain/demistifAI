@@ -192,8 +192,8 @@ def intro_hero_scoped_css() -> str:
             }
 
             .intro-lifecycle {
-                width: 100%;
-                max-width: 560px;
+                width: min(100%, 560px);
+                max-width: 100%;
                 margin: 0 auto;
                 display: grid;
                 gap: 1.4rem;
@@ -225,7 +225,7 @@ def intro_hero_scoped_css() -> str:
                 box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.08);
                 display: grid;
                 place-items: center;
-                padding: 2.8rem;
+                padding: clamp(2rem, 6vw, 2.8rem);
             }
 
             .intro-lifecycle__stages {
@@ -245,15 +245,15 @@ def intro_hero_scoped_css() -> str:
                 --stage-translate-y: 0%;
                 transform: translate(-50%, -50%)
                     translate(var(--stage-translate-x), var(--stage-translate-y));
-                width: min(48%, 180px);
-                min-width: 140px;
+                width: clamp(150px, 44%, 180px);
+                min-width: clamp(136px, 36vw, 164px);
                 background: #fff;
                 border-radius: 20px;
                 box-shadow: 0 16px 40px rgba(15, 23, 42, 0.14), inset 0 0 0 1px rgba(148, 163, 184, 0.3);
                 padding: 0.8rem 1rem;
                 text-align: center;
                 display: grid;
-                gap: 0.4rem;
+                gap: 0.45rem;
                 transition: transform 0.18s ease, box-shadow 0.18s ease;
             }
 
@@ -324,6 +324,14 @@ def intro_hero_scoped_css() -> str:
                 transform: translate(-50%, -50%) rotate(270deg);
             }
 
+            .intro-lifecycle__stage-index {
+                font-size: 0.7rem;
+                text-transform: uppercase;
+                letter-spacing: 0.14em;
+                font-weight: 700;
+                color: rgba(37, 99, 235, 0.72);
+            }
+
             .intro-lifecycle__icon {
                 font-size: 1.3rem;
             }
@@ -383,44 +391,29 @@ def intro_hero_scoped_css() -> str:
                 color: rgba(15, 23, 42, 0.75);
             }
 
-            @media (max-width: 900px) {
-                .intro-lifecycle__stage {
-                    min-width: 130px;
-                }
-            }
-
-            @media (max-width: 780px) {
+            @media (max-width: 820px) {
                 .intro-hero-pane {
                     min-height: auto;
                 }
 
                 .intro-lifecycle__ring {
-                    padding: 2.2rem;
-                }
-
-                .intro-lifecycle__stage {
-                    width: min(52%, 170px);
-                }
-            }
-
-            @media (max-width: 640px) {
-                .intro-lifecycle__stage {
-                    position: static;
-                    transform: none;
-                    width: 100%;
-                }
-
-                .intro-lifecycle__stage::after {
-                    display: none;
-                }
-
-                .intro-lifecycle__ring {
-                    padding: clamp(1.6rem, 8vw, 2.2rem);
+                    padding: clamp(1.6rem, 7vw, 2.2rem);
                 }
 
                 .intro-lifecycle__stages {
                     display: grid;
                     gap: 1rem;
+                }
+
+                .intro-lifecycle__stage {
+                    position: static;
+                    transform: none;
+                    width: 100%;
+                    min-width: 0;
+                }
+
+                .intro-lifecycle__stage::after {
+                    display: none;
                 }
 
                 .intro-lifecycle__legend {
@@ -448,6 +441,7 @@ def intro_lifecycle_ring_markup() -> str:
             dedent(
                 f"""
                 <li class=\"intro-lifecycle__stage\" data-stage=\"{stage.key}\" data-pos=\"{index}\" tabindex=\"0\">
+                    <span class=\"intro-lifecycle__stage-index\">Step {index + 1}</span>
                     <span class=\"intro-lifecycle__icon\" aria-hidden=\"true\">{stage.icon}</span>
                     <p class=\"intro-lifecycle__label\" id=\"intro-lifecycle-{stage.key}-title\">{stage.title}</p>
                     <p class=\"intro-lifecycle__copy\" id=\"intro-lifecycle-{stage.key}-desc\">{stage.body}</p>
@@ -497,9 +491,9 @@ def intro_lifecycle_columns() -> tuple[str, str]:
                 <div class=\"intro-lifecycle-sidecar__eyebrow\">What you'll do</div>
                 <h5 class=\"intro-lifecycle-sidecar__title\">Build and use an AI spam detector</h5>
                 <p class=\"intro-lifecycle-sidecar__body\">
-                    In this interactive journey you will assemble a dataset, train a model, and see how it behaves on live
-                    emails. Each step links to the next so you can experience the lifecycle end to end without prior
-                    machine-learning expertise.
+                    In this interactive journey you will assemble a dataset, train a model, evaluate it with fresh signals,
+                    and see how it behaves on live emails. Each step links to the next so you can experience the lifecycle
+                    end to end without prior machine-learning expertise.
                 </p>
                 <ul class=\"intro-lifecycle-sidecar__list\">
                     <li><strong>Understand the path ahead.</strong> The lifecycle map shows where you are and what comes next.</li>
@@ -544,7 +538,7 @@ def intro_hero_panes() -> tuple[MacWindowPane, MacWindowPane]:
             html=right_html.strip(),
             css=scoped_css,
             min_height=520,
-            max_width=780,
+            max_width=720,
             pane_id=INTRO_HERO_MAP_PANE_ID,
         ),
     )
