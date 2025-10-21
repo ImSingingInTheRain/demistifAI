@@ -248,11 +248,6 @@ def mission_overview_column_markup() -> str:
             <p class="mission-brief__bridge">You’re stepping into the control room of an email triage machine. The inbox snapshot on the right mirrors the live preview you’ll work from in a moment.</p>
             <div class="mission-brief__objective">
                 <p class="mission-brief__summary">Keep unwanted email out while letting the important messages through. You’ll steer the controls, set the operating thresholds, and verify the system’s choices.</p>
-                <ul class="mission-brief__list">
-                    <li>Scan the inbox feed and spot risky patterns early.</li>
-                    <li>Decide how strict the spam filter should be and when autonomy applies.</li>
-                    <li>Confirm or correct decisions so the system learns your judgement.</li>
-                </ul>
             </div>
         </div>
         """
