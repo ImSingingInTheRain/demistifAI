@@ -480,10 +480,10 @@ def render_macos_iframe_window(st, config: MacWindowConfig) -> None:
                 --miw-title-color: #0f172a;
                 --miw-subtitle-color: rgba(15,23,42,0.65);
                 --miw-border-color: rgba(15,23,42,0.08);
-                --miw-cell-bg: rgba(255,255,255,0.82);
-                --miw-cell-border: 1px solid rgba(148,163,184,0.35);
+                --miw-cell-bg: rgba(0, 0, 0, 0);
+                --miw-cell-border: 0px solid rgba(0, 0, 0, 0);
                 --miw-cell-radius: 16px;
-                --miw-cell-shadow: inset 0 0 0 1px rgba(148,163,184,0.15);
+                --miw-cell-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0);
                 position: relative;
                 border-radius: var(--miw-radius);
                 overflow: hidden;
