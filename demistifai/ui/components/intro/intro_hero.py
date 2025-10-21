@@ -259,15 +259,16 @@ def intro_hero_scoped_css() -> str:
                 gap: 0.35rem;
                 align-items: center;
                 justify-items: center;
-                padding: clamp(0.6rem, 2.2vw, 0.95rem);
-                min-width: clamp(104px, 22vw, 148px);
-                background: rgba(255, 255, 255, 0.95);
-                border-radius: 18px;
+                padding: clamp(0.55rem, 1.9vw, 0.85rem);
+                min-width: clamp(96px, 18vw, 132px);
+                background: rgba(255, 255, 255, 0.9);
+                border-radius: 16px;
                 text-align: center;
                 font-weight: 600;
-                font-size: clamp(0.82rem, 1.8vw, 0.95rem);
-                color: rgba(15, 23, 42, 0.82);
-                box-shadow: 0 18px 38px rgba(15, 23, 42, 0.14), inset 0 0 0 1px rgba(148, 163, 184, 0.3);
+                font-size: clamp(0.8rem, 1.7vw, 0.92rem);
+                color: rgba(15, 23, 42, 0.8);
+                box-shadow: 0 14px 30px rgba(15, 23, 42, 0.12), inset 0 0 0 1px rgba(148, 163, 184, 0.28);
+                backdrop-filter: blur(6px);
                 cursor: pointer;
                 transition: transform 0.2s ease, box-shadow 0.2s ease, color 0.2s ease;
                 z-index: 1;
@@ -298,6 +299,98 @@ def intro_hero_scoped_css() -> str:
                 margin: 0;
             }
 
+            .intro-lifecycle__arrow {
+                position: relative;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                width: 100%;
+                height: 100%;
+                pointer-events: none;
+            }
+
+            .intro-lifecycle__arrow::before {
+                content: "";
+                display: block;
+                border-radius: 999px;
+                background: linear-gradient(90deg, rgba(30, 64, 175, 0.15), rgba(37, 99, 235, 0.65));
+            }
+
+            .intro-lifecycle__arrow::after {
+                content: "";
+                display: block;
+            }
+
+            .intro-lifecycle__arrow--top {
+                grid-area: 1 / 2 / 2 / 3;
+            }
+
+            .intro-lifecycle__arrow--top::before {
+                height: 3px;
+                width: 70%;
+            }
+
+            .intro-lifecycle__arrow--top::after {
+                border-top: 7px solid transparent;
+                border-bottom: 7px solid transparent;
+                border-left: 10px solid rgba(37, 99, 235, 0.75);
+                margin-left: 0.35rem;
+            }
+
+            .intro-lifecycle__arrow--right {
+                grid-area: 2 / 3 / 3 / 4;
+                flex-direction: column;
+            }
+
+            .intro-lifecycle__arrow--right::before {
+                width: 3px;
+                height: 70%;
+                background: linear-gradient(180deg, rgba(30, 64, 175, 0.15), rgba(37, 99, 235, 0.65));
+            }
+
+            .intro-lifecycle__arrow--right::after {
+                border-left: 7px solid transparent;
+                border-right: 7px solid transparent;
+                border-top: 10px solid rgba(37, 99, 235, 0.75);
+                margin-top: 0.35rem;
+            }
+
+            .intro-lifecycle__arrow--bottom {
+                grid-area: 3 / 2 / 4 / 3;
+                flex-direction: row-reverse;
+            }
+
+            .intro-lifecycle__arrow--bottom::before {
+                height: 3px;
+                width: 70%;
+                background: linear-gradient(270deg, rgba(30, 64, 175, 0.15), rgba(37, 99, 235, 0.65));
+            }
+
+            .intro-lifecycle__arrow--bottom::after {
+                border-top: 7px solid transparent;
+                border-bottom: 7px solid transparent;
+                border-right: 10px solid rgba(37, 99, 235, 0.75);
+                margin-right: 0.35rem;
+            }
+
+            .intro-lifecycle__arrow--left {
+                grid-area: 2 / 1 / 3 / 2;
+                flex-direction: column-reverse;
+            }
+
+            .intro-lifecycle__arrow--left::before {
+                width: 3px;
+                height: 70%;
+                background: linear-gradient(0deg, rgba(30, 64, 175, 0.15), rgba(37, 99, 235, 0.65));
+            }
+
+            .intro-lifecycle__arrow--left::after {
+                border-left: 7px solid transparent;
+                border-right: 7px solid transparent;
+                border-bottom: 10px solid rgba(37, 99, 235, 0.75);
+                margin-bottom: 0.35rem;
+            }
+
             .intro-lifecycle__stage:hover,
             .intro-lifecycle__stage-input:checked + .intro-lifecycle__stage {
                 transform: translateY(-2px);
@@ -313,10 +406,12 @@ def intro_hero_scoped_css() -> str:
             .intro-lifecycle__details {
                 grid-area: 2 / 2 / 3 / 3;
                 position: relative;
-                display: grid;
-                align-items: center;
-                justify-items: center;
-                padding: clamp(0.4rem, 1.6vw, 0.9rem);
+                width: 100%;
+                height: 100%;
+                display: flex;
+                align-items: stretch;
+                justify-content: stretch;
+                padding: clamp(0.45rem, 1.8vw, 1.1rem);
                 pointer-events: none;
                 z-index: 3;
             }
@@ -326,15 +421,16 @@ def intro_hero_scoped_css() -> str:
                 display: none;
                 flex-direction: column;
                 align-items: flex-start;
-                gap: clamp(0.6rem, 1.5vw, 0.9rem);
-                padding: clamp(1.05rem, 2.6vw, 1.65rem);
-                width: min(100%, clamp(16.5rem, 38vw, 22rem));
-                min-height: clamp(10.5rem, 28vw, 13.5rem);
-                border-radius: 22px;
+                gap: clamp(0.65rem, 2.2vw, 1.1rem);
+                padding: clamp(1.2rem, 2.9vw, 2rem);
+                width: 100%;
+                height: 100%;
+                border-radius: 24px;
                 background: rgba(255, 255, 255, 0.97);
-                box-shadow: 0 24px 46px rgba(15, 23, 42, 0.2), inset 0 0 0 1px rgba(148, 163, 184, 0.32);
+                box-shadow: 0 24px 46px rgba(15, 23, 42, 0.18), inset 0 0 0 1px rgba(148, 163, 184, 0.3);
                 text-align: left;
                 pointer-events: auto;
+                box-sizing: border-box;
                 z-index: 4;
             }
 
@@ -393,9 +489,9 @@ def intro_hero_scoped_css() -> str:
                 }
 
                 .intro-lifecycle__stage {
-                    min-width: clamp(88px, 34vw, 110px);
-                    padding: clamp(0.5rem, 3.8vw, 0.75rem);
-                    font-size: clamp(0.78rem, 3vw, 0.88rem);
+                    min-width: clamp(82px, 32vw, 104px);
+                    padding: clamp(0.45rem, 3.5vw, 0.7rem);
+                    font-size: clamp(0.76rem, 3vw, 0.86rem);
                 }
 
                 .intro-lifecycle__icon {
@@ -404,8 +500,8 @@ def intro_hero_scoped_css() -> str:
 
                 .intro-lifecycle__details {
                     position: absolute;
-                    inset: 6%;
-                    border-radius: 24px;
+                    inset: 0;
+                    border-radius: 28px;
                     background: rgba(248, 250, 252, 0.98);
                     box-shadow: 0 28px 52px rgba(15, 23, 42, 0.32);
                     opacity: 0;
@@ -419,9 +515,9 @@ def intro_hero_scoped_css() -> str:
                     inset: 0;
                     width: auto;
                     min-height: 100%;
-                    border-radius: 24px;
-                    padding: clamp(1rem, 6vw, 1.8rem);
-                    gap: clamp(0.65rem, 4vw, 1rem);
+                    border-radius: 28px;
+                    padding: clamp(1.1rem, 6vw, 2rem);
+                    gap: clamp(0.7rem, 4vw, 1.1rem);
                     display: none;
                     overflow-y: auto;
                     box-shadow: none;
@@ -508,6 +604,14 @@ def intro_lifecycle_ring_markup() -> str:
 
     controls_markup = " ".join(stage_controls)
     details_markup = " ".join(detail_items)
+    arrows_markup = dedent(
+        """
+        <div class=\"intro-lifecycle__arrow intro-lifecycle__arrow--top\" aria-hidden=\"true\"></div>
+        <div class=\"intro-lifecycle__arrow intro-lifecycle__arrow--right\" aria-hidden=\"true\"></div>
+        <div class=\"intro-lifecycle__arrow intro-lifecycle__arrow--bottom\" aria-hidden=\"true\"></div>
+        <div class=\"intro-lifecycle__arrow intro-lifecycle__arrow--left\" aria-hidden=\"true\"></div>
+        """
+    ).strip()
 
     return dedent(
         f"""
@@ -520,6 +624,7 @@ def intro_lifecycle_ring_markup() -> str:
                 <div class="intro-lifecycle__grid">
                     <input type="radio" class="intro-lifecycle__stage-input" name="intro-lifecycle-stage" id="intro-lifecycle-stage-none" value="" checked aria-label="Hide lifecycle details">
                     {controls_markup}
+                    {arrows_markup}
                     <div class="intro-lifecycle__details" aria-live="polite">
                         {details_markup}
                     </div>
