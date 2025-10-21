@@ -316,7 +316,7 @@ def _build_iframe_styles(pane: MacWindowPane) -> str:
 
 
 def _estimate_component_height(config: MacWindowConfig, panes: Sequence[MacWindowPane]) -> int:
-    """Best-effort initial height for embedding the macOS window."""
+    """Estimate an initial iframe height for both grid and stacked layouts."""
 
     if not panes:
         return 360
@@ -326,17 +326,27 @@ def _estimate_component_height(config: MacWindowConfig, panes: Sequence[MacWindo
     row_gap = 28  # Approximate grid gap between stacked rows.
     default_pane_height = 360
 
-    row_heights: List[int] = [0 for _ in range(config.rows)]
-    for index, pane in enumerate(panes):
-        row_index = min(index // config.columns, config.rows - 1)
+    fallback_heights: List[int] = []
+    for pane in panes:
         candidate = pane.min_height or pane.max_height or default_pane_height
-        row_heights[row_index] = max(row_heights[row_index], int(candidate))
+        fallback_heights.append(int(candidate))
 
-    total_height = chrome_height + body_padding + sum(row_heights)
+    row_heights: List[int] = [0 for _ in range(config.rows)]
+    for index, height in enumerate(fallback_heights):
+        row_index = min(index // config.columns, config.rows - 1)
+        row_heights[row_index] = max(row_heights[row_index], height)
+
+    grid_total = chrome_height + body_padding + sum(row_heights)
     if config.rows > 1:
-        total_height += row_gap * (config.rows - 1)
+        grid_total += row_gap * (config.rows - 1)
 
-    return max(total_height, 320)
+    # Single-column breakpoints stack panes vertically, so reserve chrome,
+    # padding, and inter-pane gaps that mirror the CSS variables above.
+    stacked_total = chrome_height + body_padding + sum(fallback_heights)
+    if len(panes) > 1:
+        stacked_total += row_gap * (len(panes) - 1)
+
+    return max(grid_total, stacked_total, 320)
 
 
 def _resolve_html_renderer(st) -> Callable[..., None] | None:
