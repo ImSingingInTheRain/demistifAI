@@ -191,29 +191,29 @@ def intro_hero_scoped_css() -> str:
                 align-items: center;
             }
 
+
             .intro-lifecycle {
                 width: min(100%, 560px);
-                max-width: 100%;
                 margin: 0 auto;
                 display: grid;
-                gap: 1.4rem;
+                gap: clamp(1.1rem, 2.8vw, 1.6rem);
             }
 
             .intro-lifecycle__header {
                 display: grid;
-                gap: 0.4rem;
+                gap: 0.35rem;
                 text-align: center;
             }
 
             .intro-lifecycle__title {
                 margin: 0;
-                font-size: 1.35rem;
+                font-size: clamp(1.25rem, 2.6vw, 1.4rem);
                 font-weight: 750;
             }
 
             .intro-lifecycle__subtitle {
                 margin: 0;
-                font-size: 0.92rem;
+                font-size: clamp(0.86rem, 1.9vw, 0.94rem);
                 color: rgba(15, 23, 42, 0.75);
             }
 
@@ -221,369 +221,253 @@ def intro_hero_scoped_css() -> str:
                 position: relative;
                 aspect-ratio: 1 / 1;
                 border-radius: 50%;
-                background: radial-gradient(92% 92% at 50% 50%, rgba(37, 99, 235, 0.08), rgba(14, 165, 233, 0.05));
+                background: radial-gradient(closest-side, rgba(37, 99, 235, 0.08), rgba(56, 189, 248, 0.05));
                 box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.08);
+                padding: clamp(1.2rem, 4vw, 2.3rem);
                 display: grid;
                 place-items: center;
-                padding: clamp(2rem, 6vw, 2.8rem);
             }
 
-            .intro-lifecycle__stages {
-                list-style: none;
-                margin: 0;
-                padding: 0;
+            .intro-lifecycle__grid {
                 position: relative;
                 width: 100%;
                 height: 100%;
+                display: grid;
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+                grid-template-rows: repeat(3, minmax(0, 1fr));
+                border-radius: 36px;
+            }
+
+            .intro-lifecycle__grid::before {
+                content: "";
+                position: absolute;
+                inset: 10%;
+                border-radius: 50%;
+                box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.24);
+                pointer-events: none;
+            }
+
+            .intro-lifecycle__stage-input {
+                position: absolute;
+                opacity: 0;
+                pointer-events: none;
             }
 
             .intro-lifecycle__stage {
-                position: absolute;
-                top: 50%;
-                left: 50%;
-                --stage-translate-x: 0%;
-                --stage-translate-y: 0%;
-                transform: translate(-50%, -50%)
-                    translate(var(--stage-translate-x), var(--stage-translate-y));
-                width: clamp(150px, 44%, 180px);
-                min-width: clamp(136px, 36vw, 164px);
-                background: #fff;
-                border-radius: 20px;
-                box-shadow: 0 16px 40px rgba(15, 23, 42, 0.14), inset 0 0 0 1px rgba(148, 163, 184, 0.3);
-                padding: 0.8rem 1rem;
+                position: relative;
+                display: grid;
+                gap: 0.35rem;
+                align-items: center;
+                justify-items: center;
+                padding: clamp(0.6rem, 2.2vw, 0.95rem);
+                min-width: clamp(104px, 22vw, 148px);
+                background: rgba(255, 255, 255, 0.95);
+                border-radius: 18px;
                 text-align: center;
-                display: grid;
-                gap: 0.45rem;
-                transition: transform 0.18s ease, box-shadow 0.18s ease;
-            }
-
-            .intro-lifecycle__stage::after {
-                content: "";
-                position: absolute;
-                inset: auto;
-                width: 32px;
-                height: 32px;
-                border-radius: 999px;
-                display: grid;
-                place-items: center;
-                color: rgba(37, 99, 235, 0.85);
-                background: #fff;
-                box-shadow: 0 12px 24px rgba(15, 23, 42, 0.12), inset 0 0 0 1px rgba(148, 163, 184, 0.3);
-            }
-
-            .intro-lifecycle__stage:hover,
-            .intro-lifecycle__stage:focus-visible {
-                transform: translate(-50%, -50%)
-                    translate(var(--stage-translate-x), var(--stage-translate-y))
-                    scale(1.04);
-                box-shadow: 0 22px 48px rgba(15, 23, 42, 0.18), inset 0 0 0 1px rgba(59, 130, 246, 0.45);
-                outline: none;
+                font-weight: 600;
+                font-size: clamp(0.82rem, 1.8vw, 0.95rem);
+                color: rgba(15, 23, 42, 0.82);
+                box-shadow: 0 18px 38px rgba(15, 23, 42, 0.14), inset 0 0 0 1px rgba(148, 163, 184, 0.3);
+                cursor: pointer;
+                transition: transform 0.2s ease, box-shadow 0.2s ease, color 0.2s ease;
+                z-index: 1;
             }
 
             .intro-lifecycle__stage[data-pos="0"] {
-                --stage-translate-y: -140%;
+                grid-area: 1 / 1 / 2 / 2;
             }
 
             .intro-lifecycle__stage[data-pos="1"] {
-                --stage-translate-x: 140%;
+                grid-area: 1 / 3 / 2 / 4;
             }
 
             .intro-lifecycle__stage[data-pos="2"] {
-                --stage-translate-y: 140%;
+                grid-area: 3 / 3 / 4 / 4;
             }
 
             .intro-lifecycle__stage[data-pos="3"] {
-                --stage-translate-x: -140%;
-            }
-
-            .intro-lifecycle__stage[data-pos="0"]::after {
-                content: "➝";
-                bottom: -18px;
-                left: 50%;
-                transform: translate(-50%, 50%);
-            }
-
-            .intro-lifecycle__stage[data-pos="1"]::after {
-                content: "➝";
-                top: 50%;
-                right: -18px;
-                transform: translate(50%, -50%) rotate(90deg);
-            }
-
-            .intro-lifecycle__stage[data-pos="2"]::after {
-                content: "➝";
-                top: -18px;
-                left: 50%;
-                transform: translate(-50%, -50%) rotate(180deg);
-            }
-
-            .intro-lifecycle__stage[data-pos="3"]::after {
-                content: "➝";
-                top: 50%;
-                left: -18px;
-                transform: translate(-50%, -50%) rotate(270deg);
-            }
-
-            .intro-lifecycle__stage-index {
-                font-size: 0.7rem;
-                text-transform: uppercase;
-                letter-spacing: 0.14em;
-                font-weight: 700;
-                color: rgba(37, 99, 235, 0.72);
+                grid-area: 3 / 1 / 4 / 2;
             }
 
             .intro-lifecycle__icon {
-                font-size: 1.3rem;
+                font-size: clamp(1.4rem, 3.2vw, 1.85rem);
+                line-height: 1;
             }
 
             .intro-lifecycle__label {
                 margin: 0;
-                font-size: 1rem;
+            }
+
+            .intro-lifecycle__stage:hover,
+            .intro-lifecycle__stage-input:checked + .intro-lifecycle__stage {
+                transform: translateY(-2px);
+                box-shadow: 0 28px 56px rgba(37, 99, 235, 0.22), inset 0 0 0 1px rgba(37, 99, 235, 0.45);
+                color: rgba(30, 64, 175, 0.95);
+            }
+
+            .intro-lifecycle__stage-input:focus-visible + .intro-lifecycle__stage {
+                outline: 3px solid rgba(59, 130, 246, 0.65);
+                outline-offset: 4px;
+            }
+
+            .intro-lifecycle__details {
+                grid-area: 2 / 2 / 3 / 3;
+                position: relative;
+                display: grid;
+                align-items: center;
+                justify-items: center;
+                padding: clamp(0.4rem, 1.6vw, 0.9rem);
+                pointer-events: none;
+                z-index: 3;
+            }
+
+            .intro-lifecycle__detail {
+                position: relative;
+                display: none;
+                flex-direction: column;
+                align-items: flex-start;
+                gap: clamp(0.6rem, 1.5vw, 0.9rem);
+                padding: clamp(1.05rem, 2.6vw, 1.65rem);
+                width: min(100%, clamp(16.5rem, 38vw, 22rem));
+                min-height: clamp(10.5rem, 28vw, 13.5rem);
+                border-radius: 22px;
+                background: rgba(255, 255, 255, 0.97);
+                box-shadow: 0 24px 46px rgba(15, 23, 42, 0.2), inset 0 0 0 1px rgba(148, 163, 184, 0.32);
+                text-align: left;
+                pointer-events: auto;
+                z-index: 4;
+            }
+
+            .intro-lifecycle__detail-title {
+                margin: 0;
+                font-size: clamp(1rem, 2.1vw, 1.15rem);
                 font-weight: 700;
-                color: #0f172a;
+                color: rgba(15, 23, 42, 0.92);
             }
 
-            .intro-lifecycle__copy {
+            .intro-lifecycle__detail-body {
                 margin: 0;
-                font-size: 0.82rem;
-                line-height: 1.45;
-                color: rgba(15, 23, 42, 0.7);
+                font-size: clamp(0.85rem, 1.9vw, 0.95rem);
+                line-height: 1.55;
+                color: rgba(15, 23, 42, 0.78);
             }
 
-            .intro-lifecycle__loop {
-                width: 120px;
-                height: 120px;
-                border-radius: 32px;
-                background: linear-gradient(160deg, rgba(59, 130, 246, 0.18), rgba(14, 165, 233, 0.12));
-                box-shadow: inset 0 0 0 1px rgba(59, 130, 246, 0.25);
-                display: grid;
-                place-items: center;
-                font-size: 2rem;
-                color: rgba(30, 64, 175, 0.55);
+            .intro-lifecycle__detail-close {
+                position: absolute;
+                top: 12px;
+                right: 12px;
+                width: 1px;
+                height: 1px;
+                padding: 0;
+                margin: -1px;
+                overflow: hidden;
+                clip: rect(0 0 0 0);
+                border: 0;
+                white-space: nowrap;
+                background: none;
+                color: inherit;
             }
 
-            .intro-lifecycle__legend {
-                display: grid;
-                grid-template-columns: repeat(2, minmax(0, 1fr));
-                gap: 1rem;
+            #intro-lifecycle-stage-prepare:checked ~ .intro-lifecycle__details .intro-lifecycle__detail[data-stage="prepare"],
+            #intro-lifecycle-stage-train:checked ~ .intro-lifecycle__details .intro-lifecycle__detail[data-stage="train"],
+            #intro-lifecycle-stage-evaluate:checked ~ .intro-lifecycle__details .intro-lifecycle__detail[data-stage="evaluate"],
+            #intro-lifecycle-stage-use:checked ~ .intro-lifecycle__details .intro-lifecycle__detail[data-stage="use"] {
+                display: flex;
             }
 
-            .intro-lifecycle__legend-item {
-                background: rgba(248, 250, 252, 0.9);
-                border-radius: 18px;
-                padding: 1rem;
-                box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.22);
-                display: grid;
-                gap: 0.4rem;
-            }
-
-            .intro-lifecycle__legend-title {
-                font-weight: 700;
-                margin: 0;
-                font-size: 0.92rem;
-                color: #0f172a;
-            }
-
-            .intro-lifecycle__legend-body {
-                margin: 0;
-                font-size: 0.84rem;
-                line-height: 1.45;
-                color: rgba(15, 23, 42, 0.75);
-            }
-
-            @media (max-width: 820px) {
+            @media (max-width: 780px) {
                 .intro-hero-pane {
-                    min-height: auto;
+                    padding: clamp(1rem, 4vw, 1.5rem);
                 }
 
-                .intro-lifecycle__ring {
-                    padding: clamp(1.6rem, 7vw, 2.2rem);
-                }
-
-                .intro-lifecycle__stages {
-                    display: grid;
-                    gap: 1rem;
-                }
-
-                .intro-lifecycle__stage {
-                    position: static;
-                    transform: none;
-                    width: 100%;
-                    min-width: 0;
-                }
-
-                .intro-lifecycle__stage::after {
-                    display: none;
-                }
-
-                .intro-lifecycle__legend {
-                    grid-template-columns: 1fr;
-                }
-            }
-
-            @media (max-width: 640px) {
                 .intro-lifecycle {
-                    width: min(100%, 440px);
+                    gap: clamp(1rem, 3.6vw, 1.25rem);
+                }
+
+                .intro-lifecycle__title {
+                    font-size: clamp(1.1rem, 4.5vw, 1.25rem);
                 }
 
                 .intro-lifecycle__ring {
-                    border-radius: 32px;
-                    background: linear-gradient(170deg, rgba(37, 99, 235, 0.14), rgba(14, 165, 233, 0.08));
-                    box-shadow: inset 0 0 0 1px rgba(59, 130, 246, 0.16), 0 20px 50px rgba(15, 23, 42, 0.14);
-                    display: grid;
-                    grid-template-columns: repeat(5, minmax(0, 1fr));
-                    grid-template-rows: repeat(5, minmax(0, 1fr));
-                    gap: clamp(0.45rem, 2.6vw, 0.7rem);
-                    padding: clamp(1.6rem, 7vw, 2.2rem);
-                    align-items: stretch;
-                    justify-items: stretch;
-                }
-
-                .intro-lifecycle__ring::before,
-                .intro-lifecycle__ring::after {
-                    content: "";
-                    position: absolute;
-                    left: 50%;
-                    top: 50%;
-                    transform: translate(-50%, -50%);
-                    pointer-events: none;
-                    background: linear-gradient(
-                        160deg,
-                        rgba(37, 99, 235, 0),
-                        rgba(59, 130, 246, 0.18) 28%,
-                        rgba(14, 165, 233, 0)
-                    );
-                }
-
-                .intro-lifecycle__ring::before {
-                    width: 1px;
-                    height: calc(100% - clamp(2.4rem, 13vw, 3.2rem));
-                }
-
-                .intro-lifecycle__ring::after {
-                    height: 1px;
-                    width: calc(100% - clamp(2.4rem, 13vw, 3.2rem));
-                }
-
-                .intro-lifecycle__loop {
-                    grid-column: 3;
-                    grid-row: 3;
-                    width: clamp(90px, 28vw, 118px);
-                    height: clamp(90px, 28vw, 118px);
-                    border-radius: 28px;
-                    font-size: clamp(1.6rem, 6vw, 2rem);
-                    z-index: 2;
-                }
-
-                .intro-lifecycle__stages {
-                    display: contents;
+                    padding: clamp(1rem, 7vw, 1.4rem);
                 }
 
                 .intro-lifecycle__stage {
-                    position: relative;
-                    inset: auto;
-                    transform: none;
-                    width: min(240px, 92vw);
-                    min-width: 0;
+                    min-width: clamp(88px, 34vw, 110px);
+                    padding: clamp(0.5rem, 3.8vw, 0.75rem);
+                    font-size: clamp(0.78rem, 3vw, 0.88rem);
+                }
+
+                .intro-lifecycle__icon {
+                    font-size: clamp(1.1rem, 5vw, 1.5rem);
+                }
+
+                .intro-lifecycle__details {
+                    position: absolute;
+                    inset: 6%;
+                    border-radius: 24px;
+                    background: rgba(248, 250, 252, 0.98);
+                    box-shadow: 0 28px 52px rgba(15, 23, 42, 0.32);
+                    opacity: 0;
+                    pointer-events: none;
+                    transition: opacity 0.18s ease;
+                    z-index: 8;
+                }
+
+                .intro-lifecycle__detail {
+                    position: absolute;
+                    inset: 0;
+                    width: auto;
+                    min-height: 100%;
+                    border-radius: 24px;
+                    padding: clamp(1rem, 6vw, 1.8rem);
+                    gap: clamp(0.65rem, 4vw, 1rem);
+                    display: none;
+                    overflow-y: auto;
+                    box-shadow: none;
+                }
+
+                #intro-lifecycle-stage-prepare:checked ~ .intro-lifecycle__details,
+                #intro-lifecycle-stage-train:checked ~ .intro-lifecycle__details,
+                #intro-lifecycle-stage-evaluate:checked ~ .intro-lifecycle__details,
+                #intro-lifecycle-stage-use:checked ~ .intro-lifecycle__details {
+                    opacity: 1;
+                    pointer-events: auto;
+                }
+
+                .intro-lifecycle__detail-close {
+                    position: absolute;
+                    width: 36px;
+                    height: 36px;
                     margin: 0;
-                    padding: clamp(0.65rem, 2.6vw, 0.95rem) clamp(0.75rem, 3vw, 1.1rem);
-                    border-radius: 18px;
-                    box-shadow: 0 14px 36px rgba(15, 23, 42, 0.16), inset 0 0 0 1px rgba(148, 163, 184, 0.28);
-                    display: grid;
-                    gap: 0.35rem;
-                    justify-self: center;
-                    align-self: center;
-                    text-align: center;
-                    background: rgba(255, 255, 255, 0.96);
-                    z-index: 3;
-                }
-
-                .intro-lifecycle__stage::after {
-                    display: grid;
-                    width: 30px;
-                    height: 30px;
-                    place-items: center;
-                    font-size: 0.9rem;
-                    background: #fff;
-                    color: rgba(37, 99, 235, 0.85);
+                    clip: auto;
+                    background: rgba(15, 23, 42, 0.1);
+                    color: rgba(15, 23, 42, 0.85);
                     border-radius: 999px;
-                    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.16), inset 0 0 0 1px rgba(59, 130, 246, 0.28);
+                    display: inline-flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-size: 1rem;
+                    cursor: pointer;
                 }
 
-                .intro-lifecycle__stage[data-pos="0"] {
-                    grid-column: 2 / span 3;
-                    grid-row: 1 / span 2;
-                    align-self: end;
+                .intro-lifecycle__detail-close::after {
+                    content: "✕";
+                    font-weight: 600;
                 }
 
-                .intro-lifecycle__stage[data-pos="1"] {
-                    grid-column: 4 / span 2;
-                    grid-row: 2 / span 3;
-                    justify-self: start;
-                    text-align: left;
+                .intro-lifecycle__detail-title {
+                    font-size: clamp(1.05rem, 5vw, 1.25rem);
                 }
 
-                .intro-lifecycle__stage[data-pos="2"] {
-                    grid-column: 2 / span 3;
-                    grid-row: 4 / span 2;
-                    align-self: start;
-                }
-
-                .intro-lifecycle__stage[data-pos="3"] {
-                    grid-column: 1 / span 2;
-                    grid-row: 2 / span 3;
-                    justify-self: end;
-                    text-align: right;
-                }
-
-                .intro-lifecycle__stage[data-pos="0"]::after {
-                    content: "➝";
-                    top: 50%;
-                    right: -22px;
-                    transform: translate(50%, -50%);
-                }
-
-                .intro-lifecycle__stage[data-pos="1"]::after {
-                    content: "➝";
-                    bottom: -22px;
-                    left: 50%;
-                    transform: translate(-50%, 50%) rotate(90deg);
-                }
-
-                .intro-lifecycle__stage[data-pos="2"]::after {
-                    content: "➝";
-                    left: -22px;
-                    top: 50%;
-                    transform: translate(-50%, -50%) rotate(180deg);
-                }
-
-                .intro-lifecycle__stage[data-pos="3"]::after {
-                    content: "➝";
-                    top: -22px;
-                    left: 50%;
-                    transform: translate(-50%, -50%) rotate(270deg);
-                }
-
-                .intro-lifecycle__stage-index {
-                    font-size: 0.66rem;
-                }
-
-                .intro-lifecycle__label {
-                    font-size: 0.94rem;
-                }
-
-                .intro-lifecycle__copy {
-                    font-size: 0.78rem;
-                    line-height: 1.5;
-                }
-
-                .intro-lifecycle__legend {
-                    padding-top: 0.2rem;
+                .intro-lifecycle__detail-body {
+                    font-size: clamp(0.85rem, 4vw, 0.98rem);
                 }
             }
 
             @media (prefers-reduced-motion: reduce) {
-                .intro-lifecycle__stage {
+                .intro-lifecycle__stage,
+                .intro-lifecycle__details {
                     transition: none;
                 }
             }
@@ -592,54 +476,59 @@ def intro_hero_scoped_css() -> str:
     ).strip()
 
 
+
 def intro_lifecycle_ring_markup() -> str:
     """Return the lifecycle ring markup rendered in the visual pane."""
 
-    stage_items = []
-    legend_items = []
+    stage_controls: list[str] = []
+    detail_items: list[str] = []
     for index, stage in enumerate(_LIFECYCLE_STAGES):
-        stage_items.append(
+        stage_controls.append(
             dedent(
                 f"""
-                <li class=\"intro-lifecycle__stage\" data-stage=\"{stage.key}\" data-pos=\"{index}\" tabindex=\"0\">
-                    <span class=\"intro-lifecycle__stage-index\">Step {index + 1}</span>
-                    <span class=\"intro-lifecycle__icon\" aria-hidden=\"true\">{stage.icon}</span>
-                    <p class=\"intro-lifecycle__label\" id=\"intro-lifecycle-{stage.key}-title\">{stage.title}</p>
-                    <p class=\"intro-lifecycle__copy\" id=\"intro-lifecycle-{stage.key}-desc\">{stage.body}</p>
-                </li>
+                <input type="radio" class="intro-lifecycle__stage-input" name="intro-lifecycle-stage" id="intro-lifecycle-stage-{stage.key}" value="{stage.key}" aria-labelledby="intro-lifecycle-{stage.key}-title" aria-controls="intro-lifecycle-detail-{stage.key}">
+                <label class="intro-lifecycle__stage" data-stage="{stage.key}" data-pos="{index}" for="intro-lifecycle-stage-{stage.key}">
+                    <span class="intro-lifecycle__icon" aria-hidden="true">{stage.icon}</span>
+                    <span class="intro-lifecycle__label" id="intro-lifecycle-{stage.key}-title">{stage.title}</span>
+                </label>
                 """
             ).strip()
         )
-        legend_items.append(
+        detail_items.append(
             dedent(
                 f"""
-                <div class=\"intro-lifecycle__legend-item\" data-stage=\"{stage.key}\">
-                    <p class=\"intro-lifecycle__legend-title\">{stage.title}</p>
-                    <p class=\"intro-lifecycle__legend-body\">{stage.body}</p>
-                </div>
+                <article class="intro-lifecycle__detail" data-stage="{stage.key}" id="intro-lifecycle-detail-{stage.key}" aria-labelledby="intro-lifecycle-detail-{stage.key}-title" role="region">
+                    <label class="intro-lifecycle__detail-close" for="intro-lifecycle-stage-none" role="button" aria-label="Close stage details"></label>
+                    <h5 class="intro-lifecycle__detail-title" id="intro-lifecycle-detail-{stage.key}-title">{stage.title}</h5>
+                    <p class="intro-lifecycle__detail-body" id="intro-lifecycle-detail-{stage.key}-body">{stage.body}</p>
+                </article>
                 """
             ).strip()
         )
 
+    controls_markup = " ".join(stage_controls)
+    details_markup = " ".join(detail_items)
+
     return dedent(
         f"""
-        <section class=\"intro-lifecycle\" aria-labelledby=\"intro-lifecycle-title\">
-            <div class=\"intro-lifecycle__header\">
-                <h4 class=\"intro-lifecycle__title\" id=\"intro-lifecycle-title\">Map the lifecycle of your AI system</h4>
-                <p class=\"intro-lifecycle__subtitle\">Each stage flows into the next—complete the loop to operate responsibly.</p>
+        <section class="intro-lifecycle" aria-labelledby="intro-lifecycle-title">
+            <div class="intro-lifecycle__header">
+                <h4 class="intro-lifecycle__title" id="intro-lifecycle-title">Map the lifecycle of your AI system</h4>
+                <p class="intro-lifecycle__subtitle">Each stage flows into the next—complete the loop to operate responsibly.</p>
             </div>
-            <div class=\"intro-lifecycle__ring\" role=\"presentation\">
-                <div class=\"intro-lifecycle__loop\" aria-hidden=\"true\">↺</div>
-                <ul class=\"intro-lifecycle__stages\" role=\"list\">
-                    {' '.join(stage_items)}
-                </ul>
-            </div>
-            <div class=\"intro-lifecycle__legend\">
-                {' '.join(legend_items)}
+            <div class="intro-lifecycle__ring" role="group" aria-label="AI system lifecycle stages">
+                <div class="intro-lifecycle__grid">
+                    <input type="radio" class="intro-lifecycle__stage-input" name="intro-lifecycle-stage" id="intro-lifecycle-stage-none" value="" checked aria-label="Hide lifecycle details">
+                    {controls_markup}
+                    <div class="intro-lifecycle__details" aria-live="polite">
+                        {details_markup}
+                    </div>
+                </div>
             </div>
         </section>
         """
     ).strip()
+
 
 
 def intro_lifecycle_columns() -> tuple[str, str]:
