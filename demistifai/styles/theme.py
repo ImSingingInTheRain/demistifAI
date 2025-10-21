@@ -328,6 +328,168 @@ APP_THEME_CSS = """
     position: relative;
 }
 
+.dataset-builder__intro {
+    display: flex;
+    justify-content: space-between;
+    align-items: stretch;
+    gap: 1.5rem;
+    background: linear-gradient(135deg, rgba(13, 148, 136, 0.4), rgba(56, 189, 248, 0.22));
+    border: 1px solid rgba(94, 234, 212, 0.32);
+    border-radius: 20px;
+    padding: 1.35rem 1.5rem;
+    box-shadow: inset 0 0 0 1px rgba(8, 47, 73, 0.4), 0 24px 48px rgba(8, 47, 73, 0.36);
+}
+
+.dataset-builder__intro-copy {
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+    flex: 1 1 55%;
+    color: #e2e8f0;
+}
+
+.dataset-builder__eyebrow {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.34em;
+    font-weight: 700;
+    color: rgba(165, 243, 252, 0.78);
+}
+
+.dataset-builder__title {
+    margin: 0;
+    font-size: 1.55rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    color: #f8fafc;
+}
+
+.dataset-builder__lead {
+    margin: 0;
+    color: rgba(226, 232, 240, 0.92);
+    font-size: 0.98rem;
+    line-height: 1.6;
+    max-width: 40ch;
+}
+
+.dataset-builder__intro-aside {
+    flex: 1 1 45%;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.dataset-builder__metrics {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.75rem;
+}
+
+.dataset-builder__metric {
+    background: rgba(2, 6, 23, 0.7);
+    border: 1px solid rgba(94, 234, 212, 0.24);
+    border-radius: 16px;
+    padding: 0.85rem 1rem;
+    box-shadow: inset 0 0 0 1px rgba(8, 47, 73, 0.46);
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.dataset-builder__metric-label {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.26em;
+    color: rgba(148, 163, 184, 0.78);
+    font-weight: 700;
+}
+
+.dataset-builder__metric-value {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #38bdf8;
+    letter-spacing: 0.04em;
+}
+
+.dataset-builder__metric-subtext {
+    font-size: 0.8rem;
+    color: rgba(203, 213, 225, 0.85);
+    letter-spacing: 0.04em;
+}
+
+.dataset-builder__status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.75rem 1.15rem;
+    border-radius: 999px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    border: 1px solid rgba(94, 234, 212, 0.32);
+    background: rgba(15, 23, 42, 0.68);
+    color: rgba(226, 232, 240, 0.9);
+    flex-wrap: wrap;
+}
+
+.dataset-builder__status-pill--active {
+    background: linear-gradient(90deg, rgba(13, 148, 136, 0.45), rgba(56, 189, 248, 0.28));
+    color: #0f172a;
+    border-color: rgba(94, 234, 212, 0.6);
+}
+
+.dataset-builder__status-pill--inactive {
+    border-color: rgba(148, 163, 184, 0.38);
+    color: rgba(203, 213, 225, 0.88);
+}
+
+.dataset-builder__status-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: rgba(148, 163, 184, 0.75);
+    box-shadow: 0 0 0 4px rgba(148, 163, 184, 0.18);
+}
+
+.dataset-builder__status-pill--active .dataset-builder__status-dot {
+    background: #22d3ee;
+    box-shadow: 0 0 0 4px rgba(34, 211, 238, 0.3);
+}
+
+.dataset-builder__status-caption {
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.22em;
+    opacity: 0.8;
+}
+
+.dataset-builder__terminal {
+    background: rgba(2, 6, 23, 0.78);
+    border: 1px solid rgba(94, 234, 212, 0.24);
+    border-radius: 18px;
+    padding: 1.1rem 1.25rem;
+    box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.52);
+    display: grid;
+    gap: 0.5rem;
+}
+
+.dataset-builder__terminal .dataset-builder__comment {
+    padding-left: 1.35rem;
+    color: rgba(148, 163, 184, 0.92);
+}
+
+.dataset-builder__nerd-callout {
+    background: rgba(15, 23, 42, 0.62);
+    border: 1px solid rgba(56, 189, 248, 0.32);
+    border-radius: 14px;
+    padding: 0.65rem 0.85rem;
+    margin-bottom: 0.2rem;
+}
+
+.dataset-builder__nerd-callout .dataset-builder__comment {
+    padding-left: 0.95rem;
+}
+
 .dataset-builder__command-line {
     display: flex;
     align-items: baseline;
@@ -548,6 +710,109 @@ APP_THEME_CSS = """
 .dataset-builder-surface .cta-sticky > div[data-testid="column"]:nth-child(2) [data-testid="stFormSubmitButton"] button:hover {
     border-color: rgba(56, 189, 248, 0.6);
     color: #bae6fd;
+}
+
+@media (max-width: 1024px) {
+    .dataset-builder__intro {
+        flex-direction: column;
+        gap: 1.25rem;
+    }
+
+    .dataset-builder__intro-copy {
+        flex: 1 1 auto;
+    }
+
+    .dataset-builder__intro-aside {
+        width: 100%;
+    }
+}
+
+@media (max-width: 860px) {
+    .dataset-builder__metrics {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 720px) {
+    .dataset-builder__metrics {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .dataset-builder__metric {
+        padding: 0.8rem 0.95rem;
+    }
+
+    .dataset-builder__status-pill {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.4rem;
+    }
+
+    .dataset-builder__terminal {
+        padding: 0.95rem 1.05rem;
+    }
+
+    .dataset-builder__form-shell {
+        padding: 1rem 1rem 6rem;
+    }
+
+    .dataset-builder__form-shell div[data-testid="stHorizontalBlock"] {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.75rem;
+    }
+
+    .dataset-builder__form-shell div[data-testid="stHorizontalBlock"] > div[data-testid="column"] {
+        width: 100% !important;
+    }
+
+    .dataset-builder__comment {
+        padding-left: 1.45rem;
+    }
+
+    .dataset-builder-surface .cta-sticky {
+        position: sticky;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        margin: 1.25rem -1rem -1.05rem;
+        padding: 1.1rem 1rem 1.3rem;
+        border-radius: 20px;
+        box-shadow: 0 -12px 28px rgba(8, 47, 73, 0.45);
+    }
+
+    .dataset-builder-surface .cta-sticky [data-testid="stFormSubmitButton"] button {
+        min-height: 52px;
+        font-size: 0.95rem;
+    }
+}
+
+@media (max-width: 520px) {
+    .dataset-builder__intro {
+        padding: 1.05rem 0.9rem;
+    }
+
+    .dataset-builder__title {
+        font-size: 1.38rem;
+    }
+
+    .dataset-builder__lead {
+        font-size: 0.9rem;
+    }
+
+    .dataset-builder__terminal .dataset-builder__comment {
+        font-size: 0.84rem;
+    }
+
+    .dataset-builder__command-line {
+        font-size: 0.9rem;
+        flex-wrap: wrap;
+    }
+
+    .dataset-builder-surface .cta-sticky {
+        margin: 1.25rem -0.75rem -1rem;
+        padding: 1.05rem 0.75rem 1.25rem;
+    }
 }
 
 .dataset-health-card {
