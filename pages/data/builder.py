@@ -85,9 +85,68 @@ def render_dataset_builder(
     target_summary_for_delta: Optional[Dict[str, Any]] = None
     compare_panel_html = ""
 
+    cfg = ss.get("dataset_config", DEFAULT_DATASET_CONFIG)
+    dataset_total_display = int(cfg.get("n_total", DEFAULT_DATASET_CONFIG.get("n_total", 500)))
+    spam_ratio_display = int(
+        round(float(cfg.get("spam_ratio", DEFAULT_DATASET_CONFIG.get("spam_ratio", 0.5))) * 100)
+    )
+    edge_cases_display = int(cfg.get("edge_cases", DEFAULT_DATASET_CONFIG.get("edge_cases", 0)))
+    nerd_mode_status_class = "active" if nerd_mode_data_enabled else "inactive"
+    nerd_mode_status_label = "Nerd Mode active" if nerd_mode_data_enabled else "Nerd Mode optional"
+    nerd_mode_status_caption = (
+        "Advanced knobs unlocked below."
+        if nerd_mode_data_enabled
+        else "Toggle Nerd Mode above to unlock advanced controls."
+    )
+
     with slot:
         with section_surface("dataset-builder-surface"):
             st.markdown("<div class='dataset-builder'>", unsafe_allow_html=True)
+            intro_html = """
+<div class="dataset-builder__intro">
+  <div class="dataset-builder__intro-copy">
+    <span class="dataset-builder__eyebrow">Prepare · Dataset recipe</span>
+    <h3 class="dataset-builder__title">Shape the preview run</h3>
+    <p class="dataset-builder__lead">
+      Tune how many emails we synthesize, rebalance spam vs. safe traffic,
+      and sprinkle in tricky look-alikes before committing a dataset.
+    </p>
+  </div>
+  <div class="dataset-builder__intro-aside">
+    <div class="dataset-builder__metrics" role="list">
+      <div class="dataset-builder__metric" role="listitem">
+        <span class="dataset-builder__metric-label">Rows</span>
+        <span class="dataset-builder__metric-value">{rows_value}</span>
+        <span class="dataset-builder__metric-subtext">Current recipe</span>
+      </div>
+      <div class="dataset-builder__metric" role="listitem">
+        <span class="dataset-builder__metric-label">Spam share</span>
+        <span class="dataset-builder__metric-value">{spam_value}%</span>
+        <span class="dataset-builder__metric-subtext">Balance safe vs. spam</span>
+      </div>
+      <div class="dataset-builder__metric" role="listitem">
+        <span class="dataset-builder__metric-label">Edge cases</span>
+        <span class="dataset-builder__metric-value">{edge_value}</span>
+        <span class="dataset-builder__metric-subtext">Hard look-alikes</span>
+      </div>
+    </div>
+    <div class="dataset-builder__status-pill dataset-builder__status-pill--{nerd_class}">
+      <span class="dataset-builder__status-dot" aria-hidden="true"></span>
+      <span>{nerd_label}</span>
+      <span class="dataset-builder__status-caption">{nerd_caption}</span>
+    </div>
+  </div>
+</div>
+""".format(
+                rows_value=html.escape(f"{dataset_total_display:,}"),
+                spam_value=html.escape(str(spam_ratio_display)),
+                edge_value=html.escape(str(edge_cases_display)),
+                nerd_class=html.escape(nerd_mode_status_class),
+                nerd_label=html.escape(nerd_mode_status_label),
+                nerd_caption=html.escape(nerd_mode_status_caption),
+            )
+            st.markdown(intro_html, unsafe_allow_html=True)
+            st.markdown("<div class='dataset-builder__terminal'>", unsafe_allow_html=True)
             st.markdown(
                 cli_command_line("dataset.builder --interactive"),
                 unsafe_allow_html=True,
@@ -98,6 +157,7 @@ def render_dataset_builder(
                 ),
                 unsafe_allow_html=True,
             )
+            st.markdown("</div>", unsafe_allow_html=True)
 
             if ss.get("dataset_preview_summary"):
                 base_summary_for_delta = current_summary
@@ -116,7 +176,6 @@ def render_dataset_builder(
             preview_clicked = False
             reset_clicked = False
 
-            cfg = ss.get("dataset_config", DEFAULT_DATASET_CONFIG)
             _set_advanced_knob_state(cfg)
 
             spam_ratio_default = float(cfg.get("spam_ratio", 0.5))
@@ -226,11 +285,16 @@ def render_dataset_builder(
                         unsafe_allow_html=True,
                     )
                     st.markdown(
+                        "<div class='dataset-builder__nerd-callout'>",
+                        unsafe_allow_html=True,
+                    )
+                    st.markdown(
                         cli_comment(
                             "Fine-tune suspicious links, domains, tone, attachments, randomness, and demos before generating a preview."
                         ),
                         unsafe_allow_html=True,
                     )
+                    st.markdown("</div>", unsafe_allow_html=True)
                     attachment_keys = list(ATTACHMENT_MIX_PRESETS.keys())
                     adv_col_a, adv_col_b = st.columns(2, gap="large")
                     with adv_col_a:
