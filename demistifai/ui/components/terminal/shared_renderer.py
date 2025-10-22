@@ -84,7 +84,6 @@ def _build_terminal_style(suffix: str) -> str:
             .terminal-{suffix} {{
               width: 100vw;
               max-width: none;
-              min-height: 100vh;
               margin-block: 0;
               margin-inline: calc(50% - 50vw);
               border-radius: 0;
