@@ -56,6 +56,15 @@ class MacWindowConfig:
 _UNESCAPED_AMPERSAND_PATTERN = re.compile(r"&(?![#\w]+;)")
 
 
+@dataclass
+class MacWindowHeightEstimates:
+    """Estimated heights for the macOS window in different layouts."""
+
+    grid_total: int
+    stacked_total: int
+    fallback: int
+
+
 def build_srcdoc(pane: MacWindowPane, *, window_id: str) -> str:
     """Assemble a fully-formed HTML document for an iframe pane."""
 
@@ -315,11 +324,13 @@ def _build_iframe_styles(pane: MacWindowPane) -> str:
     return "; ".join(styles)
 
 
-def _estimate_component_height(config: MacWindowConfig, panes: Sequence[MacWindowPane]) -> int:
-    """Estimate an initial iframe height for both grid and stacked layouts."""
+def _estimate_component_heights(
+    config: MacWindowConfig, panes: Sequence[MacWindowPane]
+) -> MacWindowHeightEstimates:
+    """Estimate window heights for grid and stacked layouts."""
 
     if not panes:
-        return 360
+        return MacWindowHeightEstimates(grid_total=360, stacked_total=360, fallback=360)
 
     chrome_height = 88  # Title bar and light strip area.
     body_padding = 72  # Top + bottom padding defined via CSS variables.
@@ -346,7 +357,16 @@ def _estimate_component_height(config: MacWindowConfig, panes: Sequence[MacWindo
     if len(panes) > 1:
         stacked_total += row_gap * (len(panes) - 1)
 
-    return max(grid_total, stacked_total, 320)
+    fallback = max(grid_total, stacked_total, 320)
+    return MacWindowHeightEstimates(
+        grid_total=int(grid_total), stacked_total=int(stacked_total), fallback=int(fallback)
+    )
+
+
+def _estimate_component_height(config: MacWindowConfig, panes: Sequence[MacWindowPane]) -> int:
+    """Estimate an initial iframe height for both grid and stacked layouts."""
+
+    return _estimate_component_heights(config, panes).fallback
 
 
 def _resolve_html_renderer(st) -> Callable[..., None] | None:
@@ -427,6 +447,7 @@ def render_macos_iframe_window(st, config: MacWindowConfig) -> None:
 
     grid_column_style = _resolve_ratio_styles(config.column_ratios, config.columns)
     grid_row_style = _resolve_ratio_styles(config.row_ratios, config.rows)
+    height_estimates = _estimate_component_heights(config, panes)
 
     iframe_cells: List[str] = []
     default_fallback_height = 360
@@ -664,6 +685,9 @@ def render_macos_iframe_window(st, config: MacWindowConfig) -> None:
         <script>
             (function() {{
                 const windowId = {window_id!r};
+                const MOBILE_BREAKPOINT = {int(config.mobile_breakpoint)};
+                const MIN_GRID_HEIGHT = {int(height_estimates.grid_total)};
+                const MIN_STACKED_HEIGHT = {int(height_estimates.stacked_total)};
                 const root = document.querySelector('[data-miw="' + windowId + '"]');
                 if (!root) {{
                     return;
@@ -703,7 +727,19 @@ def render_macos_iframe_window(st, config: MacWindowConfig) -> None:
                     }}
                     pendingHeightFrame = requestAnimationFrame(() => {{
                         pendingHeightFrame = null;
-                        const height = computeContainerHeight();
+                        const measuredHeight = computeContainerHeight();
+                        let containerWidth = 0;
+                        try {{
+                            const rect = root.getBoundingClientRect();
+                            containerWidth = rect.width || 0;
+                        }} catch (error) {{
+                            containerWidth = root.clientWidth || 0;
+                        }}
+                        const minHeight =
+                            containerWidth <= MOBILE_BREAKPOINT
+                                ? MIN_STACKED_HEIGHT
+                                : MIN_GRID_HEIGHT;
+                        const height = Math.max(measuredHeight, minHeight);
                         try {{
                             window.parent.postMessage(
                                 {{ isStreamlitMessage: true, type: 'streamlit:setFrameHeight', height }},
@@ -800,7 +836,7 @@ def render_macos_iframe_window(st, config: MacWindowConfig) -> None:
             "ensure streamlit.components.v1.html is importable."
         )
 
-    fallback_height = _estimate_component_height(config, panes)
+    fallback_height = height_estimates.fallback
     _render_with_compatible_signature(
         html_renderer, output, fallback_height=fallback_height
     )
