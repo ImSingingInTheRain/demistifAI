@@ -7,6 +7,8 @@ import json
 import re
 from streamlit.components.v1 import html as components_html
 
+from .boot_sequence import _normalize_lines
+
 _SUFFIX = "ai_term"
 
 # --- Content (short + progressive) ---
@@ -326,12 +328,13 @@ def _segments_to_html(segments: List[Tuple[str, Optional[str]]]) -> str:
 
 
 def _compute_full_html(lines: Sequence[str], suffix: str) -> str:
-    return "".join(
-        _segments_to_html(_split_segments(line, suffix)) for line in lines
-    )
+    segments = [_split_segments(line, suffix) for line in lines]
+    return "".join(_segments_to_html(parts) for parts in segments)
 
 
-def _compute_segment_payload(lines: Sequence[str], suffix: str) -> List[List[Tuple[str, Optional[str]]]]:
+def _compute_segment_payload(
+    lines: Sequence[str], suffix: str
+) -> List[List[Tuple[str, Optional[str]]]]:
     return [_split_segments(line, suffix) for line in lines]
 
 def render_ai_act_terminal(
@@ -363,15 +366,16 @@ def render_ai_act_terminal(
 
     data = list(lines) if lines is not None else LINES
     expanded_lines, pauses = _expand_lines(data)
-    segments = _compute_segment_payload(expanded_lines, _SUFFIX)
-    full_html = "".join(_segments_to_html(parts) for parts in segments)
+    normalized_lines = _normalize_lines(expanded_lines)
+    segments = _compute_segment_payload(normalized_lines, _SUFFIX)
+    full_html = _compute_full_html(normalized_lines, _SUFFIX)
     serializable_segments = [
         [{"t": text, "c": css} for text, css in parts]
         for parts in segments
     ]
     payload = {
         "lines": data,
-        "expandedLines": expanded_lines,
+        "expandedLines": normalized_lines,
         "pauses": pauses,
         "fullHtml": full_html,
         "speed": max(0, int(speed_type_ms)),
