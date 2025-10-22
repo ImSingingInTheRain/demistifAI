@@ -80,6 +80,7 @@ def initialize_session_defaults(ss: MutableMapping[str, Any]) -> Iterable[str]:
     )
     _ensure_key(ss, "nerd_mode_data", False, created)
     _ensure_key(ss, "nerd_mode_train", False, created)
+    _ensure_key(ss, "intro_show_mission", False, created)
     _ensure_key(ss, "calibrate_probabilities", False, created)
     _ensure_key(ss, "calibration_result", None, created)
     _ensure_key(
