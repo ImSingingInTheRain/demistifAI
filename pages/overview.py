@@ -2,9 +2,8 @@
 
 from __future__ import annotations
 
-from typing import Any, Callable, ContextManager, Dict, List, MutableMapping
+from typing import Any, Callable, ContextManager, MutableMapping
 
-import pandas as pd
 import streamlit as st
 from streamlit.delta_generator import DeltaGenerator
 
@@ -12,11 +11,8 @@ from demistifai.ui.components import render_stage_top_grid
 from demistifai.ui.components.overview import (
     demai_architecture_markup,
     demai_architecture_styles,
-    mailbox_preview_markup,
-    mailbox_preview_styles,
-    mission_brief_styles,
-    mission_overview_column_markup,
 )
+from demistifai.ui.components.intro import intro_hero_panes
 from demistifai.ui.components.terminal.boot_sequence import (
     _DEFAULT_DEMAI_LINES,
     render_ai_act_terminal as render_boot_sequence_terminal,
@@ -46,7 +42,6 @@ def render_overview_stage(
         Context manager that wraps stage sections with shared styling.
     """
 
-    incoming_records = ss.get("incoming") or []
     nerd_enabled = bool(ss.get("nerd_mode_train") or ss.get("nerd_mode"))
 
     def _render_overview_terminal(slot: DeltaGenerator) -> None:
@@ -88,32 +83,14 @@ def render_overview_stage(
         ),
     )
 
-    preview_records: List[Dict[str, Any]] = []
-    if incoming_records:
-        df_incoming = pd.DataFrame(incoming_records)
-        preview_records = df_incoming.head(5).to_dict("records")
-
-    mission_panes = (
-        MacWindowPane(
-            html=mission_overview_column_markup(),
-            css=mission_brief_styles(),
-            min_height=420,
-            pane_id="overview-mission-brief",
-        ),
-        MacWindowPane(
-            html=mailbox_preview_markup(preview_records),
-            css=mailbox_preview_styles(),
-            min_height=420,
-            pane_id="overview-mission-mailbox",
-        ),
-    )
+    lifecycle_panes = intro_hero_panes()
     render_macos_iframe_window(
         st,
         MacWindowConfig(
-            panes=mission_panes,
+            panes=lifecycle_panes,
             rows=1,
             columns=2,
-            column_ratios=(1.1, 0.9),
+            column_ratios=(0.4, 0.6),
         ),
     )
 
