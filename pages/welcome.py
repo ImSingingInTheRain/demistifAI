@@ -24,7 +24,7 @@ from demistifai.ui.components.shared.macos_iframe_window import (
 )
 from demistifai.ui.components.terminal.intro_terminal import (
     _WELCOME_LINES,
-    render_ai_act_terminal as render_welcome_ai_act_terminal,
+    render_intro_terminal_with_prompt,
 )
 from demistifai.ui.primitives import render_eu_ai_quote
 
@@ -49,11 +49,13 @@ def render_intro_stage(*, section_surface: SectionSurface) -> None:
 
     def _render_intro_terminal(slot: DeltaGenerator) -> None:
         with slot:
-            render_welcome_ai_act_terminal(
-                demai_lines=_WELCOME_LINES,
+            command_triggered = render_intro_terminal_with_prompt(
                 speed_type_ms=20,
                 pause_between_ops_ms=360,
             )
+            if command_triggered:
+                st.session_state["intro_show_mission"] = True
+                streamlit_rerun()
 
     def _render_show_mission_cta(slot: DeltaGenerator) -> None:
         if show_mission:
