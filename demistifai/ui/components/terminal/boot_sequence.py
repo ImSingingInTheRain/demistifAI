@@ -38,7 +38,7 @@ _TERMINAL_STYLE = dedent(f"""
     width: min(100%, 680px);
     height: auto;
     background: #0d1117;
-    color: #e5e7eb;
+    color: #ffffff;
     font-family: 'Fira Code', ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
     border-radius: 12px;
     padding: 1.5rem 1.2rem 1.3rem;
@@ -64,14 +64,8 @@ _TERMINAL_STYLE = dedent(f"""
     background:#22d3ee; vertical-align:-0.18rem;
     animation: blink-{_TERMINAL_SUFFIX} .85s steps(1,end) infinite;
   }}
-  .cmdline-{_TERMINAL_SUFFIX} {{ color: #93c5fd; }}
-  .hl-{_TERMINAL_SUFFIX}     {{ color: #a5f3fc; font-weight: 600; }}
-  .kw-act-{_TERMINAL_SUFFIX}         {{ color: #facc15; font-weight: 600; }}
-  .kw-compliance-{_TERMINAL_SUFFIX}  {{ color: #34d399; font-weight: 600; }}
-  .kw-data-{_TERMINAL_SUFFIX}        {{ color: #60a5fa; font-weight: 600; }}
-  .kw-oversight-{_TERMINAL_SUFFIX}   {{ color: #f472b6; font-weight: 600; }}
-  .kw-risk-{_TERMINAL_SUFFIX}        {{ color: #fb7185; font-weight: 600; }}
-  .kw-transparency-{_TERMINAL_SUFFIX}{{ color: #fbbf24; font-weight: 600; }}
+  .cmd-{_TERMINAL_SUFFIX} {{ color: #93c5fd; }}
+  .err-{_TERMINAL_SUFFIX} {{ color: #fb7185; font-weight: 700; }}
   @keyframes blink-{_TERMINAL_SUFFIX} {{ 50% {{ opacity: 0; }} }}
 
   .terminal-wrap-{_TERMINAL_SUFFIX} {{
@@ -100,17 +94,6 @@ _TERMINAL_STYLE = dedent(f"""
 """)
 
 
-_KEYWORD_PATTERNS = [
-    (re.compile(r"EU AI Act", re.IGNORECASE), "kw-act-"),
-    (re.compile(r"AI system", re.IGNORECASE), "kw-act-"),
-    (re.compile(r"compliance|compliant", re.IGNORECASE), "kw-compliance-"),
-    (re.compile(r"data governance", re.IGNORECASE), "kw-data-"),
-    (re.compile(r"human oversight", re.IGNORECASE), "kw-oversight-"),
-    (re.compile(r"high-risk|risk register", re.IGNORECASE), "kw-risk-"),
-    (re.compile(r"transparency", re.IGNORECASE), "kw-transparency-"),
-]
-
-
 def _normalize_lines(lines: Sequence[str]) -> List[str]:
     normalized: List[str] = []
     for raw in lines:
@@ -127,18 +110,11 @@ def _highlight_line(line: str, suffix: str) -> str:
     stripped = line.strip()
     if not line:
         return ""
-    if re.fullmatch(r"dem[a-z]*ai", stripped, flags=re.IGNORECASE):
-        return f'<span class="hl-{suffix}">{_escape_text(line)}</span>'
     if line.startswith("$ "):
-        return f'<span class="cmdline-{suffix}">{_escape_text(line)}</span>'
-
-    escaped = _escape_text(line)
-    for pattern, cls_prefix in _KEYWORD_PATTERNS:
-        escaped = pattern.sub(
-            lambda match: f'<span class="{cls_prefix}{suffix}">{match.group(0)}</span>',
-            escaped,
-        )
-    return escaped
+        return f'<span class="cmd-{suffix}">{_escape_text(line)}</span>'
+    if re.match(r"^ERROR\b", stripped, flags=re.IGNORECASE):
+        return f'<span class="err-{suffix}">{_escape_text(line)}</span>'
+    return _escape_text(line)
 
 
 def _compute_full_html(lines: Sequence[str], suffix: str) -> str:
@@ -210,25 +186,11 @@ def render_ai_act_terminal(
   const toLinesWithNL = (arr) => arr.map(l => l.endsWith("\\n") ? l : (l + "\\n"));
   const esc = (s) => s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
 
-  const KEYWORD_PATTERNS = [
-    {{ regex: /EU AI Act/gi, cls: "kw-act-" + cfg.suffix }},
-    {{ regex: /AI system/gi, cls: "kw-act-" + cfg.suffix }},
-    {{ regex: /compliance|compliant/gi, cls: "kw-compliance-" + cfg.suffix }},
-    {{ regex: /data governance/gi, cls: "kw-data-" + cfg.suffix }},
-    {{ regex: /human oversight/gi, cls: "kw-oversight-" + cfg.suffix }},
-    {{ regex: /high-risk|risk register/gi, cls: "kw-risk-" + cfg.suffix }},
-    {{ regex: /transparency/gi, cls: "kw-transparency-" + cfg.suffix }},
-  ];
-
   const highlight = (line) => {{
     const stripped = line.trim();
-    if (/^dem[a-z]*ai$/i.test(stripped)) return `<span class="hl-${{cfg.suffix}}">${{esc(line)}}</span>`;
-    if (line.startsWith("$ ")) return `<span class="cmdline-${{cfg.suffix}}">${{esc(line)}}</span>`;
-    let escaped = esc(line);
-    KEYWORD_PATTERNS.forEach(({{ regex, cls }}) => {{
-      escaped = escaped.replace(regex, (match) => `<span class="${{cls}}">${{match}}</span>`);
-    }});
-    return escaped;
+    if (line.startsWith("$ ")) return `<span class="cmd-${{cfg.suffix}}">${{esc(line)}}</span>`;
+    if (/^ERROR\b/i.test(stripped)) return `<span class="err-${{cfg.suffix}}">${{esc(line)}}</span>`;
+    return esc(line);
   }};
   const renderHighlighted = (raw) => {{
     pre.innerHTML = raw.split("\\n").map(highlight).join("\\n");

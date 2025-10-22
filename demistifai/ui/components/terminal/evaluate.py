@@ -38,17 +38,13 @@ _EVALUATE_LINES = EVALUATE_LINES
 # --- Minimal style (same system as your other cmd animations) ---
 STYLE = """
 <style>
-  .term-__SFX__{background:#0d1117;color:#e5e7eb;font-family:'Fira Code',ui-monospace,monospace;border-radius:12px;padding:1rem;position:relative}
+  .term-__SFX__{background:#0d1117;color:#ffffff;font-family:'Fira Code',ui-monospace,monospace;border-radius:12px;padding:1rem;position:relative}
   .term-__SFX__::before{content:'●  ●  ●';position:absolute;top:8px;left:12px;color:#ef4444cc;letter-spacing:6px;font-size:.9rem}
   .body-__SFX__{white-space:pre-wrap;line-height:1.6;font-size:.96rem;margin-top:.8rem}
   .caret-__SFX__{margin-left:2px;display:inline-block;width:6px;height:1rem;background:#22d3ee;vertical-align:-.18rem;animation:blink-__SFX__ .85s steps(1,end) infinite}
   @keyframes blink-__SFX__{50%{opacity:0}}
   .cmd-__SFX__{color:#93c5fd}
-  .hint-__SFX__{color:#34d399;font-weight:600}
   .err-__SFX__{color:#fb7185;font-weight:700}
-  .prog-__SFX__{color:#a5f3fc;font-weight:600}
-  .pill-__SFX__{color:#fbbf24;font-weight:700}
-  .act-__SFX__{color:#facc15;font-weight:600}
   .wrap-__SFX__{opacity:0;transform:translateY(6px);animation:fadein-__SFX__ .4s ease forwards}
   @keyframes fadein-__SFX__{to{opacity:1;transform:none}}
   .skip-__SFX__{position:absolute;top:8px;right:8px;background:#111827;color:#e5e7eb;border:1px solid #374151;border-radius:6px;padding:.2rem .5rem;font-size:.8rem;cursor:pointer}
@@ -56,12 +52,6 @@ STYLE = """
   @media (prefers-reduced-motion: reduce){.caret-__SFX__{animation:none}.wrap-__SFX__{animation:none;opacity:1;transform:none}}
 </style>
 """
-
-
-_TOKEN_REGEX = re.compile(
-    r"(test set|predictions?|true labels?|accuracy|precision|recall|f1|roc auc|pr auc|threshold|false positives?|false negatives?|tp|fp|fn|tn)",
-    re.IGNORECASE,
-)
 
 
 def _expand_lines(lines: Sequence[str]) -> Tuple[List[str], List[int]]:
@@ -93,28 +83,9 @@ def _split_segments(line: str, suffix: str) -> List[Tuple[str, Optional[str]]]:
     trimmed = line.strip()
     if line.startswith("$ "):
         return [(line, f"cmd-{suffix}")]
-    if re.match(r"^HINT:", trimmed, flags=re.IGNORECASE):
-        return [(line, f"hint-{suffix}")]
     if re.match(r"^ERROR\b", trimmed, flags=re.IGNORECASE):
         return [(line, f"err-{suffix}")]
-    if re.match(r"^>\s", line):
-        return [(line, f"pill-{suffix}")]
-    if re.search(r"\[█+\]", line):
-        return [(line, f"prog-{suffix}")]
-
-    parts: List[Tuple[str, Optional[str]]] = []
-    index = 0
-    for match in _TOKEN_REGEX.finditer(line):
-        start, end = match.span()
-        if start > index:
-            parts.append((line[index:start], None))
-        parts.append((match.group(0), f"act-{suffix}"))
-        index = end
-
-    if index < len(line):
-        parts.append((line[index:], None))
-
-    return parts or [(line, None)]
+    return [(line, None)]
 
 
 def _escape_segment(text: str) -> str:
@@ -161,22 +132,8 @@ HTML = """
   const splitSegments = (line) => {
     const trimmed = line.trim();
     if (line.startsWith("$ ")) return [{t: line, c: "cmd-" + cfg.sfx}];
-    if (/^HINT:/i.test(trimmed)) return [{t: line, c: "hint-" + cfg.sfx}];
     if (/^ERROR\\b/i.test(trimmed)) return [{t: line, c: "err-" + cfg.sfx}];
-    if (/^>\\s/.test(line)) return [{t: line, c: "pill-" + cfg.sfx}];
-    if (/\\[█+\\]/.test(line)) return [{t: line, c: "prog-" + cfg.sfx}];
-
-    // token emphasize for evaluation concepts
-    const parts = [];
-    const re = /(test set|predictions?|true labels?|accuracy|precision|recall|f1|roc auc|pr auc|threshold|false positives?|false negatives?|tp|fp|fn|tn)/gi;
-    let idx = 0, m;
-    while ((m = re.exec(line)) !== null) {
-      if (m.index > idx) parts.push({t: line.slice(idx, m.index), c: null});
-      parts.push({t: m[0], c: "act-" + cfg.sfx});
-      idx = m.index + m[0].length;
-    }
-    if (idx < line.length) parts.push({t: line.slice(idx), c: null});
-    return parts.length ? parts : [{t: line, c: null}];
+    return [{t: line, c: null}];
   };
 
   const rawLines = (cfg.expandedLines || cfg.lines || []).map((item) => {
