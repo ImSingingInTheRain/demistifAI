@@ -97,10 +97,11 @@ _TERMINAL_STYLE = dedent(f"""
       padding: 0;
     }}
     .terminal-{_TERMINAL_SUFFIX} {{
-      width: 100%;
-      max-width: 100vw;
+      width: 100vw;
+      max-width: none;
       min-height: 100vh;
-      margin: 0;
+      margin-block: 0;
+      margin-inline: calc(50% - 50vw);
       border-radius: 0;
       padding: clamp(1.2rem, 7vw, 1.8rem);
       box-sizing: border-box;
