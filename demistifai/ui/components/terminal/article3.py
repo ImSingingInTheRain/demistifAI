@@ -72,16 +72,18 @@ HTML = """
     <span class="caret-__SFX__" style="display:__CARET__"></span>
   </div>
 </div>
+
 <script>
-(function(){
+(function() {
   const cfg = __PAYLOAD__;
-  const root = document.getElementById(cfg.domId); if(!root) return;
+  const root = document.getElementById(cfg.domId);
+  if (!root) return;
+
   const pre = root.querySelector(".body-" + cfg.sfx);
   const caret = root.querySelector(".caret-" + cfg.sfx);
   const skip = root.querySelector(".skip-" + cfg.sfx);
 
-  // --- helpers
-  const esc = s => s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  const esc = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
   const normaliseSegments = (segments) =>
     segments.map((line) =>
@@ -96,27 +98,32 @@ HTML = """
   const splitSegments = (line) => {
     const trimmed = line.trim();
     if (line.startsWith("$ ")) return [{ t: line, c: "cmd-" + cfg.sfx }];
-    if (/^ERROR\\b/i.test(trimmed)) return [{ t: line, c: "err-" + cfg.sfx }];
+    if (/^ERROR\b/i.test(trimmed)) return [{ t: line, c: "err-" + cfg.sfx }];
     return [{ t: line, c: null }];
   };
 
-  const rawLines = (cfg.expandedLines || cfg.lines || []).map((item) => {
-    const value = item == null ? "" : String(item);
-    return value.endsWith("\n") ? value : value + "\n";
-  });
-  const pauses = Array.isArray(cfg.pauses)
-    ? cfg.pauses.map(p => Number(p) || 0)
-    : new Array(rawLines.length).fill(0);
+  const toLinesWithNL = (arr) =>
+    arr.map((item) => {
+      const value = item == null ? "" : String(item);
+      return value.endsWith("\n") ? value : value + "\n";
+    });
 
+  const rawInput = Array.isArray(cfg.expandedLines) && cfg.expandedLines.length
+    ? cfg.expandedLines
+    : cfg.lines || [];
+  const normalisedLines = toLinesWithNL(rawInput);
   const perLineSegs = Array.isArray(cfg.segments)
     ? normaliseSegments(cfg.segments)
-    : rawLines.map(splitSegments);
+    : normalisedLines.map(splitSegments);
+
   const perLineSegmentHtml = perLineSegs.map((segs) =>
     segs.map((seg) => (seg.c ? `<span class="${seg.c}">${esc(seg.t)}</span>` : esc(seg.t)))
   );
   const perLineHtml = perLineSegmentHtml.map((parts) => parts.join(""));
-  const computedHtml = perLineHtml.join("");
-  const finalHtml = typeof cfg.fullHtml === "string" ? cfg.fullHtml : computedHtml;
+  const perLineRaw = perLineSegs.map((segs) => segs.map((seg) => seg.t).join(""));
+
+  const computedFinalHtml = perLineHtml.join("");
+  const finalHtml = typeof cfg.fullHtml === "string" ? cfg.fullHtml : computedFinalHtml;
   cfg.fullHtml = finalHtml;
 
   const ensureMeasuredHeight = () => {
@@ -155,16 +162,21 @@ HTML = """
 
   const measuredHeight = ensureMeasuredHeight();
   if (Number.isFinite(measuredHeight) && measuredHeight > 0) {
-    window.parent.postMessage({type:"streamlit:resize", height: measuredHeight + 24},"*");
+    window.parent.postMessage({ type: "streamlit:resize", height: measuredHeight + 24 }, "*");
   }
 
-  let cancelled = false;
+  const baseSpeed = Math.max(0, Number(cfg.speed) || 0);
+  const basePause = Math.max(0, Number(cfg.pause) || 0);
+  const perLinePauses = Array.isArray(cfg.pauses)
+    ? cfg.pauses.map((p) => Math.max(0, Number(p) || 0))
+    : [];
 
   const doneHtmlParts = [];
   let activeNode = null;
   let lineIndex = 0;
   let segmentIndex = 0;
   let charIndex = 0;
+  let cancelled = false;
 
   const syncDoneHtml = () => {
     pre.innerHTML = doneHtmlParts.join("");
@@ -206,27 +218,45 @@ HTML = """
   };
 
   const showFinal = () => {
+    if (cancelled) {
+      return;
+    }
     cancelled = true;
     doneHtmlParts.length = 0;
     activeNode = null;
     pre.innerHTML = finalHtml;
-    if (caret) caret.style.display = "none";
+    if (caret) {
+      caret.style.display = "none";
+    }
   };
 
-  if (skip) skip.addEventListener("click", showFinal);
+  if (skip) {
+    skip.addEventListener("click", showFinal);
+  }
 
-  const baseSpeed = Math.max(0, Number(cfg.speed) || 0);
-  const basePause = Math.max(0, Number(cfg.pause) || 0);
   const prefersReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  if (prefersReduced || baseSpeed <= 0) { showFinal(); return; }
+  if (prefersReduced || baseSpeed <= 0) {
+    showFinal();
+    return;
+  }
+
+  const scheduleNextLine = (index) => {
+    const pause = basePause + (perLinePauses[index] || 0);
+    setTimeout(step, pause);
+  };
 
   syncDoneHtml();
 
-  const typeNext = () => {
-    if (cancelled) { return; }
+  function step() {
+    if (cancelled) {
+      return;
+    }
+
     if (lineIndex >= perLineSegs.length) {
       syncDoneHtml();
-      if (caret) caret.style.display = "none";
+      if (caret) {
+        caret.style.display = "none";
+      }
       return;
     }
 
@@ -235,9 +265,9 @@ HTML = """
 
     if (!current) {
       segmentIndex = 0;
+      const finishedIndex = lineIndex;
       lineIndex += 1;
-      const delay = basePause + (pauses[lineIndex - 1] || 0);
-      setTimeout(typeNext, delay);
+      scheduleNextLine(finishedIndex);
       return;
     }
 
@@ -249,7 +279,7 @@ HTML = """
         node.textContent = (node.textContent || "") + char;
       }
       charIndex += 1;
-      setTimeout(typeNext, baseSpeed);
+      setTimeout(step, baseSpeed);
       return;
     }
 
@@ -259,18 +289,19 @@ HTML = """
 
     if (segmentIndex >= segments.length) {
       segmentIndex = 0;
+      const finishedIndex = lineIndex;
       lineIndex += 1;
-      const delay = basePause + (pauses[lineIndex - 1] || 0);
-      setTimeout(typeNext, delay);
+      scheduleNextLine(finishedIndex);
       return;
     }
 
-    setTimeout(typeNext, baseSpeed);
-  };
+    setTimeout(step, baseSpeed);
+  }
 
-  requestAnimationFrame(typeNext);
+  requestAnimationFrame(step);
 })();
 </script>
+
 """
 
 
