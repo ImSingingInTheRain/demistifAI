@@ -22,7 +22,7 @@ from demistifai.ui.components.shared.macos_iframe_window import (
     MacWindowPane,
     render_macos_iframe_window,
 )
-from demistifai.ui.components.terminal.article3 import (
+from demistifai.ui.components.terminal.intro_terminal import (
     _WELCOME_LINES,
     render_ai_act_terminal as render_welcome_ai_act_terminal,
 )
