@@ -1,6 +1,6 @@
 """Intro stage UI components."""
 
-from .intro_hero import (
+from .lifecycle import (
     INTRO_HERO_MAP_PANE_ID,
     INTRO_HERO_SIDECAR_PANE_ID,
     intro_hero_panes,

@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from textwrap import dedent
 from typing import Callable, ContextManager, Optional
 
 import streamlit as st
@@ -12,14 +11,15 @@ from demistifai.core.navigation import activate_stage
 from demistifai.core.utils import streamlit_rerun
 from demistifai.constants import STAGE_INDEX, STAGES, StageMeta
 from demistifai.ui.components import render_stage_top_grid
-from demistifai.ui.components.intro import (
-    INTRO_HERO_MAP_PANE_ID,
-    INTRO_HERO_SIDECAR_PANE_ID,
-    intro_hero_panes,
-    render_lifecycle_ring_component,
+from demistifai.ui.components.overview import (
+    mailbox_preview_markup,
+    mailbox_preview_styles,
+    mission_brief_styles,
+    mission_overview_column_markup,
 )
 from demistifai.ui.components.shared.macos_iframe_window import (
     MacWindowConfig,
+    MacWindowPane,
     render_macos_iframe_window,
 )
 from demistifai.ui.components.terminal.article3 import (
@@ -56,18 +56,37 @@ def render_intro_stage(*, section_surface: SectionSurface) -> None:
     render_stage_top_grid("intro", left_renderer=_render_intro_terminal)
 
     with section_surface("section-surface--hero"):
-        hero_panes = intro_hero_panes()
+        incoming_records = st.session_state.get("incoming") or []
+        preview_records = []
+        for record in list(incoming_records)[:5]:
+            if hasattr(record, "items"):
+                preview_records.append(dict(record))
+            else:
+                preview_records.append(record)
+
+        mission_panes = (
+            MacWindowPane(
+                html=mission_overview_column_markup(),
+                css=mission_brief_styles(),
+                min_height=420,
+                pane_id="overview-mission-brief",
+            ),
+            MacWindowPane(
+                html=mailbox_preview_markup(preview_records),
+                css=mailbox_preview_styles(),
+                min_height=420,
+                pane_id="overview-mission-mailbox",
+            ),
+        )
         render_macos_iframe_window(
             st,
             MacWindowConfig(
-                panes=hero_panes,
+                panes=mission_panes,
                 rows=1,
                 columns=2,
-                column_ratios=(0.4, 0.6),
+                column_ratios=(1.1, 0.9),
             ),
         )
-
-        render_lifecycle_ring_component(height=0)
 
         if next_stage_meta is not None and next_stage_key is not None:
             button_key = f"intro_stage_start_{next_stage_key}"
@@ -81,115 +100,4 @@ def render_intro_stage(*, section_surface: SectionSurface) -> None:
                 )
                 if cta_clicked and activate_stage(next_stage_key):
                     streamlit_rerun()
-
-            st.markdown(
-                dedent(
-                    f"""
-                    <script>
-                        (function() {{
-                            const rootDoc = window.parent && window.parent.document ? window.parent.document : document;
-                            const buttonClass = 'st-key-{button_key}';
-                            const sidecarPaneId = '{INTRO_HERO_SIDECAR_PANE_ID}';
-
-                            function getPaneDocument(paneId) {{
-                                const doc = window.parent && window.parent.document ? window.parent.document : document;
-
-                                const heroSurface = doc.querySelector('.section-surface--hero');
-                                if (!heroSurface) {{
-                                    return null;
-                                }}
-
-                                const miwRoot = heroSurface.querySelector('[data-miw]');
-                                if (miwRoot) {{
-                                    const paneFrame = miwRoot.querySelector(`iframe[data-pane-id="${{paneId}}"]`);
-                                    if (!paneFrame) {{
-                                        return null;
-                                    }}
-                                    try {{
-                                        return paneFrame.contentDocument || (paneFrame.contentWindow && paneFrame.contentWindow.document) || null;
-                                    }} catch (error) {{
-                                        return null;
-                                    }}
-                                }}
-
-                                const outerFrame =
-                                    heroSurface.querySelector('iframe[data-testid="stIFrame"]') ||
-                                    heroSurface.querySelector('iframe[data-testid="stHtml"]') ||
-                                    heroSurface.querySelector('iframe');
-
-                                if (!outerFrame) {{
-                                    return null;
-                                }}
-
-                                let outerDoc = null;
-                                try {{
-                                    outerDoc = outerFrame.contentDocument || (outerFrame.contentWindow && outerFrame.contentWindow.document) || null;
-                                }} catch (error) {{
-                                    outerDoc = null;
-                                }}
-
-                                if (!outerDoc) {{
-                                    return null;
-                                }}
-
-                                const paneFrame = outerDoc.querySelector(`iframe[data-pane-id="${{paneId}}"]`);
-                                if (!paneFrame) {{
-                                    return null;
-                                }}
-
-                                try {{
-                                    return paneFrame.contentDocument || (paneFrame.contentWindow && paneFrame.contentWindow.document) || null;
-                                }} catch (error) {{
-                                    return null;
-                                }}
-                            }}
-
-                            window.__demai_getPaneDocument = getPaneDocument;
-
-                            function mountIntroStartButton() {{
-                                const getPaneDoc = window.__demai_getPaneDocument || function () {{ return null; }};
-                                const paneDoc = getPaneDoc(sidecarPaneId);
-                                const wrapper = rootDoc.querySelector('.' + buttonClass);
-                                if (!paneDoc || !wrapper) {{
-                                    return false;
-                                }}
-
-                                const target = paneDoc.querySelector('.intro-start-button-source');
-                                if (!target) {{
-                                    return false;
-                                }}
-                                if (target.contains(wrapper)) {{
-                                    return true;
-                                }}
-
-                                const originBlock = wrapper.closest('[data-testid="stVerticalBlock"]');
-                                target.innerHTML = '';
-                                target.classList.add('intro-start-button-source--mounted');
-                                try {{
-                                    const adopted = paneDoc.adoptNode(wrapper);
-                                    target.appendChild(adopted);
-                                }} catch (error) {{
-                                    const clone = paneDoc.importNode(wrapper, true);
-                                    target.appendChild(clone);
-                                    wrapper.remove();
-                                }}
-                                if (originBlock) {{
-                                    originBlock.style.display = 'none';
-                                }}
-                                return true;
-                            }}
-
-                            if (!mountIntroStartButton()) {{
-                                const retry = setInterval(() => {{
-                                    if (mountIntroStartButton()) {{
-                                        clearInterval(retry);
-                                    }}
-                                }}, 200);
-                            }}
-                        }})();
-                    </script>
-                    """
-                ),
-                unsafe_allow_html=True,
-            )
 

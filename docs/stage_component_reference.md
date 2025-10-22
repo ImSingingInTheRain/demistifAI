@@ -19,8 +19,8 @@ numbers use `nl -ba` numbering (1-indexed) for quick cross-checks.
 ## Stage implementation outside the main app
 | Stage key | File | Line range | Purpose |
 | --- | --- | --- | --- |
-| `intro` | `pages/welcome.py` | 22–337 | Full intro stage UI including lifecycle hero, EU AI Act framing, and launch controls. |
-| `overview` | `pages/overview.py` | 25–755 | Stage Control Room with EU AI Act framing, system snapshot/status, and mission walkthrough of the pipeline. |
+| `intro` | `pages/welcome.py` | 38–102 | Full intro stage UI including the mission briefing hero, EU AI Act framing, and launch controls. |
+| `overview` | `pages/overview.py` | 27–204 | Stage Control Room with EU AI Act framing, system snapshot/status, and lifecycle walkthrough of the pipeline. |
 | `data` | `pages/data/page.py` | 1–194 | Orchestrates the Prepare stage and delegates to builder (`pages/data/builder.py`), review (`pages/data/review.py`), and PII (`pages/data/pii.py`) helpers. |
 | `train` | `pages/train_stage/page.py` | 1–307 | Orchestrates the Train stage and delegates to `panels.py`, `guardrails.py`, `results.py`, and `state.py` for UI panels, guardrail controls, results, and state management. |
 | `evaluate` | `pages/evaluate.py` | 44–566 | Evaluation metrics, ROC / confusion matrix views, and governance summary. |
@@ -42,7 +42,7 @@ Supporting helpers for training live alongside the stage:
 - **`demistifai/dataset.py`** – Dataset generation, CSV I/O, and linting utilities for Prepare/Data stages.
 - **`demistifai/modeling.py`** – Feature engineering, model training, calibration, and interpretability helpers.
 - **`demistifai/incoming_generator.py`** – Synthetic incoming email batches used in the Classify stage.
-- **`pages/overview.py`** – Overview stage UI with macOS windows for the system snapshot and the mission briefing + inbox preview columns.
+- **`pages/overview.py`** – Overview stage UI with macOS windows for the system snapshot and the lifecycle walkthrough panes.
 - **`pages/model_card.py`** – Model card transparency stage UI and download helpers.
 - **`pages/train_stage/page.py` & package modules under `pages/train_stage/`** – Dedicated training UI entry point (`render_train_stage_page`) and supporting logic.
 
