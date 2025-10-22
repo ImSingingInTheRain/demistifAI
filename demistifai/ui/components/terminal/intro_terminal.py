@@ -68,12 +68,82 @@ def render_intro_terminal_with_prompt(
         pause_between_ops_ms=pause_between_ops_ms,
     )
 
+    style_injected_flag = f"{command_key}_style_injected"
+
+    if not st.session_state.get(style_injected_flag):
+        st.session_state[style_injected_flag] = True
+        st.markdown(
+            f"""
+            <style>
+            .intro-terminal-command {{
+                background: #0d1117;
+                font-family: 'Fira Code', monospace;
+                width: min(100%, 680px);
+                margin: -8px auto 0;
+                padding: 12px 16px;
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                border-radius: 0 0 12px 12px;
+                border-top: 0;
+            }}
+
+            .intro-terminal-command span.intro-terminal-prompt {{
+                color: #58a6ff;
+                font-weight: 500;
+            }}
+
+            .intro-terminal-command [data-testid="stTextInput"] {{
+                flex: 1;
+                margin: 0;
+            }}
+
+            .intro-terminal-command [data-testid="stTextInput"] label {{
+                display: none;
+            }}
+
+            .intro-terminal-command [data-testid="stTextInput"] > div {{
+                margin: 0;
+                padding: 0;
+                background: transparent;
+            }}
+
+            .intro-terminal-command input[id="{command_key}"] {{
+                background: transparent;
+                border: 0;
+                box-shadow: none;
+                color: #c9d1d9;
+                caret-color: #00c2ff;
+                font: inherit;
+                width: 100%;
+                padding: 0;
+                outline: none;
+            }}
+
+            .intro-terminal-command input[id="{command_key}"]::placeholder {{
+                color: rgba(88, 166, 255, 0.7);
+            }}
+            </style>
+            """,
+            unsafe_allow_html=True,
+        )
+
+    st.markdown(
+        """
+        <div class="intro-terminal-command">
+            <span class="intro-terminal-prompt">$</span>
+        """,
+        unsafe_allow_html=True,
+    )
+
     command = st.text_input(
         "Show Mission command",
         key=command_key,
         placeholder="Show Mission",
         label_visibility="collapsed",
     )
+
+    st.markdown("</div>", unsafe_allow_html=True)
 
     if command.strip().lower() == "show mission":
         st.session_state[clear_flag_key] = True
