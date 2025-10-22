@@ -73,42 +73,38 @@ def render_intro_terminal_with_prompt(
     if not st.session_state.get(style_injected_flag):
         st.session_state[style_injected_flag] = True
         st.markdown(
-            f"""
+            """
             <style>
-            .intro-terminal-command {{
+            div[data-testid="stTextInput"]:has(input[placeholder="Show Mission"]) {
                 background: #0d1117;
                 font-family: 'Fira Code', monospace;
                 width: min(100%, 680px);
-                margin: -8px auto 0;
+                margin: -10px auto 0;
                 padding: 12px 16px;
                 display: flex;
                 align-items: center;
                 gap: 12px;
                 border-radius: 0 0 12px 12px;
+                border: 1px solid #30363d;
                 border-top: 0;
-            }}
+                box-shadow: inset 0 0 0 1px rgba(88, 166, 255, 0.12);
+            }
 
-            .intro-terminal-command span.intro-terminal-prompt {{
+            div[data-testid="stTextInput"]:has(input[placeholder="Show Mission"])::before {
+                content: "$";
                 color: #58a6ff;
                 font-weight: 500;
-            }}
+            }
 
-            .intro-terminal-command [data-testid="stTextInput"] {{
-                flex: 1;
-                margin: 0;
-            }}
-
-            .intro-terminal-command [data-testid="stTextInput"] label {{
+            div[data-testid="stTextInput"]:has(input[placeholder="Show Mission"]) > label {
                 display: none;
-            }}
+            }
 
-            .intro-terminal-command [data-testid="stTextInput"] > div {{
-                margin: 0;
-                padding: 0;
-                background: transparent;
-            }}
+            div[data-testid="stTextInput"]:has(input[placeholder="Show Mission"]) > div {
+                flex: 1;
+            }
 
-            .intro-terminal-command input[id="{command_key}"] {{
+            div[data-testid="stTextInput"]:has(input[placeholder="Show Mission"]) input {
                 background: transparent;
                 border: 0;
                 box-shadow: none;
@@ -118,23 +114,15 @@ def render_intro_terminal_with_prompt(
                 width: 100%;
                 padding: 0;
                 outline: none;
-            }}
+            }
 
-            .intro-terminal-command input[id="{command_key}"]::placeholder {{
+            div[data-testid="stTextInput"]:has(input[placeholder="Show Mission"]) input::placeholder {
                 color: rgba(88, 166, 255, 0.7);
-            }}
+            }
             </style>
             """,
             unsafe_allow_html=True,
         )
-
-    st.markdown(
-        """
-        <div class="intro-terminal-command">
-            <span class="intro-terminal-prompt">$</span>
-        """,
-        unsafe_allow_html=True,
-    )
 
     command = st.text_input(
         "Show Mission command",
@@ -142,8 +130,6 @@ def render_intro_terminal_with_prompt(
         placeholder="Show Mission",
         label_visibility="collapsed",
     )
-
-    st.markdown("</div>", unsafe_allow_html=True)
 
     if command.strip().lower() == "show mission":
         st.session_state[clear_flag_key] = True
