@@ -57,6 +57,12 @@ def render_intro_terminal_with_prompt(
 ) -> bool:
     """Render the intro terminal and capture the "Show Mission" command."""
 
+    clear_flag_key = f"{command_key}_clear_pending"
+
+    if st.session_state.get(clear_flag_key):
+        st.session_state[command_key] = ""
+        st.session_state[clear_flag_key] = False
+
     render_ai_act_terminal(
         speed_type_ms=speed_type_ms,
         pause_between_ops_ms=pause_between_ops_ms,
@@ -70,7 +76,7 @@ def render_intro_terminal_with_prompt(
     )
 
     if command.strip().lower() == "show mission":
-        st.session_state[command_key] = ""
+        st.session_state[clear_flag_key] = True
         return True
 
     return False
