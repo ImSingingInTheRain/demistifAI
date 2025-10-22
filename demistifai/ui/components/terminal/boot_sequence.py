@@ -90,6 +90,43 @@ _TERMINAL_STYLE = dedent(f"""
       font-size: .9rem;
     }}
   }}
+
+  @media (max-width: 600px) {{
+    .terminal-wrap-{_TERMINAL_SUFFIX} {{
+      margin: 0;
+      padding: 0;
+    }}
+    .terminal-{_TERMINAL_SUFFIX} {{
+      width: 100%;
+      max-width: 100vw;
+      min-height: 100vh;
+      margin: 0;
+      border-radius: 0;
+      padding: clamp(1.2rem, 7vw, 1.8rem);
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      gap: 1.1rem;
+    }}
+    .terminal-{_TERMINAL_SUFFIX}::before {{
+      top: 14px;
+      left: 50%;
+      transform: translateX(-50%);
+    }}
+    .term-body-{_TERMINAL_SUFFIX} {{
+      font-size: 1.05rem;
+      line-height: 1.72;
+      width: 100%;
+      overflow-wrap: anywhere;
+      word-break: break-word;
+      overflow-x: hidden;
+    }}
+    .caret-{_TERMINAL_SUFFIX} {{
+      align-self: flex-start;
+      margin-top: -.2rem;
+      flex-shrink: 0;
+    }}
+  }}
 </style>
 """)
 

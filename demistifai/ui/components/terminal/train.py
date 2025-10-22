@@ -51,6 +51,14 @@ STYLE = """
   .skip-__SFX__{position:absolute;top:8px;right:8px;background:#111827;color:#e5e7eb;border:1px solid #374151;border-radius:6px;padding:.2rem .5rem;font-size:.8rem;cursor:pointer}
   .skip-__SFX__:hover{background:#1f2937}
   @media (prefers-reduced-motion: reduce){.caret-__SFX__{animation:none}.wrap-__SFX__{animation:none;opacity:1;transform:none}}
+  @media (max-width: 600px){
+    .wrap-__SFX__{margin:0;padding:0}
+    .term-__SFX__{width:100%;max-width:100vw;min-height:100vh;margin:0;border-radius:0;padding:clamp(1.1rem,6vw,1.5rem);box-sizing:border-box;display:flex;flex-direction:column;gap:1rem}
+    .term-__SFX__::before{top:12px;left:50%;transform:translateX(-50%)}
+    .body-__SFX__{font-size:1.05rem;line-height:1.72;width:100%;overflow-wrap:anywhere;word-break:break-word;overflow-x:hidden}
+    .caret-__SFX__{align-self:flex-start;margin-top:-.2rem;flex-shrink:0}
+    .skip-__SFX__{position:static;width:100%;margin:.75rem 0 0;align-self:stretch;text-align:center;padding:.6rem 1rem;font-size:.9rem}
+  }
 </style>
 """
 
