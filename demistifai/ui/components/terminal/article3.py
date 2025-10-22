@@ -10,6 +10,12 @@ from streamlit.components.v1 import html as components_html
 
 _SUFFIX = "ai_term"
 
+# Preserve the historical constant name referenced throughout the module. A
+# previous refactor renamed the suffix constant but missed the call sites,
+# leaving `_TERMINAL_SUFFIX` undefined at import time. Keep both names in sync
+# so downstream imports remain stable.
+_TERMINAL_SUFFIX = _SUFFIX
+
 _DEFAULT_DEMAI_LINES: List[str] = [
     "> What is an AI system?\n",
     "$ fetch EU_AI_ACT.AI_system_definition\n",
