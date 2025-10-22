@@ -85,29 +85,30 @@ def render_intro_stage(*, section_surface: SectionSurface) -> None:
             else:
                 preview_records.append(record)
 
-        mission_panes = (
-            MacWindowPane(
-                html=mission_overview_column_markup(),
-                css=mission_brief_styles(),
-                min_height=420,
-                pane_id="overview-mission-brief",
-            ),
-            MacWindowPane(
-                html=mailbox_preview_markup(preview_records),
-                css=mailbox_preview_styles(),
-                min_height=420,
-                pane_id="overview-mission-mailbox",
-            ),
-        )
-        render_macos_iframe_window(
-            st,
-            MacWindowConfig(
-                panes=mission_panes,
-                rows=1,
-                columns=2,
-                column_ratios=(1.1, 0.9),
-            ),
-        )
+        if show_mission:
+            mission_panes = (
+                MacWindowPane(
+                    html=mission_overview_column_markup(),
+                    css=mission_brief_styles(),
+                    min_height=420,
+                    pane_id="overview-mission-brief",
+                ),
+                MacWindowPane(
+                    html=mailbox_preview_markup(preview_records),
+                    css=mailbox_preview_styles(),
+                    min_height=420,
+                    pane_id="overview-mission-mailbox",
+                ),
+            )
+            render_macos_iframe_window(
+                st,
+                MacWindowConfig(
+                    panes=mission_panes,
+                    rows=1,
+                    columns=2,
+                    column_ratios=(1.1, 0.9),
+                ),
+            )
 
         if next_stage_meta is not None and next_stage_key is not None:
             button_key = f"intro_stage_start_{next_stage_key}"
