@@ -81,13 +81,21 @@ HTML = """
   // --- helpers
   const esc = s => s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
 
-  // token coloring per line (simple split once, then type per segment)
+  const normaliseSegments = (segments) =>
+    segments.map((line) =>
+      Array.isArray(line)
+        ? line.map((seg) => ({
+            t: typeof seg.t === "string" ? seg.t : "",
+            c: typeof seg.c === "string" && seg.c ? seg.c : null,
+          }))
+        : []
+    );
+
   const splitSegments = (line) => {
     const trimmed = line.trim();
-    // whole-line classes
-    if (line.startsWith("$ ")) return [{t: line, c: "cmd-" + cfg.sfx}];
-    if (/^ERROR\\b/i.test(trimmed)) return [{t: line, c: "err-" + cfg.sfx}];
-    return [{t: line, c: null}];
+    if (line.startsWith("$ ")) return [{ t: line, c: "cmd-" + cfg.sfx }];
+    if (/^ERROR\\b/i.test(trimmed)) return [{ t: line, c: "err-" + cfg.sfx }];
+    return [{ t: line, c: null }];
   };
 
   const rawLines = (cfg.expandedLines || cfg.lines || []).map((item) => {
@@ -98,10 +106,14 @@ HTML = """
     ? cfg.pauses.map(p => Number(p) || 0)
     : new Array(rawLines.length).fill(0);
 
-  const perLineSegs = rawLines.map(splitSegments);
-  const computedHtml = perLineSegs
-    .map(segs => segs.map(s => s.c ? `<span class="${s.c}">${esc(s.t)}</span>` : esc(s.t)).join(""))
-    .join("");
+  const perLineSegs = Array.isArray(cfg.segments)
+    ? normaliseSegments(cfg.segments)
+    : rawLines.map(splitSegments);
+  const perLineSegmentHtml = perLineSegs.map((segs) =>
+    segs.map((seg) => (seg.c ? `<span class="${seg.c}">${esc(seg.t)}</span>` : esc(seg.t)))
+  );
+  const perLineHtml = perLineSegmentHtml.map((parts) => parts.join(""));
+  const computedHtml = perLineHtml.join("");
   const finalHtml = typeof cfg.fullHtml === "string" ? cfg.fullHtml : computedHtml;
   cfg.fullHtml = finalHtml;
 
@@ -144,55 +156,117 @@ HTML = """
     window.parent.postMessage({type:"streamlit:resize", height: measuredHeight + 24},"*");
   }
 
-  const renderAll = () => {
+  let cancelled = false;
+
+  const doneHtmlParts = [];
+  let activeNode = null;
+  let lineIndex = 0;
+  let segmentIndex = 0;
+  let charIndex = 0;
+
+  const syncDoneHtml = () => {
+    pre.innerHTML = doneHtmlParts.join("");
+  };
+
+  const ensureActiveNode = () => {
+    if (activeNode) {
+      return activeNode;
+    }
+    const segments = perLineSegs[lineIndex] || [];
+    const current = segments[segmentIndex];
+    if (!current) {
+      return null;
+    }
+    if (current.c) {
+      const span = document.createElement("span");
+      span.className = current.c;
+      span.textContent = "";
+      pre.appendChild(span);
+      activeNode = span;
+    } else {
+      activeNode = document.createTextNode("");
+      pre.appendChild(activeNode);
+    }
+    return activeNode;
+  };
+
+  const commitActiveSegment = () => {
+    if (!activeNode) {
+      return;
+    }
+    if (activeNode.parentNode === pre) {
+      pre.removeChild(activeNode);
+    }
+    const segmentHtml = (perLineSegmentHtml[lineIndex] || [])[segmentIndex] || "";
+    doneHtmlParts.push(segmentHtml);
+    activeNode = null;
+    syncDoneHtml();
+  };
+
+  const showFinal = () => {
+    cancelled = true;
+    doneHtmlParts.length = 0;
+    activeNode = null;
     pre.innerHTML = finalHtml;
     if (caret) caret.style.display = "none";
   };
 
+  if (skip) skip.addEventListener("click", showFinal);
+
+  const baseSpeed = Math.max(0, Number(cfg.speed) || 0);
+  const basePause = Math.max(0, Number(cfg.pause) || 0);
   const prefersReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  if (prefersReduced || cfg.speed <= 0) { renderAll(); return; }
+  if (prefersReduced || baseSpeed <= 0) { showFinal(); return; }
 
-  // state
-  let li = 0, si = 0, ci = 0;
-  const done = []; // completed lines (as HTML strings)
-
-  const flush = (currentHTML="") => {
-    pre.innerHTML = done.join("") + currentHTML;
-  };
+  syncDoneHtml();
 
   const typeNext = () => {
-    if (li >= perLineSegs.length) { if (caret) caret.style.display = "none"; return; }
-    const segs = perLineSegs[li];
-    // build typed HTML for current line up to (si, ci)
-    let html = "";
-    for (let s=0; s<segs.length; s++) {
-      const seg = segs[s];
-      const full = seg.t;
-      const take = (s < si) ? full : (s === si ? full.slice(0, ci) : "");
-      const span = seg.c ? `<span class="${seg.c}">${esc(take)}</span>` : esc(take);
-      html += span;
+    if (cancelled) { return; }
+    if (lineIndex >= perLineSegs.length) {
+      syncDoneHtml();
+      if (caret) caret.style.display = "none";
+      return;
     }
-    flush(html);
 
-    // advance one char
-    const cur = segs[si];
-    ci += 1;
-    if (ci > cur.t.length) {
-      si += 1; ci = 0;
-      if (si >= segs.length) {
-        // line finished -> commit and pause before next line
-        const fullHTML = segs.map(seg => seg.c ? `<span class="${seg.c}">${esc(seg.t)}</span>` : esc(seg.t)).join("");
-        done.push(fullHTML);
-        li += 1; si = 0; ci = 0;
-        setTimeout(typeNext, cfg.pause + (pauses[li-1] || 0));
-        return;
-      }
+    const segments = perLineSegs[lineIndex] || [];
+    const current = segments[segmentIndex];
+
+    if (!current) {
+      segmentIndex = 0;
+      lineIndex += 1;
+      const delay = basePause + (pauses[lineIndex - 1] || 0);
+      setTimeout(typeNext, delay);
+      return;
     }
-    setTimeout(typeNext, cfg.speed);
+
+    const target = current.t;
+    if (charIndex < target.length) {
+      const node = ensureActiveNode();
+      if (node) {
+        const char = target.charAt(charIndex);
+        node.textContent = (node.textContent || "") + char;
+      }
+      charIndex += 1;
+      setTimeout(typeNext, baseSpeed);
+      return;
+    }
+
+    commitActiveSegment();
+    segmentIndex += 1;
+    charIndex = 0;
+
+    if (segmentIndex >= segments.length) {
+      segmentIndex = 0;
+      lineIndex += 1;
+      const delay = basePause + (pauses[lineIndex - 1] || 0);
+      setTimeout(typeNext, delay);
+      return;
+    }
+
+    setTimeout(typeNext, baseSpeed);
   };
 
-  if (skip) skip.addEventListener("click", renderAll);
-  typeNext();
+  requestAnimationFrame(typeNext);
 })();
 </script>
 """
@@ -256,6 +330,10 @@ def _compute_full_html(lines: Sequence[str], suffix: str) -> str:
         _segments_to_html(_split_segments(line, suffix)) for line in lines
     )
 
+
+def _compute_segment_payload(lines: Sequence[str], suffix: str) -> List[List[Tuple[str, Optional[str]]]]:
+    return [_split_segments(line, suffix) for line in lines]
+
 def render_ai_act_terminal(
     lines: Optional[Iterable[str]] = None,
     speed_type_ms: int = 22,          # ~20–50ms per char
@@ -285,7 +363,12 @@ def render_ai_act_terminal(
 
     data = list(lines) if lines is not None else LINES
     expanded_lines, pauses = _expand_lines(data)
-    full_html = _compute_full_html(expanded_lines, _SUFFIX)
+    segments = _compute_segment_payload(expanded_lines, _SUFFIX)
+    full_html = "".join(_segments_to_html(parts) for parts in segments)
+    serializable_segments = [
+        [{"t": text, "c": css} for text, css in parts]
+        for parts in segments
+    ]
     payload = {
         "lines": data,
         "expandedLines": expanded_lines,
@@ -295,6 +378,7 @@ def render_ai_act_terminal(
         "pause": max(0, int(pause_between_lines_ms)),
         "sfx": _SUFFIX,
         "domId": f"term-{key}",
+        "segments": serializable_segments,
     }
     html_markup = (
         HTML

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 from textwrap import dedent
-from typing import Iterable, List, Optional, Sequence
+from typing import Iterable, List, Optional, Sequence, Tuple
 import html
 import json
 import re
@@ -143,22 +143,41 @@ def _escape_text(text: str) -> str:
     return html.escape(text, quote=False)
 
 
-def _highlight_line(line: str, suffix: str) -> str:
+def _split_segments(line: str, suffix: str) -> List[Tuple[str, Optional[str]]]:
     stripped = line.strip()
     if not line:
-        return ""
+        return [(line, None)]
     if line.startswith("$ "):
-        return f'<span class="cmd-{suffix}">{_escape_text(line)}</span>'
+        return [(line, f"cmd-{suffix}")]
     if re.match(r"^ERROR\b", stripped, flags=re.IGNORECASE):
-        return f'<span class="err-{suffix}">{_escape_text(line)}</span>'
-    return _escape_text(line)
+        return [(line, f"err-{suffix}")]
+    return [(line, None)]
+
+
+def _segments_to_html(segments: Sequence[Tuple[str, Optional[str]]]) -> str:
+    rendered: List[str] = []
+    for text, css in segments:
+        escaped = _escape_text(text)
+        if css:
+            rendered.append(f'<span class="{css}">{escaped}</span>')
+        else:
+            rendered.append(escaped)
+    return "".join(rendered)
+
+
+def _highlight_line(line: str, suffix: str) -> str:
+    return _segments_to_html(_split_segments(line, suffix))
 
 
 def _compute_full_html(lines: Sequence[str], suffix: str) -> str:
     normalized = _normalize_lines(lines)
-    final_text = "".join(normalized)
-    highlighted_lines = [_highlight_line(part, suffix) for part in final_text.split("\n")]
-    return "\n".join(highlighted_lines)
+    segments = [_split_segments(line, suffix) for line in normalized]
+    return "".join(_segments_to_html(parts) for parts in segments)
+
+
+def _compute_segment_payload(lines: Sequence[str], suffix: str) -> List[List[Tuple[str, Optional[str]]]]:
+    normalized = _normalize_lines(lines)
+    return [_split_segments(line, suffix) for line in normalized]
 
 def render_ai_act_terminal(
     demai_lines: Optional[Iterable[str]] = None,
@@ -178,7 +197,12 @@ def render_ai_act_terminal(
     """
     lines = list(demai_lines) if demai_lines is not None else _DEFAULT_DEMAI_LINES
     normalized_lines = _normalize_lines(lines)
-    full_html = _compute_full_html(lines, _TERMINAL_SUFFIX)
+    segments = _compute_segment_payload(lines, _TERMINAL_SUFFIX)
+    full_html = "".join(_segments_to_html(parts) for parts in segments)
+    serializable_segments = [
+        [{"t": text, "c": css} for text, css in parts]
+        for parts in segments
+    ]
 
     payload = {
         "lines": lines,
@@ -189,6 +213,7 @@ def render_ai_act_terminal(
         "showCaret": bool(show_caret),
         "suffix": _TERMINAL_SUFFIX,
         "domId": f"term-{key}",
+        "segments": serializable_segments,
     }
 
     # ---- IMPORTANT: precompute noscript text to avoid backslashes inside f-string expressions
@@ -219,22 +244,40 @@ def render_ai_act_terminal(
   const pre   = root.querySelector(".term-body-" + cfg.suffix);
   const caret = root.querySelector(".caret-" + cfg.suffix);
 
-  const rawLines = (cfg.lines || []).map(l => (l == null ? "" : String(l)));
-  const toLinesWithNL = (arr) => arr.map(l => l.endsWith("\\n") ? l : (l + "\\n"));
-  const esc = (s) => s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  const rawLines = (cfg.lines || []).map((l) => (l == null ? "" : String(l)));
+  const toLinesWithNL = (arr) => arr.map((l) => (l.endsWith("\\n") ? l : l + "\\n"));
+  const esc = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
-  const highlight = (line) => {{
-    const stripped = line.trim();
-    if (line.startsWith("$ ")) return `<span class="cmd-${{cfg.suffix}}">${{esc(line)}}</span>`;
-    if (/^ERROR\b/i.test(stripped)) return `<span class="err-${{cfg.suffix}}">${{esc(line)}}</span>`;
-    return esc(line);
-  }};
-  const renderHighlighted = (raw) => {{
-    pre.innerHTML = raw.split("\\n").map(highlight).join("\\n");
+  const normaliseSegments = (segments) =>
+    segments.map((line) =>
+      Array.isArray(line)
+        ? line.map((seg) => ({
+            t: typeof seg.t === "string" ? seg.t : "",
+            c: typeof seg.c === "string" && seg.c ? seg.c : null,
+          }))
+        : []
+    );
+
+  const splitSegments = (line) => {{
+    const trimmed = line.trim();
+    if (line.startsWith("$ ")) return [{{ t: line, c: "cmd-" + cfg.suffix }}];
+    if (/^ERROR\b/i.test(trimmed)) return [{{ t: line, c: "err-" + cfg.suffix }}];
+    return [{{ t: line, c: null }}];
   }};
 
-  const finalRaw = toLinesWithNL(rawLines).join("");
-  const computedFinalHtml = finalRaw ? finalRaw.split("\\n").map(highlight).join("\\n") : "";
+  const normalisedLines = toLinesWithNL(rawLines);
+  const perLineSegs = Array.isArray(cfg.segments)
+    ? normaliseSegments(cfg.segments)
+    : normalisedLines.map(splitSegments);
+
+  const perLineSegmentHtml = perLineSegs.map((segs) =>
+    segs.map((seg) => (seg.c ? `<span class="${{seg.c}}">${{esc(seg.t)}}</span>` : esc(seg.t)))
+  );
+  const perLineHtml = perLineSegmentHtml.map((parts) => parts.join(""));
+  const perLineRaw = perLineSegs.map((segs) => segs.map((seg) => seg.t).join(""));
+
+  const finalRaw = perLineRaw.join("");
+  const computedFinalHtml = perLineHtml.join("");
   const finalHtml = typeof cfg.fullHtml === "string" ? cfg.fullHtml : computedFinalHtml;
   cfg.fullHtml = finalHtml;
 
@@ -288,31 +331,98 @@ def render_ai_act_terminal(
   const TYPE_DELAY = Math.max(0, cfg.speedType);
   const BETWEEN_LINES = Math.max(0, cfg.pauseBetween);
 
-  let iLine = 0, iChar = 0, buffer = "";
+  const doneHtmlParts = [];
+  let activeNode = null;
+  let lineIndex = 0;
+  let segmentIndex = 0;
+  let charIndex = 0;
+
+  const syncDoneHtml = () => {{
+    pre.innerHTML = doneHtmlParts.join("");
+  }};
+
+  const ensureActiveNode = () => {{
+    if (activeNode) {{
+      return activeNode;
+    }}
+    const segments = perLineSegs[lineIndex] || [];
+    const current = segments[segmentIndex];
+    if (!current) {{
+      return null;
+    }}
+    if (current.c) {{
+      const span = document.createElement("span");
+      span.className = current.c;
+      span.textContent = "";
+      pre.appendChild(span);
+      activeNode = span;
+    }} else {{
+      activeNode = document.createTextNode("");
+      pre.appendChild(activeNode);
+    }}
+    return activeNode;
+  }};
+
+  const commitActiveSegment = () => {{
+    if (!activeNode) {{
+      return;
+    }}
+    if (activeNode.parentNode === pre) {{
+      pre.removeChild(activeNode);
+    }}
+    const segmentHtml = (perLineSegmentHtml[lineIndex] || [])[segmentIndex] || "";
+    doneHtmlParts.push(segmentHtml);
+    activeNode = null;
+    syncDoneHtml();
+  }};
+
+  syncDoneHtml();
 
   function step() {{
-    if (iLine >= rawLines.length) {{
-      renderHighlighted(buffer);
-      if (caret) caret.style.display = "none";
+    if (lineIndex >= perLineSegs.length) {{
+      syncDoneHtml();
+      if (caret) {{
+        caret.style.display = "none";
+      }}
       return;
     }}
 
-    const target = rawLines[iLine].endsWith("\\n") ? rawLines[iLine] : (rawLines[iLine] + "\\n");
+    const segments = perLineSegs[lineIndex] || [];
+    const current = segments[segmentIndex];
 
-    if (iChar < target.length) {{
-      buffer += target[iChar++];
-      pre.textContent = buffer;   // fast during typing
+    if (!current) {{
+      segmentIndex = 0;
+      lineIndex += 1;
+      setTimeout(step, BETWEEN_LINES);
+      return;
+    }}
+
+    const target = current.t;
+    if (charIndex < target.length) {{
+      const node = ensureActiveNode();
+      if (node) {{
+        const char = target.charAt(charIndex);
+        node.textContent = (node.textContent || "") + char;
+      }}
+      charIndex += 1;
       setTimeout(step, TYPE_DELAY);
       return;
     }}
 
-    // End of line: re-render with highlighting for what we have so far
-    renderHighlighted(buffer);
-    iLine += 1; iChar = 0;
-    setTimeout(step, BETWEEN_LINES);
+    commitActiveSegment();
+    segmentIndex += 1;
+    charIndex = 0;
+
+    if (segmentIndex >= segments.length) {{
+      segmentIndex = 0;
+      lineIndex += 1;
+      setTimeout(step, BETWEEN_LINES);
+      return;
+    }}
+
+    setTimeout(step, TYPE_DELAY);
   }}
 
-  // Start after first paint
   requestAnimationFrame(step);
 }})();
 </script>

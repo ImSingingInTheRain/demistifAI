@@ -131,12 +131,21 @@ HTML = """
   // helpers
   const esc = s => s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
 
-  // per-line coloring (typed progressively)
+  const normaliseSegments = (segments) =>
+    segments.map((line) =>
+      Array.isArray(line)
+        ? line.map((seg) => ({
+            t: typeof seg.t === "string" ? seg.t : "",
+            c: typeof seg.c === "string" && seg.c ? seg.c : null,
+          }))
+        : []
+    );
+
   const splitSegments = (line) => {
     const trimmed = line.trim();
-    if (line.startsWith("$ ")) return [{t: line, c: "cmd-" + cfg.sfx}];
-    if (/^ERROR\\b/i.test(trimmed)) return [{t: line, c: "err-" + cfg.sfx}];
-    return [{t: line, c: null}];
+    if (line.startsWith("$ ")) return [{ t: line, c: "cmd-" + cfg.sfx }];
+    if (/^ERROR\\b/i.test(trimmed)) return [{ t: line, c: "err-" + cfg.sfx }];
+    return [{ t: line, c: null }];
   };
 
   const rawLines = (cfg.expandedLines || cfg.lines || []).map((item) => {
@@ -144,14 +153,16 @@ HTML = """
     return value.endsWith("\n") ? value : value + "\n";
   });
   const pauses = Array.isArray(cfg.pauses)
-    ? cfg.pauses.map(p => Number(p) || 0)
+    ? cfg.pauses.map((p) => Number(p) || 0)
     : new Array(rawLines.length).fill(0);
 
-  const perLineSegs = rawLines.map(splitSegments);
-  const perLineHtml = perLineSegs
-    .map((segs) => segs
-      .map((s) => s.c ? `<span class="${s.c}">${esc(s.t)}</span>` : esc(s.t))
-      .join(""));
+  const perLineSegs = Array.isArray(cfg.segments)
+    ? normaliseSegments(cfg.segments)
+    : rawLines.map(splitSegments);
+  const perLineSegmentHtml = perLineSegs.map((segs) =>
+    segs.map((seg) => (seg.c ? `<span class="${seg.c}">${esc(seg.t)}</span>` : esc(seg.t)))
+  );
+  const perLineHtml = perLineSegmentHtml.map((parts) => parts.join(""));
   const perLineRaw = perLineSegs.map((segs) => segs.map((s) => s.t).join(""));
   const computedHtml = perLineHtml.join("");
   const finalHtml = typeof cfg.fullHtml === "string" ? cfg.fullHtml : computedHtml;
@@ -200,6 +211,8 @@ HTML = """
 
   const showFinal = () => {
     cancelled = true;
+    doneHtmlParts.length = 0;
+    activeNode = null;
     pre.innerHTML = finalHtml;
     if (caret) caret.style.display = "none";
   };
@@ -212,49 +225,96 @@ HTML = """
   if (prefersReduced || baseSpeed <= 0) { showFinal(); return; }
 
   const doneHtmlParts = [];
-  const liveNode = document.createTextNode("");
-  const syncDoneHtml = (keepLive = true) => {
+  let activeNode = null;
+  let lineIndex = 0;
+  let segmentIndex = 0;
+  let charIndex = 0;
+
+  const syncDoneHtml = () => {
     pre.innerHTML = doneHtmlParts.join("");
-    if (keepLive) {
-      pre.appendChild(liveNode);
-    }
   };
 
-  syncDoneHtml(true);
+  const ensureActiveNode = () => {
+    if (activeNode) {
+      return activeNode;
+    }
+    const segments = perLineSegs[lineIndex] || [];
+    const current = segments[segmentIndex];
+    if (!current) {
+      return null;
+    }
+    if (current.c) {
+      const span = document.createElement("span");
+      span.className = current.c;
+      span.textContent = "";
+      pre.appendChild(span);
+      activeNode = span;
+    } else {
+      activeNode = document.createTextNode("");
+      pre.appendChild(activeNode);
+    }
+    return activeNode;
+  };
 
-  let lineIndex = 0;
-  let charIndex = 0;
+  const commitActiveSegment = () => {
+    if (!activeNode) {
+      return;
+    }
+    if (activeNode.parentNode === pre) {
+      pre.removeChild(activeNode);
+    }
+    const segmentHtml = (perLineSegmentHtml[lineIndex] || [])[segmentIndex] || "";
+    doneHtmlParts.push(segmentHtml);
+    activeNode = null;
+    syncDoneHtml();
+  };
+
+  syncDoneHtml();
 
   const typeNext = () => {
     if (cancelled) { return; }
-    if (lineIndex >= perLineRaw.length) {
-      syncDoneHtml(false);
+    if (lineIndex >= perLineSegs.length) {
+      syncDoneHtml();
       if (caret) caret.style.display = "none";
       return;
     }
 
-    const target = perLineRaw[lineIndex];
+    const segments = perLineSegs[lineIndex] || [];
+    const current = segments[segmentIndex];
+
+    if (!current) {
+      segmentIndex = 0;
+      lineIndex += 1;
+      const delay = basePause + (pauses[lineIndex - 1] || 0);
+      setTimeout(typeNext, delay);
+      return;
+    }
+
+    const target = current.t;
     if (charIndex < target.length) {
-      liveNode.textContent += target.charAt(charIndex);
+      const node = ensureActiveNode();
+      if (node) {
+        const char = target.charAt(charIndex);
+        node.textContent = (node.textContent || "") + char;
+      }
       charIndex += 1;
       setTimeout(typeNext, baseSpeed);
       return;
     }
 
-    doneHtmlParts.push(perLineHtml[lineIndex]);
-    lineIndex += 1;
+    commitActiveSegment();
+    segmentIndex += 1;
     charIndex = 0;
 
-    if (lineIndex >= perLineRaw.length) {
-      syncDoneHtml(false);
-      if (caret) caret.style.display = "none";
+    if (segmentIndex >= segments.length) {
+      segmentIndex = 0;
+      lineIndex += 1;
+      const delay = basePause + (pauses[lineIndex - 1] || 0);
+      setTimeout(typeNext, delay);
       return;
     }
 
-    liveNode.textContent = "";
-    syncDoneHtml(true);
-    const delay = basePause + (pauses[lineIndex - 1] || 0);
-    setTimeout(typeNext, delay);
+    setTimeout(typeNext, baseSpeed);
   };
 
   requestAnimationFrame(typeNext);
@@ -273,7 +333,12 @@ def render_prepare_terminal(
     """Render the Prepare Data terminal animation (no legacy-kwargs shim)."""
     data = list(lines) if lines is not None else PREPARE_LINES
     expanded_lines, pauses = _expand_lines(data)
-    full_html = _compute_full_html(expanded_lines, _SUFFIX)
+    segments = [_split_segments(line, _SUFFIX) for line in expanded_lines]
+    full_html = "".join(_segments_to_html(parts) for parts in segments)
+    serializable_segments = [
+        [{"t": text, "c": css} for text, css in parts]
+        for parts in segments
+    ]
     payload = {
         "lines": data,
         "expandedLines": expanded_lines,
@@ -283,6 +348,7 @@ def render_prepare_terminal(
         "pause": max(0, int(pause_between_lines_ms)),
         "sfx": _SUFFIX,
         "domId": f"term-{key}",
+        "segments": serializable_segments,
     }
     html_markup = (
         HTML
