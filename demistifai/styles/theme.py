@@ -56,6 +56,20 @@ APP_THEME_CSS = """
     }
 }
 
+@media (max-width: 640px) {
+    div[data-testid="stHorizontalBlock"]:has(.stage-top-grid__nav-card) {
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+        overflow: visible !important;
+        border-radius: 0 !important;
+    }
+
+    .main .block-container:has(.stage-top-grid__nav-card) {
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+    }
+}
+
 .section-surface {
     display: block;
     width: 100%;
