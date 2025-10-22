@@ -5,29 +5,6 @@ from __future__ import annotations
 import html
 from typing import Any, Dict, Optional
 
-
-def cli_command_line(command: str, *, meta: Optional[str] = None, unsafe: bool = False) -> str:
-    """Return HTML representing a faux CLI command line."""
-
-    command_html = command if unsafe else html.escape(command)
-    meta_html = (
-        f"<span class='dataset-builder__meta'>{html.escape(meta)}</span>" if meta else ""
-    )
-    return (
-        "<div class='dataset-builder__command-line'>"
-        "<span class='dataset-builder__prompt'>$</span>"
-        f"<span class='dataset-builder__command'>{command_html}</span>"
-        f"{meta_html}"
-        "</div>"
-    )
-
-
-def cli_comment(text: str) -> str:
-    """Return HTML representing a CLI-style comment."""
-
-    return f"<div class='dataset-builder__comment'># {html.escape(text)}</div>"
-
-
 def build_compare_panel_html(
     base_summary: Optional[Dict[str, Any]],
     target_summary: Optional[Dict[str, Any]],
@@ -165,6 +142,4 @@ def build_compare_panel_html(
 
 __all__ = [
     "build_compare_panel_html",
-    "cli_command_line",
-    "cli_comment",
 ]
