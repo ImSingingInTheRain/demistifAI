@@ -45,6 +45,8 @@ def render_intro_stage(*, section_surface: SectionSurface) -> None:
         next_stage_meta = STAGES[intro_index + 1]
         next_stage_key = next_stage_meta.key
 
+    show_mission = bool(st.session_state.get("intro_show_mission", False))
+
     def _render_intro_terminal(slot: DeltaGenerator) -> None:
         with slot:
             render_welcome_ai_act_terminal(
@@ -53,7 +55,26 @@ def render_intro_stage(*, section_surface: SectionSurface) -> None:
                 pause_between_ops_ms=360,
             )
 
-    render_stage_top_grid("intro", left_renderer=_render_intro_terminal)
+    def _render_show_mission_cta(slot: DeltaGenerator) -> None:
+        if show_mission:
+            return
+
+        with slot:
+            cta_pressed = st.button(
+                "Show Mission",
+                key="intro_stage_show_mission_cta",
+                type="primary",
+                use_container_width=True,
+            )
+            if cta_pressed:
+                st.session_state["intro_show_mission"] = True
+                streamlit_rerun()
+
+    render_stage_top_grid(
+        "intro",
+        left_renderer=_render_intro_terminal,
+        right_first_renderer=_render_show_mission_cta,
+    )
 
     with section_surface("section-surface--hero"):
         incoming_records = st.session_state.get("incoming") or []
