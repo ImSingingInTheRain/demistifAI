@@ -1,9 +1,9 @@
 """Animated terminal components for demistifAI."""
 
-from . import article3, boot_sequence, data_prep, evaluate, train, use
+from . import boot_sequence, data_prep, evaluate, intro_terminal, train, use
 
 __all__ = [
-    "article3",
+    "intro_terminal",
     "boot_sequence",
     "data_prep",
     "evaluate",

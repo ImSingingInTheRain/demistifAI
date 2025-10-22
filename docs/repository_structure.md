@@ -39,7 +39,7 @@ This document provides a guided tour of the repository so contributors can quick
 - `shared/` – Cross-stage primitives such as the macOS-style window shell and the stage navigation grid (`mac_window.py`, `stage_navigation.py`). Use this folder for reusable UI shared between stages.【F:demistifai/ui/components/shared/__init__.py†L1-L13】【F:demistifai/ui/components/shared/stage_navigation.py†L1-L179】
 - `terminal/` – Animated terminal namespace with scenario-specific scripts powering stage introductions and walkthroughs:
   - `boot_sequence.py` – Alternate terminal script that frames the "demAI machine" boot sequence with staged prompts and Nerd Mode hints.【F:demistifai/ui/components/terminal/boot_sequence.py†L1-L228】
-  - `article3.py` – Article 3-focused terminal variation highlighting the mission pillars of demAI.【F:demistifai/ui/components/terminal/article3.py†L1-L225】
+  - `intro_terminal.py` – Article 3-focused terminal variation highlighting the mission pillars of demAI.【F:demistifai/ui/components/terminal/intro_terminal.py†L1-L46】
   - `data_prep.py` – Terminal storyline guiding users through dataset creation, linting, and schema expectations.【F:demistifai/ui/components/terminal/data_prep.py†L1-L209】
   - `train.py` – Stage-specific animation narrating model training, feature importance, and calibration steps.【F:demistifai/ui/components/terminal/train.py†L1-L214】
   - `evaluate.py` – Evaluation-focused script covering metrics, curves, and Nerd Mode guidance.【F:demistifai/ui/components/terminal/evaluate.py†L1-L210】
