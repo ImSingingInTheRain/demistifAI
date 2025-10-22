@@ -57,16 +57,10 @@ APP_THEME_CSS = """
 }
 
 @media (max-width: 640px) {
-    div[data-testid="stHorizontalBlock"]:has(.stage-top-grid__nav-card) {
-        padding-left: 0 !important;
-        padding-right: 0 !important;
+    .stage-top-grid-shell {
+        width: 100vw;
+        margin-inline: calc(50% - 50vw);
         overflow: visible !important;
-        border-radius: 0 !important;
-    }
-
-    .main .block-container:has(.stage-top-grid__nav-card) {
-        padding-left: 0 !important;
-        padding-right: 0 !important;
     }
 }
 

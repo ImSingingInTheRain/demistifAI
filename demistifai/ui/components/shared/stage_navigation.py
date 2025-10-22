@@ -181,7 +181,12 @@ def render_stage_top_grid(
     right_second_renderer: StageBlockRenderer | None = None,
 ) -> None:
     grid_container = st.container()
-    left_col, right_col = grid_container.columns([0.65, 0.35], gap="large")
+    grid_container.markdown(
+        "<div class='stage-top-grid-shell'>",
+        unsafe_allow_html=True,
+    )
+    shell_columns = grid_container.container()
+    left_col, right_col = shell_columns.columns([0.65, 0.35], gap="large")
     left_slot = left_col.container()
     highlight_slot = right_col.container()
     right_col.markdown("<div class='stage-top-grid__gap'></div>", unsafe_allow_html=True)
@@ -232,6 +237,8 @@ def render_stage_top_grid(
             """,
             unsafe_allow_html=True,
         )
+
+    grid_container.markdown("</div>", unsafe_allow_html=True)
 
     return None
 
