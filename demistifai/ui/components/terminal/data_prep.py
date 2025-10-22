@@ -148,9 +148,12 @@ HTML = """
     : new Array(rawLines.length).fill(0);
 
   const perLineSegs = rawLines.map(splitSegments);
-  const computedHtml = perLineSegs
-    .map(segs => segs.map(s => s.c ? `<span class="${s.c}">${esc(s.t)}</span>` : esc(s.t)).join(""))
-    .join("");
+  const perLineHtml = perLineSegs
+    .map((segs) => segs
+      .map((s) => s.c ? `<span class="${s.c}">${esc(s.t)}</span>` : esc(s.t))
+      .join(""));
+  const perLineRaw = perLineSegs.map((segs) => segs.map((s) => s.t).join(""));
+  const computedHtml = perLineHtml.join("");
   const finalHtml = typeof cfg.fullHtml === "string" ? cfg.fullHtml : computedHtml;
   cfg.fullHtml = finalHtml;
 
@@ -193,55 +196,68 @@ HTML = """
     window.parent.postMessage({type:"streamlit:resize", height: measuredHeight + 24},"*");
   }
 
-  const renderAll = () => {
+  let cancelled = false;
+
+  const showFinal = () => {
+    cancelled = true;
     pre.innerHTML = finalHtml;
     if (caret) caret.style.display = "none";
   };
 
+  if (skip) skip.addEventListener("click", showFinal);
+
+  const baseSpeed = Math.max(0, Number(cfg.speed) || 0);
+  const basePause = Math.max(0, Number(cfg.pause) || 0);
   const prefersReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  if (prefersReduced || cfg.speed <= 0) { renderAll(); return; }
+  if (prefersReduced || baseSpeed <= 0) { showFinal(); return; }
 
-  // typing state
-  let li = 0, si = 0, ci = 0;
-  const done = [];
-
-  const flush = (currentHTML="") => {
-    pre.innerHTML = done.join("") + currentHTML;
+  const doneHtmlParts = [];
+  const liveNode = document.createTextNode("");
+  const syncDoneHtml = (keepLive = true) => {
+    pre.innerHTML = doneHtmlParts.join("");
+    if (keepLive) {
+      pre.appendChild(liveNode);
+    }
   };
+
+  syncDoneHtml(true);
+
+  let lineIndex = 0;
+  let charIndex = 0;
 
   const typeNext = () => {
-    if (li >= perLineSegs.length) { if (caret) caret.style.display = "none"; return; }
-    const segs = perLineSegs[li];
-
-    // build typed HTML up to (si, ci)
-    let html = "";
-    for (let s=0; s<segs.length; s++) {
-      const seg = segs[s];
-      const full = seg.t;
-      const take = (s < si) ? full : (s === si ? full.slice(0, ci) : "");
-      html += seg.c ? `<span class="${seg.c}">${esc(take)}</span>` : esc(take);
+    if (cancelled) { return; }
+    if (lineIndex >= perLineRaw.length) {
+      syncDoneHtml(false);
+      if (caret) caret.style.display = "none";
+      return;
     }
-    flush(html);
 
-    // advance
-    const cur = segs[si];
-    ci += 1;
-    if (ci > cur.t.length) {
-      si += 1; ci = 0;
-      if (si >= segs.length) {
-        // line finished
-        const fullHTML = segs.map(seg => seg.c ? `<span class="${seg.c}">${esc(seg.t)}</span>` : esc(seg.t)).join("");
-        done.push(fullHTML);
-        li += 1; si = 0; ci = 0;
-        setTimeout(typeNext, cfg.pause + (pauses[li-1] || 0));
-        return;
-      }
+    const target = perLineRaw[lineIndex];
+    if (charIndex < target.length) {
+      liveNode.textContent += target.charAt(charIndex);
+      charIndex += 1;
+      setTimeout(typeNext, baseSpeed);
+      return;
     }
-    setTimeout(typeNext, cfg.speed);
+
+    doneHtmlParts.push(perLineHtml[lineIndex]);
+    lineIndex += 1;
+    charIndex = 0;
+
+    if (lineIndex >= perLineRaw.length) {
+      syncDoneHtml(false);
+      if (caret) caret.style.display = "none";
+      return;
+    }
+
+    liveNode.textContent = "";
+    syncDoneHtml(true);
+    const delay = basePause + (pauses[lineIndex - 1] || 0);
+    setTimeout(typeNext, delay);
   };
 
-  if (skip) skip.addEventListener("click", renderAll);
-  typeNext();
+  requestAnimationFrame(typeNext);
 })();
 </script>
 """
