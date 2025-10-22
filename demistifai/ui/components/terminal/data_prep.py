@@ -1,16 +1,22 @@
-"""Prepare Data terminal animation: per-char typing, colored tokens, progressive status."""
+"""Minimal terminal animation: per-char typing, colored tokens, progressive post-install."""
 
 from __future__ import annotations
+from textwrap import dedent
 from typing import Iterable, List, Optional, Sequence, Tuple
 import html
 import json
 import re
 from streamlit.components.v1 import html as components_html
 
-_SUFFIX = "ai_prepare"
+_SUFFIX = "ai_term"
 
-# --- Content for the PREPARE DATA stage (short + progressive) ---
-PREPARE_LINES: List[str] = [
+# Preserve the historical constant name referenced throughout the module. A
+# previous refactor renamed the suffix constant but missed the call sites,
+# leaving `_TERMINAL_SUFFIX` undefined at import time. Keep both names in sync
+# so downstream imports remain stable.
+_TERMINAL_SUFFIX = _SUFFIX
+
+_DEFAULT_DEMAI_LINES: List[str] = [
     "> Prepare data: teach the model what spam looks like\n",
     "$ quote EU_AI_ACT.AI_system_definition --fragment 'infers from the input it receives'\n",
     "‘An AI system infers from the input it receives […]’\n",
@@ -28,147 +34,259 @@ PREPARE_LINES: List[str] = [
 ]
 
 # Backwards-compatibility alias for callers that might expect a *_LINES variable
-_PREPARE_LINES = PREPARE_LINES
+_PREPARE_LINES = _DEFAULT_DEMAI_LINES
 
-# --- Minimal style (same system as your welcome template) ---
-STYLE = """
+_TERMINAL_STYLE = dedent(f"""
 <style>
-  .term-__SFX__{background:#0d1117;color:#ffffff;font-family:'Fira Code',ui-monospace,monospace;border-radius:12px;padding:1rem;position:relative}
-  .term-__SFX__::before{content:'●  ●  ●';position:absolute;top:8px;left:12px;color:#ef4444cc;letter-spacing:6px;font-size:.9rem}
-  .body-__SFX__{white-space:pre-wrap;line-height:1.6;font-size:.96rem;margin-top:.8rem}
-  .caret-__SFX__{margin-left:2px;display:inline-block;width:6px;height:1rem;background:#22d3ee;vertical-align:-.18rem;animation:blink-__SFX__ .85s steps(1,end) infinite}
-  @keyframes blink-__SFX__{50%{opacity:0}}
-  .cmd-__SFX__{color:#93c5fd}
-  .err-__SFX__{color:#fb7185;font-weight:700}
-  .wrap-__SFX__{opacity:0;transform:translateY(6px);animation:fadein-__SFX__ .4s ease forwards}
-  @keyframes fadein-__SFX__{to{opacity:1;transform:none}}
-  .skip-__SFX__{position:absolute;top:8px;right:8px;background:#111827;color:#e5e7eb;border:1px solid #374151;border-radius:6px;padding:.2rem .5rem;font-size:.8rem;cursor:pointer}
-  .skip-__SFX__:hover{background:#1f2937}
-  @media (prefers-reduced-motion: reduce){.caret-__SFX__{animation:none}.wrap-__SFX__{animation:none;opacity:1;transform:none}}
-  @media (max-width: 600px){
-    .wrap-__SFX__{margin:0;padding:0}
-    .term-__SFX__{width:100vw;max-width:none;min-height:100vh;margin-block:0;margin-inline:calc(50% - 50vw);border-radius:0;padding:clamp(1.1rem,6vw,1.5rem);box-sizing:border-box;display:flex;flex-direction:column;gap:1rem}
-    .term-__SFX__::before{top:12px;left:50%;transform:translateX(-50%)}
-    .body-__SFX__{font-size:1.05rem;line-height:1.72;width:100%;overflow-wrap:anywhere;word-break:break-word;overflow-x:hidden}
-    .caret-__SFX__{align-self:flex-start;margin-top:-.2rem;flex-shrink:0}
-    .skip-__SFX__{position:static;width:100%;margin:.75rem 0 0;align-self:stretch;text-align:center;padding:.6rem 1rem;font-size:.9rem}
-  }
+  .terminal-{_TERMINAL_SUFFIX} {{
+    width: min(100%, 680px);
+    height: auto;
+    background: #0d1117;
+    color: #ffffff;
+    font-family: 'Fira Code', ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+    border-radius: 12px;
+    padding: 1.5rem 1.2rem 1.3rem;
+    position: relative;
+    overflow: hidden;
+    margin: 0 auto;
+  }}
+  .terminal-{_TERMINAL_SUFFIX}::before {{
+    content: '●  ●  ●';
+    position: absolute; top: 8px; left: 12px;
+    color: #ef4444cc; letter-spacing: 6px; font-size: .9rem;
+  }}
+  .term-body-{_TERMINAL_SUFFIX} {{
+    margin-top: .8rem;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    line-height: 1.6;
+    font-size: .96rem;
+  }}
+  .caret-{_TERMINAL_SUFFIX} {{
+    margin-left: 2px;
+    display:inline-block; width:6px; height:1rem;
+    background:#22d3ee; vertical-align:-0.18rem;
+    animation: blink-{_TERMINAL_SUFFIX} .85s steps(1,end) infinite;
+  }}
+  .cmd-{_TERMINAL_SUFFIX} {{ color: #93c5fd; }}
+  .err-{_TERMINAL_SUFFIX} {{ color: #fb7185; font-weight: 700; }}
+  @keyframes blink-{_TERMINAL_SUFFIX} {{ 50% {{ opacity: 0; }} }}
+
+  .terminal-wrap-{_TERMINAL_SUFFIX} {{
+    opacity: 0; transform: translateY(6px);
+    animation: fadein-{_TERMINAL_SUFFIX} .6s ease forwards;
+  }}
+  @keyframes fadein-{_TERMINAL_SUFFIX} {{
+    to {{ opacity: 1; transform: translateY(0) }}
+  }}
+
+  @media (prefers-reduced-motion: reduce) {{
+    .caret-{_TERMINAL_SUFFIX} {{ animation: none; }}
+    .terminal-wrap-{_TERMINAL_SUFFIX} {{ animation: none; opacity:1; transform:none; }}
+  }}
+
+  @media (max-width: 640px) {{
+    .terminal-{_TERMINAL_SUFFIX} {{
+      border-radius: 10px;
+      padding: clamp(1rem, 5vw, 1.35rem);
+    }}
+    .term-body-{_TERMINAL_SUFFIX} {{
+      font-size: .9rem;
+    }}
+  }}
+
+  @media (max-width: 600px) {{
+    .terminal-wrap-{_TERMINAL_SUFFIX} {{
+      margin: 0;
+      padding: 0;
+    }}
+    .terminal-{_TERMINAL_SUFFIX} {{
+      width: 100vw;
+      max-width: none;
+      min-height: 100vh;
+      margin-block: 0;
+      margin-inline: calc(50% - 50vw);
+      border-radius: 0;
+      padding: clamp(1.2rem, 7vw, 1.8rem);
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      gap: 1.1rem;
+    }}
+    .terminal-{_TERMINAL_SUFFIX}::before {{
+      top: 14px;
+      left: 50%;
+      transform: translateX(-50%);
+    }}
+    .term-body-{_TERMINAL_SUFFIX} {{
+      font-size: 1.05rem;
+      line-height: 1.72;
+      width: 100%;
+      overflow-wrap: anywhere;
+      word-break: break-word;
+      overflow-x: hidden;
+    }}
+    .caret-{_TERMINAL_SUFFIX} {{
+      align-self: flex-start;
+      margin-top: -.2rem;
+      flex-shrink: 0;
+    }}
+  }}
 </style>
-"""
+""")
 
 
-def _expand_lines(lines: Sequence[str]) -> Tuple[List[str], List[int]]:
-    expanded: List[str] = []
-    pauses: List[int] = []
+def _normalize_lines(lines: Sequence[str]) -> List[str]:
+    normalized: List[str] = []
     for raw in lines:
         line = str(raw)
-        if not line.endswith("\n"):
-            line = f"{line}\n"
+        normalized.append(line if line.endswith("\n") else f"{line}\n")
+    return normalized
 
-        if re.match(r"^Progress\s+0%", line):
-            frames = [
-                "Progress 0%    [█...................] 0%\n",
-                "Progress 40%   [████████............] 40%\n",
-                "Progress 75%   [██████████████......] 75%\n",
-                "Progress 100%  [████████████████████] 100%\n",
-            ]
-            expanded.extend(frames)
-            pauses.extend([220] * len(frames))
-            continue
 
-        expanded.append(line)
-        pauses.append(380 if re.search(r"✓\s*$", line) else 0)
-
-    return expanded, pauses
+def _escape_text(text: str) -> str:
+    return html.escape(text, quote=False)
 
 
 def _split_segments(line: str, suffix: str) -> List[Tuple[str, Optional[str]]]:
-    trimmed = line.strip()
+    stripped = line.strip()
+    if not line:
+        return [(line, None)]
     if line.startswith("$ "):
         return [(line, f"cmd-{suffix}")]
-    if re.match(r"^ERROR\b", trimmed, flags=re.IGNORECASE):
+    if re.match(r"^ERROR\b", stripped, flags=re.IGNORECASE):
         return [(line, f"err-{suffix}")]
     return [(line, None)]
 
 
-def _escape_segment(text: str) -> str:
-    return html.escape(text, quote=False)
-
-
-def _segments_to_html(segments: List[Tuple[str, Optional[str]]]) -> str:
+def _segments_to_html(segments: Sequence[Tuple[str, Optional[str]]]) -> str:
     rendered: List[str] = []
-    for text, cls in segments:
-        escaped = _escape_segment(text)
-        if cls:
-            rendered.append(f'<span class="{cls}">{escaped}</span>')
+    for text, css in segments:
+        escaped = _escape_text(text)
+        if css:
+            rendered.append(f'<span class="{css}">{escaped}</span>')
         else:
             rendered.append(escaped)
     return "".join(rendered)
 
 
-def _compute_full_html(lines: Sequence[str], suffix: str) -> str:
-    return "".join(
-        _segments_to_html(_split_segments(line, suffix)) for line in lines
-    )
+def _highlight_line(line: str, suffix: str) -> str:
+    return _segments_to_html(_split_segments(line, suffix))
 
-HTML = """
-{STYLE}
-<div class="wrap-__SFX__">
-  <div id="__DOMID__" class="term-__SFX__" role="region" aria-label="Prepare Data terminal animation">
-    __SKIP__
-    <pre class="body-__SFX__"></pre>
-    <span class="caret-__SFX__" style="display:__CARET__"></span>
+
+def _compute_full_html(lines: Sequence[str], suffix: str) -> str:
+    normalized = _normalize_lines(lines)
+    segments = [_split_segments(line, suffix) for line in normalized]
+    return "".join(_segments_to_html(parts) for parts in segments)
+
+
+def _compute_segment_payload(lines: Sequence[str], suffix: str) -> List[List[Tuple[str, Optional[str]]]]:
+    normalized = _normalize_lines(lines)
+    return [_split_segments(line, suffix) for line in normalized]
+
+def render_ai_act_terminal(
+    demai_lines: Optional[Iterable[str]] = None,
+    speed_type_ms: int = 20,
+    speed_delete_ms: int = 14,        # kept for API compatibility
+    pause_between_ops_ms: int = 360,  # pause between lines
+    key: str = "ai_act_terminal",
+    show_caret: bool = True,
+) -> None:
+    """
+    Render the animated EU AI Act terminal sequence using a client-side typing loop with auto-resize.
+
+    - Non-blocking: the rest of the Streamlit page renders immediately.
+    - Auto-resizing: iframe height grows with content while typing.
+    - Honors 'prefers-reduced-motion': final state is shown if motion is reduced.
+    - f-string safe: avoids backslashes inside f-string expressions.
+    """
+    lines = list(demai_lines) if demai_lines is not None else _DEFAULT_DEMAI_LINES
+    normalized_lines = _normalize_lines(lines)
+    segments = _compute_segment_payload(lines, _TERMINAL_SUFFIX)
+    full_html = "".join(_segments_to_html(parts) for parts in segments)
+    serializable_segments = [
+        [{"t": text, "c": css} for text, css in parts]
+        for parts in segments
+    ]
+
+    payload = {
+        "lines": lines,
+        "fullHtml": full_html,
+        "speedType": max(0, int(speed_type_ms)),
+        "pauseBetween": max(0, int(pause_between_ops_ms)),
+        "speedDelete": max(0, int(speed_delete_ms)),
+        "showCaret": bool(show_caret),
+        "suffix": _TERMINAL_SUFFIX,
+        "domId": f"term-{key}",
+        "segments": serializable_segments,
+    }
+
+    # ---- IMPORTANT: precompute noscript text to avoid backslashes inside f-string expressions
+    final_text = "".join(normalized_lines)
+
+    components_html(
+        f"""
+{_TERMINAL_STYLE}
+<div class="terminal-wrap-{_TERMINAL_SUFFIX}">
+  <div id="{payload['domId']}" class="terminal-{_TERMINAL_SUFFIX}" role="region" aria-label="EU AI Act terminal animation">
+    <pre class="term-body-{_TERMINAL_SUFFIX}"></pre>
+    <span class="caret-{_TERMINAL_SUFFIX}" style="display:{'inline-block' if show_caret else 'none'}"></span>
   </div>
 </div>
-<script>
-(function(){
-  const cfg = __PAYLOAD__;
-  const root = document.getElementById(cfg.domId); if(!root) return;
-  const pre = root.querySelector(".body-" + cfg.sfx);
-  const caret = root.querySelector(".caret-" + cfg.sfx);
-  const skip = root.querySelector(".skip-" + cfg.sfx);
 
-  // helpers
-  const esc = s => s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+<noscript>
+  <div class="terminal-{_TERMINAL_SUFFIX}">
+    <pre class="term-body-{_TERMINAL_SUFFIX}">{final_text}</pre>
+  </div>
+</noscript>
+
+<script>
+(function() {{
+  const cfg = {json.dumps(payload)};
+  const root  = document.getElementById(cfg.domId);
+  if(!root) return;
+
+  const pre   = root.querySelector(".term-body-" + cfg.suffix);
+  const caret = root.querySelector(".caret-" + cfg.suffix);
+
+  const rawLines = (cfg.lines || []).map((l) => (l == null ? "" : String(l)));
+  const toLinesWithNL = (arr) => arr.map((l) => (l.endsWith("\\n") ? l : l + "\\n"));
+  const esc = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
   const normaliseSegments = (segments) =>
     segments.map((line) =>
       Array.isArray(line)
-        ? line.map((seg) => ({
+        ? line.map((seg) => ({{
             t: typeof seg.t === "string" ? seg.t : "",
             c: typeof seg.c === "string" && seg.c ? seg.c : null,
-          }))
+          }}))
         : []
     );
 
-  const splitSegments = (line) => {
+  const splitSegments = (line) => {{
     const trimmed = line.trim();
-    if (line.startsWith("$ ")) return [{ t: line, c: "cmd-" + cfg.sfx }];
-    if (/^ERROR\\b/i.test(trimmed)) return [{ t: line, c: "err-" + cfg.sfx }];
-    return [{ t: line, c: null }];
-  };
+    if (line.startsWith("$ ")) return [{{ t: line, c: "cmd-" + cfg.suffix }}];
+    if (/^ERROR\b/i.test(trimmed)) return [{{ t: line, c: "err-" + cfg.suffix }}];
+    return [{{ t: line, c: null }}];
+  }};
 
-  const rawLines = (cfg.expandedLines || cfg.lines || []).map((item) => {
-    const value = item == null ? "" : String(item);
-    return value.endsWith("\n") ? value : value + "\n";
-  });
-  const pauses = Array.isArray(cfg.pauses)
-    ? cfg.pauses.map((p) => Number(p) || 0)
-    : new Array(rawLines.length).fill(0);
-
+  const normalisedLines = toLinesWithNL(rawLines);
   const perLineSegs = Array.isArray(cfg.segments)
     ? normaliseSegments(cfg.segments)
-    : rawLines.map(splitSegments);
+    : normalisedLines.map(splitSegments);
+
   const perLineSegmentHtml = perLineSegs.map((segs) =>
-    segs.map((seg) => (seg.c ? `<span class="${seg.c}">${esc(seg.t)}</span>` : esc(seg.t)))
+    segs.map((seg) => (seg.c ? `<span class="${{seg.c}}">${{esc(seg.t)}}</span>` : esc(seg.t)))
   );
   const perLineHtml = perLineSegmentHtml.map((parts) => parts.join(""));
-  const perLineRaw = perLineSegs.map((segs) => segs.map((s) => s.t).join(""));
-  const computedHtml = perLineHtml.join("");
-  const finalHtml = typeof cfg.fullHtml === "string" ? cfg.fullHtml : computedHtml;
+  const perLineRaw = perLineSegs.map((segs) => segs.map((seg) => seg.t).join(""));
+
+  const finalRaw = perLineRaw.join("");
+  const computedFinalHtml = perLineHtml.join("");
+  const finalHtml = typeof cfg.fullHtml === "string" ? cfg.fullHtml : computedFinalHtml;
   cfg.fullHtml = finalHtml;
 
-  const ensureMeasuredHeight = () => {
+  const ensureMeasuredHeight = () => {{
     const measurement = root.cloneNode(true);
     measurement.removeAttribute("id");
     measurement.style.position = "absolute";
@@ -181,33 +299,42 @@ HTML = """
     measurement.style.minHeight = "auto";
     measurement.style.maxHeight = "none";
     const width = root.getBoundingClientRect().width || root.offsetWidth || root.clientWidth;
-    if (width) {
+    if (width) {{
       measurement.style.width = width + "px";
-    }
-    const measurePre = measurement.querySelector(".body-" + cfg.sfx);
-    if (measurePre) {
+    }}
+    const measurePre = measurement.querySelector(".term-body-" + cfg.suffix);
+    if (measurePre) {{
       measurePre.innerHTML = finalHtml;
-    }
-    const measureCaret = measurement.querySelector(".caret-" + cfg.sfx);
-    if (measureCaret) {
+    }}
+    const measureCaret = measurement.querySelector(".caret-" + cfg.suffix);
+    if (measureCaret) {{
       measureCaret.style.display = "none";
-    }
+    }}
     (root.parentElement || document.body).appendChild(measurement);
     const height = measurement.scrollHeight;
     measurement.remove();
-    if (height) {
-      root.style.minHeight = `${height}px`;
-      root.style.height = `${height}px`;
-    }
+    if (height) {{
+      root.style.minHeight = `${{height}}px`;
+      root.style.height = `${{height}}px`;
+    }}
     return height;
-  };
+  }};
 
   const measuredHeight = ensureMeasuredHeight();
-  if (Number.isFinite(measuredHeight) && measuredHeight > 0) {
-    window.parent.postMessage({type:"streamlit:resize", height: measuredHeight + 24},"*");
-  }
+  if (Number.isFinite(measuredHeight) && measuredHeight > 0) {{
+    window.parent.postMessage({{ "type": "streamlit:resize", "height": measuredHeight + 24 }}, "*");
+  }}
 
-  let cancelled = false;
+  const prefersReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (prefersReduced || cfg.speedType === 0) {{
+    pre.innerHTML = finalHtml;
+    if (caret) caret.style.display = "none";
+    return;
+  }}
+
+  // --- Typing engine (client-side, non-blocking) ---
+  const TYPE_DELAY = Math.max(0, cfg.speedType);
+  const BETWEEN_LINES = Math.max(0, cfg.pauseBetween);
 
   const doneHtmlParts = [];
   let activeNode = null;
@@ -215,148 +342,95 @@ HTML = """
   let segmentIndex = 0;
   let charIndex = 0;
 
-  const syncDoneHtml = () => {
+  const syncDoneHtml = () => {{
     pre.innerHTML = doneHtmlParts.join("");
-  };
+  }};
 
-  const ensureActiveNode = () => {
-    if (activeNode) {
+  const ensureActiveNode = () => {{
+    if (activeNode) {{
       return activeNode;
-    }
+    }}
     const segments = perLineSegs[lineIndex] || [];
     const current = segments[segmentIndex];
-    if (!current) {
+    if (!current) {{
       return null;
-    }
-    if (current.c) {
+    }}
+    if (current.c) {{
       const span = document.createElement("span");
       span.className = current.c;
       span.textContent = "";
       pre.appendChild(span);
       activeNode = span;
-    } else {
+    }} else {{
       activeNode = document.createTextNode("");
       pre.appendChild(activeNode);
-    }
+    }}
     return activeNode;
-  };
+  }};
 
-  const commitActiveSegment = () => {
-    if (!activeNode) {
+  const commitActiveSegment = () => {{
+    if (!activeNode) {{
       return;
-    }
-    if (activeNode.parentNode === pre) {
+    }}
+    if (activeNode.parentNode === pre) {{
       pre.removeChild(activeNode);
-    }
+    }}
     const segmentHtml = (perLineSegmentHtml[lineIndex] || [])[segmentIndex] || "";
     doneHtmlParts.push(segmentHtml);
     activeNode = null;
     syncDoneHtml();
-  };
-
-  const showFinal = () => {
-    cancelled = true;
-    doneHtmlParts.length = 0;
-    activeNode = null;
-    if (pre) pre.innerHTML = finalHtml;
-    if (caret) caret.style.display = "none";
-  };
-
-  if (skip) skip.addEventListener("click", showFinal);
-
-  const baseSpeed = Math.max(0, Number(cfg.speed) || 0);
-  const basePause = Math.max(0, Number(cfg.pause) || 0);
-  const prefersReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  if (prefersReduced || baseSpeed <= 0) { showFinal(); return; }
+  }};
 
   syncDoneHtml();
 
-  const typeNext = () => {
-    if (cancelled) { return; }
-    if (lineIndex >= perLineSegs.length) {
+  function step() {{
+    if (lineIndex >= perLineSegs.length) {{
       syncDoneHtml();
-      if (caret) caret.style.display = "none";
+      if (caret) {{
+        caret.style.display = "none";
+      }}
       return;
-    }
+    }}
 
     const segments = perLineSegs[lineIndex] || [];
     const current = segments[segmentIndex];
 
-    if (!current) {
+    if (!current) {{
       segmentIndex = 0;
       lineIndex += 1;
-      const delay = basePause + (pauses[lineIndex - 1] || 0);
-      setTimeout(typeNext, delay);
+      setTimeout(step, BETWEEN_LINES);
       return;
-    }
+    }}
 
     const target = current.t;
-    if (charIndex < target.length) {
+    if (charIndex < target.length) {{
       const node = ensureActiveNode();
-      if (node) {
+      if (node) {{
         const char = target.charAt(charIndex);
         node.textContent = (node.textContent || "") + char;
-      }
+      }}
       charIndex += 1;
-      setTimeout(typeNext, baseSpeed);
+      setTimeout(step, TYPE_DELAY);
       return;
-    }
+    }}
 
     commitActiveSegment();
     segmentIndex += 1;
     charIndex = 0;
 
-    if (segmentIndex >= segments.length) {
+    if (segmentIndex >= segments.length) {{
       segmentIndex = 0;
       lineIndex += 1;
-      const delay = basePause + (pauses[lineIndex - 1] || 0);
-      setTimeout(typeNext, delay);
+      setTimeout(step, BETWEEN_LINES);
       return;
-    }
+    }}
 
-    setTimeout(typeNext, baseSpeed);
-  };
+    setTimeout(step, TYPE_DELAY);
+  }}
 
-  requestAnimationFrame(typeNext);
-})();
+  requestAnimationFrame(step);
+}})();
 </script>
-"""
-
-def render_prepare_terminal(
-    lines: Optional[Iterable[str]] = None,
-    speed_type_ms: int = 22,          # ~20–50ms per char
-    pause_between_lines_ms: int = 300,
-    key: str = "ai_prepare",
-    show_caret: bool = True,
-    show_skip: bool = True,
-) -> None:
-    """Render the Prepare Data terminal animation (no legacy-kwargs shim)."""
-    data = list(lines) if lines is not None else PREPARE_LINES
-    expanded_lines, pauses = _expand_lines(data)
-    segments = [_split_segments(line, _SUFFIX) for line in expanded_lines]
-    full_html = "".join(_segments_to_html(parts) for parts in segments)
-    serializable_segments = [
-        [{"t": text, "c": css} for text, css in parts]
-        for parts in segments
-    ]
-    payload = {
-        "lines": data,
-        "expandedLines": expanded_lines,
-        "pauses": pauses,
-        "fullHtml": full_html,
-        "speed": max(0, int(speed_type_ms)),
-        "pause": max(0, int(pause_between_lines_ms)),
-        "sfx": _SUFFIX,
-        "domId": f"term-{key}",
-        "segments": serializable_segments,
-    }
-    html_markup = (
-        HTML
-        .replace("{STYLE}", STYLE.replace("__SFX__", _SUFFIX))
-        .replace("__SFX__", _SUFFIX)
-        .replace("__DOMID__", payload["domId"])
-        .replace("__CARET__", "inline-block" if show_caret else "none")
-        .replace("__SKIP__", f'<button class="skip-{_SUFFIX}" type="button">Skip</button>' if show_skip else "")
-        .replace("__PAYLOAD__", json.dumps(payload))
+        """,
+        height=800,  # minimal initial height; JS will grow it dynamically
     )
-    components_html(html_markup, height=720)
