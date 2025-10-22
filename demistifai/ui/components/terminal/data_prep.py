@@ -8,7 +8,7 @@ import json
 import re
 from streamlit.components.v1 import html as components_html
 
-_SUFFIX = "ai_term"
+_SUFFIX = "ai_prepare"
 
 # Preserve the historical constant name referenced throughout the module. A
 # previous refactor renamed the suffix constant but missed the call sites,
