@@ -209,21 +209,6 @@ HTML = """
 
   let cancelled = false;
 
-  const showFinal = () => {
-    cancelled = true;
-    doneHtmlParts.length = 0;
-    activeNode = null;
-    pre.innerHTML = finalHtml;
-    if (caret) caret.style.display = "none";
-  };
-
-  if (skip) skip.addEventListener("click", showFinal);
-
-  const baseSpeed = Math.max(0, Number(cfg.speed) || 0);
-  const basePause = Math.max(0, Number(cfg.pause) || 0);
-  const prefersReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  if (prefersReduced || baseSpeed <= 0) { showFinal(); return; }
-
   const doneHtmlParts = [];
   let activeNode = null;
   let lineIndex = 0;
@@ -268,6 +253,21 @@ HTML = """
     activeNode = null;
     syncDoneHtml();
   };
+
+  const showFinal = () => {
+    cancelled = true;
+    doneHtmlParts.length = 0;
+    activeNode = null;
+    if (pre) pre.innerHTML = finalHtml;
+    if (caret) caret.style.display = "none";
+  };
+
+  if (skip) skip.addEventListener("click", showFinal);
+
+  const baseSpeed = Math.max(0, Number(cfg.speed) || 0);
+  const basePause = Math.max(0, Number(cfg.pause) || 0);
+  const prefersReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (prefersReduced || baseSpeed <= 0) { showFinal(); return; }
 
   syncDoneHtml();
 
