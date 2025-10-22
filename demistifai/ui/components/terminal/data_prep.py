@@ -434,3 +434,23 @@ def render_ai_act_terminal(
         """,
         height=800,  # minimal initial height; JS will grow it dynamically
     )
+
+
+def render_prepare_terminal(
+    demai_lines: Optional[Iterable[str]] = None,
+    speed_type_ms: int = 20,
+    speed_delete_ms: int = 14,
+    pause_between_ops_ms: int = 360,
+    key: str = "ai_prepare_terminal",
+    show_caret: bool = True,
+) -> None:
+    """Backward-compatible wrapper for the Prepare/Data stage terminal animation."""
+
+    render_ai_act_terminal(
+        demai_lines=demai_lines,
+        speed_type_ms=speed_type_ms,
+        speed_delete_ms=speed_delete_ms,
+        pause_between_ops_ms=pause_between_ops_ms,
+        key=key,
+        show_caret=show_caret,
+    )
