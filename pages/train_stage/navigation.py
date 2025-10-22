@@ -6,7 +6,9 @@ import streamlit as st
 from streamlit.delta_generator import DeltaGenerator
 
 from demistifai.core.utils import streamlit_rerun
-from demistifai.ui.components.terminal.train import render_train_terminal
+from demistifai.ui.components.terminal.train import (
+    render_ai_act_terminal as render_train_terminal,
+)
 
 
 def render_train_terminal_slot(slot: DeltaGenerator) -> None:
@@ -15,7 +17,7 @@ def render_train_terminal_slot(slot: DeltaGenerator) -> None:
     with slot:
         render_train_terminal(
             speed_type_ms=22,
-            pause_between_lines_ms=320,
+            pause_between_ops_ms=320,
         )
 
 

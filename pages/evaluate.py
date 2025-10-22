@@ -26,7 +26,9 @@ from demistifai.modeling import (
     threshold_presets,
     verdict_label,
 )
-from demistifai.ui.components.terminal.evaluate import render_evaluate_terminal
+from demistifai.ui.components.terminal.evaluate import (
+    render_ai_act_terminal as render_evaluate_terminal,
+)
 
 
 SectionSurface = Callable[..., object]

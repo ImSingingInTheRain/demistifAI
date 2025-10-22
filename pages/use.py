@@ -27,7 +27,9 @@ from demistifai.modeling import (
     _predict_proba_batch,
 )
 
-from demistifai.ui.components.terminal.use import render_use_terminal
+from demistifai.ui.components.terminal.use import (
+    render_ai_act_terminal as render_use_terminal,
+)
 
 try:
     from sklearn.model_selection import train_test_split
