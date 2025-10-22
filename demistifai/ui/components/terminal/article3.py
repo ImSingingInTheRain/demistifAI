@@ -52,7 +52,7 @@ STYLE = """
   @media (prefers-reduced-motion: reduce){.caret-__SFX__{animation:none}.wrap-__SFX__{animation:none;opacity:1;transform:none}}
   @media (max-width: 600px){
     .wrap-__SFX__{margin:0;padding:0}
-    .term-__SFX__{width:100%;max-width:100vw;min-height:100vh;margin:0;border-radius:0;padding:clamp(1.1rem,6vw,1.5rem);box-sizing:border-box;display:flex;flex-direction:column;gap:1rem}
+    .term-__SFX__{width:100vw;max-width:none;min-height:100vh;margin-block:0;margin-inline:calc(50% - 50vw);border-radius:0;padding:clamp(1.1rem,6vw,1.5rem);box-sizing:border-box;display:flex;flex-direction:column;gap:1rem}
     .term-__SFX__::before{top:12px;left:50%;transform:translateX(-50%)}
     .body-__SFX__{font-size:1.05rem;line-height:1.72;width:100%;overflow-wrap:anywhere;word-break:break-word;overflow-x:hidden}
     .caret-__SFX__{align-self:flex-start;margin-top:-.2rem;flex-shrink:0}
