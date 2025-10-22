@@ -252,10 +252,10 @@ def render_ai_act_terminal(
   const normaliseSegments = (segments) =>
     segments.map((line) =>
       Array.isArray(line)
-        ? line.map((seg) => ({
+        ? line.map((seg) => ({{
             t: typeof seg.t === "string" ? seg.t : "",
             c: typeof seg.c === "string" && seg.c ? seg.c : null,
-          }))
+          }}))
         : []
     );
 
