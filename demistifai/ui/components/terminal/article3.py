@@ -1,8 +1,10 @@
 """Minimal terminal animation: per-char typing, colored tokens, progressive post-install."""
 
 from __future__ import annotations
-from typing import Iterable, List, Optional
+from typing import Iterable, List, Optional, Sequence, Tuple
+import html
 import json
+import re
 from streamlit.components.v1 import html as components_html
 
 _SUFFIX = "ai_term"
@@ -74,7 +76,6 @@ HTML = """
 
   // --- helpers
   const esc = s => s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
-  const postResize = () => window.parent.postMessage({type:"streamlit:resize", height: root.scrollHeight + 24},"*");
 
   // token coloring per line (simple split once, then type per segment)
   const splitSegments = (line) => {
@@ -99,37 +100,66 @@ HTML = """
     return parts.length ? parts : [{t: line, c: null}];
   };
 
-  // expand progress into frames + add extra pauses after ✓ lines
-  const expand = (arr) => {
-    const out = [];
-    const pauses = [];
-    for (const raw of arr) {
-      const line = raw.endsWith("\\n") ? raw : raw + "\\n";
-      if (/^Progress\\s+0%/.test(line)) {
-        ["Progress 0%    [█...................] 0%\\n",
-         "Progress 35%   [███████.............] 35%\\n",
-         "Progress 70%   [██████████████......] 70%\\n",
-         "Progress 100%  [████████████████████] 100%\\n"].forEach(f => { out.push(f); pauses.push(220); });
-        continue;
-      }
-      out.push(line);
-      pauses.push(/✓\\s*$/.test(line) ? 420 : 0);
+  const rawLines = (cfg.expandedLines || cfg.lines || []).map((item) => {
+    const value = item == null ? "" : String(item);
+    return value.endsWith("\n") ? value : value + "\n";
+  });
+  const pauses = Array.isArray(cfg.pauses)
+    ? cfg.pauses.map(p => Number(p) || 0)
+    : new Array(rawLines.length).fill(0);
+
+  const perLineSegs = rawLines.map(splitSegments);
+  const computedHtml = perLineSegs
+    .map(segs => segs.map(s => s.c ? `<span class="${s.c}">${esc(s.t)}</span>` : esc(s.t)).join(""))
+    .join("");
+  const finalHtml = typeof cfg.fullHtml === "string" ? cfg.fullHtml : computedHtml;
+  cfg.fullHtml = finalHtml;
+
+  const ensureMeasuredHeight = () => {
+    const measurement = root.cloneNode(true);
+    measurement.removeAttribute("id");
+    measurement.style.position = "absolute";
+    measurement.style.visibility = "hidden";
+    measurement.style.pointerEvents = "none";
+    measurement.style.opacity = "0";
+    measurement.style.left = "-9999px";
+    measurement.style.top = "0";
+    measurement.style.height = "auto";
+    measurement.style.minHeight = "auto";
+    measurement.style.maxHeight = "none";
+    const width = root.getBoundingClientRect().width || root.offsetWidth || root.clientWidth;
+    if (width) {
+      measurement.style.width = width + "px";
     }
-    return {lines: out, pauses};
+    const measurePre = measurement.querySelector(".body-" + cfg.sfx);
+    if (measurePre) {
+      measurePre.innerHTML = finalHtml;
+    }
+    const measureCaret = measurement.querySelector(".caret-" + cfg.sfx);
+    if (measureCaret) {
+      measureCaret.style.display = "none";
+    }
+    (root.parentElement || document.body).appendChild(measurement);
+    const height = measurement.scrollHeight;
+    measurement.remove();
+    if (height) {
+      root.style.minHeight = `${height}px`;
+      root.style.height = `${height}px`;
+    }
+    return height;
+  };
+
+  const measuredHeight = ensureMeasuredHeight();
+  if (Number.isFinite(measuredHeight) && measuredHeight > 0) {
+    window.parent.postMessage({type:"streamlit:resize", height: measuredHeight + 24},"*");
+  }
+
+  const renderAll = () => {
+    pre.innerHTML = finalHtml;
+    if (caret) caret.style.display = "none";
   };
 
   const prefersReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  const {lines, pauses} = expand(cfg.lines.map(x => String(x)));
-  const perLineSegs = lines.map(splitSegments);
-
-  // final render (no typing)
-  const renderAll = () => {
-    const html = perLineSegs.map(segs => segs.map(s => s.c ? `<span class="${s.c}">${esc(s.t)}</span>` : esc(s.t)).join("")).join("");
-    pre.innerHTML = html;
-    if (caret) caret.style.display = "none";
-    postResize();
-  };
-
   if (prefersReduced || cfg.speed <= 0) { renderAll(); return; }
 
   // state
@@ -138,7 +168,6 @@ HTML = """
 
   const flush = (currentHTML="") => {
     pre.innerHTML = done.join("") + currentHTML;
-    postResize();
   };
 
   const typeNext = () => {
@@ -178,6 +207,87 @@ HTML = """
 </script>
 """
 
+
+def _expand_lines(lines: Sequence[str]) -> Tuple[List[str], List[int]]:
+    """Mirror the client-side expansion of progress frames and pauses."""
+
+    expanded: List[str] = []
+    pauses: List[int] = []
+    for raw in lines:
+        line = str(raw)
+        if not line.endswith("\n"):
+            line = f"{line}\n"
+
+        if re.match(r"^Progress\s+0%", line):
+            frames = [
+                "Progress 0%    [█...................] 0%\n",
+                "Progress 35%   [███████.............] 35%\n",
+                "Progress 70%   [██████████████......] 70%\n",
+                "Progress 100%  [████████████████████] 100%\n",
+            ]
+            expanded.extend(frames)
+            pauses.extend([220] * len(frames))
+            continue
+
+        expanded.append(line)
+        pauses.append(420 if re.search(r"✓\s*$", line) else 0)
+
+    return expanded, pauses
+
+
+_TOKEN_REGEX = re.compile(r"(EU AI Act|AI system)", re.IGNORECASE)
+
+
+def _split_segments(line: str, suffix: str) -> List[Tuple[str, Optional[str]]]:
+    """Replicate the client-side token segmentation for highlighting."""
+
+    trimmed = line.strip()
+    if line.startswith("$ "):
+        return [(line, f"cmd-{suffix}")]
+    if re.match(r"^HINT:", trimmed, flags=re.IGNORECASE):
+        return [(line, f"hint-{suffix}")]
+    if re.match(r"^ERROR\b", trimmed, flags=re.IGNORECASE):
+        return [(line, f"err-{suffix}")]
+    if re.fullmatch(r">\s*dem[a-z]*ai", trimmed, flags=re.IGNORECASE):
+        return [(line, f"pill-{suffix}")]
+    if re.search(r"\[█+\]", line):
+        return [(line, f"prog-{suffix}")]
+
+    parts: List[Tuple[str, Optional[str]]] = []
+    index = 0
+    for match in _TOKEN_REGEX.finditer(line):
+        start, end = match.span()
+        if start > index:
+            parts.append((line[index:start], None))
+        parts.append((match.group(0), f"act-{suffix}"))
+        index = end
+
+    if index < len(line):
+        parts.append((line[index:], None))
+
+    return parts or [(line, None)]
+
+
+def _escape_segment(text: str) -> str:
+    return html.escape(text, quote=False)
+
+
+def _segments_to_html(segments: List[Tuple[str, Optional[str]]]) -> str:
+    rendered: List[str] = []
+    for text, cls in segments:
+        escaped = _escape_segment(text)
+        if cls:
+            rendered.append(f'<span class="{cls}">{escaped}</span>')
+        else:
+            rendered.append(escaped)
+    return "".join(rendered)
+
+
+def _compute_full_html(lines: Sequence[str], suffix: str) -> str:
+    return "".join(
+        _segments_to_html(_split_segments(line, suffix)) for line in lines
+    )
+
 def render_ai_act_terminal(
     lines: Optional[Iterable[str]] = None,
     speed_type_ms: int = 22,          # ~20–50ms per char
@@ -206,8 +316,13 @@ def render_ai_act_terminal(
         )
 
     data = list(lines) if lines is not None else LINES
+    expanded_lines, pauses = _expand_lines(data)
+    full_html = _compute_full_html(expanded_lines, _SUFFIX)
     payload = {
         "lines": data,
+        "expandedLines": expanded_lines,
+        "pauses": pauses,
+        "fullHtml": full_html,
         "speed": max(0, int(speed_type_ms)),
         "pause": max(0, int(pause_between_lines_ms)),
         "sfx": _SUFFIX,
