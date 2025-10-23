@@ -12,6 +12,7 @@
 
   const bootstrap = (Streamlit, initialArgs) => {
     let activeCleanup = null;
+    let lastRenderSignature = null;
 
     const canSetValue =
       Streamlit && typeof Streamlit.setComponentValue === "function";
@@ -93,6 +94,32 @@
       }
     };
 
+    const stableStringify = (value) => {
+      if (value === null || value === undefined) {
+        return "null";
+      }
+      if (typeof value !== "object") {
+        return JSON.stringify(value);
+      }
+      if (Array.isArray(value)) {
+        return `[${value.map((item) => stableStringify(item)).join(",")}]`;
+      }
+      const keys = Object.keys(value).sort();
+      const entries = keys.map(
+        (key) => `${JSON.stringify(key)}:${stableStringify(value[key])}`
+      );
+      return `{${entries.join(",")}}`;
+    };
+
+    const buildRenderSignature = (params) =>
+      stableStringify({
+        markup: params.markup,
+        payload: params.payload,
+        serializedLines: params.serializedLines,
+        typingConfig: params.typingConfig,
+        acceptKeystrokes: params.acceptKeystrokes ? true : false,
+      });
+
     const notifyResize = (height) => {
       if (!canSetFrameHeight) {
         return;
@@ -154,19 +181,40 @@
         ready: state.ready,
       });
 
-      const sendState = (immediate) => {
+      let lastSentSnapshot = copyState();
+
+      const statesEqual = (a, b) =>
+        Boolean(a) &&
+        Boolean(b) &&
+        a.text === b.text &&
+        a.submitted === b.submitted &&
+        a.ready === b.ready;
+
+      const flushState = () => {
         if (!canSetValue) {
           return;
         }
+        const snapshot = copyState();
+        if (statesEqual(snapshot, lastSentSnapshot)) {
+          return;
+        }
+        lastSentSnapshot = snapshot;
+        pushState(snapshot);
+      };
+
+      const sendState = (immediate) => {
         if (immediate) {
-          pushState(copyState());
+          flushState();
+          return;
+        }
+        if (!canSetValue) {
           return;
         }
         if (debounceHandle !== null) {
           window.clearTimeout(debounceHandle);
         }
         debounceHandle = window.setTimeout(() => {
-          pushState(copyState());
+          flushState();
         }, debounceMs);
       };
 
@@ -502,14 +550,6 @@
     };
 
     const render = (args) => {
-      if (activeCleanup) {
-        activeCleanup();
-        activeCleanup = null;
-      }
-
-      const markup = coerceString(args.markup, "");
-      root.innerHTML = markup;
-
       const payload =
         args.payload && typeof args.payload === "object"
           ? { ...args.payload }
@@ -521,6 +561,27 @@
         args.typingConfig && typeof args.typingConfig === "object"
           ? args.typingConfig
           : {};
+      const markup = coerceString(args.markup, "");
+      const signature = buildRenderSignature({
+        markup,
+        payload,
+        serializedLines,
+        typingConfig,
+        acceptKeystrokes: args.acceptKeystrokes,
+      });
+
+      if (signature && signature === lastRenderSignature) {
+        return;
+      }
+      lastRenderSignature = signature;
+
+      if (activeCleanup) {
+        activeCleanup();
+        activeCleanup = null;
+      }
+
+      root.innerHTML = markup;
+
       const domId = coerceString(payload.domId, "");
 
       if (!domId) {
