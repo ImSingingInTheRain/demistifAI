@@ -13,6 +13,7 @@
   const bootstrap = (Streamlit, initialArgs) => {
     let activeCleanup = null;
     let lastRenderSignature = null;
+    let lastInputValue = null;
 
     const canSetValue =
       Streamlit && typeof Streamlit.setComponentValue === "function";
@@ -111,14 +112,22 @@
       return `{${entries.join(",")}}`;
     };
 
-    const buildRenderSignature = (params) =>
-      stableStringify({
+    const buildRenderSignature = (params) => {
+      const rawPayload =
+        params.payload && typeof params.payload === "object"
+          ? params.payload
+          : {};
+      const dedupePayload = { ...rawPayload };
+      delete dedupePayload.inputValue;
+
+      return stableStringify({
         markup: params.markup,
-        payload: params.payload,
+        payload: dedupePayload,
         serializedLines: params.serializedLines,
         typingConfig: params.typingConfig,
         acceptKeystrokes: params.acceptKeystrokes ? true : false,
       });
+    };
 
     const notifyResize = (height) => {
       if (!canSetFrameHeight) {
@@ -577,7 +586,24 @@
         acceptKeystrokes: args.acceptKeystrokes,
       });
 
+      const suffix = coerceString(payload.suffix, "");
+      const nextInputValue = coerceString(payload.inputValue, "");
+
       if (signature && signature === lastRenderSignature) {
+        if (suffix) {
+          const existingInput =
+            root.querySelector(
+              `.term-input-${suffix}:not([data-secondary="true"])`
+            ) || root.querySelector(`.term-input-${suffix}`);
+          if (
+            existingInput &&
+            nextInputValue !== lastInputValue &&
+            existingInput.value !== nextInputValue
+          ) {
+            existingInput.value = nextInputValue;
+          }
+        }
+        lastInputValue = nextInputValue;
         return;
       }
       lastRenderSignature = signature;
@@ -610,6 +636,7 @@
         typingConfig,
         acceptKeystrokes: args.acceptKeystrokes,
       });
+      lastInputValue = nextInputValue;
     };
 
     const onRender = (event) => {
