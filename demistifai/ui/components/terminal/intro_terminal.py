@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import time
+from enum import Enum
 from typing import List, Optional, Sequence, Tuple
 
 import streamlit as st
@@ -21,8 +22,16 @@ _TERMINAL_SUFFIX = _SUFFIX
 _SHOW_MISSION_USER_LINE = "> Show Mission\n"
 _SHOW_MISSION_RESPONSE_LINE = (
     ">show mission\n",
-    "> I opened the mission overview below, check it out and when you are ready type below start\n"
+    "> I opened the mission overview below, check it out and when you are ready type \"start\" here\n",
 )
+
+
+class IntroTerminalCommand(str, Enum):
+    """Command identifiers emitted by the intro terminal component."""
+
+    SHOW_MISSION = "show_mission"
+    START = "start"
+
 
 _DEFAULT_DEMAI_LINES: List[str] = [
     "> What is an AI system?\n",
@@ -43,7 +52,7 @@ _DEFAULT_DEMAI_LINES: List[str] = [
     "Give everyone the confidence to use AI responsibly with clarity and trust.\n",
     "",
     "> Ready to start?\n"
-    "> Type Show Mission or click the button to find out what’s your goal\n",
+    "> Type \"show mission\" here or click the button to find out what’s your goal\n",
 ]
 
 # Backwards-compatibility alias for callers importing the old constant name.
@@ -77,16 +86,18 @@ def render_intro_terminal_with_prompt(
 
     The helper exists for callers that still expect the legacy "prompt" API;
     under the hood it proxies to the inline animation renderer so the
-    typing sequence and the embedded input remain in sync.
+    typing sequence and the embedded input remain in sync. It returns ``True``
+    when the "show mission" command is submitted, mirroring the legacy
+    behaviour expected by older call sites.
     """
-    command_triggered, _ = render_interactive_intro_terminal(
+    command, _ = render_interactive_intro_terminal(
         command_key=command_key,
         speed_type_ms=speed_type_ms,
         pause_between_ops_ms=pause_between_ops_ms,
-        placeholder="Show Mission",
+        placeholder="Type here",
     )
 
-    return command_triggered
+    return command == IntroTerminalCommand.SHOW_MISSION
 
 
 def render_interactive_intro_terminal(
@@ -95,9 +106,13 @@ def render_interactive_intro_terminal(
     speed_type_ms: int = 20,
     speed_delete_ms: int = 14,
     pause_between_ops_ms: int = 360,
-    placeholder: str = "Show Mission",
-) -> Tuple[bool, bool]:
-    """Render the intro terminal animation and capture the command submission."""
+    placeholder: str = "Type here",
+) -> Tuple[Optional[IntroTerminalCommand], bool]:
+    """Render the intro terminal animation and capture the command submission.
+
+    Returns a tuple containing the parsed command (if any) and whether the
+    terminal is ready for direct user input without replaying the animation.
+    """
 
     clear_flag_key = f"{command_key}_clear_pending"
     ready_at_key = f"{command_key}_ready_at"
@@ -125,10 +140,6 @@ def render_interactive_intro_terminal(
         lines = list(_DEFAULT_DEMAI_LINES)
         st.session_state[lines_state_key] = lines
 
-    secondary_placeholders: Optional[List[str]] = None
-    if _SHOW_MISSION_USER_LINE in lines:
-        secondary_placeholders = ["Start"]
-
     animation_duration = _estimate_terminal_duration(
         lines,
         speed_type_ms=speed_type_ms,
@@ -155,7 +166,6 @@ def render_interactive_intro_terminal(
         placeholder=placeholder,
         accept_keystrokes=True,
         show_caret=True,
-        secondary_inputs=secondary_placeholders,
     )
 
     st.session_state[lines_signature_key] = current_signature
@@ -183,15 +193,21 @@ def render_interactive_intro_terminal(
 
     st.session_state[ready_flag_key] = ready
 
-    command_triggered = False
+    command: Optional[IntroTerminalCommand] = None
     text_value = component_text.strip().lower()
-    if ready and component_submitted and text_value == "show mission":
-        command_triggered = True
-        if _SHOW_MISSION_USER_LINE not in lines:
-            lines.extend([_SHOW_MISSION_USER_LINE, _SHOW_MISSION_RESPONSE_LINE])
-        st.session_state[append_pending_key] = True
-        st.session_state[clear_flag_key] = True
-        st.session_state.pop(component_key, None)
-        st.session_state.pop(command_key, None)
+    if ready and component_submitted:
+        if text_value == "show mission":
+            command = IntroTerminalCommand.SHOW_MISSION
+            if _SHOW_MISSION_USER_LINE not in lines:
+                lines.extend([_SHOW_MISSION_USER_LINE, _SHOW_MISSION_RESPONSE_LINE])
+            st.session_state[append_pending_key] = True
+            st.session_state[clear_flag_key] = True
+            st.session_state.pop(component_key, None)
+            st.session_state.pop(command_key, None)
+        elif text_value == "start":
+            command = IntroTerminalCommand.START
+            st.session_state[clear_flag_key] = True
+            st.session_state.pop(component_key, None)
+            st.session_state.pop(command_key, None)
 
-    return command_triggered, ready
+    return command, ready
