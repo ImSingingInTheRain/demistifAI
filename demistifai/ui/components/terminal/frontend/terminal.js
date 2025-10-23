@@ -10,16 +10,21 @@
 
   let bootstrapped = false;
 
-  const bootstrap = (Streamlit) => {
+  const bootstrap = (Streamlit, initialArgs) => {
     let activeCleanup = null;
 
-    const canSetValue = typeof Streamlit.setComponentValue === "function";
-    const canSetFrameHeight = typeof Streamlit.setFrameHeight === "function";
-    const canSetReady = typeof Streamlit.setComponentReady === "function";
-    const canListen =
-      Streamlit.events &&
-      typeof Streamlit.events.addEventListener === "function";
-    const renderEvent = Streamlit.RENDER_EVENT;
+    const canSetValue =
+      Streamlit && typeof Streamlit.setComponentValue === "function";
+    const canSetFrameHeight =
+      Streamlit && typeof Streamlit.setFrameHeight === "function";
+    const canSetReady =
+      Streamlit && typeof Streamlit.setComponentReady === "function";
+    const canListen = Boolean(
+      Streamlit &&
+        Streamlit.events &&
+        typeof Streamlit.events.addEventListener === "function"
+    );
+    const renderEvent = Streamlit ? Streamlit.RENDER_EVENT : null;
 
     const defaultState = () => ({ text: "", submitted: false, ready: false });
 
@@ -535,6 +540,8 @@
 
     if (canListen && renderEvent) {
       Streamlit.events.addEventListener(renderEvent, onRender);
+    } else if (initialArgs) {
+      render(initialArgs);
     } else {
       document.addEventListener("DOMContentLoaded", () => {
         render({});
@@ -547,6 +554,24 @@
     notifyResize(document.body ? document.body.scrollHeight : 0);
   };
 
+  const tryInlineBootstrap = () => {
+    if (bootstrapped) {
+      return true;
+    }
+    const inlineProps = window.__STREAMLIT_TERMINAL_PROPS__;
+    if (!inlineProps) {
+      return false;
+    }
+    try {
+      delete window.__STREAMLIT_TERMINAL_PROPS__;
+    } catch (_err) {
+      window.__STREAMLIT_TERMINAL_PROPS__ = null;
+    }
+    bootstrapped = true;
+    bootstrap(null, inlineProps);
+    return true;
+  };
+
   const pollForStreamlit = () => {
     if (bootstrapped) {
       return;
@@ -557,8 +582,10 @@
       return;
     }
     bootstrapped = true;
-    bootstrap(Streamlit);
+    bootstrap(Streamlit, null);
   };
 
-  pollForStreamlit();
+  if (!tryInlineBootstrap()) {
+    pollForStreamlit();
+  }
 })();
