@@ -2,18 +2,15 @@
 
 from __future__ import annotations
 
-import json
 import time
-from functools import lru_cache
-from importlib import resources
 from typing import List, Sequence, Tuple
 
 import streamlit as st
-from streamlit.components.v1 import html as components_html
 
 from demistifai.core.utils import streamlit_rerun
 
-from .shared_renderer import build_terminal_render_bundle, make_terminal_renderer
+from .interactive_terminal_component import render_interactive_terminal
+from .shared_renderer import make_terminal_renderer
 
 _SUFFIX = "ai_term"
 
@@ -54,54 +51,6 @@ render_ai_act_terminal = make_terminal_renderer(
     default_lines=_DEFAULT_DEMAI_LINES,
     default_key="ai_act_terminal",
 )
-
-
-@lru_cache(maxsize=1)
-def _load_terminal_script() -> str:
-    frontend_root = resources.files(__package__).joinpath("frontend")
-    with resources.as_file(frontend_root.joinpath("terminal.js")) as path:
-        return path.read_text(encoding="utf-8")
-
-
-def _render_intro_terminal_surface(
-    *,
-    speed_type_ms: int,
-    speed_delete_ms: int,
-    pause_between_ops_ms: int,
-) -> None:
-    bundle = build_terminal_render_bundle(
-        suffix=_TERMINAL_SUFFIX,
-        lines=_DEFAULT_DEMAI_LINES,
-        speed_type_ms=speed_type_ms,
-        speed_delete_ms=speed_delete_ms,
-        pause_between_ops_ms=pause_between_ops_ms,
-        key="intro_inline_terminal",
-        show_caret=True,
-        accept_keystrokes=False,
-    )
-    typing_config = {
-        "speedType": bundle.payload["speedType"],
-        "speedDelete": bundle.payload["speedDelete"],
-        "pauseBetween": bundle.payload["pauseBetween"],
-    }
-    props = {
-        "markup": bundle.markup,
-        "payload": bundle.payload,
-        "serializedLines": bundle.serializable_segments,
-        "typingConfig": typing_config,
-        "acceptKeystrokes": False,
-    }
-    js_props = json.dumps(props, ensure_ascii=False, separators=(",", ":"))
-    script = _load_terminal_script()
-    html = (
-        "<!DOCTYPE html><html><head><meta charset=\"utf-8\" /></head><body>"
-        "<div id=\"root\"></div>"
-        f"<script>window.__STREAMLIT_TERMINAL_PROPS__ = {js_props};</script>"
-        f"<script>{script}</script>"
-        "</body></html>"
-    )
-    components_html(html, height=420, scrolling=False)
-
 
 def _estimate_terminal_duration(
     lines: Sequence[str], *, speed_type_ms: int, pause_between_ops_ms: int
@@ -150,7 +99,7 @@ def render_interactive_intro_terminal(
     clear_flag_key = f"{command_key}_clear_pending"
     ready_at_key = f"{command_key}_ready_at"
     ready_flag_key = f"{command_key}_ready"
-    submit_flag_key = f"{command_key}_submitted"
+    component_key = "intro_inline_terminal"
     animation_duration = _estimate_terminal_duration(
         _DEFAULT_DEMAI_LINES,
         speed_type_ms=speed_type_ms,
@@ -159,7 +108,8 @@ def render_interactive_intro_terminal(
     now = time.time()
 
     if st.session_state.get(clear_flag_key):
-        st.session_state[command_key] = ""
+        st.session_state.pop(command_key, None)
+        st.session_state.pop(component_key, None)
         st.session_state[clear_flag_key] = False
         st.session_state[ready_flag_key] = False
         st.session_state[ready_at_key] = now + animation_duration
@@ -172,30 +122,36 @@ def render_interactive_intro_terminal(
         ready = True
     st.session_state[ready_flag_key] = ready
 
-    _render_intro_terminal_surface(
+    component_payload = render_interactive_terminal(
+        suffix=_TERMINAL_SUFFIX,
+        lines=_DEFAULT_DEMAI_LINES,
         speed_type_ms=speed_type_ms,
         speed_delete_ms=speed_delete_ms,
         pause_between_ops_ms=pause_between_ops_ms,
-    )
-
-    def _on_submit() -> None:
-        st.session_state[submit_flag_key] = True
-
-    text_value = st.text_input(
-        "",
-        key=command_key,
+        key=component_key,
         placeholder=placeholder,
-        label_visibility="collapsed",
-        disabled=not ready,
-        on_change=_on_submit,
+        accept_keystrokes=True,
+        show_caret=True,
     )
 
-    submitted = bool(st.session_state.pop(submit_flag_key, False))
+    component_text = ""
+    component_ready = False
+    component_submitted = False
+    if component_payload:
+        component_text = component_payload.get("text", "")
+        component_ready = bool(component_payload.get("ready", False))
+        component_submitted = bool(component_payload.get("submitted", False))
+
+    if component_ready:
+        ready = True
+        st.session_state[ready_flag_key] = True
 
     command_triggered = False
-    if ready and submitted and text_value.strip().lower() == "show mission":
+    text_value = component_text.strip().lower()
+    if ready and component_submitted and text_value == "show mission":
         command_triggered = True
         st.session_state[clear_flag_key] = True
+        st.session_state.pop(component_key, None)
 
     if not ready:
         remaining = st.session_state[ready_at_key] - now
