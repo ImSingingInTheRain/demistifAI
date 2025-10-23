@@ -263,6 +263,7 @@ def _build_terminal_markup(
     terminal_style: str,
     normalized_lines: Sequence[str],
     show_caret: bool,
+    secondary_inputs: Optional[Sequence[dict[str, str]]] = None,
 ) -> str:
     final_text = "".join(normalized_lines)
     caret_display = "inline-block" if show_caret else "none"
@@ -273,6 +274,48 @@ def _build_terminal_markup(
     input_hint = _escape_text(str(payload.get("inputHint", "")))
     input_id = _escape_attr(str(payload.get("inputId", "")))
     input_hint_id = _escape_attr(str(payload.get("inputHintId", "")))
+    secondary_markup_parts: List[str] = []
+    for secondary in secondary_inputs or ():
+        secondary_placeholder = _escape_attr(str(secondary.get("placeholder", "")))
+        secondary_aria_label = _escape_attr(str(secondary.get("inputAriaLabel", "")))
+        secondary_label = _escape_text(str(secondary.get("inputLabel", "")))
+        secondary_hint = _escape_text(str(secondary.get("inputHint", "")))
+        secondary_input_id = _escape_attr(str(secondary.get("inputId", "")))
+        secondary_hint_id = _escape_attr(str(secondary.get("inputHintId", "")))
+        secondary_markup_parts.append(
+            Template(
+                dedent(
+                    """
+                        <div class="term-input-wrap-$suffix" data-active="false" aria-hidden="true" data-secondary="true">
+                          <label class="sr-only-$suffix" for="$input_id">$input_label</label>
+                          <input
+                            id="$input_id"
+                            class="term-input-$suffix"
+                            type="text"
+                            inputmode="text"
+                            autocomplete="off"
+                            spellcheck="false"
+                            aria-label="$input_aria_label"
+                            aria-describedby="$input_hint_id"
+                            placeholder="$input_placeholder"
+                            disabled
+                            data-secondary="true"
+                          />
+                          <span id="$input_hint_id" class="sr-only-$suffix">$input_hint</span>
+                        </div>
+                    """
+                )
+            ).substitute(
+                suffix=suffix,
+                input_placeholder=secondary_placeholder,
+                input_aria_label=secondary_aria_label,
+                input_label=secondary_label,
+                input_hint=secondary_hint,
+                input_id=secondary_input_id,
+                input_hint_id=secondary_hint_id,
+            )
+        )
+    secondary_markup = "".join(secondary_markup_parts)
     template = Template(
         dedent(
             """
@@ -295,6 +338,7 @@ def _build_terminal_markup(
                   />
                   <span id="$input_hint_id" class="sr-only-$suffix">$input_hint</span>
                 </div>
+                $secondary_markup
               </div>
             </div>
 
@@ -319,6 +363,7 @@ def _build_terminal_markup(
         input_hint=input_hint,
         input_id=input_id,
         input_hint_id=input_hint_id,
+        secondary_markup=secondary_markup,
     )
 
 
@@ -336,6 +381,7 @@ def build_terminal_render_bundle(
     input_aria_label: Optional[str] = None,
     accept_keystrokes: bool = False,
     debounce_ms: int = 150,
+    secondary_inputs: Optional[Sequence[str]] = None,
 ) -> TerminalRenderBundle:
     style = terminal_style or _build_terminal_style(suffix)
     normalized_lines = _normalize_lines(lines)
@@ -364,6 +410,26 @@ def build_terminal_render_bundle(
     hint_text = placeholder_trimmed or "Type your command and press Enter to submit."
     input_id = f"{payload['domId']}-input"
     input_hint_id = f"{payload['domId']}-hint"
+    secondary_payloads: List[dict[str, str]] = []
+    for index, secondary_placeholder in enumerate(secondary_inputs or ()): 
+        secondary_text = str(secondary_placeholder or "")
+        secondary_trimmed = secondary_text.strip()
+        secondary_label = secondary_trimmed or "Secondary terminal input"
+        secondary_hint = (
+            f"{secondary_trimmed} command field is currently disabled."
+            if secondary_trimmed
+            else "This command field is currently disabled."
+        )
+        secondary_payloads.append(
+            {
+                "placeholder": secondary_text,
+                "inputAriaLabel": secondary_label,
+                "inputLabel": secondary_label,
+                "inputHint": secondary_hint,
+                "inputId": f"{input_id}-secondary-{index + 1}",
+                "inputHintId": f"{input_hint_id}-secondary-{index + 1}",
+            }
+        )
     payload.update(
         {
             "placeholder": placeholder_text,
@@ -376,12 +442,15 @@ def build_terminal_render_bundle(
             "debounceMs": max(0, int(debounce_ms)),
         }
     )
+    if secondary_payloads:
+        payload["secondaryInputs"] = secondary_payloads
     markup = _build_terminal_markup(
         payload=payload,
         suffix=suffix,
         terminal_style=style,
         normalized_lines=normalized_lines,
         show_caret=show_caret,
+        secondary_inputs=secondary_payloads,
     )
     return TerminalRenderBundle(
         markup=markup,
