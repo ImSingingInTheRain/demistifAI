@@ -159,9 +159,11 @@ def render_interactive_intro_terminal(
 
     pending_component_state = st.session_state.get(component_key)
     pending_component_ready = False
+    pending_component_payload: Optional[dict] = None
     if isinstance(pending_component_state, dict):
         pending_value = pending_component_state.get("value")
         if isinstance(pending_value, dict):
+            pending_component_payload = pending_value
             pending_component_ready = bool(pending_value.get("ready", False))
 
     if pending_component_ready:
@@ -175,6 +177,10 @@ def render_interactive_intro_terminal(
         st.session_state[ready_at_key] = now + animation_duration
 
     persisted_text = st.session_state.get(command_key, "")
+    if pending_component_payload:
+        pending_text = pending_component_payload.get("text")
+        if isinstance(pending_text, str):
+            persisted_text = pending_text
 
     prefilled_line_count = int(st.session_state.get(prefill_line_count_key, 0) or 0)
     if prefilled_line_count <= 0 and _SHOW_MISSION_USER_LINE in lines:
