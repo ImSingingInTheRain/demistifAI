@@ -209,6 +209,9 @@ def render_interactive_intro_terminal(
                     _SHOW_MISSION_USER_LINE,
                     *_SHOW_MISSION_RESPONSE_LINE,
                 ])
+                ready = False
+                st.session_state.pop(ready_at_key, None)
+                st.session_state[ready_flag_key] = False
             st.session_state[append_pending_key] = True
             st.session_state[clear_flag_key] = True
             st.session_state.pop(component_key, None)
