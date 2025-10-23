@@ -34,7 +34,12 @@ from pages.welcome import render_intro_stage as render_intro_stage_content
 from pages.model_card import render_model_card_stage as render_model_card_stage_content
 logger = logging.getLogger(__name__)
 
-st.set_page_config(page_title="demistifAI", page_icon="📧", layout="wide")
+st.set_page_config(
+    page_title="demistifAI",
+    page_icon="📧",
+    layout="wide",
+    initial_sidebar_state="collapsed",
+)
 
 state = ensure_state()
 s = state
