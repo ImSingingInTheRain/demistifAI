@@ -11,6 +11,8 @@ from typing import List, Sequence, Tuple
 import streamlit as st
 from streamlit.components.v1 import html as components_html
 
+from demistifai.core.utils import streamlit_rerun
+
 from .shared_renderer import build_terminal_render_bundle, make_terminal_renderer
 
 _SUFFIX = "ai_term"
@@ -199,6 +201,6 @@ def render_interactive_intro_terminal(
         remaining = st.session_state[ready_at_key] - now
         if remaining > 0:
             time.sleep(min(0.2, remaining))
-            st.experimental_rerun()
+            streamlit_rerun()
 
     return command_triggered, ready
