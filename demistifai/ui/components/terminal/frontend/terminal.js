@@ -345,6 +345,22 @@
           ? payload.fullHtml
           : perLineHtml.join("");
 
+      const totalLines = perLineSegs.length;
+      const prefilledLineCount = Math.max(
+        0,
+        Math.min(totalLines, coerceNumber(payload.prefilledLineCount, 0))
+      );
+
+      const doneHtmlParts =
+        prefilledLineCount > 0
+          ? perLineHtml.slice(0, prefilledLineCount)
+          : [];
+      if (doneHtmlParts.length) {
+        pre.innerHTML = doneHtmlParts.join("");
+      } else {
+        pre.innerHTML = "";
+      }
+
       const ensureMeasuredHeight = () => {
         const measurement = rootNode.cloneNode(true);
         measurement.removeAttribute("id");
@@ -419,7 +435,11 @@
         notifyResize(measured);
       };
 
-      if (prefersReduced || coerceNumber(payload.speedType, 0) === 0) {
+      if (
+        prefersReduced ||
+        coerceNumber(payload.speedType, 0) === 0 ||
+        prefilledLineCount >= totalLines
+      ) {
         pre.innerHTML = finalHtml;
         if (caret) {
           caret.style.display = "none";
@@ -449,9 +469,8 @@
         coerceNumber(typingConfig.pauseBetween, payload.pauseBetween || 0)
       );
 
-      const doneHtmlParts = [];
       let activeNode = null;
-      let lineIndex = 0;
+      let lineIndex = prefilledLineCount;
       let segmentIndex = 0;
       let charIndex = 0;
 
