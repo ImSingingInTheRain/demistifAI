@@ -189,7 +189,6 @@ def render_interactive_intro_terminal(
     )
 
     submitted = bool(st.session_state.pop(submit_flag_key, False))
-    st.session_state[command_key] = text_value
 
     command_triggered = False
     if ready and submitted and text_value.strip().lower() == "show mission":
