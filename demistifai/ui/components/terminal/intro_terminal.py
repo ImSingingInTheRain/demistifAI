@@ -7,8 +7,6 @@ from typing import List, Sequence, Tuple
 
 import streamlit as st
 
-from demistifai.core.utils import streamlit_rerun
-
 from .interactive_terminal_component import render_interactive_terminal
 from .shared_renderer import make_terminal_renderer
 
@@ -110,17 +108,13 @@ def render_interactive_intro_terminal(
     if st.session_state.get(clear_flag_key):
         st.session_state.pop(command_key, None)
         st.session_state.pop(component_key, None)
+        st.session_state.pop(ready_at_key, None)
         st.session_state[clear_flag_key] = False
         st.session_state[ready_flag_key] = False
-        st.session_state[ready_at_key] = now + animation_duration
-
-    if ready_at_key not in st.session_state:
-        st.session_state[ready_at_key] = now + animation_duration
 
     ready = bool(st.session_state.get(ready_flag_key, False))
-    if not ready and now >= st.session_state.get(ready_at_key, now):
-        ready = True
-    st.session_state[ready_flag_key] = ready
+    if not ready and ready_at_key not in st.session_state:
+        st.session_state[ready_at_key] = now + animation_duration
 
     component_payload = render_interactive_terminal(
         suffix=_TERMINAL_SUFFIX,
@@ -134,17 +128,28 @@ def render_interactive_intro_terminal(
         show_caret=True,
     )
 
-    component_text = ""
+    component_text = st.session_state.get(command_key, "")
     component_ready = False
     component_submitted = False
+
     if component_payload:
         component_text = component_payload.get("text", "")
         component_ready = bool(component_payload.get("ready", False))
         component_submitted = bool(component_payload.get("submitted", False))
+        st.session_state[command_key] = component_text
+
+    ready = ready or component_ready
+    if not ready:
+        ready_at = st.session_state.get(ready_at_key, now)
+        if now >= ready_at:
+            ready = True
+            st.session_state.pop(ready_at_key, None)
 
     if component_ready:
         ready = True
-        st.session_state[ready_flag_key] = True
+        st.session_state.pop(ready_at_key, None)
+
+    st.session_state[ready_flag_key] = ready
 
     command_triggered = False
     text_value = component_text.strip().lower()
@@ -152,11 +157,6 @@ def render_interactive_intro_terminal(
         command_triggered = True
         st.session_state[clear_flag_key] = True
         st.session_state.pop(component_key, None)
-
-    if not ready:
-        remaining = st.session_state[ready_at_key] - now
-        if remaining > 0:
-            time.sleep(min(0.2, remaining))
-            streamlit_rerun()
+        st.session_state.pop(command_key, None)
 
     return command_triggered, ready
