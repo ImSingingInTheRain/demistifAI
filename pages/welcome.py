@@ -10,8 +10,10 @@ from streamlit.delta_generator import DeltaGenerator
 from demistifai.core.navigation import activate_stage
 from demistifai.core.utils import streamlit_rerun
 from demistifai.constants import STAGE_INDEX, STAGES, StageMeta
-from demistifai.ui.components import render_stage_top_grid
+from demistifai.ui.components import intro_hero_panes, render_stage_top_grid
 from demistifai.ui.components.overview import (
+    demai_architecture_markup,
+    demai_architecture_styles,
     mailbox_preview_markup,
     mailbox_preview_styles,
     mission_brief_styles,
@@ -46,6 +48,7 @@ def render_intro_stage(*, section_surface: SectionSurface) -> None:
         next_stage_key = next_stage_meta.key
 
     show_mission = bool(st.session_state.get("intro_show_mission", False))
+    intro_started = bool(st.session_state.get("intro_started", False))
 
     def _render_intro_terminal(slot: DeltaGenerator) -> None:
         with slot:
@@ -58,11 +61,11 @@ def render_intro_stage(*, section_surface: SectionSurface) -> None:
                 streamlit_rerun()
             elif command == IntroTerminalCommand.START:
                 st.session_state["intro_show_mission"] = True
-                if next_stage_key and activate_stage(next_stage_key):
-                    streamlit_rerun()
+                st.session_state["intro_started"] = True
+                streamlit_rerun()
 
     def _render_show_mission_cta(slot: DeltaGenerator) -> None:
-        if show_mission:
+        if show_mission or intro_started:
             return
 
         with slot:
@@ -91,7 +94,7 @@ def render_intro_stage(*, section_surface: SectionSurface) -> None:
             else:
                 preview_records.append(record)
 
-        if show_mission:
+        if show_mission and not intro_started:
             mission_panes = (
                 MacWindowPane(
                     html=mission_overview_column_markup(),
@@ -113,6 +116,32 @@ def render_intro_stage(*, section_surface: SectionSurface) -> None:
                     rows=1,
                     columns=2,
                     column_ratios=(1.1, 0.9),
+                ),
+            )
+        elif intro_started:
+            architecture_pane = MacWindowPane(
+                html=demai_architecture_markup(active_stage="intro"),
+                css=demai_architecture_styles(),
+                min_height=520,
+                pane_id="intro-architecture",
+            )
+            render_macos_iframe_window(
+                st,
+                MacWindowConfig(
+                    panes=[architecture_pane],
+                    rows=1,
+                    columns=1,
+                ),
+            )
+
+            lifecycle_panes = intro_hero_panes()
+            render_macos_iframe_window(
+                st,
+                MacWindowConfig(
+                    panes=lifecycle_panes,
+                    rows=1,
+                    columns=2,
+                    column_ratios=(0.4, 0.6),
                 ),
             )
 
