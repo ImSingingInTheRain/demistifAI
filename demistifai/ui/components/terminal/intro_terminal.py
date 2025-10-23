@@ -20,21 +20,20 @@ _TERMINAL_SUFFIX = _SUFFIX
 
 _SHOW_MISSION_USER_LINE = "> Show Mission\n"
 _SHOW_MISSION_RESPONSE_LINE = (
+    ">show mission\n",
     "> I opened the mission overview below, check it out and when you are ready type below start\n"
 )
 
 _DEFAULT_DEMAI_LINES: List[str] = [
     "> What is an AI system?\n",
-    "$ fetch EU_AI_ACT.AI_system_definition\n",
+    "$ fetch EU_AI_ACT\n",
     "“AI system” means a machine-based system designed to operate with varying levels of autonomy and that may exhibit adaptiveness after deployment, and that, for explicit or implicit objectives, infers—\n",
     "[…stream truncated…]\n",
     "ERROR 422: Definition overload — too many concepts at once.\n",
-    "HINT: Let’s learn it by doing.\n",
+    "",
     "$ pip install demAI\n",
-    "Resolving dependencies… ✓\n",
-    "Setting up interactive labs… ✓\n",
-    "Verifying examples… ✓\n",
     "Progress 0%   [████████████████████] 100%\n",
+    "",
     "\nWelcome to demAI — a hands-on way to see how AI works and how the EU AI Act applies in practice.\n",
     "> demonstrateAI\n",
     "Build and run a tiny AI system — from data to predictions — step by step.\n",
@@ -42,7 +41,8 @@ _DEFAULT_DEMAI_LINES: List[str] = [
     "Turn buzzwords into concrete actions you can try and understand.\n",
     "> democratizeAI\n",
     "Give everyone the confidence to use AI responsibly with clarity and trust.\n",
-    "$ start demo\n",
+    "",
+    "> Ready to start?\n"
     "> Type Show Mission or click the button to find out what’s your goal\n",
 ]
 
