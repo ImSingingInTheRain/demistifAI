@@ -1955,5 +1955,11 @@ div[data-testid="stHorizontalBlock"]:has(.stage-top-grid__nav-card) > div[data-t
     }
 }
 
+section[data-testid="stSidebar"],
+[data-testid="collapsedControl"],
+.stSidebarCollapsedControl {
+    display: none !important;
+}
+
 </style>
 """
