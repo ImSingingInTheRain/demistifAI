@@ -68,6 +68,7 @@ def render_interactive_terminal(
     placeholder: str = "",
     accept_keystrokes: bool = False,
     show_caret: bool = True,
+    secondary_inputs: Optional[Sequence[str]] = None,
 ) -> Optional[dict[str, Any]]:
     """Render the interactive terminal custom component.
 
@@ -88,6 +89,7 @@ def render_interactive_terminal(
         placeholder=placeholder_text,
         input_aria_label=aria_label,
         accept_keystrokes=accept_keystrokes,
+        secondary_inputs=secondary_inputs,
     )
 
     typing_config = {

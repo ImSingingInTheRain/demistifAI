@@ -116,8 +116,14 @@
 
       const pre = rootNode.querySelector(`.term-body-${suffix}`);
       const caret = rootNode.querySelector(`.caret-${suffix}`);
-      const inputWrap = rootNode.querySelector(`.term-input-wrap-${suffix}`);
-      const input = rootNode.querySelector(`.term-input-${suffix}`);
+      const inputWrap =
+        rootNode.querySelector(
+          `.term-input-wrap-${suffix}:not([data-secondary="true"])`
+        ) || rootNode.querySelector(`.term-input-wrap-${suffix}`);
+      const input =
+        rootNode.querySelector(
+          `.term-input-${suffix}:not([data-secondary="true"])`
+        ) || rootNode.querySelector(`.term-input-${suffix}`);
 
       if (!pre) {
         pushState(defaultState());
@@ -302,14 +308,20 @@
         if (measureCaret) {
           measureCaret.style.display = "none";
         }
-        const measureWrap = measurement.querySelector(`.term-input-wrap-${suffix}`);
+        const measureWrap =
+          measurement.querySelector(
+            `.term-input-wrap-${suffix}:not([data-secondary="true"])`
+          ) || measurement.querySelector(`.term-input-wrap-${suffix}`);
         const readyActive =
           rootNode.getAttribute("data-ready") === "true" && acceptKeystrokes;
         if (measureWrap) {
           measureWrap.setAttribute("data-active", readyActive ? "true" : "false");
           measureWrap.setAttribute("aria-hidden", readyActive ? "false" : "true");
         }
-        const measureInput = measurement.querySelector(`.term-input-${suffix}`);
+        const measureInput =
+          measurement.querySelector(
+            `.term-input-${suffix}:not([data-secondary="true"])`
+          ) || measurement.querySelector(`.term-input-${suffix}`);
         if (measureInput) {
           measureInput.disabled = !readyActive;
         }

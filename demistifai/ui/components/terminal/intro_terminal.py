@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import time
-from typing import List, Sequence, Tuple
+from typing import List, Optional, Sequence, Tuple
 
 import streamlit as st
 
@@ -122,6 +122,10 @@ def render_interactive_intro_terminal(
         lines = list(_DEFAULT_DEMAI_LINES)
         st.session_state[lines_state_key] = lines
 
+    secondary_placeholders: Optional[List[str]] = None
+    if _SHOW_MISSION_USER_LINE in lines:
+        secondary_placeholders = ["Start"]
+
     animation_duration = _estimate_terminal_duration(
         lines,
         speed_type_ms=speed_type_ms,
@@ -142,6 +146,7 @@ def render_interactive_intro_terminal(
         placeholder=placeholder,
         accept_keystrokes=True,
         show_caret=True,
+        secondary_inputs=secondary_placeholders,
     )
 
     component_text = st.session_state.get(command_key, "")
