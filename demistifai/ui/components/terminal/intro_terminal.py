@@ -159,6 +159,8 @@ def render_interactive_intro_terminal(
     if not ready and ready_at_key not in st.session_state:
         st.session_state[ready_at_key] = now + animation_duration
 
+    persisted_text = st.session_state.get(command_key, "")
+
     component_payload = render_interactive_terminal(
         suffix=_TERMINAL_SUFFIX,
         lines=lines,
@@ -169,11 +171,12 @@ def render_interactive_intro_terminal(
         placeholder=placeholder,
         accept_keystrokes=True,
         show_caret=True,
+        value=persisted_text,
     )
 
     st.session_state[lines_signature_key] = current_signature
 
-    component_text = st.session_state.get(command_key, "")
+    component_text = persisted_text
     component_ready = False
     component_submitted = False
 
