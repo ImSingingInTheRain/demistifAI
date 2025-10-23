@@ -99,7 +99,7 @@ This document provides a guided tour of the repository so contributors can quick
 - `repository_structure.md` – (This file) describes the repository layout for new contributors.
 
 ## Stage pages (`pages/`)
-- `welcome.py` – Renders the intro stage terminal, lifecycle hero window, EU AI Act quote wrapper, and houses the Article 3 definition constant consumed by the hero surfaces while wiring the next-stage handoff.【F:pages/welcome.py†L1-L56】
+- `welcome.py` – Renders the intro stage interactive terminal (component wrapper plus "Show Mission" handling), lifecycle hero window, EU AI Act quote wrapper, and houses the Article 3 definition constant consumed by the hero surfaces while wiring the next-stage handoff.【F:pages/welcome.py†L1-L126】
 - `overview.py` – Sets up the overview stage grid, mission briefing panels, Nerd Mode toggle, and system snapshot window with mailbox previews.【F:pages/overview.py†L1-L203】
 - `data/` – Prepare stage package with the orchestrator (`page.py`), dataset builder flows (`builder.py`), review dashboards and diagnostics (`review.py`), preview/PII cleanup routines (`pii.py`), and dataset/session-state utilities (`dataset_io.py`). UI helpers previously embedded here now live in `demistifai/ui/components/data` alongside the reusable HTML snippets and indicator widgets they export.【F:pages/data/page.py†L1-L194】【F:pages/data/builder.py†L1-L160】【F:pages/data/review.py†L1-L160】【F:pages/data/pii.py†L1-L116】【F:pages/data/dataset_io.py†L1-L160】【F:demistifai/ui/components/data/__init__.py†L1-L28】
 - `train_stage/page.py` – Orchestrates the Train stage, preparing session state, launching runs, and delegating guardrail controls, storyboard rendering, and results panels to the supporting modules below.【F:pages/train_stage/page.py†L1-L307】
