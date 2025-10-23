@@ -2,13 +2,16 @@
 
 from __future__ import annotations
 
+import json
 import time
-from typing import List, Optional, Sequence, Tuple
+from functools import lru_cache
+from importlib import resources
+from typing import List, Sequence, Tuple
 
 import streamlit as st
+from streamlit.components.v1 import html as components_html
 
-from .interactive_terminal_component import render_interactive_terminal
-from .shared_renderer import make_terminal_renderer
+from .shared_renderer import build_terminal_render_bundle, make_terminal_renderer
 
 _SUFFIX = "ai_term"
 
@@ -51,6 +54,53 @@ render_ai_act_terminal = make_terminal_renderer(
 )
 
 
+@lru_cache(maxsize=1)
+def _load_terminal_script() -> str:
+    frontend_root = resources.files(__package__).joinpath("frontend")
+    with resources.as_file(frontend_root.joinpath("terminal.js")) as path:
+        return path.read_text(encoding="utf-8")
+
+
+def _render_intro_terminal_surface(
+    *,
+    speed_type_ms: int,
+    speed_delete_ms: int,
+    pause_between_ops_ms: int,
+) -> None:
+    bundle = build_terminal_render_bundle(
+        suffix=_TERMINAL_SUFFIX,
+        lines=_DEFAULT_DEMAI_LINES,
+        speed_type_ms=speed_type_ms,
+        speed_delete_ms=speed_delete_ms,
+        pause_between_ops_ms=pause_between_ops_ms,
+        key="intro_inline_terminal",
+        show_caret=True,
+        accept_keystrokes=False,
+    )
+    typing_config = {
+        "speedType": bundle.payload["speedType"],
+        "speedDelete": bundle.payload["speedDelete"],
+        "pauseBetween": bundle.payload["pauseBetween"],
+    }
+    props = {
+        "markup": bundle.markup,
+        "payload": bundle.payload,
+        "serializedLines": bundle.serializable_segments,
+        "typingConfig": typing_config,
+        "acceptKeystrokes": False,
+    }
+    js_props = json.dumps(props, ensure_ascii=False, separators=(",", ":"))
+    script = _load_terminal_script()
+    html = (
+        "<!DOCTYPE html><html><head><meta charset=\"utf-8\" /></head><body>"
+        "<div id=\"root\"></div>"
+        f"<script>window.__STREAMLIT_TERMINAL_PROPS__ = {js_props};</script>"
+        f"<script>{script}</script>"
+        "</body></html>"
+    )
+    components_html(html, height=420, scrolling=False)
+
+
 def _estimate_terminal_duration(
     lines: Sequence[str], *, speed_type_ms: int, pause_between_ops_ms: int
 ) -> float:
@@ -72,8 +122,8 @@ def render_intro_terminal_with_prompt(
     """Render the intro terminal and capture the "Show Mission" command.
 
     The helper exists for callers that still expect the legacy "prompt" API;
-    under the hood it now proxies to the interactive component so the
-    animation and the embedded input remain in sync.
+    under the hood it proxies to the inline animation renderer so the
+    typing sequence and the embedded input remain in sync.
     """
     command_triggered, _ = render_interactive_intro_terminal(
         command_key=command_key,
@@ -93,17 +143,12 @@ def render_interactive_intro_terminal(
     pause_between_ops_ms: int = 360,
     placeholder: str = "Show Mission",
 ) -> Tuple[bool, bool]:
-    """Render the intro terminal via the custom component and capture submissions.
-
-    Returns ``(command_triggered, ready)`` booleans so callers can respond to the
-    "Show Mission" command while respecting the typing animation's readiness
-    state.
-    """
+    """Render the intro terminal animation and capture the command submission."""
 
     clear_flag_key = f"{command_key}_clear_pending"
     ready_at_key = f"{command_key}_ready_at"
     ready_flag_key = f"{command_key}_ready"
-    component_key = f"{command_key}_interactive"
+    submit_flag_key = f"{command_key}_submitted"
     animation_duration = _estimate_terminal_duration(
         _DEFAULT_DEMAI_LINES,
         speed_type_ms=speed_type_ms,
@@ -120,44 +165,41 @@ def render_interactive_intro_terminal(
     if ready_at_key not in st.session_state:
         st.session_state[ready_at_key] = now + animation_duration
 
-    stored_ready = bool(st.session_state.get(ready_flag_key, False))
-    accept_keystrokes = stored_ready
+    ready = bool(st.session_state.get(ready_flag_key, False))
+    if not ready and now >= st.session_state.get(ready_at_key, now):
+        ready = True
+    st.session_state[ready_flag_key] = ready
 
-    component_state = render_interactive_terminal(
-        suffix=_TERMINAL_SUFFIX,
-        lines=_DEFAULT_DEMAI_LINES,
+    _render_intro_terminal_surface(
         speed_type_ms=speed_type_ms,
         speed_delete_ms=speed_delete_ms,
         pause_between_ops_ms=pause_between_ops_ms,
-        key=component_key,
-        placeholder=placeholder,
-        accept_keystrokes=accept_keystrokes,
     )
 
-    text_value = st.session_state.get(command_key, "")
-    component_ready: Optional[bool] = None
-    submitted = False
+    def _on_submit() -> None:
+        st.session_state[submit_flag_key] = True
 
-    if component_state:
-        text_value = component_state.get("text", text_value)
-        component_ready = component_state.get("ready")
-        submitted = bool(component_state.get("submitted"))
+    text_value = st.text_input(
+        "",
+        key=command_key,
+        placeholder=placeholder,
+        label_visibility="collapsed",
+        disabled=not ready,
+        on_change=_on_submit,
+    )
 
+    submitted = bool(st.session_state.pop(submit_flag_key, False))
     st.session_state[command_key] = text_value
-
-    ready = stored_ready
-    if component_ready is True:
-        ready = True
-    elif component_ready is False:
-        ready = False
-    elif not ready and now >= st.session_state.get(ready_at_key, now):
-        ready = True
-
-    st.session_state[ready_flag_key] = ready
 
     command_triggered = False
     if ready and submitted and text_value.strip().lower() == "show mission":
         command_triggered = True
         st.session_state[clear_flag_key] = True
+
+    if not ready:
+        remaining = st.session_state[ready_at_key] - now
+        if remaining > 0:
+            time.sleep(min(0.2, remaining))
+            st.experimental_rerun()
 
     return command_triggered, ready
