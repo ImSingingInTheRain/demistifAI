@@ -156,6 +156,19 @@ def render_interactive_intro_terminal(
         lines_signature_key
     )
     current_signature = tuple(lines)
+
+    pending_component_state = st.session_state.get(component_key)
+    pending_component_ready = False
+    if isinstance(pending_component_state, dict):
+        pending_value = pending_component_state.get("value")
+        if isinstance(pending_value, dict):
+            pending_component_ready = bool(pending_value.get("ready", False))
+
+    if pending_component_ready:
+        if not ready:
+            ready = True
+        st.session_state.pop(ready_at_key, None)
+
     skip_animation = ready and previous_signature == current_signature
 
     if not ready and ready_at_key not in st.session_state:
