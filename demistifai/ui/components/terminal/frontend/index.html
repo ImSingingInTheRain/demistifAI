@@ -14,7 +14,14 @@
   </head>
   <body>
     <div id="root"></div>
-    <script src="https://unpkg.com/streamlit-component-lib@1.7.0/dist/index.js"></script>
+    <script src="./streamlit-component-lib.v1.7.0.js"></script>
+    <script>
+      if (!window.streamlit_component_lib || !window.streamlit_component_lib.Streamlit) {
+        const fallback = document.createElement("script");
+        fallback.src = "https://unpkg.com/streamlit-component-lib@1.7.0/dist/index.js";
+        document.head.appendChild(fallback);
+      }
+    </script>
     <script src="./terminal.js"></script>
   </body>
 </html>
