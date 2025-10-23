@@ -18,6 +18,11 @@ _SUFFIX = "ai_term"
 # so downstream imports remain stable.
 _TERMINAL_SUFFIX = _SUFFIX
 
+_SHOW_MISSION_USER_LINE = "> Show Mission\n"
+_SHOW_MISSION_RESPONSE_LINE = (
+    "> I opened the mission overview below, check it out and when you are ready type below start\n"
+)
+
 _DEFAULT_DEMAI_LINES: List[str] = [
     "> What is an AI system?\n",
     "$ fetch EU_AI_ACT.AI_system_definition\n",
@@ -97,20 +102,31 @@ def render_interactive_intro_terminal(
     clear_flag_key = f"{command_key}_clear_pending"
     ready_at_key = f"{command_key}_ready_at"
     ready_flag_key = f"{command_key}_ready"
+    lines_state_key = f"{command_key}_lines"
+    append_pending_key = f"{command_key}_append_pending"
     component_key = "intro_inline_terminal"
-    animation_duration = _estimate_terminal_duration(
-        _DEFAULT_DEMAI_LINES,
-        speed_type_ms=speed_type_ms,
-        pause_between_ops_ms=pause_between_ops_ms,
-    )
     now = time.time()
 
     if st.session_state.get(clear_flag_key):
         st.session_state.pop(command_key, None)
         st.session_state.pop(component_key, None)
         st.session_state.pop(ready_at_key, None)
+        append_pending = bool(st.session_state.pop(append_pending_key, False))
+        if not append_pending:
+            st.session_state.pop(lines_state_key, None)
         st.session_state[clear_flag_key] = False
         st.session_state[ready_flag_key] = False
+
+    lines = st.session_state.get(lines_state_key)
+    if not isinstance(lines, list) or not lines:
+        lines = list(_DEFAULT_DEMAI_LINES)
+        st.session_state[lines_state_key] = lines
+
+    animation_duration = _estimate_terminal_duration(
+        lines,
+        speed_type_ms=speed_type_ms,
+        pause_between_ops_ms=pause_between_ops_ms,
+    )
 
     ready = bool(st.session_state.get(ready_flag_key, False))
     if not ready and ready_at_key not in st.session_state:
@@ -118,7 +134,7 @@ def render_interactive_intro_terminal(
 
     component_payload = render_interactive_terminal(
         suffix=_TERMINAL_SUFFIX,
-        lines=_DEFAULT_DEMAI_LINES,
+        lines=lines,
         speed_type_ms=speed_type_ms,
         speed_delete_ms=speed_delete_ms,
         pause_between_ops_ms=pause_between_ops_ms,
@@ -155,6 +171,9 @@ def render_interactive_intro_terminal(
     text_value = component_text.strip().lower()
     if ready and component_submitted and text_value == "show mission":
         command_triggered = True
+        if _SHOW_MISSION_USER_LINE not in lines:
+            lines.extend([_SHOW_MISSION_USER_LINE, _SHOW_MISSION_RESPONSE_LINE])
+        st.session_state[append_pending_key] = True
         st.session_state[clear_flag_key] = True
         st.session_state.pop(component_key, None)
         st.session_state.pop(command_key, None)
