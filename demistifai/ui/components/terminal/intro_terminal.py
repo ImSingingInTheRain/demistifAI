@@ -20,7 +20,7 @@ _SUFFIX = "ai_term"
 _TERMINAL_SUFFIX = _SUFFIX
 
 _SHOW_MISSION_USER_LINE = "> Show Mission\n"
-_SHOW_MISSION_RESPONSE_LINE = (
+_SHOW_MISSION_RESPONSE_LINE: Tuple[str, str] = (
     ">show mission\n",
     "> I opened the mission overview below, check it out and when you are ready type \"start\" here\n",
 )
@@ -202,7 +202,10 @@ def render_interactive_intro_terminal(
         if text_value == "show mission":
             command = IntroTerminalCommand.SHOW_MISSION
             if _SHOW_MISSION_USER_LINE not in lines:
-                lines.extend([_SHOW_MISSION_USER_LINE, _SHOW_MISSION_RESPONSE_LINE])
+                lines.extend([
+                    _SHOW_MISSION_USER_LINE,
+                    *_SHOW_MISSION_RESPONSE_LINE,
+                ])
             st.session_state[append_pending_key] = True
             st.session_state[clear_flag_key] = True
             st.session_state.pop(component_key, None)
