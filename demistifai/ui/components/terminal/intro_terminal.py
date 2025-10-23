@@ -103,6 +103,7 @@ def render_interactive_intro_terminal(
     ready_at_key = f"{command_key}_ready_at"
     ready_flag_key = f"{command_key}_ready"
     lines_state_key = f"{command_key}_lines"
+    lines_signature_key = f"{command_key}_lines_signature"
     append_pending_key = f"{command_key}_append_pending"
     component_key = "intro_inline_terminal"
     now = time.time()
@@ -114,8 +115,10 @@ def render_interactive_intro_terminal(
         append_pending = bool(st.session_state.pop(append_pending_key, False))
         if not append_pending:
             st.session_state.pop(lines_state_key, None)
+            st.session_state.pop(lines_signature_key, None)
         st.session_state[clear_flag_key] = False
-        st.session_state[ready_flag_key] = False
+        if not append_pending:
+            st.session_state[ready_flag_key] = False
 
     lines = st.session_state.get(lines_state_key)
     if not isinstance(lines, list) or not lines:
@@ -133,21 +136,29 @@ def render_interactive_intro_terminal(
     )
 
     ready = bool(st.session_state.get(ready_flag_key, False))
+    previous_signature: Optional[Tuple[str, ...]] = st.session_state.get(
+        lines_signature_key
+    )
+    current_signature = tuple(lines)
+    skip_animation = ready and previous_signature == current_signature
+
     if not ready and ready_at_key not in st.session_state:
         st.session_state[ready_at_key] = now + animation_duration
 
     component_payload = render_interactive_terminal(
         suffix=_TERMINAL_SUFFIX,
         lines=lines,
-        speed_type_ms=speed_type_ms,
+        speed_type_ms=0 if skip_animation else speed_type_ms,
         speed_delete_ms=speed_delete_ms,
-        pause_between_ops_ms=pause_between_ops_ms,
+        pause_between_ops_ms=0 if skip_animation else pause_between_ops_ms,
         key=component_key,
         placeholder=placeholder,
         accept_keystrokes=True,
         show_caret=True,
         secondary_inputs=secondary_placeholders,
     )
+
+    st.session_state[lines_signature_key] = current_signature
 
     component_text = st.session_state.get(command_key, "")
     component_ready = False
