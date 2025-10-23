@@ -274,6 +274,7 @@ def _build_terminal_markup(
     input_hint = _escape_text(str(payload.get("inputHint", "")))
     input_id = _escape_attr(str(payload.get("inputId", "")))
     input_hint_id = _escape_attr(str(payload.get("inputHintId", "")))
+    input_value = _escape_attr(str(payload.get("inputValue", "")))
     secondary_markup_parts: List[str] = []
     for secondary in secondary_inputs or ():
         secondary_placeholder = _escape_attr(str(secondary.get("placeholder", "")))
@@ -335,6 +336,7 @@ def _build_terminal_markup(
                     aria-label="$input_aria_label"
                     aria-describedby="$input_hint_id"
                     placeholder="$input_placeholder"
+                    value="$input_value"
                   />
                   <span id="$input_hint_id" class="sr-only-$suffix">$input_hint</span>
                 </div>
@@ -363,6 +365,7 @@ def _build_terminal_markup(
         input_hint=input_hint,
         input_id=input_id,
         input_hint_id=input_hint_id,
+        input_value=input_value,
         secondary_markup=secondary_markup,
     )
 
@@ -382,6 +385,7 @@ def build_terminal_render_bundle(
     accept_keystrokes: bool = False,
     debounce_ms: int = 150,
     secondary_inputs: Optional[Sequence[str]] = None,
+    input_text: Optional[str] = None,
 ) -> TerminalRenderBundle:
     style = terminal_style or _build_terminal_style(suffix)
     normalized_lines = _normalize_lines(lines)
@@ -444,6 +448,8 @@ def build_terminal_render_bundle(
     )
     if secondary_payloads:
         payload["secondaryInputs"] = secondary_payloads
+    if input_text is not None:
+        payload["inputValue"] = str(input_text)
     markup = _build_terminal_markup(
         payload=payload,
         suffix=suffix,

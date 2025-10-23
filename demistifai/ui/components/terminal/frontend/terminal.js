@@ -164,8 +164,15 @@
           : Boolean(payload.acceptKeystrokes);
       const debounceMs = Math.max(0, coerceNumber(payload.debounceMs, 150));
 
+      const initialText = input
+        ? coerceString(payload.inputValue, input.value)
+        : coerceString(payload.inputValue, "");
+      if (input) {
+        input.value = initialText;
+      }
+
       const state = {
-        text: input ? coerceString(input.value, "") : "",
+        text: input ? coerceString(input.value, "") : initialText,
         submitted: false,
         ready: false,
       };
