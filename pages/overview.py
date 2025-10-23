@@ -8,19 +8,9 @@ import streamlit as st
 from streamlit.delta_generator import DeltaGenerator
 
 from demistifai.ui.components import render_stage_top_grid
-from demistifai.ui.components.overview import (
-    demai_architecture_markup,
-    demai_architecture_styles,
-)
-from demistifai.ui.components.intro import intro_hero_panes
 from demistifai.ui.components.terminal.boot_sequence import (
     _DEFAULT_DEMAI_LINES,
     render_ai_act_terminal as render_boot_sequence_terminal,
-)
-from demistifai.ui.components.shared.macos_iframe_window import (
-    MacWindowConfig,
-    MacWindowPane,
-    render_macos_iframe_window,
 )
 
 
@@ -63,35 +53,6 @@ def render_overview_stage(
         "overview",
         left_renderer=_render_overview_terminal,
         right_first_renderer=_render_overview_nerd_toggle,
-    )
-
-    architecture_pane = MacWindowPane(
-        html=demai_architecture_markup(
-            nerd_mode=nerd_enabled,
-            active_stage="overview",
-        ),
-        css=demai_architecture_styles(),
-        min_height=520,
-        pane_id="overview-architecture",
-    )
-    render_macos_iframe_window(
-        st,
-        MacWindowConfig(
-            panes=[architecture_pane],
-            rows=1,
-            columns=1,
-        ),
-    )
-
-    lifecycle_panes = intro_hero_panes()
-    render_macos_iframe_window(
-        st,
-        MacWindowConfig(
-            panes=lifecycle_panes,
-            rows=1,
-            columns=2,
-            column_ratios=(0.4, 0.6),
-        ),
     )
 
     if nerd_enabled:
