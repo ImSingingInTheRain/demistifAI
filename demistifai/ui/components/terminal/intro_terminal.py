@@ -119,6 +119,7 @@ def render_interactive_intro_terminal(
     ready_flag_key = f"{command_key}_ready"
     lines_state_key = f"{command_key}_lines"
     lines_signature_key = f"{command_key}_lines_signature"
+    prefill_line_count_key = f"{command_key}_prefill_line_count"
     append_pending_key = f"{command_key}_append_pending"
     preserve_state_key = f"{command_key}_preserve_state"
     component_key = "intro_inline_terminal"
@@ -134,6 +135,7 @@ def render_interactive_intro_terminal(
         if reset_lines_state:
             st.session_state.pop(lines_state_key, None)
             st.session_state.pop(lines_signature_key, None)
+            st.session_state.pop(prefill_line_count_key, None)
         st.session_state[clear_flag_key] = False
         if reset_lines_state:
             st.session_state[ready_flag_key] = False
@@ -161,6 +163,16 @@ def render_interactive_intro_terminal(
 
     persisted_text = st.session_state.get(command_key, "")
 
+    prefilled_line_count = int(st.session_state.get(prefill_line_count_key, 0) or 0)
+    if prefilled_line_count <= 0 and _SHOW_MISSION_USER_LINE in lines:
+        try:
+            inferred_prefill_index = lines.index(_SHOW_MISSION_USER_LINE)
+        except ValueError:  # pragma: no cover - defensive guard
+            inferred_prefill_index = 0
+        if inferred_prefill_index > 0:
+            prefilled_line_count = inferred_prefill_index
+            st.session_state[prefill_line_count_key] = inferred_prefill_index
+
     component_payload = render_interactive_terminal(
         suffix=_TERMINAL_SUFFIX,
         lines=lines,
@@ -172,6 +184,7 @@ def render_interactive_intro_terminal(
         accept_keystrokes=True,
         show_caret=True,
         value=persisted_text,
+        prefilled_line_count=prefilled_line_count,
     )
 
     st.session_state[lines_signature_key] = current_signature
@@ -205,10 +218,12 @@ def render_interactive_intro_terminal(
         if text_value == "show mission":
             command = IntroTerminalCommand.SHOW_MISSION
             if _SHOW_MISSION_USER_LINE not in lines:
+                rendered_line_count = len(lines)
                 lines.extend([
                     _SHOW_MISSION_USER_LINE,
                     *_SHOW_MISSION_RESPONSE_LINE,
                 ])
+                st.session_state[prefill_line_count_key] = rendered_line_count
                 ready = False
                 st.session_state.pop(ready_at_key, None)
                 st.session_state[ready_flag_key] = False

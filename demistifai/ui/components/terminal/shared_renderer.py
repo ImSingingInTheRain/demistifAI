@@ -383,6 +383,7 @@ def build_terminal_render_bundle(
     debounce_ms: int = 150,
     secondary_inputs: Optional[Sequence[str]] = None,
     input_text: Optional[str] = None,
+    prefilled_line_count: Optional[int] = None,
 ) -> TerminalRenderBundle:
     style = terminal_style or _build_terminal_style(suffix)
     normalized_lines = _normalize_lines(lines)
@@ -392,6 +393,15 @@ def build_terminal_render_bundle(
         [{"t": text, "c": css} for text, css in parts]
         for parts in segments
     ]
+    total_lines = len(normalized_lines)
+    clamped_prefilled_count = 0
+    if prefilled_line_count is not None:
+        try:
+            candidate = int(prefilled_line_count)
+        except (TypeError, ValueError):
+            candidate = 0
+        clamped_prefilled_count = max(0, min(candidate, total_lines))
+
     payload = {
         "lines": list(lines),
         "fullHtml": full_html,
@@ -447,6 +457,8 @@ def build_terminal_render_bundle(
         payload["secondaryInputs"] = secondary_payloads
     if input_text is not None:
         payload["inputValue"] = str(input_text)
+    if prefilled_line_count is not None:
+        payload["prefilledLineCount"] = clamped_prefilled_count
     markup = _build_terminal_markup(
         payload=payload,
         suffix=suffix,
