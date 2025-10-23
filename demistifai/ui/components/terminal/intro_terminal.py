@@ -120,6 +120,7 @@ def render_interactive_intro_terminal(
     lines_state_key = f"{command_key}_lines"
     lines_signature_key = f"{command_key}_lines_signature"
     append_pending_key = f"{command_key}_append_pending"
+    preserve_state_key = f"{command_key}_preserve_state"
     component_key = "intro_inline_terminal"
     now = time.time()
 
@@ -128,11 +129,13 @@ def render_interactive_intro_terminal(
         st.session_state.pop(component_key, None)
         st.session_state.pop(ready_at_key, None)
         append_pending = bool(st.session_state.pop(append_pending_key, False))
-        if not append_pending:
+        preserve_state = bool(st.session_state.pop(preserve_state_key, False))
+        reset_lines_state = not (append_pending or preserve_state)
+        if reset_lines_state:
             st.session_state.pop(lines_state_key, None)
             st.session_state.pop(lines_signature_key, None)
         st.session_state[clear_flag_key] = False
-        if not append_pending:
+        if reset_lines_state:
             st.session_state[ready_flag_key] = False
 
     lines = st.session_state.get(lines_state_key)
@@ -206,6 +209,7 @@ def render_interactive_intro_terminal(
             st.session_state.pop(command_key, None)
         elif text_value == "start":
             command = IntroTerminalCommand.START
+            st.session_state[preserve_state_key] = True
             st.session_state[clear_flag_key] = True
             st.session_state.pop(component_key, None)
             st.session_state.pop(command_key, None)
