@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 import time
-from typing import List, Sequence
+from typing import List, Optional, Sequence, Tuple
 
 import streamlit as st
 
+from .interactive_terminal_component import render_interactive_terminal
 from .shared_renderer import make_terminal_renderer
 
 _SUFFIX = "ai_term"
@@ -68,164 +69,95 @@ def render_intro_terminal_with_prompt(
     speed_type_ms: int = 20,
     pause_between_ops_ms: int = 360,
 ) -> bool:
-    """Render the intro terminal and capture the "Show Mission" command."""
+    """Render the intro terminal and capture the "Show Mission" command.
+
+    The helper exists for callers that still expect the legacy "prompt" API;
+    under the hood it now proxies to the interactive component so the
+    animation and the embedded input remain in sync.
+    """
+    command_triggered, _ = render_interactive_intro_terminal(
+        command_key=command_key,
+        speed_type_ms=speed_type_ms,
+        pause_between_ops_ms=pause_between_ops_ms,
+        placeholder="Show Mission",
+    )
+
+    return command_triggered
+
+
+def render_interactive_intro_terminal(
+    *,
+    command_key: str = "intro_show_mission_cmd",
+    speed_type_ms: int = 20,
+    speed_delete_ms: int = 14,
+    pause_between_ops_ms: int = 360,
+    placeholder: str = "Show Mission",
+) -> Tuple[bool, bool]:
+    """Render the intro terminal via the custom component and capture submissions.
+
+    Returns ``(command_triggered, ready)`` booleans so callers can respond to the
+    "Show Mission" command while respecting the typing animation's readiness
+    state.
+    """
 
     clear_flag_key = f"{command_key}_clear_pending"
     ready_at_key = f"{command_key}_ready_at"
     ready_flag_key = f"{command_key}_ready"
+    component_key = f"{command_key}_interactive"
     animation_duration = _estimate_terminal_duration(
         _DEFAULT_DEMAI_LINES,
         speed_type_ms=speed_type_ms,
         pause_between_ops_ms=pause_between_ops_ms,
     )
+    now = time.time()
 
     if st.session_state.get(clear_flag_key):
         st.session_state[command_key] = ""
         st.session_state[clear_flag_key] = False
         st.session_state[ready_flag_key] = False
-        st.session_state[ready_at_key] = time.time() + animation_duration
+        st.session_state[ready_at_key] = now + animation_duration
 
     if ready_at_key not in st.session_state:
-        st.session_state[ready_at_key] = time.time() + animation_duration
+        st.session_state[ready_at_key] = now + animation_duration
 
-    render_ai_act_terminal(
+    stored_ready = bool(st.session_state.get(ready_flag_key, False))
+    accept_keystrokes = stored_ready
+
+    component_state = render_interactive_terminal(
+        suffix=_TERMINAL_SUFFIX,
+        lines=_DEFAULT_DEMAI_LINES,
         speed_type_ms=speed_type_ms,
+        speed_delete_ms=speed_delete_ms,
         pause_between_ops_ms=pause_between_ops_ms,
+        key=component_key,
+        placeholder=placeholder,
+        accept_keystrokes=accept_keystrokes,
     )
 
-    style_injected_flag = f"{command_key}_style_injected"
+    text_value = st.session_state.get(command_key, "")
+    component_ready: Optional[bool] = None
+    submitted = False
 
-    if not st.session_state.get(style_injected_flag):
-        st.session_state[style_injected_flag] = True
-        st.markdown(
-            """
-            <style>
-            div[data-testid="element-container"]:has(> iframe[title="ai_act_terminal"]) {
-                padding-bottom: 0 !important;
-                margin-bottom: 0 !important;
-            }
+    if component_state:
+        text_value = component_state.get("text", text_value)
+        component_ready = component_state.get("ready")
+        submitted = bool(component_state.get("submitted"))
 
-            div[data-testid="element-container"]:has(> div[data-testid="stTextInput"] input[placeholder="Show Mission"]) {
-                padding-top: 0 !important;
-                margin-top: 0 !important;
-            }
+    st.session_state[command_key] = text_value
 
-            div[data-testid="stVerticalBlock"]:has(div[data-testid="stTextInput"] input[placeholder="Show Mission"]) {
-                row-gap: 0 !important;
-                gap: 0 !important;
-            }
-
-            div[data-testid="stTextInput"]:has(input[placeholder="Show Mission"]) {
-                background: #0d1117;
-                font-family: 'Fira Code', monospace;
-                width: min(100%, 680px);
-                margin: 0 auto;
-                padding: 12px 16px;
-                display: flex;
-                align-items: center;
-                gap: 12px;
-                border-radius: 0 0 12px 12px;
-                border: 1px solid #30363d;
-                border-top: 0;
-                box-shadow: none;
-                position: relative;
-                overflow: hidden;
-            }
-
-            div[data-testid="stTextInput"]:has(input[placeholder="Show Mission"]) div[data-baseweb="input"],
-            div[data-testid="stTextInput"]:has(input[placeholder="Show Mission"]) div[data-baseweb="input"] > div {
-                background: transparent;
-                border: 0;
-                box-shadow: none;
-            }
-
-            div[data-testid="stTextInput"]:has(input[placeholder="Show Mission"])::before {
-                content: "$";
-                color: #58a6ff;
-                font-weight: 500;
-            }
-
-            div[data-testid="stTextInput"]:has(input[placeholder="Show Mission"]) > label {
-                display: none;
-            }
-
-            div[data-testid="stTextInput"]:has(input[placeholder="Show Mission"]) > div {
-                flex: 1;
-            }
-
-            div[data-testid="stTextInput"]:has(input[placeholder="Show Mission"]) input {
-                background: #0d1117;
-                border: 0;
-                box-shadow: none;
-                color: #c9d1d9;
-                caret-color: #00c2ff;
-                font: inherit;
-                width: 100%;
-                padding: 0;
-                outline: none;
-            }
-
-            div[data-testid="stTextInput"]:has(input[placeholder="Show Mission"]) input::placeholder {
-                color: rgba(88, 166, 255, 0.7);
-            }
-            </style>
-            """,
-            unsafe_allow_html=True,
-        )
-
-    ready_at = st.session_state.get(ready_at_key, 0.0)
-    ready = st.session_state.get(ready_flag_key, False)
-    now = time.time()
-
-    if not ready and now >= ready_at:
+    ready = stored_ready
+    if component_ready is True:
         ready = True
-        st.session_state[ready_flag_key] = True
+    elif component_ready is False:
+        ready = False
+    elif not ready and now >= st.session_state.get(ready_at_key, now):
+        ready = True
 
-    command = st.text_input(
-        "Show Mission command",
-        key=command_key,
-        placeholder="Show Mission",
-        label_visibility="collapsed",
-    )
+    st.session_state[ready_flag_key] = ready
 
-    if not ready:
-        remaining_ms = max(0, int((st.session_state.get(ready_at_key, 0.0) - now) * 1000))
-        st.markdown(
-            f"""
-            <script>
-            (function() {{
-              const delay = {remaining_ms};
-              const selector = 'div[data-testid="stTextInput"] input[placeholder="Show Mission"]';
-              const findRoot = () => {{
-                const inputEl = document.querySelector(selector);
-                if (!inputEl) {{
-                  window.setTimeout(findRoot, 120);
-                  return;
-                }}
-                const root = inputEl.closest('div[data-testid="stTextInput"]');
-                if (!root || root.dataset.introReveal === 'pending') {{
-                  return;
-                }}
-                root.dataset.introReveal = 'pending';
-                if (!root.dataset.introOriginalDisplay) {{
-                  root.dataset.introOriginalDisplay = root.style.display;
-                }}
-                root.style.display = 'none';
-                window.setTimeout(() => {{
-                  const original = root.dataset.introOriginalDisplay;
-                  root.style.display = original && original !== 'none' ? original : 'flex';
-                  root.dataset.introReveal = 'done';
-                }}, delay);
-              }};
-              findRoot();
-            }})();
-            </script>
-            """,
-            unsafe_allow_html=True,
-        )
-
-    if command.strip().lower() == "show mission":
+    command_triggered = False
+    if ready and submitted and text_value.strip().lower() == "show mission":
+        command_triggered = True
         st.session_state[clear_flag_key] = True
-        return True
 
-    return False
+    return command_triggered, ready
