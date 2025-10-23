@@ -23,6 +23,7 @@ from demistifai.ui.components.shared.macos_iframe_window import (
     render_macos_iframe_window,
 )
 from demistifai.ui.components.terminal.intro_terminal import (
+    IntroTerminalCommand,
     render_interactive_intro_terminal,
 )
 from demistifai.ui.primitives import render_eu_ai_quote
@@ -48,13 +49,17 @@ def render_intro_stage(*, section_surface: SectionSurface) -> None:
 
     def _render_intro_terminal(slot: DeltaGenerator) -> None:
         with slot:
-            command_triggered, _ready = render_interactive_intro_terminal(
+            command, _ready = render_interactive_intro_terminal(
                 speed_type_ms=20,
                 pause_between_ops_ms=360,
             )
-            if command_triggered:
+            if command == IntroTerminalCommand.SHOW_MISSION:
                 st.session_state["intro_show_mission"] = True
                 streamlit_rerun()
+            elif command == IntroTerminalCommand.START:
+                st.session_state["intro_show_mission"] = True
+                if next_stage_key and activate_stage(next_stage_key):
+                    streamlit_rerun()
 
     def _render_show_mission_cta(slot: DeltaGenerator) -> None:
         if show_mission:
