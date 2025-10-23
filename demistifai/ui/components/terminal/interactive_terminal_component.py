@@ -2,6 +2,11 @@
 
 from __future__ import annotations
 
+import atexit
+import os
+from contextlib import ExitStack
+from importlib import resources
+from pathlib import Path
 from typing import Any, Optional, Sequence
 
 from streamlit.components.v1 import declare_component
@@ -9,7 +14,47 @@ from streamlit.components.v1 import declare_component
 from .shared_renderer import TerminalRenderBundle, build_terminal_render_bundle
 
 _COMPONENT_NAME = "interactive_terminal_component"
-_interactive_terminal = declare_component(_COMPONENT_NAME)
+_DEV_COMPONENT_URL_ENV_VAR = "DEMISTIFAI_TERMINAL_COMPONENT_DEV_URL"
+_RESOURCE_STACK = ExitStack()
+atexit.register(_RESOURCE_STACK.close)
+
+
+def _resolve_component_path() -> Path:
+    """Return the path to the packaged frontend assets.
+
+    Using ``importlib.resources`` keeps the lookup compatible with packaged
+    distributions where the module location may not be directly on disk.
+    """
+
+    frontend_resource = resources.files(__package__).joinpath("frontend")
+    try:
+        extracted_path = _RESOURCE_STACK.enter_context(
+            resources.as_file(frontend_resource)
+        )
+    except FileNotFoundError as exc:  # pragma: no cover - defensive guard
+        raise RuntimeError("Interactive terminal frontend assets are unavailable") from exc
+
+    resolved_path = Path(extracted_path)
+    if not resolved_path.exists():  # pragma: no cover - defensive guard
+        raise RuntimeError(
+            f"Interactive terminal frontend missing at {resolved_path!s}"
+        )
+    return resolved_path
+
+
+_COMPONENT_DIR = _resolve_component_path()
+
+_DEV_COMPONENT_URL = os.getenv(_DEV_COMPONENT_URL_ENV_VAR)
+if _DEV_COMPONENT_URL:
+    _interactive_terminal = declare_component(
+        _COMPONENT_NAME,
+        url=_DEV_COMPONENT_URL,
+    )
+else:
+    _interactive_terminal = declare_component(
+        _COMPONENT_NAME,
+        path=str(_COMPONENT_DIR),
+    )
 
 
 def render_interactive_terminal(
