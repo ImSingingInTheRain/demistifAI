@@ -104,7 +104,6 @@ def render_interactive_intro_terminal(
     *,
     command_key: str = "intro_show_mission_cmd",
     speed_type_ms: int = 20,
-    speed_delete_ms: int = 14,
     pause_between_ops_ms: int = 360,
     placeholder: str = "Type here",
 ) -> Tuple[Optional[IntroTerminalCommand], bool]:
@@ -196,7 +195,6 @@ def render_interactive_intro_terminal(
         suffix=_TERMINAL_SUFFIX,
         lines=lines,
         speed_type_ms=0 if skip_animation else speed_type_ms,
-        speed_delete_ms=speed_delete_ms,
         pause_between_ops_ms=0 if skip_animation else pause_between_ops_ms,
         key=component_key,
         placeholder=placeholder,
