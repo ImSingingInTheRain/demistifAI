@@ -372,7 +372,6 @@ def build_terminal_render_bundle(
     suffix: str,
     lines: Sequence[str],
     speed_type_ms: int,
-    speed_delete_ms: int,
     pause_between_ops_ms: int,
     key: str,
     show_caret: bool,
@@ -407,7 +406,6 @@ def build_terminal_render_bundle(
         "fullHtml": full_html,
         "speedType": max(0, int(speed_type_ms)),
         "pauseBetween": max(0, int(pause_between_ops_ms)),
-        "speedDelete": max(0, int(speed_delete_ms)),
         "showCaret": bool(show_caret),
         "suffix": suffix,
         "domId": f"term-{key}",
@@ -476,7 +474,7 @@ def build_terminal_render_bundle(
 
 
 TerminalRenderer = Callable[
-    [Optional[Iterable[str]], int, int, int, str, bool],
+    [Optional[Iterable[str]], int, int, str, bool],
     None,
 ]
 
@@ -494,7 +492,6 @@ def make_terminal_renderer(
     def render_ai_act_terminal(
         demai_lines: Optional[Iterable[str]] = None,
         speed_type_ms: int = 20,
-        speed_delete_ms: int = 14,
         pause_between_ops_ms: int = 360,
         key: str = default_key,
         show_caret: bool = True,
@@ -504,7 +501,6 @@ def make_terminal_renderer(
             suffix=suffix,
             lines=lines,
             speed_type_ms=speed_type_ms,
-            speed_delete_ms=speed_delete_ms,
             pause_between_ops_ms=pause_between_ops_ms,
             key=key,
             show_caret=show_caret,

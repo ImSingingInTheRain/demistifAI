@@ -62,7 +62,6 @@ def render_interactive_terminal(
     suffix: str,
     lines: Sequence[str],
     speed_type_ms: int,
-    speed_delete_ms: int,
     pause_between_ops_ms: int,
     key: str,
     placeholder: str = "",
@@ -84,7 +83,6 @@ def render_interactive_terminal(
         suffix=suffix,
         lines=list(lines),
         speed_type_ms=speed_type_ms,
-        speed_delete_ms=speed_delete_ms,
         pause_between_ops_ms=pause_between_ops_ms,
         key=key,
         show_caret=show_caret,
@@ -98,7 +96,6 @@ def render_interactive_terminal(
 
     typing_config = {
         "speedType": bundle.payload["speedType"],
-        "speedDelete": bundle.payload["speedDelete"],
         "pauseBetween": bundle.payload["pauseBetween"],
     }
 
