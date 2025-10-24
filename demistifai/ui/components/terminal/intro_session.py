@@ -37,15 +37,45 @@ class IntroTerminalSession:
             self.state[self._lines_key] = lines
         return lines
 
-    @property
-    def lines_signature(self) -> Optional[Tuple[str, ...]]:
-        signature = self.state.get(self._lines_signature_key)
-        if isinstance(signature, tuple):
-            return signature
+    def _normalise_lines_signature(
+        self, value: Any
+    ) -> Optional[Tuple[str, ...]]:
+        if value is None:
+            return None
+        if isinstance(value, dict):
+            value = value.get("lines")
+        if isinstance(value, (str, bytes)):
+            return None
+        if isinstance(value, Sequence):
+            return tuple(str(item) for item in value)
         return None
 
-    def set_lines_signature(self, signature: Tuple[str, ...]) -> None:
-        self.state[self._lines_signature_key] = signature
+    def _store_lines_signature(self, signature: Tuple[str, ...]) -> None:
+        stored_value = {"lines": list(signature)}
+        if self.state.get(self._lines_signature_key) != stored_value:
+            self.state[self._lines_signature_key] = stored_value
+
+    @property
+    def lines_signature(self) -> Optional[Tuple[str, ...]]:
+        raw_signature = self.state.get(self._lines_signature_key)
+        normalised_signature = self._normalise_lines_signature(raw_signature)
+        if normalised_signature is None:
+            if raw_signature is not None:
+                self.state.pop(self._lines_signature_key, None)
+            return None
+        if not isinstance(raw_signature, dict) or (
+            tuple(raw_signature.get("lines", ()))
+            != normalised_signature
+        ):
+            self._store_lines_signature(normalised_signature)
+        return normalised_signature
+
+    def set_lines_signature(self, signature: Sequence[str]) -> None:
+        normalised_signature = self._normalise_lines_signature(signature)
+        if normalised_signature is None:
+            self.clear_lines_signature()
+            return
+        self._store_lines_signature(normalised_signature)
 
     def clear_lines_signature(self) -> None:
         self.state.pop(self._lines_signature_key, None)
