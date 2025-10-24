@@ -9,6 +9,7 @@ from typing import List, Optional, Sequence, Tuple
 import streamlit as st
 
 from .interactive_terminal_component import render_interactive_terminal
+from .intro_session import IntroTerminalSession
 from .shared_renderer import make_terminal_renderer
 
 _SUFFIX = "ai_term"
@@ -113,36 +114,11 @@ def render_interactive_intro_terminal(
     terminal is ready for direct user input without replaying the animation.
     """
 
-    clear_flag_key = f"{command_key}_clear_pending"
-    ready_at_key = f"{command_key}_ready_at"
-    ready_flag_key = f"{command_key}_ready"
-    lines_state_key = f"{command_key}_lines"
-    lines_signature_key = f"{command_key}_lines_signature"
-    prefill_line_count_key = f"{command_key}_prefill_line_count"
-    append_pending_key = f"{command_key}_append_pending"
-    preserve_state_key = f"{command_key}_preserve_state"
-    component_key = "intro_inline_terminal"
+    session = IntroTerminalSession(command_key=command_key)
+    component_key = session.component_key
     now = time.time()
 
-    if st.session_state.get(clear_flag_key):
-        st.session_state.pop(command_key, None)
-        st.session_state.pop(component_key, None)
-        st.session_state.pop(ready_at_key, None)
-        append_pending = bool(st.session_state.pop(append_pending_key, False))
-        preserve_state = bool(st.session_state.pop(preserve_state_key, False))
-        reset_lines_state = not (append_pending or preserve_state)
-        if reset_lines_state:
-            st.session_state.pop(lines_state_key, None)
-            st.session_state.pop(lines_signature_key, None)
-            st.session_state.pop(prefill_line_count_key, None)
-        st.session_state[clear_flag_key] = False
-        if reset_lines_state:
-            st.session_state[ready_flag_key] = False
-
-    lines = st.session_state.get(lines_state_key)
-    if not isinstance(lines, list) or not lines:
-        lines = list(_DEFAULT_DEMAI_LINES)
-        st.session_state[lines_state_key] = lines
+    lines = session.ensure_lines(_DEFAULT_DEMAI_LINES)
 
     animation_duration = _estimate_terminal_duration(
         lines,
@@ -150,10 +126,8 @@ def render_interactive_intro_terminal(
         pause_between_ops_ms=pause_between_ops_ms,
     )
 
-    ready = bool(st.session_state.get(ready_flag_key, False))
-    previous_signature: Optional[Tuple[str, ...]] = st.session_state.get(
-        lines_signature_key
-    )
+    ready = session.ready
+    previous_signature = session.lines_signature
     current_signature = tuple(lines)
 
     pending_component_state = st.session_state.get(component_key)
@@ -168,20 +142,20 @@ def render_interactive_intro_terminal(
     if pending_component_ready:
         if not ready:
             ready = True
-        st.session_state.pop(ready_at_key, None)
+        session.clear_ready_deadline()
 
     skip_animation = ready and previous_signature == current_signature
 
-    if not ready and ready_at_key not in st.session_state:
-        st.session_state[ready_at_key] = now + animation_duration
+    if not ready and session.ready_deadline is None:
+        session.set_ready_deadline(now + animation_duration)
 
-    persisted_text = st.session_state.get(command_key, "")
+    persisted_text = session.input_text
     if pending_component_payload:
         pending_text = pending_component_payload.get("text")
         if isinstance(pending_text, str):
             persisted_text = pending_text
 
-    prefilled_line_count = int(st.session_state.get(prefill_line_count_key, 0) or 0)
+    prefilled_line_count = session.prefilled_line_count
     if prefilled_line_count <= 0 and _SHOW_MISSION_USER_LINE in lines:
         try:
             inferred_prefill_index = lines.index(_SHOW_MISSION_USER_LINE)
@@ -189,7 +163,7 @@ def render_interactive_intro_terminal(
             inferred_prefill_index = 0
         if inferred_prefill_index > 0:
             prefilled_line_count = inferred_prefill_index
-            st.session_state[prefill_line_count_key] = inferred_prefill_index
+            session.set_prefilled_line_count(inferred_prefill_index)
 
     component_payload = render_interactive_terminal(
         suffix=_TERMINAL_SUFFIX,
@@ -204,7 +178,7 @@ def render_interactive_intro_terminal(
         prefilled_line_count=prefilled_line_count,
     )
 
-    st.session_state[lines_signature_key] = current_signature
+    session.set_lines_signature(current_signature)
 
     component_text = persisted_text
     component_ready = False
@@ -214,20 +188,18 @@ def render_interactive_intro_terminal(
         component_text = component_payload.get("text", "")
         component_ready = bool(component_payload.get("ready", False))
         component_submitted = bool(component_payload.get("submitted", False))
-        st.session_state[command_key] = component_text
+        session.set_input_text(component_text)
 
     ready = ready or component_ready
     if not ready:
-        ready_at = st.session_state.get(ready_at_key, now)
+        ready_at = session.ready_deadline or now
         if now >= ready_at:
             ready = True
-            st.session_state.pop(ready_at_key, None)
+            session.clear_ready_deadline()
 
     if component_ready:
         ready = True
-        st.session_state.pop(ready_at_key, None)
-
-    st.session_state[ready_flag_key] = ready
+        session.clear_ready_deadline()
 
     command: Optional[IntroTerminalCommand] = None
     text_value = component_text.strip().lower()
@@ -236,23 +208,18 @@ def render_interactive_intro_terminal(
             command = IntroTerminalCommand.SHOW_MISSION
             if _SHOW_MISSION_USER_LINE not in lines:
                 rendered_line_count = len(lines)
-                lines.extend([
-                    _SHOW_MISSION_USER_LINE,
-                    *_SHOW_MISSION_RESPONSE_LINE,
-                ])
-                st.session_state[prefill_line_count_key] = rendered_line_count
-                ready = False
-                st.session_state.pop(ready_at_key, None)
-                st.session_state[ready_flag_key] = False
-            st.session_state[append_pending_key] = True
-            st.session_state[clear_flag_key] = True
-            st.session_state.pop(component_key, None)
-            st.session_state.pop(command_key, None)
+                session.append_lines(
+                    [
+                        _SHOW_MISSION_USER_LINE,
+                        *_SHOW_MISSION_RESPONSE_LINE,
+                    ],
+                    prefill_line_count=rendered_line_count,
+                )
+            session.reset_for_animation()
+            ready = session.ready
         elif text_value == "start":
             command = IntroTerminalCommand.START
-            st.session_state[preserve_state_key] = True
-            st.session_state[clear_flag_key] = True
-            st.session_state.pop(component_key, None)
-            st.session_state.pop(command_key, None)
+            session.preserve_input(component_text)
 
+    session.set_ready(ready)
     return command, ready
