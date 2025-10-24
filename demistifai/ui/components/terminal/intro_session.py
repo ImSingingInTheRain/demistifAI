@@ -26,6 +26,7 @@ class IntroTerminalSession:
         self._append_pending_key = f"{self.command_key}_append_pending"
         self._prefill_line_count_key = f"{self.command_key}_prefill_line_count"
         self._preserve_state_key = f"{self.command_key}_preserve_state"
+        self._keep_input_active_key = f"{self.command_key}_keep_input_active"
 
     def ensure_lines(self, default_lines: Sequence[str]) -> List[str]:
         """Return the intro terminal lines, initialising them when absent."""
@@ -64,6 +65,7 @@ class IntroTerminalSession:
         new_lines: Sequence[str],
         *,
         prefill_line_count: Optional[int] = None,
+        keep_input_active: bool = False,
     ) -> None:
         """Extend the rendered lines and flag that a replay is pending."""
 
@@ -78,6 +80,8 @@ class IntroTerminalSession:
         self.clear_lines_signature()
         if prefill_line_count is not None:
             self.set_prefilled_line_count(prefill_line_count)
+        if keep_input_active:
+            self.request_input_focus()
 
     @property
     def ready(self) -> bool:
@@ -137,6 +141,23 @@ class IntroTerminalSession:
         self.state[self._preserve_state_key] = True
         self.normalise_component_payload()
 
+    def request_input_focus(self) -> None:
+        """Flag that the terminal input should remain focused."""
+
+        self.state[self._keep_input_active_key] = True
+        self.normalise_component_payload()
+
+    def consume_input_focus_request(self) -> bool:
+        """Return whether input focus should be preserved for the next render."""
+
+        keep_active = bool(self.state.get(self._keep_input_active_key, False))
+        if keep_active:
+            self.state[self._keep_input_active_key] = False
+        else:
+            self.state.pop(self._keep_input_active_key, None)
+        self.normalise_component_payload()
+        return keep_active
+
     def consume_preserve_flag(self) -> bool:
         """Return whether input preservation is requested and clear the flag."""
 
@@ -152,6 +173,8 @@ class IntroTerminalSession:
         *,
         drop_lines: bool = False,
         clear_input: bool = True,
+        keep_input_active: bool = False,
+        preserve_ready: bool = False,
     ) -> None:
         """Prepare the session so the intro animation replays on the next run."""
 
@@ -161,12 +184,20 @@ class IntroTerminalSession:
             self.clear_prefilled_line_count()
         self.clear_lines_signature()
         self.clear_ready_deadline()
-        self.set_ready(False)
+        if keep_input_active:
+            self.request_input_focus()
+        else:
+            self.state.pop(self._keep_input_active_key, None)
+        if preserve_ready:
+            ready_value = self.ready
+        else:
+            ready_value = False
+            self.set_ready(False)
         if clear_input and not preserve_text:
             self.clear_input_text()
         if drop_lines:
             self.clear_append_pending()
-        self.normalise_component_payload(ready=False)
+        self.normalise_component_payload(ready=ready_value)
 
     def normalise_component_payload(self, *, ready: Optional[bool] = None) -> None:
         """Normalise the embedded component payload for the next rerun."""
@@ -181,6 +212,9 @@ class IntroTerminalSession:
         payload["text"] = self.input_text
         payload["ready"] = self.ready if ready is None else bool(ready)
         payload["submitted"] = False
+        payload["keepInput"] = bool(
+            self.state.get(self._keep_input_active_key, False)
+        )
         new_state["value"] = payload
         self.state[self.component_key] = new_state
 
