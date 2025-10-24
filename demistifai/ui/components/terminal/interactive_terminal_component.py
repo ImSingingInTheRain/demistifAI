@@ -7,11 +7,15 @@ import os
 from contextlib import ExitStack
 from importlib import resources
 from pathlib import Path
-from typing import Any, Optional, Sequence
+from typing import Any, List, Optional, Sequence
 
 from streamlit.components.v1 import declare_component
 
-from .shared_renderer import TerminalRenderBundle, build_terminal_render_bundle
+from .shared_renderer import (
+    SerializableSegment,
+    TerminalRenderBundle,
+    build_terminal_render_bundle,
+)
 
 _COMPONENT_NAME = "interactive_terminal_component"
 _DEV_COMPONENT_URL_ENV_VAR = "DEMISTIFAI_TERMINAL_COMPONENT_DEV_URL"
@@ -70,11 +74,19 @@ def render_interactive_terminal(
     secondary_inputs: Optional[Sequence[str]] = None,
     value: Optional[str] = None,
     prefilled_line_count: Optional[int] = None,
+    line_delta: Optional[dict[str, Any]] = None,
 ) -> Optional[dict[str, Any]]:
     """Render the interactive terminal custom component.
 
     Returns the latest interaction payload ``{"text": str, "submitted": bool, "ready": bool}``
     when Streamlit provides component values, otherwise ``None``.
+
+    ``line_delta`` can be provided to hint the frontend about how the
+    ``lines`` collection changed compared to the previous run. Supported
+    actions are ``"append"`` (only new lines at the tail), ``"replace"``
+    (structure changed, resend everything) and ``"none"`` (content unchanged).
+    The helper forwards these hints so the browser can avoid remounting the
+    terminal DOM and only stream the changed segments.
     """
 
     placeholder_text = str(placeholder or "")
@@ -92,6 +104,7 @@ def render_interactive_terminal(
         secondary_inputs=secondary_inputs,
         input_text=value,
         prefilled_line_count=prefilled_line_count,
+        line_delta=line_delta,
     )
 
     typing_config = {
@@ -99,11 +112,19 @@ def render_interactive_terminal(
         "pauseBetween": bundle.payload["pauseBetween"],
     }
 
+    serialized_lines_arg: Optional[List[SerializableSegment]]
+    delta_action = (bundle.line_delta or {}).get("action") if bundle.line_delta else None
+    if delta_action in {"append", "none"}:
+        serialized_lines_arg = None
+    else:
+        serialized_lines_arg = bundle.serializable_segments
+
     component_value = _interactive_terminal(
         key=key,
         markup=bundle.markup,
         payload=bundle.payload,
-        serializedLines=bundle.serializable_segments,
+        serializedLines=serialized_lines_arg,
+        serializedDelta=bundle.line_delta,
         typingConfig=typing_config,
         placeholder=placeholder_text,
         acceptKeystrokes=bool(accept_keystrokes),
