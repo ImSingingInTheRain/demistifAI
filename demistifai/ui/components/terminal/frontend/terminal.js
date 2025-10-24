@@ -434,6 +434,140 @@ const bootstrap = (Streamlit, initialArgs) => {
       return true;
     };
 
+    const runDeltaUpdate = () => {
+      if (
+        !activeController ||
+        !lineDelta ||
+        typeof lineDelta.action !== "string"
+      ) {
+        return false;
+      }
+      const action = lineDelta.action;
+      if (action === "append") {
+        const segments = Array.isArray(lineDelta.segments)
+          ? lineDelta.segments
+          : [];
+        if (!segments.length) {
+          return false;
+        }
+        activeController.appendSerializedSegments(segments, updateOptions);
+        return true;
+      }
+      if (action === "replace") {
+        let segments = Array.isArray(lineDelta.segments)
+          ? lineDelta.segments
+          : null;
+        if (!segments && serializedLines !== null) {
+          segments = serializedLines;
+        }
+        if (!segments) {
+          return false;
+        }
+        activeController.replaceSerializedSegments(segments, updateOptions);
+        return true;
+      }
+      if (action === "none") {
+        if (typeof activeController.updatePayloadOnly === "function") {
+          activeController.updatePayloadOnly(updateOptions);
+        }
+        return true;
+      }
+      return false;
+    };
+
+    const updateActiveController = (options = {}) => {
+      if (!activeController) {
+        return;
+      }
+      const skipInputSync = Boolean(
+        options && typeof options === "object" && options.skipInputSync
+      );
+
+      if (
+        !skipInputSync &&
+        typeof activeController.updateInputValue === "function" &&
+        nextInputValue !== lastInputValue
+      ) {
+        activeController.updateInputValue(nextInputValue);
+      }
+
+      const deltaHandled = runDeltaUpdate();
+      let payloadApplied = false;
+
+      if (!deltaHandled) {
+        if (serializedLines !== null) {
+          const currentCount =
+            typeof activeController.getLineCount === "function"
+              ? activeController.getLineCount()
+              : 0;
+          const nextCount = serializedLines.length;
+          if (nextCount > currentCount) {
+            const delta = serializedLines.slice(currentCount);
+            if (delta.length) {
+              activeController.appendSerializedSegments(delta, updateOptions);
+            }
+          } else if (nextCount < currentCount) {
+            activeController.replaceSerializedSegments(
+              serializedLines,
+              updateOptions
+            );
+          } else if (
+            serializedSignature &&
+            lastSerializedSignature &&
+            serializedSignature !== lastSerializedSignature
+          ) {
+            activeController.replaceSerializedSegments(
+              serializedLines,
+              updateOptions
+            );
+          } else if (
+            typeof activeController.updatePayloadOnly === "function"
+          ) {
+            activeController.updatePayloadOnly(updateOptions);
+          }
+        } else {
+          const payloadSegments = Array.isArray(payload.segments)
+            ? payload.segments
+            : null;
+          const hasSegments = Boolean(payloadSegments && payloadSegments.length);
+          if (
+            hasSegments &&
+            typeof activeController.replaceSerializedSegments === "function"
+          ) {
+            const payloadSignature = stableStringify(payloadSegments);
+            if (payloadSignature !== lastSerializedSignature) {
+              activeController.replaceSerializedSegments(
+                payloadSegments,
+                updateOptions
+              );
+              lastSerializedSignature = payloadSignature;
+              payloadApplied = true;
+            } else if (
+              typeof activeController.updatePayloadOnly === "function"
+            ) {
+              activeController.updatePayloadOnly(updateOptions);
+            }
+          } else if (
+            typeof activeController.updatePayloadOnly === "function"
+          ) {
+            activeController.updatePayloadOnly(updateOptions);
+          }
+        }
+      }
+
+      if (!payloadApplied) {
+        if (deltaHandled) {
+          if (serializedSignature !== null) {
+            lastSerializedSignature = serializedSignature;
+          } else if (lineDelta && lineDelta.action !== "none") {
+            lastSerializedSignature = null;
+          }
+        } else if (serializedLines !== null) {
+          lastSerializedSignature = serializedSignature;
+        }
+      }
+    };
+
     const createController = () => {
       mountMarkupIfNeeded();
       const terminalRoot = document.getElementById(domId);
@@ -474,98 +608,16 @@ const bootstrap = (Streamlit, initialArgs) => {
       }
       activeController = null;
       createController();
+      if (activeController) {
+        updateActiveController({ skipInputSync: true });
+      }
     } else if (markupRemounted) {
       createController();
+      if (activeController) {
+        updateActiveController({ skipInputSync: true });
+      }
     } else if (activeController) {
-      if (
-        typeof activeController.updateInputValue === "function" &&
-        nextInputValue !== lastInputValue
-      ) {
-        activeController.updateInputValue(nextInputValue);
-      }
-
-      const handleDeltaUpdate = () => {
-        if (!lineDelta || typeof lineDelta.action !== "string") {
-          return false;
-        }
-        const action = lineDelta.action;
-        if (action === "append") {
-          const segments = Array.isArray(lineDelta.segments)
-            ? lineDelta.segments
-            : [];
-          if (!segments.length) {
-            return false;
-          }
-          activeController.appendSerializedSegments(segments, updateOptions);
-          return true;
-        }
-        if (action === "replace") {
-          let segments = Array.isArray(lineDelta.segments)
-            ? lineDelta.segments
-            : null;
-          if (!segments && serializedLines !== null) {
-            segments = serializedLines;
-          }
-          if (!segments) {
-            return false;
-          }
-          activeController.replaceSerializedSegments(segments, updateOptions);
-          return true;
-        }
-        if (action === "none") {
-          if (typeof activeController.updatePayloadOnly === "function") {
-            activeController.updatePayloadOnly(updateOptions);
-          }
-          return true;
-        }
-        return false;
-      };
-
-      const deltaHandled = handleDeltaUpdate();
-
-      if (!deltaHandled) {
-        if (serializedLines !== null) {
-          const currentCount =
-            typeof activeController.getLineCount === "function"
-              ? activeController.getLineCount()
-              : 0;
-          const nextCount = serializedLines.length;
-          if (nextCount > currentCount) {
-            const delta = serializedLines.slice(currentCount);
-            activeController.appendSerializedSegments(delta, updateOptions);
-          } else if (nextCount < currentCount) {
-            activeController.replaceSerializedSegments(
-              serializedLines,
-              updateOptions
-            );
-          } else if (
-            serializedSignature &&
-            lastSerializedSignature &&
-            serializedSignature !== lastSerializedSignature
-          ) {
-            activeController.replaceSerializedSegments(
-              serializedLines,
-              updateOptions
-            );
-          } else if (
-            typeof activeController.updatePayloadOnly === "function"
-          ) {
-            activeController.updatePayloadOnly(updateOptions);
-          }
-        } else if (typeof activeController.updatePayloadOnly === "function") {
-          activeController.updatePayloadOnly(updateOptions);
-        }
-      }
-
-      if (deltaHandled) {
-        if (serializedSignature !== null) {
-          lastSerializedSignature = serializedSignature;
-        } else if (lineDelta && lineDelta.action !== "none") {
-          lastSerializedSignature = null;
-        }
-      } else {
-        lastSerializedSignature = serializedSignature;
-      }
+      updateActiveController();
     }
 
     if (!activeController) {
