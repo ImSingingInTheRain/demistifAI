@@ -11,9 +11,11 @@
   let bootstrapped = false;
 
   const bootstrap = (Streamlit, initialArgs) => {
-    let activeCleanup = null;
-    let lastRenderSignature = null;
+    let activeController = null;
+    let mountedDomId = null;
     let lastInputValue = null;
+    let lastSerializedSignature = null;
+    let mountedMarkupKey = null;
 
     const canSetValue =
       Streamlit && typeof Streamlit.setComponentValue === "function";
@@ -112,23 +114,6 @@
       return `{${entries.join(",")}}`;
     };
 
-    const buildRenderSignature = (params) => {
-      const rawPayload =
-        params.payload && typeof params.payload === "object"
-          ? params.payload
-          : {};
-      const dedupePayload = { ...rawPayload };
-      delete dedupePayload.inputValue;
-
-      return stableStringify({
-        markup: params.markup,
-        payload: dedupePayload,
-        serializedLines: params.serializedLines,
-        typingConfig: params.typingConfig,
-        acceptKeystrokes: params.acceptKeystrokes ? true : false,
-      });
-    };
-
     const notifyResize = (height) => {
       if (!canSetFrameHeight) {
         return;
@@ -143,11 +128,11 @@
     };
 
     const initializeTerminal = (rootNode, options) => {
-      const payload = options.payload || {};
+      let payload = options.payload || {};
       const suffix = coerceString(payload.suffix, "");
       if (!suffix) {
         pushState(defaultState());
-        return () => {};
+        return null;
       }
 
       const pre = rootNode.querySelector(`.term-body-${suffix}`);
@@ -161,13 +146,69 @@
           `.term-input-${suffix}:not([data-secondary="true"])`
         ) || rootNode.querySelector(`.term-input-${suffix}`);
 
+      let normalisedLines = [];
+      const syncPayload = (nextPayload) => {
+        payload = nextPayload || {};
+        const raw = Array.isArray(payload.lines)
+          ? payload.lines.map((line) => (line == null ? "" : String(line)))
+          : [];
+        normalisedLines = toLinesWithNewline(raw);
+        const placeholderText = coerceString(payload.placeholder, "");
+        const inputLabel = coerceString(payload.inputLabel, "");
+        const inputAriaLabel = coerceString(payload.inputAriaLabel, "");
+        const inputHint = coerceString(payload.inputHint, "");
+        const inputId = coerceString(payload.inputId, "");
+        const inputHintId = coerceString(payload.inputHintId, "");
+        if (input) {
+          if (input.placeholder !== placeholderText) {
+            input.placeholder = placeholderText;
+          }
+          if (inputAriaLabel) {
+            input.setAttribute("aria-label", inputAriaLabel);
+          }
+          if (inputHintId) {
+            input.setAttribute("aria-describedby", inputHintId);
+          }
+          if (inputId) {
+            input.id = inputId;
+          }
+        }
+        if (inputWrap) {
+          const labelEl = inputWrap.querySelector(
+            `label.sr-only-${suffix}[for="${inputId}"]`
+          );
+          if (labelEl && labelEl.textContent !== inputLabel) {
+            labelEl.textContent = inputLabel;
+          }
+        }
+        if (inputHintId) {
+          const hintEl = rootNode.querySelector(`#${inputHintId}`);
+          if (hintEl && hintEl.textContent !== inputHint) {
+            hintEl.textContent = inputHint;
+          }
+        }
+      };
+
+      syncPayload(payload);
+
       if (!pre) {
         pushState(defaultState());
-        return () => {};
+        return null;
       }
 
+      const controller = {
+        domId: coerceString(payload.domId, ""),
+        suffix,
+        destroy: () => {},
+        updateInputValue: () => {},
+        updateAcceptKeystrokes: () => {},
+        replaceSerializedSegments: () => {},
+        appendSerializedSegments: () => {},
+        getLineCount: () => 0,
+      };
+
       const acceptOverride = options.acceptKeystrokes;
-      const acceptKeystrokes =
+      let acceptKeystrokes =
         typeof acceptOverride === "boolean"
           ? acceptOverride
           : Boolean(payload.acceptKeystrokes);
@@ -262,6 +303,14 @@
         }
       };
 
+      controller.updateAcceptKeystrokes = (value) => {
+        const next = Boolean(value);
+        if (next !== acceptKeystrokes) {
+          acceptKeystrokes = next;
+          syncReadyUi();
+        }
+      };
+
       const setState = (updates, opts) => {
         const immediate = Boolean(opts && opts.immediate);
         const prevReady = state.ready;
@@ -320,46 +369,71 @@
           input.removeEventListener("keydown", handleKeyDown);
           input.removeEventListener("blur", handleBlur);
         });
+
+        controller.updateInputValue = (value) => {
+          const nextValue = coerceString(value, "");
+          if (input.value !== nextValue) {
+            input.value = nextValue;
+          }
+          state.text = coerceString(input.value, nextValue);
+        };
       }
 
-      const rawLines = Array.isArray(payload.lines)
-        ? payload.lines.map((line) => (line == null ? "" : String(line)))
-        : [];
-      const normalisedLines = toLinesWithNewline(rawLines);
+      
 
       let perLineSegs = sanitizeSegments(options.serializedSegments);
+      controller.getLineCount = () => perLineSegs.length;
       if (!perLineSegs.length) {
         perLineSegs = fallbackSegmentsFromLines(normalisedLines, suffix);
       }
 
-      const perLineSegmentHtml = perLineSegs.map((segments) =>
-        segments.map((segment) =>
-          segment && segment.c
-            ? `<span class="${segment.c}">${escapeHtml(segment.t)}</span>`
-            : escapeHtml(segment && segment.t)
-        )
-      );
-      const perLineHtml = perLineSegmentHtml.map((parts) => parts.join(""));
-      const finalHtml =
-        typeof payload.fullHtml === "string" && payload.fullHtml
-          ? payload.fullHtml
-          : perLineHtml.join("");
+      let perLineSegmentHtml = [];
+      let perLineHtml = [];
+      let finalHtml = "";
+      let totalLines = 0;
 
-      const totalLines = perLineSegs.length;
-      const prefilledLineCount = Math.max(
-        0,
-        Math.min(totalLines, coerceNumber(payload.prefilledLineCount, 0))
-      );
+      const rebuildHtmlCaches = () => {
+        perLineSegmentHtml = perLineSegs.map((segments) =>
+          segments.map((segment) =>
+            segment && segment.c
+              ? `<span class="${segment.c}">${escapeHtml(segment.t)}</span>`
+              : escapeHtml(segment && segment.t)
+          )
+        );
+        perLineHtml = perLineSegmentHtml.map((parts) => parts.join(""));
+        finalHtml =
+          typeof payload.fullHtml === "string" && payload.fullHtml
+            ? payload.fullHtml
+            : perLineHtml.join("");
+        totalLines = perLineSegs.length;
+      };
 
-      const doneHtmlParts =
-        prefilledLineCount > 0
-          ? perLineHtml.slice(0, prefilledLineCount)
-          : [];
-      if (doneHtmlParts.length) {
-        pre.innerHTML = doneHtmlParts.join("");
-      } else {
-        pre.innerHTML = "";
-      }
+      rebuildHtmlCaches();
+
+      let prefilledLineCount = 0;
+      let doneHtmlParts = [];
+
+      const renderDoneHtml = () => {
+        if (doneHtmlParts.length) {
+          pre.innerHTML = doneHtmlParts.join("");
+        } else {
+          pre.innerHTML = "";
+        }
+      };
+
+      const recomputePrefill = () => {
+        prefilledLineCount = Math.max(
+          0,
+          Math.min(totalLines, coerceNumber(payload.prefilledLineCount, 0))
+        );
+        doneHtmlParts =
+          prefilledLineCount > 0
+            ? perLineHtml.slice(0, prefilledLineCount)
+            : [];
+        renderDoneHtml();
+      };
+
+      recomputePrefill();
 
       const ensureMeasuredHeight = () => {
         const measurement = rootNode.cloneNode(true);
@@ -445,7 +519,7 @@
           caret.style.display = "none";
         }
         finalizeTerminal();
-        return () => {
+        controller.destroy = () => {
           if (debounceHandle !== null) {
             window.clearTimeout(debounceHandle);
           }
@@ -457,17 +531,26 @@
           }
           cleanupFns.forEach((fn) => fn());
         };
+        return controller;
       }
 
-      const typingConfig = options.typingConfig || {};
-      const typeDelay = Math.max(
-        0,
-        coerceNumber(typingConfig.speedType, payload.speedType || 0)
-      );
-      const betweenLines = Math.max(
-        0,
-        coerceNumber(typingConfig.pauseBetween, payload.pauseBetween || 0)
-      );
+      let typingConfig = options.typingConfig || {};
+      let typeDelay = 0;
+      let betweenLines = 0;
+
+      const applyTypingConfig = (config) => {
+        typingConfig = config && typeof config === "object" ? { ...config } : {};
+        typeDelay = Math.max(
+          0,
+          coerceNumber(typingConfig.speedType, payload.speedType || 0)
+        );
+        betweenLines = Math.max(
+          0,
+          coerceNumber(typingConfig.pauseBetween, payload.pauseBetween || 0)
+        );
+      };
+
+      applyTypingConfig(typingConfig);
 
       let activeNode = null;
       let lineIndex = prefilledLineCount;
@@ -475,7 +558,7 @@
       let charIndex = 0;
 
       const syncDoneHtml = () => {
-        pre.innerHTML = doneHtmlParts.join("");
+        renderDoneHtml();
       };
 
       const ensureActiveNode = () => {
@@ -512,6 +595,31 @@
         doneHtmlParts.push(segmentHtml);
         activeNode = null;
         syncDoneHtml();
+      };
+
+      const cancelTypingTimers = () => {
+        if (typingHandle !== null) {
+          window.clearTimeout(typingHandle);
+          typingHandle = null;
+        }
+        if (rafHandle !== null) {
+          window.cancelAnimationFrame(rafHandle);
+          rafHandle = null;
+        }
+      };
+
+      const resetTypingIndices = (startLine) => {
+        cancelTypingTimers();
+        if (activeNode && activeNode.parentNode === pre) {
+          pre.removeChild(activeNode);
+        }
+        activeNode = null;
+        lineIndex = Math.max(
+          0,
+          typeof startLine === "number" ? startLine : prefilledLineCount
+        );
+        segmentIndex = 0;
+        charIndex = 0;
       };
 
       const scheduleStep = (delay) => {
@@ -567,9 +675,132 @@
         scheduleStep(typeDelay);
       };
 
-      rafHandle = window.requestAnimationFrame(step);
+      const beginTyping = (startLine) => {
+        resetTypingIndices(startLine);
+        finished = false;
+        if (caret) {
+          caret.style.display = payload.showCaret === false ? "none" : "inline-block";
+        }
+        rafHandle = window.requestAnimationFrame(step);
+      };
 
-      return () => {
+      const markReadyFalse = () => {
+        wasReady = false;
+        setState({ ready: false }, { immediate: true });
+      };
+
+      const completeImmediately = () => {
+        cancelTypingTimers();
+        doneHtmlParts = perLineHtml.slice();
+        renderDoneHtml();
+        if (caret) {
+          caret.style.display = "none";
+        }
+        lineIndex = perLineSegs.length;
+        segmentIndex = 0;
+        charIndex = 0;
+        finalizeTerminal();
+      };
+
+      const prepareUpdate = (updateOptions) => {
+        if (updateOptions && typeof updateOptions === "object") {
+          if (Object.prototype.hasOwnProperty.call(updateOptions, "payload")) {
+            syncPayload(updateOptions.payload);
+          }
+          if (
+            Object.prototype.hasOwnProperty.call(
+              updateOptions,
+              "acceptKeystrokes"
+            )
+          ) {
+            controller.updateAcceptKeystrokes(updateOptions.acceptKeystrokes);
+          }
+          if (
+            updateOptions.typingConfig &&
+            typeof updateOptions.typingConfig === "object"
+          ) {
+            applyTypingConfig(updateOptions.typingConfig);
+          } else {
+            applyTypingConfig(typingConfig);
+          }
+        } else {
+          applyTypingConfig(typingConfig);
+        }
+      };
+
+      const toSegmentHtml = (segments) =>
+        segments.map((segment) =>
+          segment && segment.c
+            ? `<span class="${segment.c}">${escapeHtml(segment.t)}</span>`
+            : escapeHtml(segment && segment.t)
+        );
+
+      controller.replaceSerializedSegments = (rawSegments, updateOptions) => {
+        prepareUpdate(updateOptions);
+        let nextSegments = sanitizeSegments(rawSegments);
+        if (!nextSegments.length) {
+          nextSegments = fallbackSegmentsFromLines(normalisedLines, suffix);
+        }
+        perLineSegs = nextSegments;
+        rebuildHtmlCaches();
+        recomputePrefill();
+        resetTypingIndices(prefilledLineCount);
+        const measured = ensureMeasuredHeight();
+        notifyResize(measured);
+        if (
+          prefersReduced ||
+          coerceNumber(payload.speedType, 0) === 0 ||
+          prefilledLineCount >= totalLines
+        ) {
+          completeImmediately();
+          return;
+        }
+        markReadyFalse();
+        beginTyping(prefilledLineCount);
+      };
+
+      controller.appendSerializedSegments = (rawSegments, updateOptions) => {
+        prepareUpdate(updateOptions);
+        const newSegments = sanitizeSegments(rawSegments);
+        if (!newSegments.length) {
+          return;
+        }
+        const previousTotal = perLineSegs.length;
+        newSegments.forEach((segments) => {
+          perLineSegs.push(segments);
+          const htmlParts = toSegmentHtml(segments);
+          perLineSegmentHtml.push(htmlParts);
+          perLineHtml.push(htmlParts.join(""));
+        });
+        totalLines = perLineSegs.length;
+        finalHtml =
+          typeof payload.fullHtml === "string" && payload.fullHtml
+            ? payload.fullHtml
+            : perLineHtml.join("");
+        const measured = ensureMeasuredHeight();
+        notifyResize(measured);
+        if (prefersReduced || coerceNumber(payload.speedType, 0) === 0) {
+          completeImmediately();
+          return;
+        }
+        if (finished) {
+          doneHtmlParts = perLineHtml.slice(0, previousTotal);
+          renderDoneHtml();
+          markReadyFalse();
+          beginTyping(previousTotal);
+        }
+      };
+
+      controller.updatePayloadOnly = (updateOptions) => {
+        prepareUpdate(updateOptions);
+        const measured = ensureMeasuredHeight();
+        notifyResize(measured);
+      };
+
+      markReadyFalse();
+      beginTyping(prefilledLineCount);
+
+      controller.destroy = () => {
         finished = true;
         if (debounceHandle !== null) {
           window.clearTimeout(debounceHandle);
@@ -582,6 +813,8 @@
         }
         cleanupFns.forEach((fn) => fn());
       };
+
+      return controller;
     };
 
     const render = (args) => {
@@ -597,64 +830,126 @@
           ? args.typingConfig
           : {};
       const markup = coerceString(args.markup, "");
-      const signature = buildRenderSignature({
-        markup,
-        payload,
-        serializedLines,
-        typingConfig,
-        acceptKeystrokes: args.acceptKeystrokes,
-      });
-
-      const suffix = coerceString(payload.suffix, "");
-      const nextInputValue = coerceString(payload.inputValue, "");
-
-      if (signature && signature === lastRenderSignature) {
-        if (suffix) {
-          const existingInput =
-            root.querySelector(
-              `.term-input-${suffix}:not([data-secondary="true"])`
-            ) || root.querySelector(`.term-input-${suffix}`);
-          if (
-            existingInput &&
-            nextInputValue !== lastInputValue &&
-            existingInput.value !== nextInputValue
-          ) {
-            existingInput.value = nextInputValue;
-          }
-        }
-        lastInputValue = nextInputValue;
-        return;
-      }
-      lastRenderSignature = signature;
-
-      if (activeCleanup) {
-        activeCleanup();
-        activeCleanup = null;
-      }
-
-      root.innerHTML = markup;
-
       const domId = coerceString(payload.domId, "");
+      const nextInputValue = coerceString(payload.inputValue, "");
+      const serializedSignature = stableStringify(serializedLines);
 
       if (!domId) {
+        if (activeController && typeof activeController.destroy === "function") {
+          activeController.destroy();
+        }
+        activeController = null;
+        mountedDomId = null;
+        mountedMarkupSignature = null;
+        lastSerializedSignature = null;
         pushState(defaultState());
         notifyResize(document.body ? document.body.scrollHeight : 0);
         return;
       }
 
-      const terminalRoot = document.getElementById(domId);
-      if (!terminalRoot) {
-        pushState(defaultState());
-        notifyResize(document.body ? document.body.scrollHeight : 0);
-        return;
-      }
-
-      activeCleanup = initializeTerminal(terminalRoot, {
+      const updateOptions = {
         payload,
-        serializedSegments: serializedLines,
         typingConfig,
         acceptKeystrokes: args.acceptKeystrokes,
-      });
+      };
+
+      const mountMarkupIfNeeded = () => {
+        if (mountedMarkupKey !== domId) {
+          root.innerHTML = markup;
+          mountedMarkupKey = domId;
+        }
+      };
+
+      const createController = () => {
+        mountMarkupIfNeeded();
+        const terminalRoot = document.getElementById(domId);
+        if (!terminalRoot) {
+          pushState(defaultState());
+          notifyResize(document.body ? document.body.scrollHeight : 0);
+          activeController = null;
+          mountedDomId = null;
+          mountedMarkupKey = null;
+          return;
+        }
+        const controller = initializeTerminal(terminalRoot, {
+          payload,
+          serializedSegments: serializedLines,
+          typingConfig,
+          acceptKeystrokes: args.acceptKeystrokes,
+        });
+        if (!controller) {
+          pushState(defaultState());
+          notifyResize(document.body ? document.body.scrollHeight : 0);
+          activeController = null;
+          mountedDomId = null;
+          mountedMarkupKey = null;
+          return;
+        }
+        activeController = controller;
+        mountedDomId = domId;
+        lastSerializedSignature = serializedSignature;
+      };
+
+      if (!activeController || mountedDomId !== domId) {
+        if (activeController && typeof activeController.destroy === "function") {
+          activeController.destroy();
+        }
+        activeController = null;
+        createController();
+      } else {
+        if (mountedMarkupKey !== domId) {
+          if (activeController && typeof activeController.destroy === "function") {
+            activeController.destroy();
+          }
+          activeController = null;
+          createController();
+        } else if (activeController) {
+          if (
+            typeof activeController.updateInputValue === "function" &&
+            nextInputValue !== lastInputValue
+          ) {
+            activeController.updateInputValue(nextInputValue);
+          }
+
+          const currentCount =
+            typeof activeController.getLineCount === "function"
+              ? activeController.getLineCount()
+              : 0;
+          const nextCount = serializedLines.length;
+
+          if (nextCount > currentCount) {
+            const delta = serializedLines.slice(currentCount);
+            activeController.appendSerializedSegments(delta, updateOptions);
+          } else if (nextCount < currentCount) {
+            activeController.replaceSerializedSegments(
+              serializedLines,
+              updateOptions
+            );
+          } else {
+            if (
+              serializedSignature &&
+              lastSerializedSignature &&
+              serializedSignature !== lastSerializedSignature
+            ) {
+              activeController.replaceSerializedSegments(
+                serializedLines,
+                updateOptions
+              );
+            } else if (
+              typeof activeController.updatePayloadOnly === "function"
+            ) {
+              activeController.updatePayloadOnly(updateOptions);
+            }
+          }
+          lastSerializedSignature = serializedSignature;
+        }
+      }
+
+      if (!activeController) {
+        mountedMarkupKey = null;
+        mountedDomId = null;
+      }
+
       lastInputValue = nextInputValue;
     };
 
