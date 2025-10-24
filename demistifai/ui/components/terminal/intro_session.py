@@ -40,12 +40,19 @@ class IntroTerminalSession:
     @property
     def lines_signature(self) -> Optional[Tuple[str, ...]]:
         signature = self.state.get(self._lines_signature_key)
+        if signature is None:
+            return None
         if isinstance(signature, tuple):
             return signature
+        if isinstance(signature, list):
+            normalised = tuple(str(item) for item in signature)
+            self.state[self._lines_signature_key] = normalised
+            return normalised
         return None
 
-    def set_lines_signature(self, signature: Tuple[str, ...]) -> None:
-        self.state[self._lines_signature_key] = signature
+    def set_lines_signature(self, signature: Sequence[str]) -> None:
+        normalised_signature = tuple(str(item) for item in signature)
+        self.state[self._lines_signature_key] = normalised_signature
 
     def clear_lines_signature(self) -> None:
         self.state.pop(self._lines_signature_key, None)
