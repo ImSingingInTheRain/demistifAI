@@ -228,6 +228,9 @@
         input.value = initialText;
       }
 
+      rootNode.style.minHeight = "";
+      rootNode.style.height = "";
+
       const state = {
         text: input ? coerceString(input.value, "") : initialText,
         submitted: false,
@@ -237,7 +240,54 @@
       let debounceHandle = null;
       let typingHandle = null;
       let rafHandle = null;
+      let resizeNotifyRaf = null;
       const cleanupFns = [];
+
+      const measureHeight = () => {
+        let height = 0;
+        if (typeof rootNode.getBoundingClientRect === "function") {
+          const rect = rootNode.getBoundingClientRect();
+          if (rect && Number.isFinite(rect.height) && rect.height > 0) {
+            height = rect.height;
+          }
+        }
+        if (!height && rootNode.scrollHeight) {
+          height = rootNode.scrollHeight;
+        }
+        if (!height && rootNode.offsetHeight) {
+          height = rootNode.offsetHeight;
+        }
+        return height;
+      };
+
+      const scheduleResizeNotification = () => {
+        if (resizeNotifyRaf !== null) {
+          return;
+        }
+        resizeNotifyRaf = window.requestAnimationFrame(() => {
+          resizeNotifyRaf = null;
+          const measuredHeight = measureHeight();
+          notifyResize(measuredHeight);
+        });
+      };
+
+      if (typeof window.ResizeObserver === "function") {
+        const resizeObserver = new window.ResizeObserver(() => {
+          scheduleResizeNotification();
+        });
+        resizeObserver.observe(rootNode);
+        cleanupFns.push(() => {
+          resizeObserver.disconnect();
+        });
+      } else {
+        const handleWindowResize = () => {
+          scheduleResizeNotification();
+        };
+        window.addEventListener("resize", handleWindowResize);
+        cleanupFns.push(() => {
+          window.removeEventListener("resize", handleWindowResize);
+        });
+      }
 
       const copyState = () => ({
         text: state.text,
@@ -308,6 +358,7 @@
             input.setAttribute("aria-disabled", "true");
           }
         }
+        scheduleResizeNotification();
       };
 
       controller.updateAcceptKeystrokes = (value) => {
@@ -434,6 +485,7 @@
         } else {
           pre.innerHTML = "";
         }
+        scheduleResizeNotification();
       };
 
       const recomputePrefill = () => {
@@ -450,62 +502,7 @@
 
       recomputePrefill();
 
-      const ensureMeasuredHeight = () => {
-        const measurement = rootNode.cloneNode(true);
-        measurement.removeAttribute("id");
-        measurement.style.position = "absolute";
-        measurement.style.visibility = "hidden";
-        measurement.style.pointerEvents = "none";
-        measurement.style.opacity = "0";
-        measurement.style.left = "-9999px";
-        measurement.style.top = "0";
-        measurement.style.height = "auto";
-        measurement.style.minHeight = "auto";
-        measurement.style.maxHeight = "none";
-        const width =
-          rootNode.getBoundingClientRect().width ||
-          rootNode.offsetWidth ||
-          rootNode.clientWidth;
-        if (width) {
-          measurement.style.width = `${width}px`;
-        }
-        const measurePre = measurement.querySelector(`.term-body-${suffix}`);
-        if (measurePre) {
-          measurePre.innerHTML = finalHtml;
-        }
-        const measureCaret = measurement.querySelector(`.caret-${suffix}`);
-        if (measureCaret) {
-          measureCaret.style.display = "none";
-        }
-        const measureWrap =
-          measurement.querySelector(
-            `.term-input-wrap-${suffix}:not([data-secondary="true"])`
-          ) || measurement.querySelector(`.term-input-wrap-${suffix}`);
-        const readyActive =
-          rootNode.getAttribute("data-ready") === "true" && acceptKeystrokes;
-        if (measureWrap) {
-          measureWrap.setAttribute("data-active", readyActive ? "true" : "false");
-          measureWrap.setAttribute("aria-hidden", readyActive ? "false" : "true");
-        }
-        const measureInput =
-          measurement.querySelector(
-            `.term-input-${suffix}:not([data-secondary="true"])`
-          ) || measurement.querySelector(`.term-input-${suffix}`);
-        if (measureInput) {
-          measureInput.disabled = !readyActive;
-        }
-        (rootNode.parentElement || document.body).appendChild(measurement);
-        const height = measurement.scrollHeight;
-        measurement.remove();
-        if (height) {
-          rootNode.style.minHeight = `${height}px`;
-          rootNode.style.height = `${height}px`;
-        }
-        return height;
-      };
-
-      const initialHeight = ensureMeasuredHeight();
-      notifyResize(initialHeight);
+      scheduleResizeNotification();
 
       const mediaQuery =
         typeof window.matchMedia === "function"
@@ -520,8 +517,7 @@
         }
         finished = true;
         setState({ ready: true }, { immediate: true });
-        const measured = ensureMeasuredHeight();
-        notifyResize(measured);
+        scheduleResizeNotification();
       };
 
       if (
@@ -530,6 +526,7 @@
         prefilledLineCount >= totalLines
       ) {
         pre.innerHTML = finalHtml;
+        scheduleResizeNotification();
         if (caret) {
           caret.style.display = "none";
         }
@@ -759,8 +756,7 @@
         rebuildHtmlCaches();
         recomputePrefill();
         resetTypingIndices(prefilledLineCount);
-        const measured = ensureMeasuredHeight();
-        notifyResize(measured);
+        scheduleResizeNotification();
         if (
           prefersReduced ||
           coerceNumber(payload.speedType, 0) === 0 ||
@@ -792,8 +788,7 @@
           typeof payload.fullHtml === "string" && payload.fullHtml
             ? payload.fullHtml
             : perLineHtml.join("");
-        const measured = ensureMeasuredHeight();
-        notifyResize(measured);
+        scheduleResizeNotification();
         if (prefersReduced || coerceNumber(payload.speedType, 0) === 0) {
           completeImmediately();
           return;
@@ -808,8 +803,7 @@
 
       controller.updatePayloadOnly = (updateOptions) => {
         prepareUpdate(updateOptions);
-        const measured = ensureMeasuredHeight();
-        notifyResize(measured);
+        scheduleResizeNotification();
       };
 
       markReadyFalse();
@@ -825,6 +819,10 @@
         }
         if (rafHandle !== null) {
           window.cancelAnimationFrame(rafHandle);
+        }
+        if (resizeNotifyRaf !== null) {
+          window.cancelAnimationFrame(resizeNotifyRaf);
+          resizeNotifyRaf = null;
         }
         cleanupFns.forEach((fn) => fn());
       };
