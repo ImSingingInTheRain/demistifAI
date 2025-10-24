@@ -283,16 +283,53 @@ export const createTypingAnimator = ({
     recalcTypingTimings();
   };
 
+  const evaluateNextPayloadState = (nextPayload) => {
+    const safePayload = nextPayload && typeof nextPayload === "object" ? nextPayload : {};
+    const resolvedTotal = resolveTotalLineCount(safePayload, perLineSegs.length);
+    const nextTotal = Math.max(perLineSegs.length, resolvedTotal);
+    const nextPrefill = Math.max(
+      0,
+      Math.min(nextTotal, coerceNumber(safePayload.prefilledLineCount, 0))
+    );
+    const nextFinalHtml = buildFinalHtml(safePayload, perLineHtml);
+    return { nextTotal, nextPrefill, nextFinalHtml };
+  };
+
   const prepareUpdate = (updateOptions, options = {}) => {
     const refreshOnPayload = Boolean(
       options && typeof options === "object" && options.refreshOnPayload
     );
     if (updateOptions && typeof updateOptions === "object") {
       if (Object.prototype.hasOwnProperty.call(updateOptions, "payload")) {
+        const previousTotalLines = totalLines;
+        const previousPrefill = prefilledLineCount;
+        const previousFinalHtml = finalHtml;
+
         setPayload(updateOptions.payload);
-        payload = getPayload();
-        if (refreshOnPayload) {
+        payload = getPayload() || {};
+
+        let cacheState = null;
+        let needsRefresh = refreshOnPayload;
+        if (!needsRefresh) {
+          cacheState = evaluateNextPayloadState(payload);
+          if (
+            cacheState.nextTotal !== previousTotalLines ||
+            cacheState.nextFinalHtml !== previousFinalHtml
+          ) {
+            needsRefresh = true;
+          }
+        }
+
+        if (needsRefresh) {
           refreshCaches();
+        } else {
+          if (!cacheState) {
+            cacheState = evaluateNextPayloadState(payload);
+          }
+          if (cacheState.nextPrefill !== previousPrefill) {
+            recomputePrefill();
+            renderDoneHtml();
+          }
         }
       }
       if (
