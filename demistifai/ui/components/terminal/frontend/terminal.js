@@ -92,23 +92,10 @@
       return payload;
     };
 
-    const fallbackSegmentsFromLines = (lines, suffix) =>
-      lines.map((line) => {
-        const trimmed = line.trim();
-        if (line.startsWith("$ ")) {
-          return [{ t: line, c: `cmd-${suffix}` }];
-        }
-        if (/^ERROR\b/i.test(trimmed)) {
-          return [{ t: line, c: `err-${suffix}` }];
-        }
-        return [{ t: line, c: null }];
-      });
+    const buildEmptySegments = () => [];
 
-    const toLinesWithNewline = (arr) =>
-      arr.map((value) => {
-        const text = coerceString(value, "");
-        return text.endsWith("\n") ? text : `${text}\n`;
-      });
+    const ensureRenderableSegments = (segments) =>
+      segments.length ? segments : buildEmptySegments();
 
     const escapeHtml = (text) =>
       coerceString(text, "")
@@ -171,13 +158,8 @@
           `.term-input-${suffix}:not([data-secondary="true"])`
         ) || rootNode.querySelector(`.term-input-${suffix}`);
 
-      let normalisedLines = [];
       const syncPayload = (nextPayload) => {
         payload = nextPayload || {};
-        const raw = Array.isArray(payload.lines)
-          ? payload.lines.map((line) => (line == null ? "" : String(line)))
-          : [];
-        normalisedLines = toLinesWithNewline(raw);
         const placeholderText = coerceString(payload.placeholder, "");
         const inputLabel = coerceString(payload.inputLabel, "");
         const inputAriaLabel = coerceString(payload.inputAriaLabel, "");
@@ -406,11 +388,18 @@
 
       
 
-      let perLineSegs = sanitizeSegments(options.serializedSegments);
+      const resolveTotalLineCount = (fallbackLength) => {
+        const reported = coerceNumber(payload.totalLineCount, NaN);
+        if (Number.isFinite(reported) && reported >= 0) {
+          return reported;
+        }
+        return fallbackLength;
+      };
+
+      let perLineSegs = ensureRenderableSegments(
+        sanitizeSegments(options.serializedSegments)
+      );
       controller.getLineCount = () => perLineSegs.length;
-      if (!perLineSegs.length) {
-        perLineSegs = fallbackSegmentsFromLines(normalisedLines, suffix);
-      }
 
       let perLineSegmentHtml = [];
       let perLineHtml = [];
@@ -430,7 +419,8 @@
           typeof payload.fullHtml === "string" && payload.fullHtml
             ? payload.fullHtml
             : perLineHtml.join("");
-        totalLines = perLineSegs.length;
+        const resolvedTotal = resolveTotalLineCount(perLineSegs.length);
+        totalLines = Math.max(perLineSegs.length, resolvedTotal);
       };
 
       rebuildHtmlCaches();
@@ -762,10 +752,9 @@
 
       controller.replaceSerializedSegments = (rawSegments, updateOptions) => {
         prepareUpdate(updateOptions);
-        let nextSegments = sanitizeSegments(rawSegments);
-        if (!nextSegments.length) {
-          nextSegments = fallbackSegmentsFromLines(normalisedLines, suffix);
-        }
+        let nextSegments = ensureRenderableSegments(
+          sanitizeSegments(rawSegments)
+        );
         perLineSegs = nextSegments;
         rebuildHtmlCaches();
         recomputePrefill();
@@ -797,7 +786,8 @@
           perLineSegmentHtml.push(htmlParts);
           perLineHtml.push(htmlParts.join(""));
         });
-        totalLines = perLineSegs.length;
+        const resolvedTotal = resolveTotalLineCount(perLineSegs.length);
+        totalLines = Math.max(perLineSegs.length, resolvedTotal);
         finalHtml =
           typeof payload.fullHtml === "string" && payload.fullHtml
             ? payload.fullHtml

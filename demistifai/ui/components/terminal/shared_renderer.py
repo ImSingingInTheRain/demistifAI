@@ -422,6 +422,7 @@ def build_terminal_render_bundle(
         "suffix": suffix,
         "domId": f"term-{key}",
         "segments": serializable_segments,
+        "totalLineCount": total_lines,
     }
     placeholder_text = str(placeholder or "")
     placeholder_trimmed = placeholder_text.strip()
@@ -517,7 +518,7 @@ def build_terminal_render_bundle(
                 )
                 if normalized_segments is None and action_raw == "replace":
                     normalized_segments = serializable_segments
-                if normalized_segments:
+                if normalized_segments is not None:
                     candidate["segments"] = normalized_segments
             if "prefilledLineCount" in line_delta:
                 try:
@@ -533,6 +534,8 @@ def build_terminal_render_bundle(
                     )
                 except (TypeError, ValueError):
                     pass
+            if "totalLineCount" not in candidate:
+                candidate["totalLineCount"] = total_lines
             line_delta_payload = candidate
     if line_delta_payload:
         payload["lineDelta"] = line_delta_payload
