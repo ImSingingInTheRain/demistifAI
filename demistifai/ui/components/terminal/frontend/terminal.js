@@ -14,6 +14,7 @@
     let lastInputValue = null;
     let lastSerializedSignature = null;
     let mountedMarkupKey = null;
+    let mountedMarkupSignature = null;
 
     const canSetValue =
       Streamlit && typeof Streamlit.setComponentValue === "function";
@@ -838,6 +839,7 @@
         }
         activeController = null;
         mountedDomId = null;
+        mountedMarkupKey = null;
         mountedMarkupSignature = null;
         lastSerializedSignature = null;
         pushState(defaultState());
@@ -852,10 +854,20 @@
       };
 
       const mountMarkupIfNeeded = () => {
-        if (mountedMarkupKey !== domId) {
-          root.innerHTML = markup;
-          mountedMarkupKey = domId;
+        const domChanged = mountedMarkupKey !== domId;
+        const signatureChanged = mountedMarkupSignature !== markup;
+        if (!domChanged && !signatureChanged) {
+          return false;
         }
+        if (activeController && typeof activeController.destroy === "function") {
+          activeController.destroy();
+        }
+        activeController = null;
+        mountedDomId = null;
+        root.innerHTML = markup;
+        mountedMarkupKey = domId;
+        mountedMarkupSignature = markup;
+        return true;
       };
 
       const createController = () => {
@@ -867,6 +879,7 @@
           activeController = null;
           mountedDomId = null;
           mountedMarkupKey = null;
+          mountedMarkupSignature = null;
           return;
         }
         const controller = initializeTerminal(terminalRoot, {
@@ -881,6 +894,7 @@
           activeController = null;
           mountedDomId = null;
           mountedMarkupKey = null;
+          mountedMarkupSignature = null;
           return;
         }
         activeController = controller;
@@ -888,20 +902,17 @@
         lastSerializedSignature = serializedSignature;
       };
 
+      const markupRemounted = mountMarkupIfNeeded();
+
       if (!activeController || mountedDomId !== domId) {
         if (activeController && typeof activeController.destroy === "function") {
           activeController.destroy();
         }
         activeController = null;
         createController();
-      } else {
-        if (mountedMarkupKey !== domId) {
-          if (activeController && typeof activeController.destroy === "function") {
-            activeController.destroy();
-          }
-          activeController = null;
-          createController();
-        } else if (activeController) {
+      } else if (markupRemounted) {
+        createController();
+      } else if (activeController) {
           if (
             typeof activeController.updateInputValue === "function" &&
             nextInputValue !== lastInputValue
@@ -946,6 +957,7 @@
       if (!activeController) {
         mountedMarkupKey = null;
         mountedDomId = null;
+        mountedMarkupSignature = null;
       }
 
       lastInputValue = nextInputValue;
