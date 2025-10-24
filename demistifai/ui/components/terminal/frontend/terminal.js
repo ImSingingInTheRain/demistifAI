@@ -1,1082 +1,596 @@
-(function () {
-  const root = document.getElementById("root");
+import { createInputController } from "./inputController.js";
+import { createResizeManager } from "./resizeManager.js";
+import {
+  createStreamlitAdapter,
+  resolveStreamlit,
+} from "./streamlitAdapter.js";
+import { createTypingAnimator } from "./typingAnimator.js";
+import {
+  coerceNumber,
+  coerceString,
+  defaultState,
+  sanitizeDeltaPayload,
+  stableStringify,
+} from "./utils.js";
 
-  if (!root) {
-    return;
+const root = document.getElementById("root");
+
+if (!root) {
+  // The root node is injected via index.html; bail gracefully if it is missing.
+  // This mirrors the legacy behaviour where the script no-oped when the root
+  // was absent.
+  console.warn("Terminal root element not found");
+}
+
+let streamlitAdapter = null;
+let activeController = null;
+let mountedDomId = null;
+let lastInputValue = null;
+let lastSerializedSignature = null;
+let mountedMarkupKey = null;
+let mountedMarkupSignature = null;
+
+const pushState = (state) => {
+  if (streamlitAdapter) {
+    streamlitAdapter.pushState(state);
+  }
+};
+
+const notifyResize = (height) => {
+  if (streamlitAdapter) {
+    streamlitAdapter.notifyResize(height);
+  }
+};
+
+const resetState = () => {
+  pushState(defaultState());
+};
+
+const initializeTerminal = (rootNode, options = {}) => {
+  if (!streamlitAdapter) {
+    return null;
   }
 
-  const resolveStreamlit = () =>
-    window.Streamlit || window.streamlit_component_lib?.Streamlit || null;
+  let payload = options.payload || {};
+  const suffix = coerceString(payload.suffix, "");
+  if (!suffix) {
+    resetState();
+    return null;
+  }
 
-  const bootstrap = (Streamlit, initialArgs) => {
-    let activeController = null;
-    let mountedDomId = null;
-    let lastInputValue = null;
-    let lastSerializedSignature = null;
-    let mountedMarkupKey = null;
-    let mountedMarkupSignature = null;
+  const pre = rootNode.querySelector(`.term-body-${suffix}`);
+  const caret = rootNode.querySelector(`.caret-${suffix}`);
+  const inputWrap =
+    rootNode.querySelector(
+      `.term-input-wrap-${suffix}:not([data-secondary="true"])`
+    ) || rootNode.querySelector(`.term-input-wrap-${suffix}`);
+  const input =
+    rootNode.querySelector(
+      `.term-input-${suffix}:not([data-secondary="true"])`
+    ) || rootNode.querySelector(`.term-input-${suffix}`);
 
-    const canSetValue =
-      Streamlit && typeof Streamlit.setComponentValue === "function";
-    const canSetFrameHeight =
-      Streamlit && typeof Streamlit.setFrameHeight === "function";
-    const canSetReady =
-      Streamlit && typeof Streamlit.setComponentReady === "function";
-    const canListen = Boolean(
-      Streamlit &&
-        Streamlit.events &&
-        typeof Streamlit.events.addEventListener === "function"
-    );
-    const renderEvent = Streamlit ? Streamlit.RENDER_EVENT : null;
+  const controller = {
+    domId: coerceString(payload.domId, ""),
+    suffix,
+    destroy: () => {},
+    updateInputValue: () => {},
+    updateAcceptKeystrokes: () => {},
+    replaceSerializedSegments: () => {},
+    appendSerializedSegments: () => {},
+    updatePayloadOnly: () => {},
+    getLineCount: () => 0,
+  };
 
-    const defaultState = () => ({ text: "", submitted: false, ready: false });
+  const acceptOverride = options.acceptKeystrokes;
+  let acceptKeystrokes =
+    typeof acceptOverride === "boolean"
+      ? acceptOverride
+      : Boolean(payload.acceptKeystrokes);
+  const debounceMs = Math.max(0, coerceNumber(payload.debounceMs, 150));
+  let keepInputActive = Boolean(payload.keepInput);
 
-    const coerceString = (value, fallback = "") =>
-      typeof value === "string" ? value : fallback;
+  const initialText = input
+    ? coerceString(payload.inputValue, input.value)
+    : coerceString(payload.inputValue, "");
+  if (input) {
+    input.value = initialText;
+  }
 
-    const coerceNumber = (value, fallback = 0) => {
-      const parsed = Number(value);
-      return Number.isFinite(parsed) ? parsed : fallback;
-    };
+  rootNode.style.minHeight = "";
+  rootNode.style.height = "";
 
-    const sanitizeClass = (value) => {
-      if (typeof value !== "string" || !value) {
-        return null;
-      }
-      const trimmed = value.trim();
-      if (!trimmed) {
-        return null;
-      }
-      const cleaned = trimmed.replace(/[^-a-zA-Z0-9_]/g, "");
-      return cleaned || null;
-    };
+  const state = {
+    text: input ? coerceString(input.value, initialText) : initialText,
+    submitted: false,
+    ready: false,
+  };
+  let wasReady = false;
+  let debounceHandle = null;
 
-    const sanitizeSegments = (rawSegments) => {
-      if (!Array.isArray(rawSegments)) {
-        return [];
-      }
-      return rawSegments.map((line) => {
-        if (!Array.isArray(line)) {
-          return [];
+  const resizeManager = createResizeManager(rootNode, notifyResize);
+  const cleanupFns = [resizeManager.destroy];
+  const scheduleResizeNotification = resizeManager.scheduleResizeNotification;
+
+  const copyState = () => ({
+    text: state.text,
+    submitted: state.submitted,
+    ready: state.ready,
+  });
+
+  let lastSentSnapshot = copyState();
+
+  const statesEqual = (a, b) =>
+    Boolean(a) &&
+    Boolean(b) &&
+    a.text === b.text &&
+    a.submitted === b.submitted &&
+    a.ready === b.ready;
+
+  const flushState = () => {
+    if (!streamlitAdapter) {
+      return;
+    }
+    const snapshot = copyState();
+    if (statesEqual(snapshot, lastSentSnapshot)) {
+      return;
+    }
+    lastSentSnapshot = snapshot;
+    pushState(snapshot);
+  };
+
+  const sendState = (immediate) => {
+    if (!streamlitAdapter) {
+      return;
+    }
+    if (immediate) {
+      flushState();
+      return;
+    }
+    if (debounceHandle !== null) {
+      window.clearTimeout(debounceHandle);
+    }
+    debounceHandle = window.setTimeout(() => {
+      flushState();
+    }, debounceMs);
+  };
+
+  const syncReadyUi = () => {
+    rootNode.setAttribute("data-ready", state.ready ? "true" : "false");
+    if (inputWrap) {
+      const active = state.ready && acceptKeystrokes;
+      inputWrap.setAttribute("data-active", active ? "true" : "false");
+      inputWrap.setAttribute("aria-hidden", active ? "false" : "true");
+    }
+    if (input) {
+      if (state.ready && acceptKeystrokes) {
+        input.disabled = false;
+        input.setAttribute("aria-disabled", "false");
+        if (!wasReady && inputController) {
+          wasReady = true;
+          window.requestAnimationFrame(() => {
+            inputController.focusOnReady();
+          });
         }
-        return line.map((segment) => ({
-          t: coerceString(segment && segment.t, ""),
-          c: sanitizeClass(segment && segment.c),
-        }));
-      });
-    };
-
-    const sanitizeDeltaPayload = (rawDelta) => {
-      if (!rawDelta || typeof rawDelta !== "object") {
-        return null;
-      }
-      const action = coerceString(rawDelta.action, "").toLowerCase();
-      if (!action) {
-        return null;
-      }
-      const payload = { action };
-      if (action === "append" || action === "replace") {
-        const segments = sanitizeSegments(rawDelta.segments);
-        if (segments.length) {
-          payload.segments = segments;
-        }
-      }
-      const prefilled = coerceNumber(rawDelta.prefilledLineCount, NaN);
-      if (Number.isFinite(prefilled) && prefilled >= 0) {
-        payload.prefilledLineCount = prefilled;
-      }
-      const total = coerceNumber(rawDelta.totalLineCount, NaN);
-      if (Number.isFinite(total) && total >= 0) {
-        payload.totalLineCount = total;
-      }
-      return payload;
-    };
-
-    const buildEmptySegments = () => [];
-
-    const ensureRenderableSegments = (segments) =>
-      segments.length ? segments : buildEmptySegments();
-
-    const escapeHtml = (text) =>
-      coerceString(text, "")
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;");
-
-    const pushState = (state) => {
-      if (canSetValue) {
-        Streamlit.setComponentValue({ value: state });
-      }
-    };
-
-    const stableStringify = (value) => {
-      if (value === null || value === undefined) {
-        return "null";
-      }
-      if (typeof value !== "object") {
-        return JSON.stringify(value);
-      }
-      if (Array.isArray(value)) {
-        return `[${value.map((item) => stableStringify(item)).join(",")}]`;
-      }
-      const keys = Object.keys(value).sort();
-      const entries = keys.map(
-        (key) => `${JSON.stringify(key)}:${stableStringify(value[key])}`
-      );
-      return `{${entries.join(",")}}`;
-    };
-
-    const notifyResize = (height) => {
-      if (!canSetFrameHeight) {
-        return;
-      }
-      const coerced = Number(height);
-      if (Number.isFinite(coerced) && coerced > 0) {
-        Streamlit.setFrameHeight(coerced + 24);
       } else {
-        const fallbackHeight = document.body ? document.body.scrollHeight : 0;
-        Streamlit.setFrameHeight(fallbackHeight);
+        input.disabled = true;
+        input.setAttribute("aria-disabled", "true");
       }
-    };
+    }
+    scheduleResizeNotification();
+  };
 
-    const initializeTerminal = (rootNode, options) => {
-      let payload = options.payload || {};
-      const suffix = coerceString(payload.suffix, "");
-      if (!suffix) {
-        pushState(defaultState());
-        return null;
-      }
-
-      const pre = rootNode.querySelector(`.term-body-${suffix}`);
-      const caret = rootNode.querySelector(`.caret-${suffix}`);
-      const inputWrap =
-        rootNode.querySelector(
-          `.term-input-wrap-${suffix}:not([data-secondary="true"])`
-        ) || rootNode.querySelector(`.term-input-wrap-${suffix}`);
-      const input =
-        rootNode.querySelector(
-          `.term-input-${suffix}:not([data-secondary="true"])`
-        ) || rootNode.querySelector(`.term-input-${suffix}`);
-
-      const syncPayload = (nextPayload) => {
-        payload = nextPayload || {};
-        keepInputActive = Boolean(payload.keepInput);
-        const placeholderText = coerceString(payload.placeholder, "");
-        const inputLabel = coerceString(payload.inputLabel, "");
-        const inputAriaLabel = coerceString(payload.inputAriaLabel, "");
-        const inputHint = coerceString(payload.inputHint, "");
-        const inputId = coerceString(payload.inputId, "");
-        const inputHintId = coerceString(payload.inputHintId, "");
-        if (input) {
-          if (input.placeholder !== placeholderText) {
-            input.placeholder = placeholderText;
-          }
-          if (inputAriaLabel) {
-            input.setAttribute("aria-label", inputAriaLabel);
-          }
-          if (inputHintId) {
-            input.setAttribute("aria-describedby", inputHintId);
-          }
-          if (inputId) {
-            input.id = inputId;
-          }
-        }
-        if (inputWrap) {
-          const labelEl = inputWrap.querySelector(
-            `label.sr-only-${suffix}[for="${inputId}"]`
-          );
-          if (labelEl && labelEl.textContent !== inputLabel) {
-            labelEl.textContent = inputLabel;
-          }
-        }
-        if (inputHintId) {
-          const hintEl = rootNode.querySelector(`#${inputHintId}`);
-          if (hintEl && hintEl.textContent !== inputHint) {
-            hintEl.textContent = inputHint;
-          }
-        }
-      };
-
-      syncPayload(payload);
-
-      if (!pre) {
-        pushState(defaultState());
-        return null;
-      }
-
-      const controller = {
-        domId: coerceString(payload.domId, ""),
-        suffix,
-        destroy: () => {},
-        updateInputValue: () => {},
-        updateAcceptKeystrokes: () => {},
-        replaceSerializedSegments: () => {},
-        appendSerializedSegments: () => {},
-        getLineCount: () => 0,
-      };
-
-      const acceptOverride = options.acceptKeystrokes;
-      let acceptKeystrokes =
-        typeof acceptOverride === "boolean"
-          ? acceptOverride
-          : Boolean(payload.acceptKeystrokes);
-      const debounceMs = Math.max(0, coerceNumber(payload.debounceMs, 150));
-      let keepInputActive = Boolean(payload.keepInput);
-
-      const initialText = input
-        ? coerceString(payload.inputValue, input.value)
-        : coerceString(payload.inputValue, "");
-      if (input) {
-        input.value = initialText;
-      }
-
-      rootNode.style.minHeight = "";
-      rootNode.style.height = "";
-
-      const state = {
-        text: input ? coerceString(input.value, "") : initialText,
-        submitted: false,
-        ready: false,
-      };
-      let wasReady = false;
-      let debounceHandle = null;
-      let typingHandle = null;
-      let rafHandle = null;
-      let resizeNotifyRaf = null;
-      const cleanupFns = [];
-
-      const measureHeight = () => {
-        let height = 0;
-        if (typeof rootNode.getBoundingClientRect === "function") {
-          const rect = rootNode.getBoundingClientRect();
-          if (rect && Number.isFinite(rect.height) && rect.height > 0) {
-            height = rect.height;
-          }
-        }
-        if (!height && rootNode.scrollHeight) {
-          height = rootNode.scrollHeight;
-        }
-        if (!height && rootNode.offsetHeight) {
-          height = rootNode.offsetHeight;
-        }
-        return height;
-      };
-
-      const scheduleResizeNotification = () => {
-        if (resizeNotifyRaf !== null) {
-          return;
-        }
-        resizeNotifyRaf = window.requestAnimationFrame(() => {
-          resizeNotifyRaf = null;
-          const measuredHeight = measureHeight();
-          notifyResize(measuredHeight);
-        });
-      };
-
-      if (typeof window.ResizeObserver === "function") {
-        const resizeObserver = new window.ResizeObserver(() => {
-          scheduleResizeNotification();
-        });
-        resizeObserver.observe(rootNode);
-        cleanupFns.push(() => {
-          resizeObserver.disconnect();
-        });
-      } else {
-        const handleWindowResize = () => {
-          scheduleResizeNotification();
-        };
-        window.addEventListener("resize", handleWindowResize);
-        cleanupFns.push(() => {
-          window.removeEventListener("resize", handleWindowResize);
-        });
-      }
-
-      const copyState = () => ({
-        text: state.text,
-        submitted: state.submitted,
-        ready: state.ready,
-      });
-
-      let lastSentSnapshot = copyState();
-
-      const statesEqual = (a, b) =>
-        Boolean(a) &&
-        Boolean(b) &&
-        a.text === b.text &&
-        a.submitted === b.submitted &&
-        a.ready === b.ready;
-
-      const flushState = () => {
-        if (!canSetValue) {
-          return;
-        }
-        const snapshot = copyState();
-        if (statesEqual(snapshot, lastSentSnapshot)) {
-          return;
-        }
-        lastSentSnapshot = snapshot;
-        pushState(snapshot);
-      };
-
-      const sendState = (immediate) => {
-        if (immediate) {
-          flushState();
-          return;
-        }
-        if (!canSetValue) {
-          return;
-        }
-        if (debounceHandle !== null) {
-          window.clearTimeout(debounceHandle);
-        }
-        debounceHandle = window.setTimeout(() => {
-          flushState();
-        }, debounceMs);
-      };
-
-      const syncReadyUi = () => {
-        rootNode.setAttribute("data-ready", state.ready ? "true" : "false");
-        if (inputWrap) {
-          const active = state.ready && acceptKeystrokes;
-          inputWrap.setAttribute("data-active", active ? "true" : "false");
-          inputWrap.setAttribute("aria-hidden", active ? "false" : "true");
-        }
-        if (input) {
-          if (state.ready && acceptKeystrokes) {
-            input.disabled = false;
-            input.setAttribute("aria-disabled", "false");
-            if (!wasReady) {
-              wasReady = true;
-              window.requestAnimationFrame(() => {
-                try {
-                  input.focus({ preventScroll: true });
-                } catch (_err) {
-                  input.focus();
-                }
-              });
-            }
-          } else {
-            input.disabled = true;
-            input.setAttribute("aria-disabled", "true");
-          }
-        }
-        scheduleResizeNotification();
-      };
-
-      controller.updateAcceptKeystrokes = (value) => {
-        const next = Boolean(value);
-        if (next !== acceptKeystrokes) {
-          acceptKeystrokes = next;
-          syncReadyUi();
-        }
-      };
-
-      const setState = (updates, opts) => {
-        const immediate = Boolean(opts && opts.immediate);
-        const prevReady = state.ready;
-        if (updates && typeof updates === "object") {
-          if (
-            Object.prototype.hasOwnProperty.call(updates, "text") &&
-            typeof updates.text === "string"
-          ) {
-            state.text = updates.text;
-          }
-          if (
-            Object.prototype.hasOwnProperty.call(updates, "submitted") &&
-            typeof updates.submitted === "boolean"
-          ) {
-            state.submitted = updates.submitted;
-          }
-          if (
-            Object.prototype.hasOwnProperty.call(updates, "ready") &&
-            typeof updates.ready === "boolean"
-          ) {
-            state.ready = updates.ready;
-          }
-        }
-        if (prevReady !== state.ready) {
-          syncReadyUi();
-        }
-        sendState(immediate);
-      };
-
+  controller.updateAcceptKeystrokes = (value) => {
+    const next = Boolean(value);
+    if (next !== acceptKeystrokes) {
+      acceptKeystrokes = next;
       syncReadyUi();
-      sendState(true);
+    }
+  };
 
-      if (input) {
-        const handleInput = () => {
-          setState({ text: input.value, submitted: false });
-        };
-        const handleKeyDown = (event) => {
-          if (event.key === "Enter") {
-            event.preventDefault();
-            setState({ text: input.value, submitted: true }, { immediate: true });
-            window.setTimeout(() => {
-              setState({ submitted: false });
-            }, debounceMs);
-          }
-        };
-        const handleBlur = () => {
-          setState({ submitted: false });
-        };
-
-        input.addEventListener("input", handleInput);
-        input.addEventListener("keydown", handleKeyDown);
-        input.addEventListener("blur", handleBlur);
-
-        cleanupFns.push(() => {
-          input.removeEventListener("input", handleInput);
-          input.removeEventListener("keydown", handleKeyDown);
-          input.removeEventListener("blur", handleBlur);
-        });
-
-        controller.updateInputValue = (value) => {
-          const nextValue = coerceString(value, "");
-          if (input.value !== nextValue) {
-            input.value = nextValue;
-          }
-          state.text = coerceString(input.value, nextValue);
-        };
-      }
-
-      
-
-      const resolveTotalLineCount = (fallbackLength) => {
-        const reported = coerceNumber(payload.totalLineCount, NaN);
-        if (Number.isFinite(reported) && reported >= 0) {
-          return reported;
-        }
-        return fallbackLength;
-      };
-
-      let perLineSegs = ensureRenderableSegments(
-        sanitizeSegments(options.serializedSegments)
-      );
-      controller.getLineCount = () => perLineSegs.length;
-
-      let perLineSegmentHtml = [];
-      let perLineHtml = [];
-      let finalHtml = "";
-      let totalLines = 0;
-
-      const rebuildHtmlCaches = () => {
-        perLineSegmentHtml = perLineSegs.map((segments) =>
-          segments.map((segment) =>
-            segment && segment.c
-              ? `<span class="${segment.c}">${escapeHtml(segment.t)}</span>`
-              : escapeHtml(segment && segment.t)
-          )
-        );
-        perLineHtml = perLineSegmentHtml.map((parts) => parts.join(""));
-        finalHtml =
-          typeof payload.fullHtml === "string" && payload.fullHtml
-            ? payload.fullHtml
-            : perLineHtml.join("");
-        const resolvedTotal = resolveTotalLineCount(perLineSegs.length);
-        totalLines = Math.max(perLineSegs.length, resolvedTotal);
-      };
-
-      rebuildHtmlCaches();
-
-      let prefilledLineCount = 0;
-      let doneHtmlParts = [];
-
-      const renderDoneHtml = () => {
-        if (doneHtmlParts.length) {
-          pre.innerHTML = doneHtmlParts.join("");
-        } else {
-          pre.innerHTML = "";
-        }
-        scheduleResizeNotification();
-      };
-
-      const recomputePrefill = () => {
-        prefilledLineCount = Math.max(
-          0,
-          Math.min(totalLines, coerceNumber(payload.prefilledLineCount, 0))
-        );
-        doneHtmlParts =
-          prefilledLineCount > 0
-            ? perLineHtml.slice(0, prefilledLineCount)
-            : [];
-        renderDoneHtml();
-      };
-
-      recomputePrefill();
-
-      scheduleResizeNotification();
-
-      const mediaQuery =
-        typeof window.matchMedia === "function"
-          ? window.matchMedia("(prefers-reduced-motion: reduce)")
-          : null;
-      const prefersReduced = Boolean(mediaQuery && mediaQuery.matches);
-
-      let finished = false;
-      const finalizeTerminal = () => {
-        if (finished) {
-          return;
-        }
-        finished = true;
-        setState({ ready: true }, { immediate: true });
-        scheduleResizeNotification();
-      };
-
+  const setState = (updates, opts) => {
+    const immediate = Boolean(opts && opts.immediate);
+    const prevReady = state.ready;
+    if (updates && typeof updates === "object") {
       if (
-        prefersReduced ||
-        coerceNumber(payload.speedType, 0) === 0 ||
-        prefilledLineCount >= totalLines
+        Object.prototype.hasOwnProperty.call(updates, "text") &&
+        typeof updates.text === "string"
       ) {
-        pre.innerHTML = finalHtml;
-        scheduleResizeNotification();
-        if (caret) {
-          caret.style.display = "none";
-        }
-        finalizeTerminal();
-        controller.destroy = () => {
-          if (debounceHandle !== null) {
-            window.clearTimeout(debounceHandle);
-          }
-          if (typingHandle !== null) {
-            window.clearTimeout(typingHandle);
-          }
-          if (rafHandle !== null) {
-            window.cancelAnimationFrame(rafHandle);
-          }
-          cleanupFns.forEach((fn) => fn());
-        };
-        return controller;
+        state.text = updates.text;
       }
-
-      let typingConfig = options.typingConfig || {};
-      let typeDelay = 0;
-      let betweenLines = 0;
-
-      const applyTypingConfig = (config) => {
-        typingConfig = config && typeof config === "object" ? { ...config } : {};
-        typeDelay = Math.max(
-          0,
-          coerceNumber(typingConfig.speedType, payload.speedType || 0)
-        );
-        betweenLines = Math.max(
-          0,
-          coerceNumber(typingConfig.pauseBetween, payload.pauseBetween || 0)
-        );
-      };
-
-      applyTypingConfig(typingConfig);
-
-      let activeNode = null;
-      let lineIndex = prefilledLineCount;
-      let segmentIndex = 0;
-      let charIndex = 0;
-
-      const syncDoneHtml = () => {
-        renderDoneHtml();
-      };
-
-      const ensureActiveNode = () => {
-        if (activeNode) {
-          return activeNode;
-        }
-        const segments = perLineSegs[lineIndex] || [];
-        const current = segments[segmentIndex];
-        if (!current) {
-          return null;
-        }
-        if (current.c) {
-          const span = document.createElement("span");
-          span.className = current.c;
-          span.textContent = "";
-          pre.appendChild(span);
-          activeNode = span;
-        } else {
-          activeNode = document.createTextNode("");
-          pre.appendChild(activeNode);
-        }
-        return activeNode;
-      };
-
-      const commitActiveSegment = () => {
-        if (!activeNode) {
-          return;
-        }
-        if (activeNode.parentNode === pre) {
-          pre.removeChild(activeNode);
-        }
-        const segmentHtml =
-          (perLineSegmentHtml[lineIndex] || [])[segmentIndex] || "";
-        doneHtmlParts.push(segmentHtml);
-        activeNode = null;
-        syncDoneHtml();
-      };
-
-      const cancelTypingTimers = () => {
-        if (typingHandle !== null) {
-          window.clearTimeout(typingHandle);
-          typingHandle = null;
-        }
-        if (rafHandle !== null) {
-          window.cancelAnimationFrame(rafHandle);
-          rafHandle = null;
-        }
-      };
-
-      const resetTypingIndices = (startLine) => {
-        cancelTypingTimers();
-        if (activeNode && activeNode.parentNode === pre) {
-          pre.removeChild(activeNode);
-        }
-        activeNode = null;
-        lineIndex = Math.max(
-          0,
-          typeof startLine === "number" ? startLine : prefilledLineCount
-        );
-        segmentIndex = 0;
-        charIndex = 0;
-      };
-
-      const scheduleStep = (delay) => {
-        if (typingHandle !== null) {
-          window.clearTimeout(typingHandle);
-        }
-        typingHandle = window.setTimeout(step, Math.max(0, delay));
-      };
-
-      const step = () => {
-        if (lineIndex >= perLineSegs.length) {
-          syncDoneHtml();
-          if (caret) {
-            caret.style.display = "none";
-          }
-          finalizeTerminal();
-          return;
-        }
-
-        const segments = perLineSegs[lineIndex] || [];
-        const current = segments[segmentIndex];
-
-        if (!current) {
-          segmentIndex = 0;
-          lineIndex += 1;
-          scheduleStep(betweenLines);
-          return;
-        }
-
-        const target = coerceString(current.t, "");
-        if (charIndex < target.length) {
-          const node = ensureActiveNode();
-          if (node) {
-            const char = target.charAt(charIndex);
-            node.textContent = `${node.textContent || ""}${char}`;
-          }
-          charIndex += 1;
-          scheduleStep(typeDelay);
-          return;
-        }
-
-        commitActiveSegment();
-        segmentIndex += 1;
-        charIndex = 0;
-
-        if (segmentIndex >= segments.length) {
-          segmentIndex = 0;
-          lineIndex += 1;
-          scheduleStep(betweenLines);
-          return;
-        }
-
-        scheduleStep(typeDelay);
-      };
-
-      const beginTyping = (startLine) => {
-        resetTypingIndices(startLine);
-        finished = false;
-        if (caret) {
-          caret.style.display = payload.showCaret === false ? "none" : "inline-block";
-        }
-        rafHandle = window.requestAnimationFrame(step);
-      };
-
-      const markReadyFalse = (options = {}) => {
-        const preserveFocus = Boolean(
-          options && typeof options === "object" && options.preserveFocus
-        );
-        if (preserveFocus) {
-          return;
-        }
+      if (
+        Object.prototype.hasOwnProperty.call(updates, "submitted") &&
+        typeof updates.submitted === "boolean"
+      ) {
+        state.submitted = updates.submitted;
+      }
+      if (
+        Object.prototype.hasOwnProperty.call(updates, "ready") &&
+        typeof updates.ready === "boolean"
+      ) {
+        state.ready = updates.ready;
+      }
+    }
+    if (prevReady !== state.ready) {
+      if (!state.ready) {
         wasReady = false;
-        setState({ ready: false }, { immediate: true });
-      };
+      }
+      syncReadyUi();
+    }
+    sendState(immediate);
+  };
 
-      const completeImmediately = () => {
-        cancelTypingTimers();
-        doneHtmlParts = perLineHtml.slice();
-        renderDoneHtml();
-        if (caret) {
-          caret.style.display = "none";
-        }
-        lineIndex = perLineSegs.length;
-        segmentIndex = 0;
-        charIndex = 0;
-        finalizeTerminal();
-      };
+  const inputController = createInputController({
+    input,
+    inputWrap,
+    suffix,
+    initialText,
+    setState,
+    coerceString,
+    debounceMs,
+  });
 
-      const prepareUpdate = (updateOptions) => {
-        if (updateOptions && typeof updateOptions === "object") {
-          if (Object.prototype.hasOwnProperty.call(updateOptions, "payload")) {
-            syncPayload(updateOptions.payload);
-          }
-          if (
-            Object.prototype.hasOwnProperty.call(
-              updateOptions,
-              "acceptKeystrokes"
-            )
-          ) {
-            controller.updateAcceptKeystrokes(updateOptions.acceptKeystrokes);
-          }
-          if (
-            updateOptions.typingConfig &&
-            typeof updateOptions.typingConfig === "object"
-          ) {
-            applyTypingConfig(updateOptions.typingConfig);
-          } else {
-            applyTypingConfig(typingConfig);
-          }
-        } else {
-          applyTypingConfig(typingConfig);
-        }
-      };
+  if (inputController) {
+    cleanupFns.push(inputController.destroy);
+    controller.updateInputValue = (value) => {
+      inputController.updateInputValue(value);
+      state.text = coerceString(input ? input.value : value, "");
+    };
+  }
 
-      const toSegmentHtml = (segments) =>
-        segments.map((segment) =>
-          segment && segment.c
-            ? `<span class="${segment.c}">${escapeHtml(segment.t)}</span>`
-            : escapeHtml(segment && segment.t)
+  const syncPayload = (nextPayload) => {
+    payload = nextPayload && typeof nextPayload === "object" ? nextPayload : {};
+    keepInputActive = Boolean(payload.keepInput);
+    const placeholderText = coerceString(payload.placeholder, "");
+    const inputLabel = coerceString(payload.inputLabel, "");
+    const inputAriaLabel = coerceString(payload.inputAriaLabel, "");
+    const inputHint = coerceString(payload.inputHint, "");
+    const inputId = coerceString(payload.inputId, "");
+    const inputHintId = coerceString(payload.inputHintId, "");
+    if (inputController) {
+      inputController.syncAria({
+        placeholderText,
+        inputAriaLabel,
+        inputHintId,
+        inputHint,
+        inputId,
+        inputLabel,
+      });
+    } else if (input) {
+      if (input.placeholder !== placeholderText) {
+        input.placeholder = placeholderText;
+      }
+      if (inputAriaLabel) {
+        input.setAttribute("aria-label", inputAriaLabel);
+      }
+      if (inputHintId) {
+        input.setAttribute("aria-describedby", inputHintId);
+      }
+      if (inputId) {
+        input.id = inputId;
+      }
+      if (inputWrap) {
+        const labelEl = inputWrap.querySelector(
+          `label.sr-only-${suffix}[for="${inputId}"]`
         );
+        if (labelEl && labelEl.textContent !== inputLabel) {
+          labelEl.textContent = inputLabel;
+        }
+      }
+      if (inputHintId) {
+        const hintEl = document.getElementById(inputHintId);
+        if (hintEl && hintEl.textContent !== inputHint) {
+          hintEl.textContent = inputHint;
+        }
+      }
+    }
+  };
 
-      controller.replaceSerializedSegments = (rawSegments, updateOptions) => {
-        prepareUpdate(updateOptions);
-        let nextSegments = ensureRenderableSegments(
-          sanitizeSegments(rawSegments)
-        );
-        perLineSegs = nextSegments;
-        rebuildHtmlCaches();
-        recomputePrefill();
-        resetTypingIndices(prefilledLineCount);
-        scheduleResizeNotification();
-        if (
-          prefersReduced ||
-          coerceNumber(payload.speedType, 0) === 0 ||
-          prefilledLineCount >= totalLines
-        ) {
-          completeImmediately();
-          return;
-        }
-        markReadyFalse();
-        beginTyping(prefilledLineCount);
-      };
+  syncPayload(payload);
 
-      controller.appendSerializedSegments = (rawSegments, updateOptions) => {
-        prepareUpdate(updateOptions);
-        const newSegments = sanitizeSegments(rawSegments);
-        if (!newSegments.length) {
-          return;
-        }
-        const previousTotal = perLineSegs.length;
-        newSegments.forEach((segments) => {
-          perLineSegs.push(segments);
-          const htmlParts = toSegmentHtml(segments);
-          perLineSegmentHtml.push(htmlParts);
-          perLineHtml.push(htmlParts.join(""));
-        });
-        const resolvedTotal = resolveTotalLineCount(perLineSegs.length);
-        totalLines = Math.max(perLineSegs.length, resolvedTotal);
-        finalHtml =
-          typeof payload.fullHtml === "string" && payload.fullHtml
-            ? payload.fullHtml
-            : perLineHtml.join("");
-        scheduleResizeNotification();
-        if (prefersReduced || coerceNumber(payload.speedType, 0) === 0) {
-          completeImmediately();
-          return;
-        }
-        if (finished) {
-          doneHtmlParts = perLineHtml.slice(0, previousTotal);
-          renderDoneHtml();
-          markReadyFalse({ preserveFocus: keepInputActive });
-          beginTyping(previousTotal);
-        }
-      };
+  if (!pre) {
+    resetState();
+    return null;
+  }
 
-      controller.updatePayloadOnly = (updateOptions) => {
-        prepareUpdate(updateOptions);
-        scheduleResizeNotification();
-      };
+  const markReadyFalse = (options = {}) => {
+    const preserveFocus = Boolean(
+      options && typeof options === "object" && options.preserveFocus
+    );
+    if (preserveFocus) {
+      return;
+    }
+    wasReady = false;
+    setState({ ready: false }, { immediate: true });
+  };
 
-      markReadyFalse();
-      beginTyping(prefilledLineCount);
+  const getPayload = () => payload;
+  const setPayload = (nextPayload) => {
+    syncPayload(nextPayload);
+  };
 
-      controller.destroy = () => {
-        finished = true;
-        if (debounceHandle !== null) {
-          window.clearTimeout(debounceHandle);
-        }
-        if (typingHandle !== null) {
-          window.clearTimeout(typingHandle);
-        }
-        if (rafHandle !== null) {
-          window.cancelAnimationFrame(rafHandle);
-        }
-        if (resizeNotifyRaf !== null) {
-          window.cancelAnimationFrame(resizeNotifyRaf);
-          resizeNotifyRaf = null;
-        }
-        cleanupFns.forEach((fn) => fn());
-      };
+  const prefersReducedMotion = (() => {
+    if (typeof window.matchMedia === "function") {
+      const query = window.matchMedia("(prefers-reduced-motion: reduce)");
+      return Boolean(query && query.matches);
+    }
+    return false;
+  })();
 
-      return controller;
+  const typing = createTypingAnimator({
+    controller,
+    getPayload,
+    setPayload,
+    serializedSegments: options.serializedSegments || [],
+    typingConfig: options.typingConfig,
+    scheduleResizeNotification,
+    setReady: (ready, opts) => setState({ ready }, opts),
+    markReadyFalse,
+    keepInputActiveRef: () => keepInputActive,
+    pre,
+    caret,
+    prefersReducedMotion,
+    registerCleanup: (fn) => {
+      if (typeof fn === "function") {
+        cleanupFns.push(fn);
+      }
+    },
+  });
+
+  const controllerDestroy = typing.controller.destroy;
+
+  const finalController = {
+    ...typing.controller,
+    destroy: () => {
+      if (typeof controllerDestroy === "function") {
+        controllerDestroy();
+      } else {
+        typing.destroy();
+      }
+      if (debounceHandle !== null) {
+        window.clearTimeout(debounceHandle);
+      }
+      cleanupFns.forEach((fn) => fn());
+    },
+  };
+
+  syncReadyUi();
+  sendState(true);
+  typing.start();
+
+  return finalController;
+};
+
+let renderImpl = () => {};
+
+const render = (args) => {
+  renderImpl(args);
+};
+
+const bootstrap = (Streamlit, initialArgs) => {
+  streamlitAdapter = createStreamlitAdapter(Streamlit);
+
+  renderImpl = (args) => {
+    if (!root) {
+      resetState();
+      return;
+    }
+    const payload =
+      args.payload && typeof args.payload === "object"
+        ? { ...args.payload }
+        : {};
+    const serializedLines = Array.isArray(args.serializedLines)
+      ? args.serializedLines
+      : null;
+    const typingConfig =
+      args.typingConfig && typeof args.typingConfig === "object"
+        ? args.typingConfig
+        : {};
+    const markup = coerceString(args.markup, "");
+    const domId = coerceString(payload.domId, "");
+    const nextInputValue = coerceString(payload.inputValue, "");
+    const serializedSignature =
+      serializedLines !== null ? stableStringify(serializedLines) : null;
+    const rawDelta =
+      args.serializedDelta ||
+      (payload && typeof payload.lineDelta === "object"
+        ? payload.lineDelta
+        : null);
+    const lineDelta = sanitizeDeltaPayload(rawDelta);
+
+    if (!domId) {
+      if (activeController && typeof activeController.destroy === "function") {
+        activeController.destroy();
+      }
+      activeController = null;
+      mountedDomId = null;
+      mountedMarkupKey = null;
+      mountedMarkupSignature = null;
+      lastSerializedSignature = null;
+      resetState();
+      notifyResize(document.body ? document.body.scrollHeight : 0);
+      return;
+    }
+
+    const updateOptions = {
+      payload,
+      typingConfig,
+      acceptKeystrokes: args.acceptKeystrokes,
     };
 
-    const render = (args) => {
-      const payload =
-        args.payload && typeof args.payload === "object"
-          ? { ...args.payload }
-          : {};
-      const serializedLines = Array.isArray(args.serializedLines)
-        ? args.serializedLines
-        : null;
-      const typingConfig =
-        args.typingConfig && typeof args.typingConfig === "object"
-          ? args.typingConfig
-          : {};
-      const markup = coerceString(args.markup, "");
-      const domId = coerceString(payload.domId, "");
-      const nextInputValue = coerceString(payload.inputValue, "");
-      const serializedSignature =
-        serializedLines !== null ? stableStringify(serializedLines) : null;
-      // ``serializedDelta`` mirrors the Streamlit payload contract:
-      // { action: "append" | "replace" | "none", segments?: [...], ... }.
-      const rawDelta =
-        args.serializedDelta ||
-        (payload && typeof payload.lineDelta === "object"
-          ? payload.lineDelta
-          : null);
-      const lineDelta = sanitizeDeltaPayload(rawDelta);
+    const mountMarkupIfNeeded = () => {
+      const domChanged = mountedMarkupKey !== domId;
+      const signatureChanged = mountedMarkupSignature !== markup;
+      if (!domChanged && !signatureChanged) {
+        return false;
+      }
+      if (activeController && typeof activeController.destroy === "function") {
+        activeController.destroy();
+      }
+      activeController = null;
+      mountedDomId = null;
+      root.innerHTML = markup;
+      mountedMarkupKey = domId;
+      mountedMarkupSignature = markup;
+      return true;
+    };
 
-      if (!domId) {
-        if (activeController && typeof activeController.destroy === "function") {
-          activeController.destroy();
-        }
+    const createController = () => {
+      mountMarkupIfNeeded();
+      const terminalRoot = document.getElementById(domId);
+      if (!terminalRoot) {
+        resetState();
+        notifyResize(document.body ? document.body.scrollHeight : 0);
         activeController = null;
         mountedDomId = null;
         mountedMarkupKey = null;
         mountedMarkupSignature = null;
-        lastSerializedSignature = null;
-        pushState(defaultState());
-        notifyResize(document.body ? document.body.scrollHeight : 0);
         return;
       }
-
-      const updateOptions = {
+      const controller = initializeTerminal(terminalRoot, {
         payload,
+        serializedSegments: serializedLines || [],
         typingConfig,
         acceptKeystrokes: args.acceptKeystrokes,
-      };
-
-      const mountMarkupIfNeeded = () => {
-        const domChanged = mountedMarkupKey !== domId;
-        const signatureChanged = mountedMarkupSignature !== markup;
-        if (!domChanged && !signatureChanged) {
-          return false;
-        }
-        if (activeController && typeof activeController.destroy === "function") {
-          activeController.destroy();
-        }
+      });
+      if (!controller) {
+        resetState();
+        notifyResize(document.body ? document.body.scrollHeight : 0);
         activeController = null;
         mountedDomId = null;
-        root.innerHTML = markup;
-        mountedMarkupKey = domId;
-        mountedMarkupSignature = markup;
-        return true;
-      };
+        mountedMarkupKey = null;
+        mountedMarkupSignature = null;
+        return;
+      }
+      activeController = controller;
+      mountedDomId = domId;
+      lastSerializedSignature = serializedSignature;
+    };
 
-      const createController = () => {
-        mountMarkupIfNeeded();
-        const terminalRoot = document.getElementById(domId);
-        if (!terminalRoot) {
-          pushState(defaultState());
-          notifyResize(document.body ? document.body.scrollHeight : 0);
-          activeController = null;
-          mountedDomId = null;
-          mountedMarkupKey = null;
-          mountedMarkupSignature = null;
-          return;
-        }
-        const controller = initializeTerminal(terminalRoot, {
-          payload,
-          serializedSegments: serializedLines || [],
-          typingConfig,
-          acceptKeystrokes: args.acceptKeystrokes,
-        });
-        if (!controller) {
-          pushState(defaultState());
-          notifyResize(document.body ? document.body.scrollHeight : 0);
-          activeController = null;
-          mountedDomId = null;
-          mountedMarkupKey = null;
-          mountedMarkupSignature = null;
-          return;
-        }
-        activeController = controller;
-        mountedDomId = domId;
-        lastSerializedSignature = serializedSignature;
-      };
+    const markupRemounted = mountMarkupIfNeeded();
 
-      const markupRemounted = mountMarkupIfNeeded();
+    if (!activeController || mountedDomId !== domId) {
+      if (activeController && typeof activeController.destroy === "function") {
+        activeController.destroy();
+      }
+      activeController = null;
+      createController();
+    } else if (markupRemounted) {
+      createController();
+    } else if (activeController) {
+      if (
+        typeof activeController.updateInputValue === "function" &&
+        nextInputValue !== lastInputValue
+      ) {
+        activeController.updateInputValue(nextInputValue);
+      }
 
-      if (!activeController || mountedDomId !== domId) {
-        if (activeController && typeof activeController.destroy === "function") {
-          activeController.destroy();
+      const handleDeltaUpdate = () => {
+        if (!lineDelta || typeof lineDelta.action !== "string") {
+          return false;
         }
-        activeController = null;
-        createController();
-      } else if (markupRemounted) {
-        createController();
-      } else if (activeController) {
-        if (
-          typeof activeController.updateInputValue === "function" &&
-          nextInputValue !== lastInputValue
-        ) {
-          activeController.updateInputValue(nextInputValue);
-        }
-
-        const handleDeltaUpdate = () => {
-          if (!lineDelta || typeof lineDelta.action !== "string") {
+        const action = lineDelta.action;
+        if (action === "append") {
+          const segments = Array.isArray(lineDelta.segments)
+            ? lineDelta.segments
+            : [];
+          if (!segments.length) {
             return false;
           }
-          const action = lineDelta.action;
-          if (action === "append") {
-            const segments = Array.isArray(lineDelta.segments)
-              ? lineDelta.segments
-              : [];
-            if (!segments.length) {
-              return false;
-            }
-            activeController.appendSerializedSegments(segments, updateOptions);
-            return true;
+          activeController.appendSerializedSegments(segments, updateOptions);
+          return true;
+        }
+        if (action === "replace") {
+          let segments = Array.isArray(lineDelta.segments)
+            ? lineDelta.segments
+            : null;
+          if (!segments && serializedLines !== null) {
+            segments = serializedLines;
           }
-          if (action === "replace") {
-            let segments = Array.isArray(lineDelta.segments)
-              ? lineDelta.segments
-              : null;
-            if (!segments && serializedLines !== null) {
-              segments = serializedLines;
-            }
-            if (!segments) {
-              return false;
-            }
-            activeController.replaceSerializedSegments(segments, updateOptions);
-            return true;
+          if (!segments) {
+            return false;
           }
-          if (action === "none") {
-            if (typeof activeController.updatePayloadOnly === "function") {
-              activeController.updatePayloadOnly(updateOptions);
-            }
-            return true;
+          activeController.replaceSerializedSegments(segments, updateOptions);
+          return true;
+        }
+        if (action === "none") {
+          if (typeof activeController.updatePayloadOnly === "function") {
+            activeController.updatePayloadOnly(updateOptions);
           }
-          return false;
-        };
+          return true;
+        }
+        return false;
+      };
 
-        const deltaHandled = handleDeltaUpdate();
+      const deltaHandled = handleDeltaUpdate();
 
-        if (!deltaHandled) {
-          if (serializedLines !== null) {
-            const currentCount =
-              typeof activeController.getLineCount === "function"
-                ? activeController.getLineCount()
-                : 0;
-            const nextCount = serializedLines.length;
-
-            if (nextCount > currentCount) {
-              const delta = serializedLines.slice(currentCount);
-              activeController.appendSerializedSegments(delta, updateOptions);
-            } else if (nextCount < currentCount) {
-              activeController.replaceSerializedSegments(
-                serializedLines,
-                updateOptions
-              );
-            } else if (
-              serializedSignature &&
-              lastSerializedSignature &&
-              serializedSignature !== lastSerializedSignature
-            ) {
-              activeController.replaceSerializedSegments(
-                serializedLines,
-                updateOptions
-              );
-            } else if (
-              typeof activeController.updatePayloadOnly === "function"
-            ) {
-              activeController.updatePayloadOnly(updateOptions);
-            }
+      if (!deltaHandled) {
+        if (serializedLines !== null) {
+          const currentCount =
+            typeof activeController.getLineCount === "function"
+              ? activeController.getLineCount()
+              : 0;
+          const nextCount = serializedLines.length;
+          if (nextCount > currentCount) {
+            const delta = serializedLines.slice(currentCount);
+            activeController.appendSerializedSegments(delta, updateOptions);
+          } else if (nextCount < currentCount) {
+            activeController.replaceSerializedSegments(
+              serializedLines,
+              updateOptions
+            );
+          } else if (
+            serializedSignature &&
+            lastSerializedSignature &&
+            serializedSignature !== lastSerializedSignature
+          ) {
+            activeController.replaceSerializedSegments(
+              serializedLines,
+              updateOptions
+            );
           } else if (
             typeof activeController.updatePayloadOnly === "function"
           ) {
             activeController.updatePayloadOnly(updateOptions);
           }
+        } else if (typeof activeController.updatePayloadOnly === "function") {
+          activeController.updatePayloadOnly(updateOptions);
         }
+      }
 
-        if (deltaHandled) {
-          if (serializedSignature !== null) {
-            lastSerializedSignature = serializedSignature;
-          } else if (lineDelta && lineDelta.action !== "none") {
-            lastSerializedSignature = null;
-          }
-        } else {
+      if (deltaHandled) {
+        if (serializedSignature !== null) {
           lastSerializedSignature = serializedSignature;
+        } else if (lineDelta && lineDelta.action !== "none") {
+          lastSerializedSignature = null;
         }
+      } else {
+        lastSerializedSignature = serializedSignature;
       }
-
-      if (!activeController) {
-        mountedMarkupKey = null;
-        mountedDomId = null;
-        mountedMarkupSignature = null;
-      }
-
-      lastInputValue = nextInputValue;
-    };
-
-    const onRender = (event) => {
-      const detail = event.detail || {};
-      const args = detail.args || {};
-      render(args);
-    };
-
-    if (canListen && renderEvent) {
-      Streamlit.events.addEventListener(renderEvent, onRender);
-    } else if (initialArgs) {
-      render(initialArgs);
-    } else {
-      document.addEventListener("DOMContentLoaded", () => {
-        render({});
-      });
     }
 
-    if (canSetReady) {
-      Streamlit.setComponentReady();
+    if (!activeController) {
+      mountedMarkupKey = null;
+      mountedDomId = null;
+      mountedMarkupSignature = null;
     }
-    notifyResize(document.body ? document.body.scrollHeight : 0);
+
+    lastInputValue = nextInputValue;
   };
 
-  const startWhenStreamlitReady = () => {
-    const Streamlit = resolveStreamlit();
-    if (!Streamlit) {
-      window.setTimeout(startWhenStreamlitReady, 50);
-      return;
-    }
-    bootstrap(Streamlit, null);
-  };
+  streamlitAdapter.registerRenderHandler(renderImpl, initialArgs);
+  streamlitAdapter.setComponentReady();
+  notifyResize(document.body ? document.body.scrollHeight : 0);
+};
 
-  startWhenStreamlitReady();
-})();
+const startWhenStreamlitReady = () => {
+  const Streamlit = resolveStreamlit();
+  if (!Streamlit) {
+    window.setTimeout(startWhenStreamlitReady, 50);
+    return;
+  }
+  bootstrap(Streamlit, null);
+};
+
+startWhenStreamlitReady();
+
+export { initializeTerminal, render };
