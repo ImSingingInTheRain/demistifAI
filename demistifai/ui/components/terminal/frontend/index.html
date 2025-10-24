@@ -1,27 +1,13 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
   <head>
-    <meta charset="utf-8" />
-    <title>Interactive Terminal Component</title>
+    <meta charset="UTF-8" />
+    <title>DemistifAI Terminal</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <style>
-      html, body {
-        margin: 0;
-        padding: 0;
-        background: transparent;
-      }
-    </style>
   </head>
   <body>
     <div id="root"></div>
     <script src="./streamlit-component-lib.v1.7.0.js"></script>
-    <script>
-      if (!window.streamlit_component_lib || !window.streamlit_component_lib.Streamlit) {
-        const fallback = document.createElement("script");
-        fallback.src = "https://unpkg.com/streamlit-component-lib@1.7.0/dist/index.js";
-        document.head.appendChild(fallback);
-      }
-    </script>
-    <script src="./terminal.js"></script>
+    <script type="module" src="./terminal.js"></script>
   </body>
 </html>
