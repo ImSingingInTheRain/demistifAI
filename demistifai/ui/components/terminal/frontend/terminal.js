@@ -66,6 +66,32 @@
       });
     };
 
+    const sanitizeDeltaPayload = (rawDelta) => {
+      if (!rawDelta || typeof rawDelta !== "object") {
+        return null;
+      }
+      const action = coerceString(rawDelta.action, "").toLowerCase();
+      if (!action) {
+        return null;
+      }
+      const payload = { action };
+      if (action === "append" || action === "replace") {
+        const segments = sanitizeSegments(rawDelta.segments);
+        if (segments.length) {
+          payload.segments = segments;
+        }
+      }
+      const prefilled = coerceNumber(rawDelta.prefilledLineCount, NaN);
+      if (Number.isFinite(prefilled) && prefilled >= 0) {
+        payload.prefilledLineCount = prefilled;
+      }
+      const total = coerceNumber(rawDelta.totalLineCount, NaN);
+      if (Number.isFinite(total) && total >= 0) {
+        payload.totalLineCount = total;
+      }
+      return payload;
+    };
+
     const fallbackSegmentsFromLines = (lines, suffix) =>
       lines.map((line) => {
         const trimmed = line.trim();
@@ -823,7 +849,7 @@
           : {};
       const serializedLines = Array.isArray(args.serializedLines)
         ? args.serializedLines
-        : [];
+        : null;
       const typingConfig =
         args.typingConfig && typeof args.typingConfig === "object"
           ? args.typingConfig
@@ -831,7 +857,16 @@
       const markup = coerceString(args.markup, "");
       const domId = coerceString(payload.domId, "");
       const nextInputValue = coerceString(payload.inputValue, "");
-      const serializedSignature = stableStringify(serializedLines);
+      const serializedSignature =
+        serializedLines !== null ? stableStringify(serializedLines) : null;
+      // ``serializedDelta`` mirrors the Streamlit payload contract:
+      // { action: "append" | "replace" | "none", segments?: [...], ... }.
+      const rawDelta =
+        args.serializedDelta ||
+        (payload && typeof payload.lineDelta === "object"
+          ? payload.lineDelta
+          : null);
+      const lineDelta = sanitizeDeltaPayload(rawDelta);
 
       if (!domId) {
         if (activeController && typeof activeController.destroy === "function") {
@@ -884,7 +919,7 @@
         }
         const controller = initializeTerminal(terminalRoot, {
           payload,
-          serializedSegments: serializedLines,
+          serializedSegments: serializedLines || [],
           typingConfig,
           acceptKeystrokes: args.acceptKeystrokes,
         });
@@ -913,29 +948,69 @@
       } else if (markupRemounted) {
         createController();
       } else if (activeController) {
-          if (
-            typeof activeController.updateInputValue === "function" &&
-            nextInputValue !== lastInputValue
-          ) {
-            activeController.updateInputValue(nextInputValue);
+        if (
+          typeof activeController.updateInputValue === "function" &&
+          nextInputValue !== lastInputValue
+        ) {
+          activeController.updateInputValue(nextInputValue);
+        }
+
+        const handleDeltaUpdate = () => {
+          if (!lineDelta || typeof lineDelta.action !== "string") {
+            return false;
           }
+          const action = lineDelta.action;
+          if (action === "append") {
+            const segments = Array.isArray(lineDelta.segments)
+              ? lineDelta.segments
+              : [];
+            if (!segments.length) {
+              return false;
+            }
+            activeController.appendSerializedSegments(segments, updateOptions);
+            return true;
+          }
+          if (action === "replace") {
+            let segments = Array.isArray(lineDelta.segments)
+              ? lineDelta.segments
+              : null;
+            if (!segments && serializedLines !== null) {
+              segments = serializedLines;
+            }
+            if (!segments) {
+              return false;
+            }
+            activeController.replaceSerializedSegments(segments, updateOptions);
+            return true;
+          }
+          if (action === "none") {
+            if (typeof activeController.updatePayloadOnly === "function") {
+              activeController.updatePayloadOnly(updateOptions);
+            }
+            return true;
+          }
+          return false;
+        };
 
-          const currentCount =
-            typeof activeController.getLineCount === "function"
-              ? activeController.getLineCount()
-              : 0;
-          const nextCount = serializedLines.length;
+        const deltaHandled = handleDeltaUpdate();
 
-          if (nextCount > currentCount) {
-            const delta = serializedLines.slice(currentCount);
-            activeController.appendSerializedSegments(delta, updateOptions);
-          } else if (nextCount < currentCount) {
-            activeController.replaceSerializedSegments(
-              serializedLines,
-              updateOptions
-            );
-          } else {
-            if (
+        if (!deltaHandled) {
+          if (serializedLines !== null) {
+            const currentCount =
+              typeof activeController.getLineCount === "function"
+                ? activeController.getLineCount()
+                : 0;
+            const nextCount = serializedLines.length;
+
+            if (nextCount > currentCount) {
+              const delta = serializedLines.slice(currentCount);
+              activeController.appendSerializedSegments(delta, updateOptions);
+            } else if (nextCount < currentCount) {
+              activeController.replaceSerializedSegments(
+                serializedLines,
+                updateOptions
+              );
+            } else if (
               serializedSignature &&
               lastSerializedSignature &&
               serializedSignature !== lastSerializedSignature
@@ -949,7 +1024,20 @@
             ) {
               activeController.updatePayloadOnly(updateOptions);
             }
+          } else if (
+            typeof activeController.updatePayloadOnly === "function"
+          ) {
+            activeController.updatePayloadOnly(updateOptions);
           }
+        }
+
+        if (deltaHandled) {
+          if (serializedSignature !== null) {
+            lastSerializedSignature = serializedSignature;
+          } else if (lineDelta && lineDelta.action !== "none") {
+            lastSerializedSignature = null;
+          }
+        } else {
           lastSerializedSignature = serializedSignature;
         }
       }

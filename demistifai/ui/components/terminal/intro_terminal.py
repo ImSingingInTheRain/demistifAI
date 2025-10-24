@@ -165,6 +165,17 @@ def render_interactive_intro_terminal(
             prefilled_line_count = inferred_prefill_index
             session.set_prefilled_line_count(inferred_prefill_index)
 
+    line_delta_hint: Optional[dict[str, object]]
+    if previous_signature is None:
+        line_delta_hint = {"action": "replace", "lines": list(lines)}
+    elif previous_signature == current_signature:
+        line_delta_hint = {"action": "none"}
+    elif len(previous_signature) <= len(current_signature) and current_signature[: len(previous_signature)] == previous_signature:
+        appended = list(lines[len(previous_signature) :])
+        line_delta_hint = {"action": "append", "lines": appended} if appended else {"action": "none"}
+    else:
+        line_delta_hint = {"action": "replace", "lines": list(lines)}
+
     component_payload = render_interactive_terminal(
         suffix=_TERMINAL_SUFFIX,
         lines=lines,
@@ -176,6 +187,7 @@ def render_interactive_intro_terminal(
         show_caret=True,
         value=persisted_text,
         prefilled_line_count=prefilled_line_count,
+        line_delta=line_delta_hint,
     )
 
     session.set_lines_signature(current_signature)

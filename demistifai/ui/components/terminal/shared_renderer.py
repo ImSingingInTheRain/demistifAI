@@ -24,6 +24,7 @@ class TerminalRenderBundle:
     payload: dict[str, Any]
     serializable_segments: List[SerializableSegment]
     terminal_style: str
+    line_delta: Optional[dict[str, Any]]
 
 
 def _build_terminal_style(suffix: str) -> str:
@@ -261,11 +262,10 @@ def _build_terminal_markup(
     payload: dict[str, Any],
     suffix: str,
     terminal_style: str,
-    normalized_lines: Sequence[str],
     show_caret: bool,
     secondary_inputs: Optional[Sequence[dict[str, str]]] = None,
+    noscript_fallback: str = "Enable JavaScript to view the terminal output.",
 ) -> str:
-    final_text = "".join(normalized_lines)
     caret_display = "inline-block" if show_caret else "none"
     accept_keystrokes = "true" if payload.get("acceptKeystrokes") else "false"
     input_placeholder = _escape_attr(str(payload.get("placeholder", "")))
@@ -344,7 +344,7 @@ def _build_terminal_markup(
 
             <noscript>
               <div class="terminal-$suffix">
-                <pre class="term-body-$suffix">$final_text</pre>
+                <pre class="term-body-$suffix">$noscript_fallback</pre>
               </div>
             </noscript>
             """
@@ -354,7 +354,6 @@ def _build_terminal_markup(
         terminal_style=terminal_style,
         suffix=suffix,
         caret_display=caret_display,
-        final_text=final_text,
         dom_id=payload["domId"],
         accept_keystrokes=accept_keystrokes,
         input_placeholder=input_placeholder,
@@ -364,6 +363,7 @@ def _build_terminal_markup(
         input_id=input_id,
         input_hint_id=input_hint_id,
         secondary_markup=secondary_markup,
+        noscript_fallback=_escape_text(noscript_fallback),
     )
 
 
@@ -383,7 +383,19 @@ def build_terminal_render_bundle(
     secondary_inputs: Optional[Sequence[str]] = None,
     input_text: Optional[str] = None,
     prefilled_line_count: Optional[int] = None,
+    line_delta: Optional[dict[str, Any]] = None,
 ) -> TerminalRenderBundle:
+    """Return the render-time bundle for terminal views.
+
+    ``line_delta`` allows callers to describe how ``lines`` changed compared to
+    the previous render. Supported actions are ``"append"`` (new trailing
+    lines), ``"replace"`` (structure changed, send fresh content), and
+    ``"none"`` (no updates). When provided, the hint is exposed to the
+    frontend via ``payload["lineDelta"]`` and ``TerminalRenderBundle.line_delta``
+    so the browser can stream compact updates instead of remounting the DOM.
+    ``"append"`` and ``"replace"`` may include ``"lines"`` or pre-split
+    ``"segments"`` entries matching ``serializable_segments``.
+    """
     style = terminal_style or _build_terminal_style(suffix)
     normalized_lines = _normalize_lines(lines)
     segments = _compute_segment_payload(lines, suffix)
@@ -401,7 +413,7 @@ def build_terminal_render_bundle(
             candidate = 0
         clamped_prefilled_count = max(0, min(candidate, total_lines))
 
-    payload = {
+    payload: dict[str, Any] = {
         "lines": list(lines),
         "fullHtml": full_html,
         "speedType": max(0, int(speed_type_ms)),
@@ -457,19 +469,88 @@ def build_terminal_render_bundle(
         payload["inputValue"] = str(input_text)
     if prefilled_line_count is not None:
         payload["prefilledLineCount"] = clamped_prefilled_count
+    noscript_fallback = (
+        "Enable JavaScript to view the terminal output and terminal narration."
+    )
+
+    def _coerce_line_delta_segments(raw: Any) -> Optional[List[SerializableSegment]]:
+        if not isinstance(raw, list):
+            return None
+        sanitized: List[SerializableSegment] = []
+        for entry in raw:
+            if not isinstance(entry, list):
+                continue
+            serialised: SerializableSegment = []
+            for segment in entry:
+                if isinstance(segment, dict):
+                    text_value = segment.get("t", "")
+                    css_value = segment.get("c")
+                else:
+                    text_value = ""
+                    css_value = None
+                serialised.append(
+                    {
+                        "t": str(text_value),
+                        "c": None if css_value in {None, ""} else str(css_value),
+                    }
+                )
+            sanitized.append(serialised)
+        return sanitized or None
+
+    line_delta_payload: Optional[dict[str, Any]] = None
+    if isinstance(line_delta, dict):
+        action_raw = str(line_delta.get("action", "")).strip().lower()
+        if action_raw in {"append", "replace", "none"}:
+            candidate: dict[str, Any] = {"action": action_raw}
+            if action_raw != "none":
+                raw_segments = line_delta.get("segments")
+                segments_from_lines: Optional[List[SerializableSegment]] = None
+                if raw_segments is None and "lines" in line_delta:
+                    delta_lines = list(line_delta.get("lines") or [])
+                    delta_payload = _compute_segment_payload(delta_lines, suffix)
+                    segments_from_lines = [
+                        [{"t": text, "c": css} for text, css in parts]
+                        for parts in delta_payload
+                    ]
+                normalized_segments = _coerce_line_delta_segments(
+                    raw_segments if raw_segments is not None else segments_from_lines
+                )
+                if normalized_segments is None and action_raw == "replace":
+                    normalized_segments = serializable_segments
+                if normalized_segments:
+                    candidate["segments"] = normalized_segments
+            if "prefilledLineCount" in line_delta:
+                try:
+                    candidate["prefilledLineCount"] = max(
+                        0, int(line_delta.get("prefilledLineCount"))
+                    )
+                except (TypeError, ValueError):
+                    pass
+            if "totalLineCount" in line_delta:
+                try:
+                    candidate["totalLineCount"] = max(
+                        0, int(line_delta.get("totalLineCount"))
+                    )
+                except (TypeError, ValueError):
+                    pass
+            line_delta_payload = candidate
+    if line_delta_payload:
+        payload["lineDelta"] = line_delta_payload
+
     markup = _build_terminal_markup(
         payload=payload,
         suffix=suffix,
         terminal_style=style,
-        normalized_lines=normalized_lines,
         show_caret=show_caret,
         secondary_inputs=secondary_payloads,
+        noscript_fallback=noscript_fallback,
     )
     return TerminalRenderBundle(
         markup=markup,
         payload=payload,
         serializable_segments=serializable_segments,
         terminal_style=style,
+        line_delta=line_delta_payload,
     )
 
 
@@ -505,6 +586,7 @@ def make_terminal_renderer(
             key=key,
             show_caret=show_caret,
             terminal_style=terminal_style,
+            line_delta={"action": "replace", "lines": lines},
         )
 
         components_html(bundle.markup, height=800)
