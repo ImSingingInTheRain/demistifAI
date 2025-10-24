@@ -8,8 +8,6 @@
   const resolveStreamlit = () =>
     window.Streamlit || window.streamlit_component_lib?.Streamlit || null;
 
-  let bootstrapped = false;
-
   const bootstrap = (Streamlit, initialArgs) => {
     let activeController = null;
     let mountedDomId = null;
@@ -975,38 +973,14 @@
     notifyResize(document.body ? document.body.scrollHeight : 0);
   };
 
-  const tryInlineBootstrap = () => {
-    if (bootstrapped) {
-      return true;
-    }
-    const inlineProps = window.__STREAMLIT_TERMINAL_PROPS__;
-    if (!inlineProps) {
-      return false;
-    }
-    try {
-      delete window.__STREAMLIT_TERMINAL_PROPS__;
-    } catch (_err) {
-      window.__STREAMLIT_TERMINAL_PROPS__ = null;
-    }
-    bootstrapped = true;
-    bootstrap(null, inlineProps);
-    return true;
-  };
-
-  const pollForStreamlit = () => {
-    if (bootstrapped) {
-      return;
-    }
+  const startWhenStreamlitReady = () => {
     const Streamlit = resolveStreamlit();
     if (!Streamlit) {
-      window.setTimeout(pollForStreamlit, 50);
+      window.setTimeout(startWhenStreamlitReady, 50);
       return;
     }
-    bootstrapped = true;
     bootstrap(Streamlit, null);
   };
 
-  if (!tryInlineBootstrap()) {
-    pollForStreamlit();
-  }
+  startWhenStreamlitReady();
 })();
