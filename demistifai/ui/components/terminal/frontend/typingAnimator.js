@@ -283,12 +283,17 @@ export const createTypingAnimator = ({
     recalcTypingTimings();
   };
 
-  const prepareUpdate = (updateOptions) => {
+  const prepareUpdate = (updateOptions, options = {}) => {
+    const refreshOnPayload = Boolean(
+      options && typeof options === "object" && options.refreshOnPayload
+    );
     if (updateOptions && typeof updateOptions === "object") {
       if (Object.prototype.hasOwnProperty.call(updateOptions, "payload")) {
         setPayload(updateOptions.payload);
         payload = getPayload();
-        refreshCaches();
+        if (refreshOnPayload) {
+          refreshCaches();
+        }
       }
       if (
         Object.prototype.hasOwnProperty.call(updateOptions, "acceptKeystrokes") &&
@@ -310,7 +315,7 @@ export const createTypingAnimator = ({
   };
 
   const replaceSerializedSegments = (rawSegments, updateOptions) => {
-    prepareUpdate(updateOptions);
+    prepareUpdate(updateOptions, { refreshOnPayload: true });
     perLineSegs = ensureRenderableSegments(sanitizeSegments(rawSegments));
     rebuildHtmlCaches();
     recomputePrefill();
@@ -326,7 +331,7 @@ export const createTypingAnimator = ({
   };
 
   const appendSerializedSegments = (rawSegments, updateOptions) => {
-    prepareUpdate(updateOptions);
+    prepareUpdate(updateOptions, { refreshOnPayload: true });
     const newSegments = sanitizeSegments(rawSegments);
     if (!newSegments.length) {
       return;
