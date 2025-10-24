@@ -75,6 +75,7 @@ def render_interactive_terminal(
     value: Optional[str] = None,
     prefilled_line_count: Optional[int] = None,
     line_delta: Optional[dict[str, Any]] = None,
+    keep_input_active: bool = False,
 ) -> Optional[dict[str, Any]]:
     """Render the interactive terminal custom component.
 
@@ -86,7 +87,9 @@ def render_interactive_terminal(
     actions are ``"append"`` (only new lines at the tail), ``"replace"``
     (structure changed, resend everything) and ``"none"`` (content unchanged).
     The helper forwards these hints so the browser can avoid remounting the
-    terminal DOM and only stream the changed segments.
+    terminal DOM and only stream the changed segments. ``keep_input_active``
+    can be set when scripted responses append new lines and the terminal input
+    should remain focused.
     """
 
     placeholder_text = str(placeholder or "")
@@ -105,6 +108,7 @@ def render_interactive_terminal(
         input_text=value,
         prefilled_line_count=prefilled_line_count,
         line_delta=line_delta,
+        keep_input_active=keep_input_active,
     )
 
     typing_config = {

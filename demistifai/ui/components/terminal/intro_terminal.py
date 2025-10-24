@@ -129,6 +129,7 @@ def render_interactive_intro_terminal(
     ready = session.ready
     previous_signature = session.lines_signature
     current_signature = tuple(lines)
+    keep_input_active = session.consume_input_focus_request()
 
     pending_component_state = st.session_state.get(component_key)
     pending_component_ready = False
@@ -188,6 +189,7 @@ def render_interactive_intro_terminal(
         value=persisted_text,
         prefilled_line_count=prefilled_line_count,
         line_delta=line_delta_hint,
+        keep_input_active=keep_input_active,
     )
 
     session.set_lines_signature(current_signature)
@@ -226,12 +228,13 @@ def render_interactive_intro_terminal(
                         *_SHOW_MISSION_RESPONSE_LINE,
                     ],
                     prefill_line_count=rendered_line_count,
+                    keep_input_active=True,
                 )
-            session.reset_for_animation()
-            ready = session.ready
+            session.request_input_focus()
         elif text_value == "start":
             command = IntroTerminalCommand.START
             session.preserve_input(component_text)
+            session.request_input_focus()
 
     session.set_ready(ready)
     return command, ready

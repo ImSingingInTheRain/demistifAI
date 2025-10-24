@@ -160,6 +160,7 @@
 
       const syncPayload = (nextPayload) => {
         payload = nextPayload || {};
+        keepInputActive = Boolean(payload.keepInput);
         const placeholderText = coerceString(payload.placeholder, "");
         const inputLabel = coerceString(payload.inputLabel, "");
         const inputAriaLabel = coerceString(payload.inputAriaLabel, "");
@@ -220,6 +221,7 @@
           ? acceptOverride
           : Boolean(payload.acceptKeystrokes);
       const debounceMs = Math.max(0, coerceNumber(payload.debounceMs, 150));
+      let keepInputActive = Boolean(payload.keepInput);
 
       const initialText = input
         ? coerceString(payload.inputValue, input.value)
@@ -696,7 +698,13 @@
         rafHandle = window.requestAnimationFrame(step);
       };
 
-      const markReadyFalse = () => {
+      const markReadyFalse = (options = {}) => {
+        const preserveFocus = Boolean(
+          options && typeof options === "object" && options.preserveFocus
+        );
+        if (preserveFocus) {
+          return;
+        }
         wasReady = false;
         setState({ ready: false }, { immediate: true });
       };
@@ -796,7 +804,7 @@
         if (finished) {
           doneHtmlParts = perLineHtml.slice(0, previousTotal);
           renderDoneHtml();
-          markReadyFalse();
+          markReadyFalse({ preserveFocus: keepInputActive });
           beginTyping(previousTotal);
         }
       };

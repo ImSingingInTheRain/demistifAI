@@ -384,6 +384,7 @@ def build_terminal_render_bundle(
     input_text: Optional[str] = None,
     prefilled_line_count: Optional[int] = None,
     line_delta: Optional[dict[str, Any]] = None,
+    keep_input_active: bool = False,
 ) -> TerminalRenderBundle:
     """Return the render-time bundle for terminal views.
 
@@ -395,6 +396,9 @@ def build_terminal_render_bundle(
     so the browser can stream compact updates instead of remounting the DOM.
     ``"append"`` and ``"replace"`` may include ``"lines"`` or pre-split
     ``"segments"`` entries matching ``serializable_segments``.
+
+    ``keep_input_active`` propagates a hint to keep the terminal input focused
+    while streaming appended scripted responses.
     """
     style = terminal_style or _build_terminal_style(suffix)
     normalized_lines = _normalize_lines(lines)
@@ -470,6 +474,8 @@ def build_terminal_render_bundle(
         payload["inputValue"] = str(input_text)
     if prefilled_line_count is not None:
         payload["prefilledLineCount"] = clamped_prefilled_count
+    if keep_input_active:
+        payload["keepInput"] = True
     noscript_fallback = (
         "Enable JavaScript to view the terminal output and terminal narration."
     )
